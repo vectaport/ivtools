@@ -80,7 +80,8 @@ void Parser::init() {
     __lexscan_last_tokend = 0;
     __lexscan_last_toktype = TOK_NONE;
 
-    /* zero the backup parse state so save_parser_client() can't alias this parser's ParenStack onto a previous client's; NULL makes parser() allocate its own. */
+    /* zero the backup parse state so save_parser_client() can't alias this
+       parser's ParenStack onto a previous client's; NULL allocates its own */
     _expecting = 0;
     _ParenStack = NULL;
     _TopOfParenStack = -1;
@@ -97,7 +98,8 @@ void Parser::init() {
     for (int i=0; i<OPTYPE_NUM; i++)
       _NextOp_ids[i] = 0;
 
-    /* the operator table is legitimately shared, so take the current values rather than emptying them */
+    /* the operator table is legitimately shared, so take the current
+       values rather than emptying them */
     _opr_tbl_ptr = opr_tbl_ptr_get();
     _opr_tbl_numop = opr_tbl_numop_get();
     _opr_tbl_maxop = opr_tbl_maxop_get();
@@ -234,7 +236,8 @@ void Parser::check_parser_client(boolean restore) {
       for (int i=0; i<OPTYPE_NUM; i++)
 	NextOp_ids[i] = _NextOp_ids[i];
     }
-    /* skip restoring the operator table on a parser's first parse, or it would undo an optable(:insert) made since construction (e.g. %%). */
+    /* skip restoring the operator table on a parser's first parse, or
+       it would undo an optable(:insert) made since construction (e.g. %%). */
     if (_linenum != 0) {
       opr_tbl_ptr_set(_opr_tbl_ptr);
       opr_tbl_numop_set(_opr_tbl_numop);

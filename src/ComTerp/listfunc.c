@@ -149,9 +149,11 @@ void ListFunc::execute() {
     } else if (nargs())
       avl->Append(new AttributeValue(listv));
   }
-  /* no manual Resource::ref(avl) here -- the ComValue ctor already refs the list; an extra ref would leak an AttributeValueList per list() call */
+  /* no manual Resource::ref(avl) here -- the ComValue ctor already refs it;
+     an extra ref would leak an AttributeValueList per list() call */
   ComValue retval(avl);
-  /* list(:colon) -- an empty coloned() list, useful as a starting point for a colon-chain built up elsewhere that still wants to read as coloned() once populated */
+  /* list(:colon) -- an empty coloned() list, a colon-chain placeholder,
+     built elsewhere, still reading as coloned() once populated */
   if (colonflag)
     retval.coloned(1);
   push_stack(retval);
@@ -180,10 +182,12 @@ void ListAtFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
-  /* :raw is accepted but currently a no-op -- nothing below dispatches on coloned(), so a coloned index reads as an ordinary array index either way */
+  /* :raw is accepted but a no-op -- nothing dispatches on coloned(),
+     so a coloned index reads as an ordinary array index either way */
   (void)rawflag;
 
-  /* str@lo:hi builds a slice sharing str's own symid via an offset/length window (sliceoff/slicelen); hi is exclusive, Go-style, and slicing a plain list is unsupported and falls through to nil */
+  /* str@lo:hi builds a slice sharing str's symid via sliceoff/slicelen;
+     hi is exclusive, Go-style; slicing a plain list falls through to nil */
   if (listv.is_only_string() && nv.is_type(ComValue::ArrayType) && nv.coloned()) {
     AttributeValueList* range = nv.array_val();
     boolean forwrite = comterp()->stack_top(nkeys()+1).lhs_assign();
@@ -196,12 +200,14 @@ void ListAtFunc::execute() {
       if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType) {
         int lo = loval.int_val();
         int hi = hival.int_val();
-        /* slicing a slice: bound against listv's own window and compose the new offset onto it, so a re-slice can't read past listv's own end into the parent */
+        /* slicing a slice bounds against listv's own window;
+           the offset composes onto it, staying off the parent */
         int base = listv.sliced() ? listv.sliceoff() : 0;
         int cap = listv.sliced() ? listv.slicelen() : symbol_len(listv.string_val());
         if (lo>=0 && hi>=lo && hi<=cap) {
           retval = ComValue(listv.string_val(), ComValue::StringType);
-          /* the (unsigned int, ValueType) ctor doesn't ref, unlike (int, ValueType) -- without ref_as_needed(), listv's destructor unrefs the symid this slice still points at */
+          /* this ctor doesn't ref, unlike (int, ValueType);
+             ref_as_needed() stops listv's dtor unrefing the symid */
           retval.ref_as_needed();
           retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
@@ -214,18 +220,21 @@ void ListAtFunc::execute() {
     return;
   }
 
-  /* a list has no position in it and int_val() answers 0 for one, so a list-valued index would wrongly read as index 0 -- say nil instead until list-as-gather semantics are decided */
+  /* a list has no position, and int_val() answers 0 for one,
+     so a list index misreads as 0; nil until gather semantics land */
   if (nv.is_array()) {
     reset_stack();
     push_stack(ComValue::nullval());
     return;
   }
 
-  /* lst@N=val: AssignFunc flags lhs_assign() on this token, so hand back a [list, idx] pair instead of a bare value, then re-drive with :set; guarded non-negative since a negative index here is always "-N" and trips a stack-corruption bug elsewhere in the dispatch path */
+  /* lst@N=val: lhs_assign() on this token means hand back [list, idx],
+     not a value, then re-drive via :set; index must be non-negative */
   if ((listv.is_type(ComValue::ArrayType) || listv.is_only_string()) &&
       (nv.is_nil() || nv.int_val()>=0) &&
       comterp()->stack_top(nkeys()+1).lhs_assign()) {
-    /* a string takes the same route since s@N='c' has somewhere to write; is_only_string(), not is_string(), keeps a symbol out since its text is its identity */
+    /* a string takes the same route since s@N='c' has somewhere to write;
+       is_only_string(), not is_string() -- symbol text is its identity */
     int nvv;
     if (listv.is_only_string()) {
       const char* str = listv.string_ptr();
@@ -275,7 +284,8 @@ void ListAtFunc::execute() {
 	push_stack(insv);
 	return;
       } else if (setflag) {
-	/* nvv, not nv.int_val(): a nil index means the last item, same as every other branch here */
+	/* nvv, not nv.int_val(): a nil index means the last item,
+	   same as every other branch here */
 	if (value_contains_container(setv, (void*)avl, false)) {
 	  fprintf(stderr, "WARNING: refusing to insert a list into itself -- line %d\n",
 		  funcstate()->linenum());
@@ -328,7 +338,8 @@ void ListAtFunc::execute() {
 	    }
 	    *attr->Value() = setv;
 	  }
-	  /* return a detached single-entry attrlist, e.g. (:y 20), not a live Attribute* handle, since al@n=val must never write through */
+	  /* return a detached single-entry attrlist, e.g. (:y 20),
+	     not a live handle, since al@n=val must never write through */
 	  AttributeList* singleton = new AttributeList();
 	  singleton->add_attribute(new Attribute(attr->SymbolId(), new AttributeValue(*attr->Value())));
 	  ComValue retval(AttributeList::class_symid(), (void*)singleton);
@@ -340,11 +351,13 @@ void ListAtFunc::execute() {
     }
   } else if (listv.is_string()) {
     const char* str = listv.string_ptr();
-    /* a sliced listv indexes relative to its own window into the shared parent buffer; bounds check against symbol_len(), not strlen(), since a fresh string(cap) buffer is all NUL */
+    /* a sliced listv indexes via its own window into the parent buffer;
+       bound by symbol_len(), not strlen() -- string(cap) starts all NUL */
     boolean isslice = listv.sliced();
     int base = isslice ? listv.sliceoff() : 0;
     int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
-    /* nil means the last logical character: the slice's own last index when sliced, otherwise the parent's strlen()-based last character */
+    /* nil means the last character: the slice's last index when sliced,
+       otherwise the parent's strlen()-based last character */
     int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
     if(!setflag) {
       if(nvv>=0 && nvv<cap) {
@@ -353,7 +366,8 @@ void ListAtFunc::execute() {
         return;
       }
     } else if (listv.is_only_string()) {
-      /* is_string() is StringType||SymbolType, but a symbol's characters are its identity, so writing here would edit the symbol out from under every value sharing it */
+      /* is_string() also matches symbols, whose chars are their identity,
+         so writing here would edit every value sharing the symbol */
       if(nvv<cap && nvv>=0) {
 	*((char *)str+base+nvv) = setv.char_val();
 	ComValue retval(setv);
@@ -379,7 +393,8 @@ void ListSizeFunc::execute() {
     if (avl) {
       ComValue retval(avl->Number());
       push_stack(retval);
-      /* echo the count wrapped in the delimiter of whatever was counted -- {n} for a list -- so the readings of size() are told apart on sight */
+      /* wrap the count in the counted value's delimiter, {n} for a list,
+         so the readings of size() are told apart on sight */
       comterp()->stack_top().wrapper(AttributeValue::BraceWrapper);
       return;			  
     }
@@ -392,7 +407,8 @@ void ListSizeFunc::execute() {
       return;			  
     }
   } else if (listv.is_string() || listv.is_symbol()) {
-    /* a slice's own length, not its shared parent's -- strlen() would run past the slice's window into the parent */
+    /* a slice's own length, not its shared parent's --
+       strlen() would run past the slice's window into the parent */
     int len = listv.sliced() ? listv.slicelen() : (int)strlen(listv.symbol_ptr());
     ComValue retval(len, ComValue::IntType);
     push_stack(retval);
@@ -459,11 +475,13 @@ ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ColonListFunc::execute() {
-  /* symbol=true: eager like any other operator, but a bare identifier operand is captured as its own unresolved symbol rather than looked up */
+  /* symbol=true: eager like any other operator,
+     but a bare identifier arrives as its own symbol, not looked up */
   ComValue lo(stack_arg(0, true));
   ComValue hi(stack_arg(1, true));
   reset_stack();
-  /* chained ':' flattens rather than nests (1:2:3 -> {1,2,3}, not {{1,2},3}); guarded by nested_insert(), same as TupleFunc, since flattening in place is unsafe onto a list another variable still points at */
+  /* chained ':' flattens, not nests (1:2:3 -> {1,2,3}, not {{1,2},3});
+     guarded by nested_insert(), like TupleFunc; unsafe on shared lists */
   if (lo.is_array() && lo.coloned() && !lo.array_val()->nested_insert()) {
     AttributeValueList* avl = lo.array_val();
     avl->Append(new AttributeValue(hi));
@@ -519,7 +537,8 @@ void ListIndexFunc::execute() {
 	  eqfunc.exec(2,0);
 	  match =  comterp()->pop_stack().is_true();
 	} else {
-	  /* cstr(), not string_ptr() -- testv or valv can each independently be a slice, and string_ptr() would search the whole shared parent instead of just its own window */
+	  /* cstr(), not string_ptr() -- testv or valv can each be a slice,
+	     string_ptr() would search the whole parent, not just its window */
 	  std::string tscratch, vscratch;
 	  ComValue testcv(*testv);
 	  match = strstr(testcv.cstr(tscratch), valv.cstr(vscratch)) != NULL;
@@ -542,7 +561,8 @@ void ListIndexFunc::execute() {
       };
       
   } else if (listorstrv.is_string()) {
-      /* cstr(), not string_ptr() -- listorstrv can be a slice; the returned index stays relative to the slice's own window, same convention split()/at() use */
+      /* cstr(), not string_ptr() -- listorstrv can be a slice;
+         the index stays within the slice's window, same as split()/at() */
       std::string sscratch;
       const char* string = listorstrv.cstr(sscratch);
 

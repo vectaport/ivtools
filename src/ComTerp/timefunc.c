@@ -158,14 +158,16 @@ void TimeFunc::execute() {
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
-  /* the bare call is reserved for a future TimeObj return; answering a plain number now would entrench the wrong type */
+  /* the bare call is reserved for a future TimeObj return;
+     answering a plain number now would entrench the wrong type */
   if (!anykey) {
     std::cout << "WARNING:  time() without a keyword is reserved for a TimeObj return, not yet implemented -- use time(:raw) for the epoch reading or time(:mono) for a monotonic one -- line " << linenum << "\n";
     push_stack(ComValue::nullval());
     return;
   }
 
-  /* CLOCK_REALTIME is a comparable wall-clock date but can step backwards; CLOCK_MONOTONIC (:mono) is epoch-less but safe for measuring intervals */
+  /* CLOCK_REALTIME is a comparable wall-clock date but can step backwards;
+     CLOCK_MONOTONIC (:mono) is epoch-less but safe for measuring intervals */
   struct timespec ts;
   clock_gettime(monov.is_true() ? CLOCK_MONOTONIC : CLOCK_REALTIME, &ts);
   long sec = (long)ts.tv_sec;

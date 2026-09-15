@@ -51,7 +51,8 @@ HelpFunc::HelpFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void HelpFunc::execute() {
-  // print list of commands if no arguments given, otherwise print the document string for each command/string/symbol arg on the stack
+  // print list of commands if no arguments given, otherwise print
+  // the document string for each command/string/symbol arg on the stack
   static int all_symid = symbol_add("all");
   ComValue allflag(stack_key(all_symid));
 
@@ -70,7 +71,8 @@ void HelpFunc::execute() {
   boolean* str_flags;
   int nfuncs = 0;
 
-  /* help(f) for a bare, unfired FuncObj; parallel to comfuncs[]/command_ids[] but only populated in the ordinary branch, since a FuncObj is never a registered command. */
+  /* help(f) for a bare, unfired FuncObj; parallel to comfuncs[]/command_ids[] but
+     only populated in the ordinary branch, since a FuncObj is never a registered command. */
   ComValue* funcobj_help = nil;
 
   /* build up table of command ids and flags to indicate if its an operator encased in quotes */
@@ -83,7 +85,8 @@ void HelpFunc::execute() {
     funcobj_help = new ComValue[nfuncs];
 
     for (int i=0; i<nfuncs; i++) {
-      /* stack_arg(i, true) reads symbol-preserving, so a bare FuncObj argument reaches the SymbolType branch below completely unfired. */
+      /* stack_arg(i, true) reads symbol-preserving, so a bare FuncObj
+         argument reaches the SymbolType branch below completely unfired. */
       ComValue val = stack_arg(i, true);
       if (val.is_type(AttributeValue::CommandType)) {
 	comfuncs[i] = (ComFunc*)val.obj_val();
@@ -103,7 +106,8 @@ void HelpFunc::execute() {
 	comfuncs[i] = nil;
 	if (val.is_type(AttributeValue::SymbolType)) {
 	  command_ids[i] = val.symbol_val();
-	  /* lookup_symval is a pure symbol-table read, so it's safe to check what val names without firing it. */
+	  /* lookup_symval is a pure symbol-table read,
+	     so it's safe to check what val names without firing it. */
 	  ComValue resolved(comterp()->lookup_symval(val));
 	  if (resolved.is_object(FuncObj::class_symid()))
 	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val());
@@ -193,7 +197,8 @@ void HelpFunc::execute() {
 	  first = false;
 	else
 	  *out << '\n';
-	/* lead with the name the caller asked about, so a funcobj signature reads like a call site (gcd(arg0 arg1)), since a funcobj itself is nameless. */
+	/* lead with the name the caller asked about, so a funcobj signature
+	   reads like a call site (gcd(arg0 arg1)), since a funcobj itself is nameless. */
 	*out << symbol_pntr(command_ids[i]);
 	*out << funcobj_help[i].string_ptr();
 	printed = true;
@@ -207,7 +212,8 @@ void HelpFunc::execute() {
 	  else
 	    *out << '\n';
 	  {
-	    // BUFSIZ is only 1024 on this platform, too small for a verbose docstring; this buffer affects only help()'s own rendering.
+	    // BUFSIZ is only 1024 on this platform, too small for a verbose docstring;
+	    // this buffer affects only help()'s own rendering.
 	    char buffer[8192];
 	    if (comfuncs[i]->docstring2()!=NULL) {
 	      strncpy(buffer, comfuncs[i]->docstring2(), sizeof(buffer)-1);
@@ -320,7 +326,8 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
   static int table_symid = symbol_add("table");
   ComValue tableflag(stack_key(table_symid));
 
-  /* live operator-table editing: the change takes effect for the next parsed expression, like a func definition. */
+  /* live operator-table editing: the change takes
+     effect for the next parsed expression, like a func definition. */
   static int insert_symid = symbol_add("insert");
   ComValue insertflag(stack_key(insert_symid));
   static int delete_symid = symbol_add("delete");
@@ -341,7 +348,8 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
 
   reset_stack();
 
-  /* optable("%%" "replay" :insert [:pri N] [:rtol] [:prefix|:postfix]) or optable("%%" :delete ...) -- returns 1 on success, effective next expression. */
+  /* optable("%%" "replay" :insert [:pri N] [:rtol] [:prefix|:postfix]) or
+     optable("%%" :delete ...) -- returns 1 on success, effective next expression. */
   if (insertflag.is_true() || deleteflag.is_true()) {
     if (!opstrv.is_string()) {
       fprintf(stderr, "optable: :insert/:delete needs an operator string\n");
@@ -371,7 +379,8 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
     return;
   }
 
-  /* :table's contract is natural table order when no sort flag is given at all, so track that explicitly rather than defaulting sort to OPBY_PRIORITY. */
+  /* :table's contract is natural table order when no sort flag is given at all,
+     so track that explicitly rather than defaulting sort to OPBY_PRIORITY. */
   boolean sort_requested = bypriflag.is_true() || bycomflag.is_true() || byoprflag.is_true();
   int sort = OPBY_PRIORITY;
   if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
@@ -391,7 +400,8 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
 
     unsigned n = opr_tbl_numop_get();
 
-    /* opr_tbl_insert keeps the table sorted by operator string, so :byopr's order is already natural; only :bypri/:bycom need an explicit reorder here. */
+    /* opr_tbl_insert keeps the table sorted by operator string, so :byopr's order is
+       already natural; only :bypri/:bycom need an explicit reorder here. */
     int* indirect = new int[n];
     for (unsigned i = 0; i < n; i++) indirect[i] = i;
     if (sort_requested && sort != OPBY_OPERATOR) {

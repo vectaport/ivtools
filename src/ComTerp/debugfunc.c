@@ -117,11 +117,13 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
       cvect.push_back(ch);
     } while (in.good() && ch != '\n');
     if (!in.good()) {
-      /* stdin exhausted or errored (e.g. non-interactive -runfile) -- treat EOF like an explicit C/R instead of spinning forever */
+      /* stdin exhausted or errored (e.g. non-interactive -runfile) --
+         treat EOF like an explicit C/R instead of spinning forever */
       cerr << (stepfunc() ? "step(" : "pause(") << comterp()->npause()
 	   << "): stdin closed/exhausted -- continuing without further input\n";
       if (stepfunc() && comterp()->stepflag()) {
-	/* step() re-enters this pause machinery every statement; with stdin gone, fall out of step mode entirely instead */
+	/* step() re-enters this pause machinery every statement;
+	   with stdin gone, fall out of step mode entirely instead */
 	cerr << "step(" << comterp()->npause()
 	     << "): turning off step mode (no interactive input left to serve it)\n";
 	comterp()->stepflag() = false;

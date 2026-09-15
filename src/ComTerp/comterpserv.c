@@ -129,7 +129,8 @@ void ComTerpServ::load_string(const char* expr) {
     _instr_eof = false;
     _instr_final = true; // runfile() overrides this after calling in, since it reloads one line at a time
 
-    /* grow _instr/_outstr (doubling) so the string plus a trailing newline and null always fit; keep _linesize in step with the buffers. */
+    /* grow _instr/_outstr (doubling), keeping _linesize in step with them,
+       so the string plus a trailing newline and null always fit */
     int len = strlen(expr);
     if (len+2 > _linesize) {
 	while (_linesize < len+2) _linesize *= 2;
@@ -282,7 +283,8 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
   /* save enough state as needed by this interpreter */
     push_servstate();
-    /* mark running for the duration so a reactor event during a nested handle_events() can't free this live comterp_ out from under runfile(). */
+    /* mark comterp_ running to protect it across this call,
+       so a nested handle_events() reactor event can't free it */
     int old_runflag = running();
     running(true);
     _inptr = this;
@@ -300,7 +302,8 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
       running(old_runflag);
       return -1;
     }
-    /* line buffer grows on demand (doubling) for long lines, replacing the old fixed BUFSIZ*BUFSIZ buffer. */
+    /* line buffer grows on demand (doubling) for long lines,
+       replacing the old fixed BUFSIZ*BUFSIZ buffer. */
     int inbufsiz = _linesize;
     char* inbuf = new char[inbufsiz];
     inbuf[0] = '\0';
@@ -314,16 +317,19 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     int tokoff = _pfoff;
 
     int last_status = 0;
-    /* tracks whether the last thing parsed was left incomplete; inbuf can't serve since the EOF-probe pass clears it first. */
+    /* tracks whether the last thing parsed was left incomplete;
+       inbuf can't serve since the EOF-probe pass clears it first. */
     boolean pending_incomplete_expr = false;
-    /* true when the parser's buffer still holds a second, unconsumed statement from this physical line; if so, parse from it instead of fetching a new line. */
+    /* true when the parser's buffer still holds a second statement;
+       if so, parse from it instead of fetching a new line. */
     boolean reuse_buffer = false;
     while( reuse_buffer || !feof(ifptr) ) {
 #if defined(TIMING_TEST)
         static struct timeval tvBefore, tvAfter, tvParse, tvConvert, tvDiff;
 #endif
         if (!reuse_buffer) {
-            /* read a complete line, doubling inbuf for long lines so an expression isn't split at the buffer boundary */
+            /* read a complete line, doubling inbuf for long lines
+               so an expression isn't split at the buffer boundary */
             *inbuf='\0';
             int rlen=0;
             for (;;) {
@@ -341,7 +347,8 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	    if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
 	      break;
         }
-        /* drain a leftover orphaned stream from the previous statement now that a next statement is confirmed, since draining fires visible side effects that must not interleave with it. */
+        /* drain a leftover orphaned stream before the next statement runs,
+           since draining fires side effects that must not interleave */
         if (retval && retval->is_stream() && retval->stream_list() &&
             retval->stream_list()->refcount_==1) {
           orphan_stream_count(*retval);
@@ -414,7 +421,8 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 		  } while (stack_top().is_known());
 		  pop_stack();
 		} else {
-		  /* save last thing on stack; the previous statement's orphaned-stream drain already happened at the top of this iteration. */
+		  /* save last thing on stack;
+		     the previous statement's stream drain already ran this loop */
 		  if(retval) delete retval;
 		  retval = new ComValue(pop_stack());
 		}
@@ -434,10 +442,12 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	   // if (ofptr != stdout) fclose(ofptr);
 	   pending_incomplete_expr = false;  // a real parser error, not accumulation
 	 } else if (_pfnum > 0) {
-	   /* read_expr() wants more input; remember via _pfnum>0, since a comment-only or blank line resets _pfnum to 0 and must not look like a dangling expression. */
+	   /* read_expr() wants more input; flagged via _pfnum>0,
+	      unlike a comment-only or blank line, which resets it to 0 */
 	   pending_incomplete_expr = true;
 	 }
-	 /* else: a comment-only or blank line parsed to nothing; leave pending_incomplete_expr as it was. */
+	 /* else: a comment-only or blank line parsed to nothing;
+	    leave pending_incomplete_expr as it was. */
 	}
     {
 	unsigned p = _bufptr;
@@ -451,7 +461,8 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
         *inbuf = '\0';
         parser_reset();
 
-        /* drain COMERR_SET1's error here, or it outlives runfile() and gets misattributed to the next err_str() call, leaving a stray unpopped stack value. */
+        /* drain COMERR_SET1's error here, or it outlives runfile()
+           and taints the next err_str() call with a stray value */
         char eofbuf[BUFSIZ];
         char location[BUFSIZ];
         snprintf(location, BUFSIZ, "error in %s:%d", filename, _linenum);
@@ -490,7 +501,8 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     push_servstate();
     _pfcomvals = nil;
 
-    /* mark running for the duration so a reactor event during a nested handle_events() can't free the live interpreter under this eval loop. */
+    /* mark running to protect the interpreter across this call,
+       so a nested handle_events() reactor event can't free it */
     int old_runflag = running();
     running(true);
 
@@ -534,14 +546,16 @@ ComValue ComTerpServ::run_one_span(postfix_token* tokens, int ntokens) {
     _pfnum = ntokens;
     _pfoff = 0;
 
-    /* same running() bracket as run(const char*) above, protecting these pre-parsed tokens during a nested handle_events() (the drawserv dist-command path). */
+    /* same running() bracket as run(const char*) above,
+       protecting these tokens from a nested handle_events() (drawserv) */
     int old_runflag = running();
     running(true);
     eval_expr(/*nested=*/1);
     running(old_runflag);
     err_str(_errbuf, BUFSIZ, "comterp");
 
-    /* pop unconditionally -- an error still pushes a result the normal way, so skipping the pop would desync _stack_top; only the returned value depends on whether there was an error. */
+    /* pop unconditionally: an error still pushes a result normally;
+       skipping desyncs _stack_top; only the value depends on the error */
     ComValue popped(pop_stack());
     ComValue retval(*_errbuf ? ComValue::nullval() : popped);
     delete _pfbuf;
@@ -550,7 +564,8 @@ ComValue ComTerpServ::run_one_span(postfix_token* tokens, int ntokens) {
     _pfoff = 0;
     pop_servstate();
 
-    /* returnflag() is deliberately left as eval_expr() left it, so run_funcobj_body() can see whether this span returned before running a FuncObj's later spans. */
+    /* returnflag() is left as eval_expr() left it,
+       so run_funcobj_body() can skip later spans if this one returned */
     return retval;
 }
 

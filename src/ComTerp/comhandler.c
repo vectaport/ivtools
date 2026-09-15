@@ -187,12 +187,14 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	return 0;
     }
 
-    /* this handler assembles its own line and evaluates it from a string, so the lexer's terminal hooks don't apply; hold echo across the evaluation and hand it back below. */
+    /* this handler builds and evaluates its own line,
+       so terminal hooks don't apply -- hold echo, restore it below */
     if (fd == 0) tty_echo_hold();
 
     if (!ComterpHandler::logger_mode() && !log_only()) {
 
-      /* typed input can arrive while a script is already suspended on this interpreter (e.g. a -runfile for-loop pumping the reactor); when re-entrant, run *nested* and save/restore stack height and _just_reset so the suspended script sees no trace of this eval. */
+      /* typed input can arrive while a script is suspended (re-entrant);
+         run nested, saving/restoring stack height and _just_reset */
       boolean reentrant = comterp_->running();
       int stack_base = 0;
       boolean old_just_reset = false;
@@ -221,12 +223,14 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	comterp_->pop_servstate();
       } else if (comterp_->force_nested())
 	ComValue retval(comterp_->pop_stack(false));
-      /* delete_later() is for the outermost active context; when re-entrant, the suspended outer script still holds this interpreter live, so leave the flag set and let that frame delete it. */
+      /* delete_later() targets the outermost context; when re-entrant,
+         the suspended script owns it -- leave deletion to that frame */
       if (!reentrant && comterp_->delete_later()) {
 	delete comterp_;
 	comterp_ = nil;
       }
-      /* this handler reads via read(), so the lexer's before-read hook never runs and echo must be restored here explicitly, or typing goes invisible (ttyecho.c). */
+      /* reading via read() skips the lexer's before-read hook;
+         restore echo here, or typing goes invisible (ttyecho.c) */
       { int staying = input_good && (status==0||status==3||status==2);
         if (fd == 0) {
           if (staying) tty_echo_before_read();

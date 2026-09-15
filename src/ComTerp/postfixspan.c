@@ -80,12 +80,14 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
     unsigned type = toks[i].type;
 
     if (type == TOK_BLANK) {
-        /* A matched-parens boundary (e.g. the ")" closing "(a+b)") is not a value of its own; pushing a leaf span here would orphan the group's content and confuse the consuming command */
+        /* A matched-parens boundary (e.g. the ")" closing "(a+b)") is not a value
+           on its own; a leaf span here would orphan the group's content, confusing the consumer */
         return;
     }
 
     if (type == TOK_KEYWORD) {
-        /* A keyword marker's narg is 0 (bare flag) or 1 (keyword+value); combine marker + bound value (if any) into one span so it's consumed as a single operand */
+        /* A keyword marker's narg is 0 (bare flag) or 1 (keyword+value); combine
+           marker + bound value (if any) into one span, consumed as a single operand */
         int n = toks[i].narg;
         int start = i;
         if (n > 0) {
@@ -100,7 +102,8 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
         int nkey = toks[i].nkey;
         int narg = toks[i].narg;
 
-        /* Keywords are pushed last (positionals-first-then-keywords, per parser invariant), so they're popped first; copy each sub-group out to its own heap array before the next pop_into_consumed reuses _consumed's low indices */
+        /* Keywords push last (positionals then keywords), so they pop
+           first; copy each sub-group out before pop_into_consumed reuses _consumed's low indices */
         int keyword_val_total = 0;
         Span* keygroups = nkey > 0 ? new Span[nkey] : nil;
         int nkeygroups = 0;
@@ -109,7 +112,8 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
             for (int k = 0; k < nkey; k++) {
                 keygroups[nkeygroups++] = _consumed[k];
             }
-            /* bound_value_count lived on the stack Entry, not the Span -- recover it from the marker token at each span's last index */
+            /* bound_value_count lived on the stack Entry, not the Span --
+               recover it from the marker token at each span's last index */
             for (int k = 0; k < nkey; k++) {
                 int markeridx = keygroups[k].start + keygroups[k].count - 1;
                 keyword_val_total += toks[markeridx].narg;
@@ -127,7 +131,8 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
             }
         }
 
-        /* Public consumed() order: plain positionals first, then keyword groups; ensure room for BOTH combined, since the pop_into_consumed calls above each only sized for their own count */
+        /* Public consumed() order: plain positionals first, then keyword groups;
+           reserve room for BOTH: each earlier pop_into_consumed call sized only for its own count */
         ensure_consumed_capacity(nposgroups + nkeygroups);
         _consumed_count = 0;
         int start = i;
@@ -148,6 +153,7 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
         return;
     }
 
-    /* Leaf: a literal value token (int, string, etc) or TOK_BLANK -- just itself, no operands */
+    /* Leaf: a literal value token (int, string, etc) or TOK_BLANK --
+       just itself, no operands */
     push(Span{i, 1}, 0);
 }

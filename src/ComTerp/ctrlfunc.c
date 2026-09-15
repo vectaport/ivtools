@@ -426,7 +426,8 @@ void PatchKeyFunc::execute() {
     ComValue commitidv(stack_key(commitid_sym));
     reset_stack();
 
-    /* :commitid resolves a key's git tag to its commit id; branch on type rather than is_true(), since a StringType's truthiness doesn't mean "was a key supplied". */
+    /* :commitid resolves a key's git tag to its commit id; branch on
+       type, not is_true() -- a String's truthiness isn't "key given" */
     const char* key = nil;
     if (commitidv.type() == ComValue::StringType || commitidv.type() == ComValue::SymbolType)
 	key = commitidv.string_ptr();
@@ -434,7 +435,8 @@ void PatchKeyFunc::execute() {
 	key = PATCH_KEY;
 
     if (key) {
-	/* a caller-supplied key is reachable over the socket interface, so reject it outright if it holds anything outside a real tag's charset, closing the shell-injection path below. */
+	/* a caller-supplied key is reachable over the socket, so reject it outright
+	   if it holds anything outside a real tag's charset, closing the shell-injection path. */
 	static const char* key_charset =
 	    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 	if (key[0] == '\0' || strspn(key, key_charset) != strlen(key)) {
@@ -442,12 +444,14 @@ void PatchKeyFunc::execute() {
 	    return;
 	}
 
-	/* shell_string() called directly; an empty result means unresolved (not an error), and stderr goes to /dev/null so a failed lookup doesn't leak git's diagnostics. */
+	/* shell_string() called directly; an empty result means unresolved (not an error),
+	   and stderr goes to /dev/null so a failed lookup doesn't leak git's diagnostics. */
 	char cmdbuf[BUFSIZ];
 	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
-	    /* git rev-list's --abbrev is a minimum, not fixed, length, so truncate the full SHA in C to a consistent 8 characters instead. */
+	    /* git rev-list's --abbrev is a minimum, not fixed, length,
+	       so truncate the full SHA in C to a consistent 8 characters instead. */
 	    char shortid[9];
 	    snprintf(shortid, sizeof(shortid), "%.8s", commitid);
 	    ComValue keyv(shortid);
@@ -504,7 +508,8 @@ NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void NilFunc::execute() {
-    /* re-check the command name by symbol here, since token_to_comvalue froze it at conversion time; if it now names a FuncObj, dispatch to it, else fall through and return nil. */
+    /* re-check the command by symbol, since token_to_comvalue froze it
+       at conversion time; dispatch to it if now a FuncObj, else nil */
     static int nil_symid = symbol_add("nil");
     int comm_symid = funcstate()->command_symid();
     if (comm_symid && comm_symid != nil_symid) {
@@ -514,7 +519,8 @@ void NilFunc::execute() {
 	FuncObj* target_fo = (FuncObj*)target.obj_val();
 	int n = nargsfixed();
 	if (target_fo->posteval()) {
-	  /* :posteval target -- bookmark each pending arg's unevaluated span and hand fire_funcobj the markers directly; each is pulled on demand from inside the fired body. */
+	  /* :posteval target -- bookmark each pending arg's span and hand
+	     fire_funcobj the markers, pulled on demand in the fired body */
 	  ComValue* posvals = bookmark_stack_arg_post_eval_nargsfixed();
 	  AttributeList* keys = bookmark_stack_keys_post_eval();
 	  reset_stack();
@@ -524,10 +530,12 @@ void NilFunc::execute() {
 	  delete keys;  /* copied into fire_funcobj's own AttributeList; we own it */
 	  return;
 	}
-	/* batch post-eval, not per-i/per-id: each call re-reads stack_top() as its anchor, which a prior result's push_stack() would already have clobbered. */
+	/* batch post-eval, not per-i/per-id: each call re-reads stack_top() as its anchor,
+	   which a prior result's push_stack() would already have clobbered. */
 	ComValue** argvals = stack_arg_post_eval_nargsfixed();
 	AttributeList* keys = stack_keys_post_eval();
-	/* reset_stack() now that args are safely copied into argvals[]/keys; skipping it leaves a leftover entry ("nil pushed more than a single value on stack"). */
+	/* reset_stack() now that args are safely copied into argvals[]/keys;
+	   skipping it leaves a leftover entry ("nil pushed more than a single value on stack"). */
 	reset_stack();
 	for (int i=0; i<n; i++) {
 	  push_stack(*argvals[i]);

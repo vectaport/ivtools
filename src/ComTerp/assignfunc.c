@@ -54,7 +54,8 @@ void AssignFunc::execute() {
     }
     
     if (operand1.type() != ComValue::SymbolType) {
-        // if lhs is global()/local()/at() (including lst@N=val), set lhs_assign on its ComValue to distinguish lhs from rhs context
+        // if lhs is global()/local()/at() (including lst@N=val),
+        // set lhs_assign on its ComValue to distinguish lhs from rhs context
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
         static int at_symid = symbol_add("at");
@@ -81,7 +82,8 @@ void AssignFunc::execute() {
 #endif
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
-	/* global() lvalue tested before func-frame branch; old-value cleanup reads globaltable directly via globalvalue(), not lookup_symval() (nil for bquoted lvalue symbols) */
+	/* global() lvalue tested before func-frame branch; old-value cleanup reads
+	   globaltable directly via globalvalue(), not lookup_symval() (nil for bquoted symbols) */
 	if (operand1.global_flag()) {
 	    ComValue* oldval = comterp()->globalvalue(operand1.symbol_val());
 	    if (oldval) {
@@ -90,7 +92,8 @@ void AssignFunc::execute() {
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
 	} else if (operand1.local_flag()) {
-	    /* local() lvalue: write the default (per-instance) symbol table, skipping any func frame -- the session-scope escape */
+	    /* local() lvalue: write the default (per-instance) symbol table,
+	       skipping any func frame -- the session-scope escape */
 	    ComValue* oldval = comterp()->localvalue(operand1.symbol_val());
 	    if (oldval) {
 	      comterp()->localtable()->remove(operand1.symbol_val());
@@ -133,7 +136,8 @@ void AssignFunc::execute() {
       }
       attr->Value(operand2);
     } else if (operand1.is_array() && operand1.lhs_assign()) {
-      /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair, so complete the write by re-driving at() with a real :set keyword */
+      /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,
+         so complete the write by re-driving at() with a real :set keyword */
       AttributeValueList* pair = operand1.array_val();
       static int set_symid = symbol_add("set");
       push_stack(*pair->Get(0));
@@ -143,7 +147,8 @@ void AssignFunc::execute() {
       push_stack(setkey);
       ListAtFunc atfunc(comterp());
       atfunc.funcid(symbol_add("at"));
-      /* narg counts non-keyword args including the value after a keyword -- 4 pushes here mean narg=3, nkey=1, not narg=2 */
+      /* narg counts non-keyword args including the value after a keyword --
+         4 pushes here mean narg=3, nkey=1, not narg=2 */
       atfunc.exec(3, 1);
       ComValue result(pop_stack());
       *operand2 = result;

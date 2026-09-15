@@ -47,19 +47,23 @@ public:
     void load_string(const char*);
     // load string to be interpreted into buffer.
     void read_string(const char*);
-    // load string to be interpreted into buffer, and read postfix tokens from it.
+    // load string to be interpreted into buffer,
+    // and read postfix tokens from it.
     postfix_token* gen_code(const char*, int& codelen);
-    // generate buffer of length 'codelen' of postfix tokens ready to be converted into ComValue objects and executed.
+    // generate buffer of length 'codelen' of postfix tokens,
+    // ready to be converted into ComValue objects and executed.
 
     virtual int run(boolean one_expr=false, boolean nested=false);
     // run this interpreter until quit or exit command.
     virtual ComValue run(const char*, boolean nested=false);
-    // interpret and return value of expression; 'nested' avoids re-initialization on a nested call to run().
+    // interpret and return value of expression;
+    // 'nested' avoids re-initialization on a nested call to run().
     virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
 
     ComValue run_funcobj_body(class FuncObj*);
-    // fire a FuncObj's space-separated bodies via run_one_span(), autostreaming all but the last result and stopping early on a control transfer.
+    // fire a FuncObj's space-separated bodies via run_one_span(),
+    // autostreaming all but the last, stopping on a control transfer.
 
     AttributeValueList* parse_next_expr(FILE*);
     // parse the next expression from a file.
@@ -79,7 +83,8 @@ public:
 protected:
 
     ComValue run_one_span(postfix_token*, int);
-    // shared body of run(postfix_token*, int), minus the final returnflag(false), so run_funcobj_body() can see whether a span returned.
+    // shared body of run(postfix_token*, int), minus returnflag(false),
+    // so run_funcobj_body() can see whether a span returned.
 
     static char* s_fgets(char* s, int n, void* serv);
     // signature like fgets used to copy input from a buffer.

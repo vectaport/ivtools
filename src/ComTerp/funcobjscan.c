@@ -124,7 +124,8 @@ static boolean span_is_plain_var(PostfixSpanWalk::Span span, boolean* is_plain_v
 boolean* FuncObjVarScan::build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks) {
     boolean* is_plain_var = new boolean[ntoks];
     for (int i = 0; i < ntoks; i++) {
-        /* nids<0 marks a bare dot-rhs identifier (HACKING.md's "Dot Operator Rhs"), never a command */
+        /* nids<0 marks a bare dot-rhs identifier, never a command --
+           see HACKING.md's "Dot Operator Rhs" */
         if (toks[i].type == TOK_COMMAND && toks[i].nids >= 0) {
             ComValue sv;
             comterp->token_to_comvalue(&toks[i], &sv);
@@ -144,7 +145,9 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
     info.count = -1;
     info.uses_narg = false;
 
-    long maxidx = -1;           /* highest literal arg(n) index seen; long so maxidx+1 can't overflow near INT_MAX */
+    /* highest literal arg(n) index seen; long so maxidx+1 can't
+       overflow near INT_MAX */
+    long maxidx = -1;
     boolean saw_arg = false;
     boolean saw_nonliteral = false;
 
@@ -155,7 +158,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
         int symid = toks[i].v.symbolid;
 
         if (symid == narg_symid) {
-            /* narg() anywhere marks the body variadic, overriding any literal arg(n) indices found */
+            /* narg() anywhere marks the body variadic, overriding any
+               literal arg(n) indices found */
             info.uses_narg = true;
             continue;
         }
@@ -171,7 +175,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
                     : toks[operand.start].v.lnintval;
                 if (idx > maxidx) maxidx = idx;
             } else {
-                /* computed index (arg(i), ...) -- give up gracefully instead of guessing */
+                /* computed index (arg(i), ...) -- give up gracefully
+                   instead of guessing */
                 saw_nonliteral = true;
             }
         }
@@ -180,7 +185,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
     if (info.uses_narg || saw_nonliteral)
         info.count = -1;
     else if (saw_arg) {
-        /* guard against maxidx+1 overflowing (maxidx == LONG_MAX is signed-integer UB) */
+        /* guard against maxidx+1 overflowing (maxidx == LONG_MAX is
+           signed-integer UB) */
         if (maxidx == LONG_MAX)
             info.count = -1;
         else
@@ -196,7 +202,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
     static int dot_symid = symbol_add("dot");
-    /* compound-assign symids: first operand is read-then-written, unlike plain assign's pure write */
+    /* compound-assign symids: first operand is read-then-written,
+       unlike plain assign's pure write */
     static int compound_assign_symids[] = {
         symbol_add("mod_assign"), symbol_add("mpy_assign"),
         symbol_add("add_assign"), symbol_add("sub_assign"),
@@ -210,7 +217,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
-    /* dot-chain roots (obj.field) are excluded from capture -- pre-seeding al[obj] would break DotFunc's outer-scope bleed */
+    /* dot-chain roots (obj.field) are excluded from capture --
+       pre-seeding al[obj] would break DotFunc's outer-scope bleed */
     int* dotroots = nil;
     int ndotroots = 0, dotroots_cap = 0;
 
@@ -259,7 +267,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         }
     }
 
-    /* only walk.remaining() spans are truly unconsumed reads (e.g. a bare "x" body) -- not every is_plain_var token, since local()/global() consume theirs via `continue` above */
+    /* only walk.remaining() spans are unconsumed reads; not every
+       is_plain_var token -- local()/global() consume theirs via `continue` */
     for (int k = 0; k < walk.remaining_count(); k++) {
         PostfixSpanWalk::Span span = walk.remaining(k);
         if (!span_is_plain_var(span, is_plain_var)) continue;
@@ -319,14 +328,16 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
     for (int i = 0; i < ntoks; i++) {
         walk.step(toks, i);
         if (toks[i].type != TOK_COMMAND || (unsigned)toks[i].v.symbolid != (unsigned)if_symid) continue;
-        /* only the plain 3-operand if(cond :then v :else v) shape counts as this idiom */
+        /* only the plain 3-operand if(cond :then v :else v) shape
+           counts as this idiom */
         if (walk.consumed_count() != 3) continue;
 
         PostfixSpanWalk::Span condspan = walk.consumed(0);
         PostfixSpanWalk::Span branch1 = walk.consumed(1);
         PostfixSpanWalk::Span branch2 = walk.consumed(2);
 
-        /* condition must be exactly "K==nil" or "nil==K": eq of nil and a plain variable */
+        /* condition must be exactly "K==nil" or "nil==K": eq of
+           nil and a plain variable */
         if (condspan.count != 3) continue;
         int eqtok = condspan.start + 2;
         if (toks[eqtok].type != TOK_COMMAND || (unsigned)toks[eqtok].v.symbolid != (unsigned)eq_symid) continue;
@@ -338,7 +349,8 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
         else if (t1_nil && is_plain_var[t0]) keysym = toks[t0].v.symbolid;
         else continue;
 
-        /* branch1/branch2 must each end in a KEYWORD token identifying :then vs :else */
+        /* branch1/branch2 must each end in a KEYWORD token
+           identifying :then vs :else */
         PostfixSpanWalk::Span then_span, else_span;
         boolean have_then = false, have_else = false;
         PostfixSpanWalk::Span branches[2];
@@ -354,11 +366,13 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
         }
         if (!have_then || !have_else) continue;
 
-        /* :else's value must be exactly the bare keyword unchanged, confirming this is THIS keysym's idiom */
+        /* :else's value must be exactly the bare keyword unchanged,
+           confirming this is THIS keysym's idiom */
         if (else_span.count != 2) continue;
         if (!is_plain_var[else_span.start] || toks[else_span.start].v.symbolid != keysym) continue;
 
-        /* :then's value must be exactly one literal token; give up gracefully on anything computed */
+        /* :then's value must be exactly one literal token; give up
+           gracefully on anything computed */
         if (then_span.count != 2) continue;
         ComValue litval;
         comterp->token_to_comvalue(&toks[then_span.start], &litval);

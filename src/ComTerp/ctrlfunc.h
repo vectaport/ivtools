@@ -92,7 +92,8 @@ public:
 
     static const char* expand_tilde(const char* path);
     static void set_basepath(const char* path);
-    // set base path for resolving relative paths in run() calls; call before runfile().
+    // set base path for resolving relative paths in run() calls;
+    // call before runfile().
 
 };
 

@@ -37,7 +37,8 @@ void BackQuoteFunc::execute() {
   ComValue retval(stack_arg(0, true));
   reset_stack();
 
-  /* `StreamObj is obsolete for `StreamType; warn once per session, not per loop iteration */
+  /* `StreamObj is obsolete for `StreamType;
+     warn once per session, not per loop iteration */
   static int streamobj_symid = symbol_add("StreamObj");
   static boolean streamobj_warned = false;
   if (!streamobj_warned && retval.type() == ComValue::SymbolType &&

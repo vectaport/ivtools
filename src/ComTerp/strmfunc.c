@@ -81,7 +81,8 @@ StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void StreamFunc::execute() {
 
-  /* stream literal: (val val ...) -- delegate to execute_literal(); use nargstotal() so a bare keyword element still counts (see doc/POSTFIX-INDEXING.md section 1) */
+  /* stream literal: (val val ...) -- delegate to execute_literal(); use
+     nargstotal() so a bare keyword counts (see doc/POSTFIX-INDEXING.md) */
   if (nargstotal() > 1) {
     execute_literal();
     return;
@@ -242,7 +243,8 @@ void StringNextFunc::execute() {
 /*****************************************************************************/
 
 void StreamFunc::execute_literal() {
-  /* Handle (val val ...) stream literal syntax: scan _pfbuf for per-element (offset, count) pairs, store in AVL for lazy per-element evaluation by StreamLiteralNextFunc. */
+  /* Handle (val val ...) literal syntax: scan _pfbuf for per-element
+     (offset,count), store in AVL for lazy eval by StreamLiteralNextFunc. */
 
   static StreamLiteralNextFunc* slnfunc = nil;
   if (!slnfunc) {
@@ -257,7 +259,8 @@ void StreamFunc::execute_literal() {
   int argcnt = 0;
   int total = 0;
 
-  /* scan to find total tokens and bottom of arg region; nargsfixed() counts fixed-format args + keyword values */
+  /* scan to find total tokens and bottom of arg region;
+     nargsfixed() counts fixed-format args + keyword values */
   for (int i = 0; i < nkeys(); i++) {
     argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
@@ -282,7 +285,8 @@ void StreamFunc::execute_literal() {
   avl->Append(new AttributeValue(tokval));
   avl->Append(new AttributeValue(0, AttributeValue::IntType)); /* nremaining */
 
-  /* recording scan: start at saved_offtop, keywords first (nkeys() of them), then fixed-format args until offtop */
+  /* recording scan: start at saved_offtop, keywords first
+     (nkeys() of them), then fixed-format args until offtop */
   int elem_offset = 0;
   int rescan = saved_offtop;
   int nelem = 0;
@@ -294,7 +298,8 @@ void StreamFunc::execute_literal() {
     skip_key_in_expr(rescan, argcnt);
   }
 
-  /* fixed-format args first: skip_arg_in_expr discovers in reverse source order, so collect each size and compute forward offsets by reverse accumulation to keep AVL element 0 as source positional 0 */
+  /* fixed-format args first: skip_arg_in_expr discovers them in reverse,
+     so accumulate reverse to get forward offsets; AVL[0] = positional 0 */
   int* possizes = npositionals>0 ? new int[npositionals] : nil;
   for (int pi = 0; pi < npositionals; pi++) {
     argcnt = 0;
@@ -352,7 +357,8 @@ SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
 void SpreadFunc::execute() {
   ComValue operand1(stack_arg_post_eval(0));
 
-  /* Normalize a bare list/attrlist/scalar into an internal stream exactly the way $$ (StreamFunc) does, so the drain loop below is uniform */
+  /* Normalize a bare list/attrlist/scalar into an internal stream exactly
+     the way $$ (StreamFunc) does, so the drain loop below is uniform */
   if (!operand1.is_stream()) {
     static StreamNextFunc* snfunc = nil;
     if (!snfunc) {
@@ -363,7 +369,8 @@ void SpreadFunc::execute() {
     if (operand1.is_array())
       avl = new AttributeValueList(operand1.array_val());
     else if (operand1.is_attributelist()) {
-      /* an attrlist spreads into keywords: store an owned copy of each Attribute, since a ~~ stream drains later and the source attrlist may be gone by then */
+      /* an attrlist spreads into keywords: copy each Attribute now,
+         since the source may be gone by the time a ~~ stream drains */
       avl = new AttributeValueList();
       AttributeList* al = (AttributeList*)operand1.obj_val();
       Iterator i;
@@ -383,7 +390,8 @@ void SpreadFunc::execute() {
 
   reset_stack();
 
-  /* tag for spread and leave exactly one value on the stack; eval_expr_internals drains it into the enclosing call's positionals later */
+  /* tag for spread and leave exactly one value on the stack;
+     eval_expr_internals drains it into the caller's positionals later */
   operand1.stream_mode(operand1.stream_mode() | STREAM_SPREAD);
   push_stack(operand1);
 }
@@ -408,7 +416,8 @@ void EchoFunc::execute() {
   reset_stack();
 
   if (npos > 0) {
-    /* positionals present -> a list; keywords, if any, become one single-attribute attrlist per keyword at the TAIL, to preserve keyword order */
+    /* positionals present -> a list; keywords, if any, become one
+       single-attribute attrlist per keyword at the TAIL, preserving order */
     if (has_kw) {
       Iterator it;
       for (keys->First(it); !keys->Done(it); keys->Next(it)) {
@@ -451,7 +460,8 @@ void StreamNextFunc::execute() {
     avl->First(i);
     AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
 
-    // if FileObj or PipeObj read next newline terminated string and return; retval is base-class AttributeValue, so don't cast it to ComValue*
+    // if FileObj or PipeObj read next newline terminated string and return;
+    // retval is base-class AttributeValue, so don't cast it to ComValue*
     if (retval && (retval->is_object(FileObj::class_symid()) ||
 		   retval->is_object(PipeObj::class_symid()))) {
       ComValue fpobj(*retval);
@@ -600,7 +610,8 @@ void RepeatFunc::execute() {
       return;
     }
 
-    /* no bail-out for a stream operand: overdrive already unwrapped a level, so bailing here would leave the stack unbalanced; build the repeat stream instead */
+    /* no bail-out for a stream operand: overdrive already unwrapped a level,
+       so bailing would unbalance the stack; build the repeat stream instead */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -627,7 +638,8 @@ ReplayFunc::ReplayFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void ReplayFunc::execute() {
-    /* post_eval: take the WHOLE stream operand (like ConcatFunc), not a per-element broadcast; %% N builds the internal replay stream */
+    /* post_eval: take the WHOLE stream operand (like ConcatFunc), not
+       a per-element broadcast; %% N builds the internal replay stream */
     ComValue operand1(stack_arg_post_eval(0));
     ComValue operand2(stack_arg_post_eval(1));
     reset_stack();
@@ -683,7 +695,8 @@ void ReplayNextFunc::execute() {
 	    push_stack(ComValue::nullval());           // all passes done (or non-stream source)
 	    return;
 	  }
-	  /* $$ copy semantics: new AVL (independent cursor), same stream func, sharing the source's immutable elements -- source untouched */
+	  /* $$ copy semantics: new AVL (independent cursor), same stream func,
+	     sharing the source's immutable elements -- source untouched */
 	  AttributeValueList* newavl = new AttributeValueList(srcval->stream_list());
 	  ComValue copyv(srcval->stream_func(), newavl);
 	  copyv.stream_mode(srcval->stream_mode());
@@ -738,7 +751,8 @@ void IterateFunc::execute() {
       return;
     }
 
-    /* no bail-out for a stream operand -- same reasoning as RepeatFunc's above */
+    /* no bail-out for a stream operand --
+       same reasoning as RepeatFunc's above */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -748,7 +762,8 @@ void IterateFunc::execute() {
       return;
     }
 
-    /* a non-stream, non-numeric operand (e.g. an ArrayType literal) must not fall through to int_val()/int_ref() below, which would corrupt an ArrayType/ObjectType's heap pointer */
+    /* a non-stream, non-numeric operand (e.g. ArrayType) must not fall through
+       to int_val()/int_ref(): corrupts an ArrayType/ObjectType heap pointer */
     if (!operand1.is_num() || !operand2.is_num()) {
       push_stack(ComValue::nullval());
       return;
@@ -810,7 +825,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
     }
     DrainingAVLGuard draining_guard(self_avl);
 
-    /* handle nested stream -- looped, not recursed, so a long run of exhausted elements can't blow the C++ call stack */
+    /* handle nested stream -- looped, not recursed, so a long run of
+       exhausted elements can't blow the C++ call stack */
     {
       AttributeValueList* avl = streamv.stream_list();
       for (;;) {
@@ -818,7 +834,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	avl->First(i);
 	if (avl->Done(i)) break;
 	AttributeValue* val =  avl->GetAttrVal(i);
-	/* stream_mode_raw(), not stream_mode() -- the latter reports 0 once this nested stream's own list is empty (see attrvalue.c) */
+	/* stream_mode_raw(), not stream_mode() -- the latter reports 0 once
+	   this nested stream's own list is empty (see attrvalue.c) */
 	if (!(val->is_stream() && val->stream_mode_raw()&STREAM_NESTED)) break;
 	// fprintf(stderr, "NextFunc: Handling nested stream\n");
 	ComValue cval(*val);
@@ -829,7 +846,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	avl->Remove(val);
         delete val;
 	comterp->pop_stack();
-	/* loop back: the new front element may itself be STREAM_NESTED and needs unwrapping too */
+	/* loop back: the new front element may itself be
+	   STREAM_NESTED and needs unwrapping too */
       }
     }
 
@@ -873,7 +891,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    /* stream argument, use stream func to get next one */
 	    if (val->stream_mode()&STREAM_INTERNAL && val->stream_func()) {
 	      // fprintf(stderr, "NextFunc: handling internal mode stream argument\n");
-	      /* internal use -- routed through execute_impl (not the stream func directly) so a feed() holding a stream yields one value per pull */
+	      /* internal use -- routed through execute_impl (not the stream
+	         func directly), so a feed() holding a stream yields one value/pull */
 	      ComValue cval(*val);
 	      NextFunc::execute_impl(comterp, cval);
 
@@ -924,7 +943,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
         // comterp->print_stack();
 
 	if (streamv.stream_mode()&STREAM_FUNCOBJ) {
-	  /* the packed callee is a FuncObj, not a registered command -- fire the body via fire_funcobj instead of exec'ing */
+	  /* the packed callee is a FuncObj, not a registered command --
+	     fire the body via fire_funcobj instead of exec'ing */
 	  ComValue fobjv(FuncObj::class_symid(), (void*)funcptr);
 	  fobjv.narg(narg);
 	  fobjv.nkey(nkey);
@@ -980,11 +1000,13 @@ void EachFunc::execute() {
     }
     ComValue retval(cnt, ComValue::IntType);
     push_stack(retval);
-    /* stamp the pushed slot, not retval: the wrapper never survives a copy (see AttributeValue::operator=) */
+    /* stamp the pushed slot, not retval: the wrapper never survives
+       a copy (see AttributeValue::operator=) */
     comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
   } else if (nargs() > 1) {
-    /* implicit stream literal -- evaluate remaining fixed-format args; first arg (strmv) already evaluated, count it if non-nil */
+    /* implicit stream literal -- evaluate remaining fixed-format args;
+       first arg (strmv) already evaluated, count it if non-nil */
     int cnt = strmv.is_nil() ? 0 : 1;
     for (int i = 1; i < nargsfixed(); i++) {
       ComValue val(stack_arg_post_eval(i));
@@ -1101,7 +1123,8 @@ StreamLiteralNextFunc::StreamLiteralNextFunc(ComTerp* comterp) : StrmFunc(comter
 }
 
 void StreamLiteralNextFunc::execute() {
-    /* AVL layout: [0] FuncObj(tokbuf), [1] nremaining, [2..] element entries -- (offset,count) for positionals, (KeywordType[,offset,count]) for keywords; always re-navigate from AVL start to avoid stale iterators after Remove() */
+    /* AVL: [0] FuncObj(tokbuf), [1] nremaining, [2..] (offset,count) positionals
+       or (KeywordType[,offset,count]) keywords; re-navigate from AVL start after Remove() */
     ComValue streamv(stack_arg(0));
     reset_stack();
 
@@ -1152,7 +1175,8 @@ void StreamLiteralNextFunc::execute() {
         keyval = comterpserv()->run(tokbuf + offset, cnt);
       }
 
-      /* construct singleton attrlist (:key val); no manual Resource::ref(al) -- the ComValue ctor already refs it, and an extra ref would pin it forever (same bug fixed in ListFunc::execute) */
+      /* construct singleton attrlist (:key val): ComValue ctor already refs it,
+         so skip Resource::ref(al) -- an extra ref pins it forever (see ListFunc::execute) */
       AttributeList* al = new AttributeList();
       al->add_attr(key_symid, keyval);
       ComValue result(AttributeList::class_symid(), (void*)al);
@@ -1192,9 +1216,11 @@ InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void InfoFunc::execute() {
-  /* attrlst=info(streamobj [:raw]) -- inspect a stream's internal directory; :raw returns the raw list as-is, else a named-field AttributeList (or :mode/:func for non-literal streams) */
+  /* attrlst=info(streamobj [:raw]) -- inspect a stream's internal directory;
+     :raw returns the raw list as-is, else a named AttributeList (:mode/:func if non-literal) */
 
-  /* fetch :raw from the post-eval region before reset_stack() clears it */
+  /* fetch :raw from the post-eval region before
+     reset_stack() clears it */
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
@@ -1273,7 +1299,8 @@ void InfoFunc::execute() {
   while (pos < avl->Number()) {
     AttributeValue* entry = (AttributeValue*)avl->Get(pos);
     if (entry->is_type(ComValue::KeywordType)) {
-      /* keyword-with-value needs two trailing slots; stop early to avoid an orphaned key entry */
+      /* keyword-with-value needs two trailing slots; stop early
+         to avoid an orphaned key entry */
       if (entry->keynarg_val() > 0 && pos+2 >= avl->Number()) break;
       snprintf(keybuf, sizeof(keybuf), "key%d", nelem);
       ComValue kv(entry->keyid_val(), ComValue::SymbolType);
@@ -1324,9 +1351,11 @@ void FeedFunc::execute() {
 
   int n = nargs();
   ComValue* argv = n>0 ? new ComValue[n] : nil;
-  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup so a bquoted symbol (e.g. `EOS) survives into storage intact */
+  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
+     so a bquoted symbol (e.g. `EOS) survives into storage intact */
   for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
-  /* :raw -- store a stream argument as an opaque, undrained element instead of tagging it STREAM_NESTED, so a FIFO can hold streams and rotate them rather than flattening them on the way in */
+  /* :raw -- store a stream arg as an opaque, undrained element (skip STREAM_NESTED
+     tagging), so a FIFO can hold streams and rotate them, not flatten them going in */
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
@@ -1336,16 +1365,19 @@ void FeedFunc::execute() {
     argv[0].stream_func() == (void*)fnfunc;
 
   if (arg0_is_fifo) {
-    /* append the remaining args to the existing FIFO's back end; a stream-valued arg is tagged STREAM_NESTED so NextFunc::execute_impl drains it lazily, one value per next() */
+    /* append the remaining args to the existing FIFO's back end; a stream-valued
+       arg is tagged STREAM_NESTED so NextFunc::execute_impl drains it lazily, one value per next() */
     AttributeValueList* avl = argv[0].stream_list();
     for (int i=1; i<n; i++) {
-      /* a string is ingested as its characters via the same cursor stream() would make, then the lazy nested-stream path drains it one value per next() */
+      /* a string is ingested as its characters via the same cursor stream()
+         would make, then the lazy nested-stream path drains it one value per next() */
       if (!rawflag && streams_as_characters(argv[i]))
 	argv[i] = string_stream_value(comterp(), argv[i]);
       boolean tag_nested = argv[i].is_stream() && !rawflag;
       AttributeValue* elt;
       if (argv[i].is_stream() && argv[i].stream_list() == avl) {
-        /* feed(f f): the fed-in stream's own backing list *is* this FIFO's list, so storing it directly would make avl self-referential; snapshot its contents instead (same copy StreamFunc's $$/stream() makes) */
+        /* feed(f f): the fed-in stream's own backing list *is* this FIFO's list,
+           so storing it directly self-references; snapshot contents instead, as $$/stream() does */
         AttributeValueList* snapshot = new AttributeValueList(avl);
         elt = new AttributeValue(argv[i].stream_func(), snapshot);
         elt->stream_mode(rawflag ? argv[i].stream_mode_raw()
@@ -1363,7 +1395,8 @@ void FeedFunc::execute() {
     return;
   }
 
-  /* build a brand-new FIFO from all given args (zero args -> empty FIFO), same STREAM_NESTED tagging as the append case above */
+  /* build a brand-new FIFO from all given args (zero args -> empty
+     FIFO), same STREAM_NESTED tagging as the append case above */
   AttributeValueList* avl = new AttributeValueList();
   for (int i=0; i<n; i++) {
     if (!rawflag && streams_as_characters(argv[i]))
@@ -1416,7 +1449,8 @@ void ChunkFunc::execute() {
   int n = nv.is_known() ? nv.int_val() : 1;
   if (n < 1) n = 1;
 
-  /* the state this stream carries (source, block size) lives in the stream's own backing list, same slot every internal-mode stream uses for its state */
+  /* the state this stream carries (source, block size) lives in the
+     stream's own backing list, same slot every internal-mode stream uses */
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(srcv));
   avl->Append(new AttributeValue(n, AttributeValue::IntType));
@@ -1447,7 +1481,8 @@ void ChunkNextFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  /* the source ComValue lives in the state list, so advancing through this copy advances the one stored there, letting successive next()s resume where the last block stopped */
+  /* the source ComValue lives in the state list, so advancing through
+     this copy advances it too -- successive next()s resume where the last block stopped */
   ComValue srcv(*state->GetAttrVal(i));
   state->Next(i);
   int n = state->Done(i) ? 1 : state->GetAttrVal(i)->int_val();
@@ -1463,7 +1498,8 @@ void ChunkNextFunc::execute() {
   }
 
   if (block->Number()==0) {
-    /* no elements this pull -- report exhaustion, matching every other stream consumer's handling of nil (ambiguous for a growable feed() FIFO, but chunk can't tell better than its caller) */
+    /* no elements this pull -- report exhaustion, same as every stream
+       consumer's nil handling; ambiguous for a growable feed() FIFO, but chunk can't tell better */
     delete block;
     push_stack(ComValue::nullval());
     return;

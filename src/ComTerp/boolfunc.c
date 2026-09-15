@@ -229,7 +229,8 @@ void EqualFunc::execute() {
     boolean symflag = stack_key(sym_symid).is_true();
     ComValue& nval = stack_key(n_symid);
 
-    /* symflag (:sym) must not pass to stack_arg's "symbol" param -- that suppresses lookup_symval and breaks comparisons where an operand is a plain variable */
+    /* symflag (:sym) must not pass to stack_arg's "symbol" param --
+       it suppresses lookup_symval, breaking plain-variable comparisons */
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
@@ -278,11 +279,13 @@ void EqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
       case ComValue::SymbolType:
-	/* identity via symbol_val() is valid only when operand2 is also genuinely a symbol -- operand1's type alone picked this case */
+	/* identity via symbol_val() is valid only when operand2 is also
+	   genuinely a symbol -- operand1's type alone picked this case */
 	if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	else {
-	  /* operand1.symbol_ptr(), not cstr(): a symbol can't be sliced; operand2 isn't provably a symbol here, so a mixed comparison still needs the slice-aware read */
+	  /* operand1.symbol_ptr(), not cstr(): a symbol can't be sliced;
+	     operand2 may not be a symbol, so use the slice-aware read */
 	  std::string scratch2;
 	  const char* str1 = operand1.symbol_ptr();
 	  const char* str2 = operand2.cstr(scratch2);
@@ -291,7 +294,8 @@ void EqualFunc::execute() {
 	}
 	break;
       case ComValue::StringType: {
-	/* always a text comparison, never symbol_val() identity, since a slice shares its parent's symid; cstr() rather than string_ptr(), which isn't slice-aware */
+	/* always a text comparison, never symbol_val() identity, since a
+	   slice shares its parent's symid; cstr() is not slice-aware here */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
@@ -382,11 +386,13 @@ void NotEqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() != operand2.double_val();
 	break;
     case ComValue::SymbolType:
-      /* identity via symbol_val() only when operand2 is also genuinely a symbol -- operand1's type alone picked this case */
+      /* identity via symbol_val() only when operand2 is also genuinely
+         a symbol -- operand1's type alone picked this case */
       if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	result.boolean_ref() = operand1.symbol_val() != operand2.symbol_val();
       else {
-	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or modified; operand2 isn't provably a symbol here */
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified; operand2 isn't provably a symbol here */
 	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.cstr(scratch2);
@@ -395,7 +401,8 @@ void NotEqualFunc::execute() {
       }
       break;
     case ComValue::StringType: {
-      /* always a text comparison, never symbol_val() identity, since a slice shares its parent's symid -- cstr(), not string_ptr(), which isn't slice-aware (see EqualFunc above) */
+      /* a text comparison, never symbol_val() identity -- a slice
+         shares its parent's symid, so cstr() is used, not string_ptr() */
       std::string scratch1, scratch2;
       const char* str1 = operand1.cstr(scratch1);
       const char* str2 = operand2.cstr(scratch2);
@@ -480,9 +487,11 @@ void GreaterThanFunc::execute() {
 	result.boolean_ref() = operand1.double_val() > operand2.double_val();
 	break;
     case ComValue::SymbolType: {
-	/* operand1 matching this case says nothing about operand2 -- bail to nil on a mismatch rather than read unrelated union bits through cstr()/symbol_ptr() */
+	/* operand1 matching this case says nothing about operand2 -- bail
+	   to nil rather than read unrelated bits via cstr()/symbol_ptr() */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or modified; operand2 isn't provably a symbol here, so a mixed comparison still needs the slice-aware read */
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified; operand2 may not be a symbol, so use the slice-aware read */
 	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.cstr(scratch2);
@@ -493,9 +502,11 @@ void GreaterThanFunc::execute() {
 	break;
     }
     case ComValue::StringType: {
-	/* same operand2 type guard as the SymbolType case above -- see its comment */
+	/* same operand2 type guard as the SymbolType case above --
+	   see its comment */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* StringType was never handled here before; slice-aware cstr() for both operands, same pattern as EqualFunc's own StringType case */
+	/* slice-aware cstr() for both operands,
+	   same pattern as EqualFunc's own StringType case */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
@@ -566,9 +577,11 @@ void GreaterThanOrEqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() >= operand2.double_val();
 	break;
     case ComValue::SymbolType: {
-	/* see GreaterThanFunc's identical guard -- operand1 matching this case says nothing about operand2 */
+	/* see GreaterThanFunc's identical guard -- operand1 matching
+	   this case says nothing about operand2 */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or modified; operand2 isn't provably a symbol here, so a mixed comparison still needs the slice-aware read */
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified; operand2 may not be a symbol, so use the slice-aware read */
 	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.cstr(scratch2);
@@ -579,9 +592,11 @@ void GreaterThanOrEqualFunc::execute() {
 	break;
     }
     case ComValue::StringType: {
-	/* same operand2 type guard as the SymbolType case above -- see its comment */
+	/* same operand2 type guard as the SymbolType case above --
+	   see its comment */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* StringType was never handled here before; slice-aware cstr() for both operands, same pattern as EqualFunc's own StringType case */
+	/* slice-aware cstr() for both operands,
+	   same pattern as EqualFunc's own StringType case */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
@@ -647,9 +662,11 @@ void LessThanFunc::execute() {
 	result.boolean_ref() = operand1.double_val() < operand2.double_val();
 	break;
     case ComValue::SymbolType: {
-	/* see GreaterThanFunc's identical guard -- operand1 matching this case says nothing about operand2 */
+	/* see GreaterThanFunc's identical guard -- operand1 matching
+	   this case says nothing about operand2 */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or modified; operand2 isn't provably a symbol here, so a mixed comparison still needs the slice-aware read */
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified; operand2 may not be a symbol, so use the slice-aware read */
 	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.cstr(scratch2);
@@ -660,9 +677,11 @@ void LessThanFunc::execute() {
 	break;
     }
     case ComValue::StringType: {
-	/* same operand2 type guard as the SymbolType case above -- see its comment */
+	/* same operand2 type guard as the SymbolType case above --
+	   see its comment */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* StringType was never handled here before; slice-aware cstr() for both operands, same pattern as EqualFunc's own StringType case */
+	/* slice-aware cstr() for both operands,
+	   same pattern as EqualFunc's own StringType case */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
@@ -733,9 +752,11 @@ void LessThanOrEqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() <= operand2.double_val();
 	break;
     case ComValue::SymbolType: {
-	/* see GreaterThanFunc's identical guard -- operand1 matching this case says nothing about operand2 */
+	/* see GreaterThanFunc's identical guard -- operand1 matching
+	   this case says nothing about operand2 */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or modified; operand2 isn't provably a symbol here, so a mixed comparison still needs the slice-aware read */
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified; operand2 may not be a symbol, so use the slice-aware read */
 	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.cstr(scratch2);
@@ -746,9 +767,11 @@ void LessThanOrEqualFunc::execute() {
 	break;
     }
     case ComValue::StringType: {
-	/* same operand2 type guard as the SymbolType case above -- see its comment */
+	/* same operand2 type guard as the SymbolType case above --
+	   see its comment */
 	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
-	/* StringType was never handled here before; slice-aware cstr() for both operands, same pattern as EqualFunc's own StringType case */
+	/* slice-aware cstr() for both operands,
+	   same pattern as EqualFunc's own StringType case */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);

@@ -144,7 +144,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   }
   FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
 
-  /* echoresult owns poslist's/kwlist's storage -- keep it alive across this whole block, not just the extraction below */
+  /* echoresult owns poslist's/kwlist's storage -- keep it alive across
+     this whole block, not just the extraction below */
   ComValue echoresult;
   AttributeValueList* poslist = nil;
   AttributeList* kwlist = nil;
@@ -154,12 +155,14 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     method_tok.v.symbolid = echo_symid;
     echoresult = self->comterpserv()->run(argtoks, nargtoks);
     if (echoresult.is_list()) {
-      /* positionals present -- echo tails the list with one singleton attrlist per keyword; trailing method_nkey entries are those, not positionals */
+      /* positionals present -- echo appends one singleton attrlist
+         per keyword, so trailing entries are those, not positionals */
       poslist = echoresult.list_val();
       npos = poslist->Number() - method_nkey;
       if (npos<0) npos = 0;
     } else if (echoresult.is_attributelist()) {
-      /* no positionals -- echo returns the keywords bare, as one multi-attribute attrlist */
+      /* no positionals -- echo returns the keywords bare, as one
+         multi-attribute attrlist */
       kwlist = (AttributeList*) echoresult.obj_val();
     }
   }
@@ -171,7 +174,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       posvals[i] = *poslist->Get(i);
   }
 
-  /* captures are ephemeral defaults applied via the same inject-fire-revert mechanism as keywords, but first, so an explicit :x val still overrides a capture */
+  /* captures are applied via the same inject-fire-revert mechanism as
+     keywords, but first, so an explicit :x still overrides a capture */
   int method_nkey_for_skip = method_nkey;
   int* kwsymids = method_nkey_for_skip>0 ? new int[method_nkey_for_skip] : nil;
   if (method_nkey_for_skip>0) {
@@ -199,9 +203,11 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
       Attribute* capattr = caps->GetAttr(capit);
       int capsymid = capattr->SymbolId();
-      /* skip a capture whose name obj already owns as a real field, so self-bound reads/writes see obj's current value, not a stale snapshot */
+      /* skip a capture whose name obj already owns as a real field,
+         so self-bound reads/writes see obj's current value, not stale */
       if (al->GetAttr(capsymid)) continue;
-      /* skip the capture when the caller also supplied it as a keyword, so apply_kw's own existed/oldval bookkeeping reflects the true pre-call state */
+      /* skip the capture when the caller also supplied it as a keyword,
+         so apply_kw's existed/oldval reflects the true pre-call state */
       boolean also_keyword = false;
       for (int k=0; k<method_nkey_for_skip; k++)
 	if (kwsymids[k]==capsymid) { also_keyword = true; break; }
@@ -212,7 +218,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   }
   delete [] kwsymids;
 
-  /* keyword args are ephemeral unless the method's body writes that name -- apply, fire, then revert whatever the call left unchanged */
+  /* keyword args are ephemeral unless the method's body writes that
+     name -- apply, fire, then revert whatever the call left unchanged */
   int nkw = method_nkey;
   KwPending* kwpending = nkw>0 ? new KwPending[nkw] : nil;
   if (nkw>0) {
@@ -264,7 +271,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 
 void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& after_nids,
 			     std::string& before_expr_text, std::string& after_expr_text) {
-    /* capture both args' raw source text before either evaluates -- firing arg 0 below moves the stack bookmark print_stack_arg_post_eval relies on */
+    /* capture both args' source text before either evaluates -- firing
+       arg 0 moves the bookmark print_stack_arg_post_eval relies on */
     if (dotfunc_debug_expr) {
       std::ostringstream before_expr_stream, after_expr_stream;
       std::streambuf* saved_cout = cout.rdbuf(before_expr_stream.rdbuf());
@@ -278,10 +286,12 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 
     before_part = stack_arg(0, true);
     if (before_part.type()==ComValue::CommandType) {
-      /* a real command reference (e.g. the inner dot of node.left.val) -- fire it for its value; symbol=false since this needs pop_stack's full finalization, not the raw result */
+      /* a command reference (e.g. node.left.val's inner dot) -- fire it
+         for its value; symbol=false needs pop_stack's full finalization */
       before_part = stack_arg_post_eval(0);
     } else if (before_part.type()==ComValue::BlankType) {
-      /* a never-yet-pulled stream reads back as BlankType from the peek above -- fire it to recover the real StreamType value the LHS-stream support below needs */
+      /* a never-pulled stream peeks as BlankType -- fire it to get the
+         real StreamType value the LHS-stream support below needs */
       before_part = stack_arg_post_eval(0);
     }
     after_raw = stack_arg(1, true);
@@ -291,14 +301,16 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 			    const std::string& before_expr_text, const std::string& after_expr_text,
 			    boolean force_named_field) {
-    /* a named variable bound to a stream (sb=$$barnyard; sb.calls) arrives as a raw SymbolType -- resolve a copy far enough to test is_stream(), leaving before_part itself untouched */
+    /* a variable bound to a stream arrives as a raw SymbolType -- resolve
+       a copy to test is_stream(), leaving before_part itself untouched */
     ComValue before_resolved = before_part;
     if (before_resolved.is_symbol()) {
       AttributeValue* rv = comterp()->lookup_symval(&before_resolved, false);
       if (rv) before_resolved = ComValue(*rv);
     }
     if (before_resolved.is_stream() && after_nids==-1) {
-      /* (stream).field -- lazy, pulling .field from each element on demand; stream.method(args) isn't handled here yet and falls through to the warning below */
+      /* (stream).field -- lazy, pulling .field from each element on
+         demand; stream.method(args) falls through to the warning below */
       reset_stack();
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) symbol_reference(after_symid);
@@ -321,7 +333,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
 
-      /* a list before "." is common (e.g. zoo.who("Ellie").moves) -- give a specific, actionable message rather than the generic type-mismatch one below */
+      /* a list before "." is common (e.g. zoo.who("Ellie").moves) --
+         give a specific error, not the generic type-mismatch one below */
       if (before_part.is_array()) {
 	AttributeValueList* avl = before_part.array_val();
 	int n = avl ? avl->Number() : 0;
@@ -356,7 +369,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 
       return;
     }
-    /* an arglist-attached rhs (after_nids != -1, e.g. al.method(2)) is validated later in fire_attrlist_method, so only the bare/string rhs path needs this check */
+    /* an arglist-attached rhs (after_nids != -1) is validated later in
+       fire_attrlist_method -- only bare/string rhs needs this check */
     if (after_nids==-1 && nargsfixed()>1 && !after_raw.is_string() && !after_raw.is_symbol()) {
       cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
 	   << symbol_pntr(after_raw.type_symid());
@@ -377,7 +391,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
-      /* func scope (_alist) is checked before local/global, same order ComTerp::lookup_symval uses, so a func-local variable is visible to dot access from inside the func body */
+      /* func scope (_alist) is checked before local/global, same order
+         as ComTerp::lookup_symval -- so func bodies see their own vars */
       AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
       AttributeValue* fsval = funcscope ? funcscope->find(before_symid) : nil;
       if (fsval) {
@@ -418,7 +433,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       al = (AttributeList*) before_part.obj_val();
 
     if (after_nids!=-1 && nargs()>1) {
-      /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval must run before reset_stack(), and nargs()>1 is needed alongside after_nids to exclude a bare dot(name) call */
+      /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval runs
+         before reset_stack(); nargs()>1 + after_nids excludes dot(name) */
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
@@ -444,7 +460,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 }
 
 boolean DotFunc::check_dbg_keyword() {
-    /* internal: get or set dotfunc_debug_expr at runtime through a :dbg keyword; checked first and unconditionally, since an ordinary a.b expression never supplies :dbg */
+    /* internal: get/set dotfunc_debug_expr at runtime via a :dbg keyword;
+       checked first, since an ordinary a.b expression never supplies :dbg */
     static int dbg_symid = symbol_add("dbg");
     static int dbg_bare_symid = symbol_add("__dot_dbg_bare__");
     ComValue dbg_bare_sentinel(dbg_bare_symid, ComValue::SymbolType);
@@ -476,8 +493,10 @@ DotStreamNextFunc::DotStreamNextFunc(ComTerp* comterp) : DotFunc(comterp) {
 }
 
 void DotStreamNextFunc::execute() {
-    /* invoked by the next mechanism -- arg 0 is our own stream, carrying [0] the underlying before-stream and [1] the fixed after-dot field symbol in its stream_list() */
-    /* deliberately no reset_stack() here: execute_core() below does its own single reset, and a second one here would cancel out the push_stack() below */
+    /* invoked by the next mechanism -- our own stream (arg 0) carries
+       [0] the before-stream and [1] the after-dot symbol, in stream_list() */
+    /* deliberately no reset_stack() here: execute_core() below does its
+       own single reset, and a second one here would cancel out push_stack() */
     ComValue selfstream(stack_arg(0));
 
     AttributeValueList* avl = selfstream.stream_list();
@@ -494,7 +513,8 @@ void DotStreamNextFunc::execute() {
 
     ComValue before_next;
     if (beforeval->is_stream()) {
-      /* same temporary-copy-then-drive pattern ConcatNextFunc/ReplayNextFunc use: the copy shares the ref-counted stream_list(), so advancing it persists back through *beforeval on the next pull */
+      /* copy-then-drive pattern from ConcatNextFunc/ReplayNextFunc -- the
+         copy shares stream_list(), so advancing persists via *beforeval */
       ComValue beforecopy(*beforeval);
       NextFunc::execute_impl(comterp(), beforecopy);
       if (comterp()->stack_top().is_unknown()) {
@@ -505,14 +525,16 @@ void DotStreamNextFunc::execute() {
       }
       before_next = comterp()->pop_stack();
     } else {
-      /* not exercised by the LHS-only case this lands in -- kept generic so a future RHS/zip extension can reuse this next-func without a second implementation */
+      /* not exercised by the LHS-only case this lands in -- kept generic
+         so a future RHS/zip extension can reuse this next-func directly */
       before_next = ComValue(*beforeval);
     }
 
     ComValue after_raw(afterval->symbol_val(), ComValue::SymbolType);
     execute_core(before_next, after_raw, -1, "", "", true);
 
-    /* execute_core()'s named-field branch pushes the raw dotted-pair Attribute* wrapper; this synthetic per-pull call has no caller to unwrap it, so do it explicitly */
+    /* execute_core()'s named-field branch pushes the raw dotted-pair
+       Attribute* wrapper; this per-pull call has no caller to unwrap it */
     ComValue unwrapped(comterp()->pop_stack(true));
     push_stack(unwrapped);
 }
@@ -544,7 +566,8 @@ DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void DotNameFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
-    /* stack_arg's symbol=true skips lookup_symval()'s dotted-pair unwrapping, so a bound variable arg (attrname(x)) arrives as a raw SymbolType -- resolve it here, but only while still a symbol */
+    /* stack_arg's symbol=true skips lookup_symval()'s dotted-pair unwrap,
+       so attrname(x) arrives as raw SymbolType -- resolve while still one */
     if (dotted_pair.type() == ComValue::SymbolType)
         lookup_symval(dotted_pair);
     reset_stack();
@@ -565,7 +588,8 @@ DotValFunc::DotValFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void DotValFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
-    /* see DotNameFunc::execute()'s identical resolve-if-still-a-symbol comment above -- same fix, same reasoning */
+    /* see DotNameFunc::execute()'s identical resolve-if-still-a-symbol
+       comment above -- same fix, same reasoning */
     if (dotted_pair.type() == ComValue::SymbolType)
         lookup_symval(dotted_pair);
     reset_stack();

@@ -113,7 +113,8 @@ void SymAddFunc::execute() {
     if (val.is_type(AttributeValue::CommandType))
       symbol_ids[i] = val.command_symid();
     else if (val.is_type(AttributeValue::StringType))
-      /* symbol_add(), not val.string_val() -- a writable string's symid isn't guaranteed findable, and cstr() is slice-aware */
+      /* symbol_add(), not val.string_val() -- a writable string's
+         symid isn't guaranteed findable, and cstr() is slice-aware */
       symbol_ids[i] = symbol_add(val.cstr(scratch));
     else if (val.is_type(AttributeValue::SymbolType))
       symbol_ids[i] = val.symbol_val();
@@ -141,7 +142,8 @@ void SymAddFunc::execute() {
     push_stack(retval);
   }
 
-  // releases the temporary ref taken above; the returned value's own ref (from ref_as_needed()) is permanent, never auto-unref'd
+  // releases the temporary ref taken above; the returned
+  // value's own ref (from ref_as_needed()) is permanent, never auto-unref'd
   for (int i=0; i<numargs; i++)
     if(symbol_ids[i]!=-1)
       symbol_unref(symbol_ids[i]);
@@ -360,7 +362,8 @@ void SplitStrFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     }
-    /* a one-char string delimiter must behave like its coerced CharType form, so set tokstr_charflag now */
+    /* a one-char string delimiter must behave like its coerced CharType form,
+       so set tokstr_charflag now */
     tokstr_charflag = true;
   }
   if (tokvalflag && tokvalv.is_string() &&
@@ -372,7 +375,8 @@ void SplitStrFunc::execute() {
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    /* cstr(), not symbol_ptr() -- symvalv can be a slice, and everything below reads through this one str pointer */
+    /* cstr(), not symbol_ptr() -- symvalv can be a slice,
+       and everything below reads through this one str pointer */
     std::string scratch;
     const char* str = symvalv.cstr(scratch);
     const char* strbase = str;
@@ -577,7 +581,8 @@ void GlobalSymbolFunc::execute() {
     if (val.is_symbol())
       symbol_ids[i] = val.symbol_val();
     else if (val.is_command()) {
-      /* only reachable via an explicit backquote, which suppresses self-invoke but doesn't permit a command name as a variable */
+      /* only reachable via an explicit backquote, which
+         suppresses self-invoke but doesn't permit a command name as a variable */
       cout << "WARNING:  \"" << val.command_name() << "\" is a command"
 		   " -- global() can't use it as a variable name -- line "
 		<< funcstate()->linenum() << "\n";
@@ -585,7 +590,8 @@ void GlobalSymbolFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     } else {
-      /* val resolved to neither symbol nor command -- fail loudly rather than silently key off a shared, meaningless -1 slot */
+      /* val resolved to neither symbol nor command --
+         fail loudly rather than silently key off a shared, meaningless -1 slot */
       cout << "WARNING:  global() argument did not resolve to a symbol"
 		   " (if its name collides with a command, backquote it to"
 		   " confirm) -- line " << funcstate()->linenum() << "\n";
@@ -673,7 +679,8 @@ void LocalSymbolFunc::execute() {
     return;
   }
 
-  /* local() names the per-instance symbol table directly, with no func-frame shadow or globaltable fallback */
+  /* local() names the per-instance symbol table directly,
+     with no func-frame shadow or globaltable fallback */
   int numargs = nargs();
   if (!numargs) {
     reset_stack();
@@ -685,7 +692,8 @@ void LocalSymbolFunc::execute() {
     if (val.is_symbol())
       symbol_ids[i] = val.symbol_val();
     else if (val.is_command()) {
-      /* only reachable via an explicit backquote, which suppresses self-invoke but doesn't permit a command name as a variable */
+      /* only reachable via an explicit backquote, which
+         suppresses self-invoke but doesn't permit a command name as a variable */
       cout << "WARNING:  \"" << val.command_name() << "\" is a command"
 		   " -- local() can't use it as a variable name -- line "
 		<< funcstate()->linenum() << "\n";
@@ -693,7 +701,8 @@ void LocalSymbolFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     } else {
-      /* val resolved to neither symbol nor command -- fail loudly rather than silently key off a shared, meaningless -1 slot */
+      /* val resolved to neither symbol nor command --
+         fail loudly rather than silently key off a shared, meaningless -1 slot */
       cout << "WARNING:  local() argument did not resolve to a symbol"
 		   " (if its name collides with a command, backquote it to"
 		   " confirm) -- line " << funcstate()->linenum() << "\n";

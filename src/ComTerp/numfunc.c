@@ -249,7 +249,8 @@ void AddFunc::execute() {
     case ComValue::StringType:
     case ComValue::SymbolType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-          /* Go-style append: grows operand1's own backing symid in place when there's room, otherwise falls back to a copy via symbol_add() */
+          /* Go-style append: grows operand1's own backing symid in place
+             when there's room, otherwise falls back to a copy via symbol_add() */
           std::string scratch1, scratch2;
           const char* s1 = operand1.cstr(scratch1);
           int len1 = operand1.sliced() ? operand1.slicelen() : (int)strlen(s1);
@@ -263,7 +264,8 @@ void AddFunc::execute() {
             int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
             if (growable && end1+len2 < cap1) {
               char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              /* memmove, not memcpy: s2 can point into this same buffer (e.g. a slice of it), so the ranges can overlap */
+              /* memmove, not memcpy: s2 can point into this same
+                 buffer (e.g. a slice of it), so the ranges can overlap */
               memmove(buf+end1, s2, len2);
               buf[end1+len2] = '\0';
               result.string_ref() = operand1.symbol_val();

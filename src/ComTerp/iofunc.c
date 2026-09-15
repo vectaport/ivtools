@@ -169,7 +169,8 @@ void PrintFunc::execute() {
   static int prefix_symid = symbol_add("prefix");
   ComValue prefixv(stack_key(prefix_symid));
 
-  /* cstr(), not string_ptr(): formatstr can be a sliced string, and string_ptr() would read the parent's full text */
+  /* cstr(), not string_ptr(): formatstr can be a sliced string,
+     and string_ptr() would read the parent's full text */
   std::string fscratch;
   const char* fstr = formatstr.is_string() ? formatstr.cstr(fscratch) : "nil";
   ComValue::comterp(comterp());
@@ -226,14 +227,16 @@ void PrintFunc::execute() {
     }
 
   } else {
-    /* :prefix applies to a real format string too, emitted once around the whole formatted result */
+    /* :prefix applies to a real format string too,
+       emitted once around the whole formatted result */
     if (prefixv.is_string()) out << prefixv.symbol_ptr();
     const char* fstrptr = fstr;
     int curr=1;
     while (curr<narg) {
 
       char fbuf[BUFSIZ];
-      /* relay the output wrapper off the stack slot before copying -- lets %v (only) print an overdriven size()'s per-element {n} */
+      /* relay the output wrapper off the stack slot before copying --
+         lets %v (only) print an overdriven size()'s per-element {n} */
       ComValue& argstackv = stack_arg(curr);
       int argwrapper = argstackv.wrapper();
       ComValue printval(argstackv);
@@ -259,7 +262,8 @@ void PrintFunc::execute() {
       } else {
         strncpy(fbuf, fstrptr, BUFSIZ-1);
         fbuf[BUFSIZ-1] = '\0';
-        /* scan the truncated fbuf, not fstrptr, so specstart stays within fbuf's extent used to index it below */
+        /* scan the truncated fbuf, not fstrptr, so specstart stays
+           within fbuf's extent used to index it below */
         const char* specptr = fbuf;
         int flen;
         while (*specptr && !(flen=format_extent(specptr))) specptr++;
@@ -280,7 +284,8 @@ void PrintFunc::execute() {
 	continue;
       }
 
-      /* the last argument's fbuf can hold more format specs than there are values -- count them to force the safe fallback */
+      /* the last argument's fbuf can hold more format specs than
+         there are values -- count them to force the safe fallback */
       int speccount = 0;
       for (const char* scanptr = fbuf; *scanptr; ) {
         int flen = format_extent(scanptr);
@@ -288,8 +293,10 @@ void PrintFunc::execute() {
         else scanptr++;
       }
 
-      /* %s needs a real char*, and %n writes through its arg -- neither is safe on a raw numeric or non-string value, so both fall back to the value's normal string representation */
-      /* a list reaching a format spec is a type mismatch, not an invitation to iterate it -- streams already overdrive print correctly at the language level */
+      /* %s needs a real char*, and %n writes through its arg -- unsafe
+         on a raw non-string value, so both fall back to its string form */
+      /* a list reaching a format spec is a type mismatch, not an invitation to
+         iterate it -- streams already overdrive print correctly at the language level */
       if (specchar == 'n' || speccount > 1 ||
           printval.type() == ComValue::ArrayType ||
           (specchar == 's' &&
@@ -387,7 +394,8 @@ void PrintFunc::execute() {
 
   reset_stack();
   if (stringflag.is_true() || strflag.is_true()) {
-    /* NUL terminator goes straight to strmbuf, bypassing ctrlfilterbuf, which would otherwise rewrite it to "\c@" */
+    /* NUL terminator goes straight to strmbuf, bypassing ctrlfilterbuf,
+       which would otherwise rewrite it to "\c@" */
     strmbuf->sputc('\0');
     ComValue retval(((std::strstreambuf*)strmbuf)->str());
     push_stack(retval);
@@ -530,7 +538,8 @@ void OpenFileFunc::execute() {
       pipe_handler->log_only(1);
     }
   } else {
-    /* modestr passes straight through to fopen()/popen(), unvalidated, so glibc mode extensions like "wx" work unmodified */
+    /* modestr passes straight through to fopen()/popen(), unvalidated,
+       so glibc mode extensions like "wx" work unmodified */
     const char* modestr = modev.is_string() ? modev.string_ptr() : "r";
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modestr, pipeflagv.is_true());
     if (fileobj->fptr())  {
@@ -629,7 +638,8 @@ void GetArgFunc::execute() {
   reset_stack();
   int n = numv.int_val();
   if (comterp()->funcobj_active()) {
-    /* inside a FuncObj body: nth positional, eager or :posteval-pulled fresh, transparently either way */
+    /* inside a FuncObj body: nth positional, eager or :posteval-pulled
+       fresh, transparently either way */
     ComValue retval(comterp()->funcobj_arg(n));
     push_stack(retval);
     return;

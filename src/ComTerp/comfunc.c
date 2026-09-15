@@ -85,12 +85,14 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 	    if (!symbol) {
 	        boolean was_pending = argref.is_symbol() &&
 		  _comterp->is_posteval_pending(argref.symbol_val());
-		/* resolving the slot in place drops its output wrapper via assignment, so carry the wrapper across (keeps print's %v seeing it) */
+		/* resolving the slot in place drops its output wrapper via assignment,
+		   so carry the wrapper across (keeps print's %v seeing it) */
 		int slotwrapper = argref.wrapper();
 	        argref = _comterp->lookup_symval(argref);
 		if (slotwrapper != AttributeValue::NoWrapper)
 		  argref.wrapper(slotwrapper);
-		/* fire_if_funcobj() returns a per-fire pool entry, not a shared slot, so resolving two pending FuncObj operands before consuming either won't overwrite one with the other */
+		/* fire_if_funcobj() returns a per-fire pool entry, not a shared slot,
+		   so resolving two pending FuncObj operands won't overwrite each other */
 		if (was_pending && argref.is_object(FuncObj::class_symid()))
 		  return _comterp->fire_if_funcobj(argref);
 	    }
@@ -137,12 +139,14 @@ ComValue& ComFunc::stack_dotname(int n) {
 }
 
 ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
-  /* nothing to fire means no anchor is needed either -- keeps an empty {} or [] literal's own construction a silent no-op */
+  /* nothing to fire means no anchor is needed either --
+     keeps an empty {} or [] literal's own construction a silent no-op */
   if (nkeys()==0 && n>=nargsfixed()) return dflt;
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* same anchor-recovered-offtop guard as stack_key_post_eval; guards the DotFunc/GrDotFunc arg-0 path against a corrupt anchor silently yielding a bogus CommandType */
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; guards
+     DotFunc/GrDotFunc arg-0 from a corrupt anchor's bogus CommandType */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_arg_post_eval: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -266,7 +270,8 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
 
 AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
   AttributeList* al = new AttributeList();
-  /* same nkeys()==0 short-circuit as stack_key_post_eval -- nothing to enumerate, so no reason to read the operand-stack anchor */
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- nothing to
+     enumerate, so no reason to read the operand-stack anchor */
   if (nkeys() == 0) return al;
 
   ComValue argoff(comterp()->stack_top());
@@ -278,7 +283,8 @@ AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
             offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
     return al;
   }
-  /* same walk as stack_key_post_eval's search loop, generalized to collect every keyword instead of stopping at the first match */
+  /* same walk as stack_key_post_eval's search loop, generalized to
+     collect every keyword instead of stopping at the first match */
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
@@ -352,13 +358,15 @@ AttributeList* ComFunc::bookmark_stack_keys_post_eval() {
 
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt) {
-  /* nkeys()==0 -> keyword absent, return nil without reading the operand stack (also sidesteps a bogus anchor during remote()'s re-entrant de-serialization) */
+  /* nkeys()==0 -> keyword absent, return nil without touching the stack
+     (sidesteps a bogus anchor during remote()'s de-serialization) */
   if (nkeys() == 0)
     return ComValue::nullval();
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* guard against a bad/missing argoff anchor yielding a wild offtop, which would make expr_top(offtop) read unmapped memory (mirrors the loc<0 guard in stack_arg_post below) */
+  /* guard against a bad argoff anchor yielding a wild offtop, which would
+     make expr_top(offtop) read unmapped memory (same guard as stack_arg_post) */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_key_post_eval: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -388,13 +396,15 @@ ComValue ComFunc::stack_key_post_eval
 boolean ComFunc::stack_key_present(int id, boolean* has_value) {
   if (has_value) *has_value = false;
 
-  /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the fuller note there. */
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the
+     fuller note there. */
   if (nkeys() == 0)
     return false;
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* same anchor-recovered-offtop guard as stack_key_post_eval; stay silent since a corrupt anchor here would already have been reported by the first keyword lookup */
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; stay silent
+     since a corrupt anchor here was already reported by the first lookup */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1)
     return false;
 
@@ -437,13 +447,15 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 
 ComValue& ComFunc::stack_key_post
 (int id, boolean symbol, ComValue& dflt) {
-  /* nkeys()==0 -> keyword absent; return nil without touching the operand stack, see the fuller note in stack_key_post_eval */
+  /* nkeys()==0 -> keyword absent; return nil without touching the
+     operand stack, see the fuller note in stack_key_post_eval */
   if (nkeys() == 0)
     return ComValue::nullval();
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* same anchor-recovered-offtop guard as stack_key_post_eval; see note there. */
+  /* same anchor-recovered-offtop guard as stack_key_post_eval;
+     see note there. */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_key_post: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -494,7 +506,8 @@ ComValue ComFunc::pop_stack() {
     return _comterp->pop_stack();
 
 #if 0
-    /* get rid of keywords -- use stack_key and stack_arg to get those */
+    /* get rid of keywords --
+       use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
 	int nkey = nkeys();
@@ -517,7 +530,8 @@ ComValue ComFunc::pop_stack() {
 ComValue ComFunc::pop_symbol() {
     return _comterp->pop_symbol();
 #if 0  
-    /* get rid of keywords -- use stack_key and stack_arg to get those */
+    /* get rid of keywords --
+       use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
 	int nkey = nkeys();
@@ -567,7 +581,8 @@ int ComFunc::bintest(const char* command) {
   char testbuf[BUFSIZ];
   if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  // guard the tail comparison so a short/empty `which' result can't index before testbuf
+  // guard the tail comparison so a short/empty `which' result can't
+  // index before testbuf
   size_t tlen = strlen(testbuf);
   size_t clen = strlen(command);
   if (tlen < clen + 1 ||
@@ -588,7 +603,8 @@ ComFuncState* ComFunc::funcstate() {
 
 void ComFunc::push_funcstate(int nargs, int nkeys, int pedepth,
 			     int command_symid, unsigned linenum) {
-  /* funcid() names what was actually called ("streamnext"), unlike classid() which names the C++ class */
+  /* funcid() names what was actually called ("streamnext"), unlike
+     classid() which names the C++ class */
   ComFuncState cfs(nargs, nkeys, pedepth,
 		   command_symid==0 ? funcid() : command_symid, linenum );
   _comterp->push_funcstate(cfs);
@@ -681,7 +697,8 @@ int& ComFunc::pedepth() {
 AttributeList* ComFunc::stack_keys(boolean symbol, AttributeValue& dflt) {
   AttributeList* al = new AttributeList();
   int count = nargs() + nkeys() - npops();
-  /* walk bottom-up (deepest/first-written slot first) so add_attr()'s append-at-tail keeps the result in the order the keywords were written */
+  /* walk bottom-up (deepest/first-written slot first) so add_attr()'s
+     append-at-tail keeps keywords in the order they were written */
   for (int i=count-1; i>=0; i--) {
     ComValue& keyref = _comterp->stack_top(-i);
     if( keyref.type() == ComValue::KeywordType) {

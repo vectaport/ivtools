@@ -55,7 +55,8 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
-  // use strstreambuf + fputs to avoid FILEBUF destructor closing stdout fd
+  // use strstreambuf + fputs to avoid FILEBUF destructor closing
+  // stdout fd
   std::strstreambuf sbuf;
   ostream out(&sbuf);
  
@@ -166,7 +167,8 @@ ForFunc::ForFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ForFunc::execute() {
   static int body_symid = symbol_add("body");
-  /* :body is the deprecated legacy sole-body idiom, ignored (with a warning) when a positional body is also given */
+  /* :body is the deprecated legacy sole-body idiom, ignored (with a
+     warning) when a positional body is also given */
   boolean body_present = stack_key_present(body_symid);
   if (body_present) {
     if (nargsfixed()>= 4)
@@ -183,7 +185,8 @@ void ForFunc::execute() {
     if (whileexpr.is_false()) break;
     delete bodyexpr;
     if (nargsfixed()>= 4) {
-      /* positions 3..N-1 are space-separated bodies; all but the last run for side effects only, draining orphaned streams */
+      /* positions 3..N-1 are space-separated bodies; all but the last
+         run for side effects only, draining orphaned streams */
       for (int i=3; i<nargsfixed(); i++) {
 	ComValue v(stack_arg_post_eval(i));
 	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
@@ -197,7 +200,8 @@ void ForFunc::execute() {
       }
     }
     else {
-      /* no positional body -- :body (if present) is the legacy sole body, still fired every iteration */
+      /* no positional body -- :body (if present) is the legacy sole
+         body, still fired every iteration */
       ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
     }
@@ -224,7 +228,8 @@ void WhileFunc::execute() {
   static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
-  /* :body is the deprecated legacy sole-body idiom, ignored (with a warning) when a positional body is also given */
+  /* :body is the deprecated legacy sole-body idiom, ignored (with a
+     warning) when a positional body is also given */
   boolean body_present = stack_key_present(body_symid);
   if (body_present) {
     if (nargsfixed()>= 2)
@@ -241,7 +246,8 @@ void WhileFunc::execute() {
     }
     delete bodyexpr;
     if (nargsfixed()>= 2) {
-      /* positions 1..N-1 are space-separated bodies; all but the last run for side effects only, draining orphaned streams */
+      /* positions 1..N-1 are space-separated bodies; all but the last
+         run for side effects only, draining orphaned streams */
       for (int i=1; i<nargsfixed(); i++) {
 	ComValue v(stack_arg_post_eval(i));
 	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
@@ -255,7 +261,8 @@ void WhileFunc::execute() {
       }
     }
     else {
-      /* no positional body -- :body (if present) is the legacy sole body, still fired every iteration */
+      /* no positional body -- :body (if present) is the legacy sole
+         body, still fired every iteration */
       ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
     }
@@ -285,7 +292,8 @@ void SeqFunc::execute() {
       push_stack(arg1);
     }
     else {
-      /* arg1 is simply discarded, no orphan-stream draining -- ';' stays a plain discard on purpose */
+      /* arg1 is simply discarded, no orphan-stream draining -- ';'
+         stays a plain discard on purpose */
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
       push_stack(arg2.is_blank() ? arg1 : arg2);
@@ -399,7 +407,8 @@ FuncObjFunc::FuncObjFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 
 void FuncObjFunc::execute() {
-  /* space-separated bodies concatenated back to back so run_funcobj_body() can walk them span at a time */
+  /* space-separated bodies concatenated back to back so
+     run_funcobj_body() can walk them span at a time */
   int nspans = nargsfixed();
   postfix_token** spanbufs = nspans>0 ? new postfix_token*[nspans] : nil;
   int* spanlens = nspans>0 ? new int[nspans] : nil;
@@ -435,10 +444,12 @@ void FuncObjFunc::execute() {
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen, spanlens, nspans);
     tokbufobj->posteval(postevalv.is_true());
 
-    /* capture this body's free variables at declaration time so a later fire sees the value live now, not at call time */
+    /* capture this body's free variables at declaration time so a
+       later fire sees the value live now, not at call time */
     boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(comterp(), tokbuf, toklen);
     AttributeList* classification = FuncObjVarScan::classify(tokbuf, toklen, is_plain_var);
-    /* RAII guard, not dead code: ref/unrefs classification so it's freed at scope exit */
+    /* RAII guard, not dead code: ref/unrefs classification so
+       it's freed at scope exit */
     ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
     delete [] is_plain_var;
 
@@ -449,7 +460,8 @@ void FuncObjFunc::execute() {
       int kind = attr->Value()->int_val();
       if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
 	if (!captures) captures = new AttributeList();
-	/* use the ComValue& overload, not lookup_symval(int), for the full _alist/localtable/globaltable fallthrough */
+	/* use the ComValue& overload, not lookup_symval(int), for the
+	   full _alist/localtable/globaltable fallthrough */
 	ComValue symval(attr->SymbolId(), ComValue::SymbolType);
 	ComValue curval(comterp()->lookup_symval(symval));
 	captures->add_attr(attr->SymbolId(), curval);

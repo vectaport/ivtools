@@ -52,7 +52,8 @@ void TypeSymbolFunc::execute() {
   int numargs = nargs();
 
   if (all_flag) {
-    /* the whole closed set in enum order, complete by construction; ArrayType never appears since ListType covers it */
+    /* the whole closed set in enum order, complete by construction;
+       ArrayType never appears since ListType covers it */
     reset_stack();
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
@@ -68,7 +69,8 @@ void TypeSymbolFunc::execute() {
   }
 
   if (!numargs) {
-    /* no value named at all -- blank, not nil, is the "nothing was asked" answer */
+    /* no value named at all --
+       blank, not nil, is the "nothing was asked" answer */
     reset_stack();
     push_stack(ComValue::blankval());
     return;
@@ -117,7 +119,8 @@ void ClassSymbolFunc::execute() {
   boolean comps_flag = stack_key(comps_symid).is_true();
 
   if (all_flag || comps_flag) {
-    /* every class that used CLASS_SYMID, enrolled before main(); sorted by name since registry order is unspecified */
+    /* every class that used CLASS_SYMID, enrolled before main();
+       sorted by name since registry order is unspecified */
     std::vector<const char*> names;
     for (ClassSymid* node = class_symid_list(); node; node = node->next)
       if (!comps_flag || node->iscomp) names.push_back(node->classname);
@@ -127,7 +130,8 @@ void ClassSymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<names.size(); i++) {
-      /* symbol_add() is idempotent, so this is the same id class_symid() hands back */
+      /* symbol_add() is idempotent,
+         so this is the same id class_symid() hands back */
       ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
       av->bquote(1);
       avl->Append(av);
@@ -139,7 +143,8 @@ void ClassSymbolFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) {
-    /* no value named at all -- blank; nil is reserved for a named value with no class */
+    /* no value named at all -- blank;
+       nil is reserved for a named value with no class */
     reset_stack();
     push_stack(ComValue::blankval());
     return;
@@ -353,7 +358,8 @@ void IsListFunc::execute() {
   else if (attrflag.is_true())
     match = is_attr;
   else
-    /* bare, no keyword: any ArrayType matches -- "can this be indexed like a list", not "how was it built" */
+    /* bare, no keyword: any ArrayType matches --
+       "can this be indexed like a list", not "how was it built" */
     match = is_array;
   push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }
