@@ -80,8 +80,19 @@ public:
     void add_defaults();
     // add a default list of ComFunc objects to this interpreter.
 
-    virtual boolean is_serv() { return true; } 
+    virtual boolean is_serv() { return true; }
     // flag to test if ComTerp or ComTerpServ
+
+    virtual void push_servstate();
+    // push ComTerp::push_servstate()'s state, plus this class's own
+    // string-input buffers (_instr/_inpos/_instr_eof/_instr_final and
+    // the _outstr/_linesize they're allocated in step with), swapping
+    // in fresh ones so a nested load_string() can't clobber the
+    // caller's read position -- same protection runfile() already gets
+    // via its FILE*-owning _inptr.
+
+    virtual void pop_servstate();
+    // restore what push_servstate() saved.
 
     void delete_later(boolean flag) { _delete_later = flag; }
     boolean delete_later() { return _delete_later; }

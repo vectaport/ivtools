@@ -302,10 +302,10 @@ public:
     ComTerpState* top_servstate();
     // return pointer to top state on ComTerpServ state stack
 
-    void push_servstate();
+    virtual void push_servstate();
     // push ComTerpServ state for later retrieval
 
-    void pop_servstate();
+    virtual void pop_servstate();
     // pop ComTerpServ state that was saved earlier
 
     void trace_mode(int mode) { _trace_mode = mode; }
@@ -581,6 +581,17 @@ public:
   void*& inptr() { return _inptr; }
   AttributeList*& alist() { return _alist; }
 
+  /* ComTerpServ's own string-input buffers, unused by ComTerp itself --
+     ComTerpServ::push_servstate()/pop_servstate() are the only ones that
+     read or write these */
+  char*& instr() { return _instr; }
+  int& inpos() { return _inpos; }
+  boolean& instr_eof() { return _instr_eof; }
+  boolean& instr_final() { return _instr_final; }
+  char*& outstr() { return _outstr; }
+  int& outpos() { return _outpos; }
+  int& linesize() { return _linesize; }
+
 protected:
 
   postfix_token* _pfbuf;
@@ -598,6 +609,14 @@ protected:
   errfuncptr _errfunc;
   void* _inptr;
   AttributeList* _alist;
+
+  char* _instr;
+  int _inpos;
+  boolean _instr_eof;
+  boolean _instr_final;
+  char* _outstr;
+  int _outpos;
+  int _linesize;
 
 };
 
