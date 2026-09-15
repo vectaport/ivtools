@@ -819,15 +819,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	     optype == OPTYPE_UNARY_PREFIX ) {
 	    if( UNEXPECTED_NEW_EXPRESSION ) {
 
-	      /* stream literal: slip in stream_symid when an operator-led
-		 expression (*s, -s, !x, etc.) arrives as the first element
-		 (narg==0, comm_id==-1).  Mirrors the scalar/identifier
-		 slip-in in the literal and identifier cases below -- a
-		 unary-prefix operator token is just as valid a way to lead
-		 a stream literal's element as a literal or identifier is,
-		 and without this a bare (*s *s) errors out the moment the
-		 *second* element is the one to first need the slip-in. */
-
+	      /* stream literal: slip in stream_symid when an operator-led expression (*s, -s, !x) leads it */
 	       if( TopOfParenStack >= 0 &&
 	           LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
@@ -855,12 +847,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	 else
 	   expecting = OPTYPE_BINARY;
 
-      /* Take all operators off the stack of higher priority than this one.
-	 A unary prefix operator pops nothing: its operand is entirely to
-	 its right, so nothing already stacked can be completed by it, and
-	 popping would emit that operator before its own operand ($$ $x,
-	 1 + $x, 2 ** *s).  Priority orders what the prefix operator binds
-	 to on its right, not what it closes off on its left. */
+      /* Take all operators off the stack of higher priority than this one, except a unary prefix, which pops nothing */
 	 while ( TopOfOperStack >= 0 &&
 		 optype != OPTYPE_UNARY_PREFIX &&
 		 INSTACK_PRIORITY_HIGHER(opr_tbl_priority(op_ids[optype]))) 
@@ -901,13 +888,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	    if( !PROCEEDING_WHITESPACE( tokstart ) ||
                 UNEXPECTED_NEW_EXPRESSION ) {
 	      
-              /* stream literal: slip in stream_symid when a nested LPAREN arrives
-		 as the first element (narg==0, comm_id==-1).  This mirrors the
-		 scalar/identifier slip-in above and enables both all-stream
-		 ((a b)(c d)) and mixed scalar+stream (1 (2 3)) literals --
-		 the mixed case is consistent with how (a b) detects the stream
-		 on the second element with the first already on the stack. */
-
+              /* stream literal: slip in stream_symid when a nested LPAREN leads it, enabling (a b)(c d) and 1 (2 3) */
 	       if( TopOfParenStack >= 0 &&
 	           LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
@@ -1179,8 +1160,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	 if( expecting == OPTYPE_BINARY ) {
 	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 /* stream literal: bare opening delimiter, first element is
-		    itself a (), [], or {} group */
+		 /* stream literal: bare opening delimiter, first element is itself a (), [], or {} group */
 		 if( LITERAL_DELIM( toktype ) &&
 		     TopOfParenStack >= 0 &&
 		     LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
@@ -1302,22 +1282,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 
       /* Take everything off of the operator stack until the matching */
       /* parenthesis is found.                                        */
-      /* A keyword is pushed onto the operator stack only when the     */
-      /* look-ahead at its own token said a value follows it.  That    */
-      /* look-ahead cannot see past the end of the input buffer, so    */
-      /* under a one-shot infunc -- the line-at-a-time path a run()    */
-      /* file takes -- a keyword ending a line is pushed even when the */
-      /* closing paren it is really followed by sits on the next line, */
-      /* unread.  Such a keyword reaches here having never received a  */
-      /* value, and emitting narg 1 for it fabricates an argument that */
-      /* was never supplied (which then swallows the paren and leaves  */
-      /* the whole expression unterminated).  Expecting a unary prefix */
-      /* at the closing paren is exactly the "no value arrived" state, */
-      /* and only the innermost pending keyword can be in it -- any    */
-      /* deeper one was completed by the value that followed it.       */
-      /* But a trailing ";" before the paren leaves that same state     */
-      /* while _empty_statement supplies the operand, so the keyword    */
-      /* did get a value and narg 0 would misread it as a bare flag.    */
+      // a pending keyword with no value yet (unary-prefix expected, not empty_supplied) gets narg 0, not a fabricated 1
 	 { int kw_novalue = ( expecting == OPTYPE_UNARY_PREFIX ) && !empty_supplied;
 	 while ( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&
                  (TopOfOperStack >= 0 ))

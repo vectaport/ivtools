@@ -266,25 +266,11 @@ int bs_ident = 0;
 	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;
-	 /* self-echo: with the OS's tty echo suppressed, nothing else shows
-	    what was just read.  Echoing here, where each line becomes known,
-	    keeps it interleaved with that line's own result even for a
-	    multi-line paste the OS would have dumped all at once.  Gated on
-	    !_continuation_prompt_disabled, as the prompt print above is -- a
-	    caller wanting no prompt wants no echo either -- and on the one-shot
-	    suppress-next flag, which is consumed here exactly once, so it only
-	    ever swallows the next line read. */
-	 /* tty_echo_before_read() hands echo back to the OS when nothing is
-	    buffered, so typing is visible and line-edited normally; each read
-	    is followed by tty_echo_after_read(), which suppresses echo for the
-	    execution that follows and reports whether this line still needs
-	    echoing here or was already shown by the OS (ttyecho.c). */
+	 /* self-echo since OS tty echo is suppressed; gated on !_continuation_prompt_disabled and the one-shot suppress flag */
+	 /* tty_echo_before_read()/tty_echo_after_read() bracket each read, restoring and re-suppressing OS echo (ttyecho.c) */
 	 { int echo_suppressed = tty_echo_consume_suppress_next();
 	   int self_echo = 0;
-	   /* only when this lexer is reading the terminal itself.  A string
-	      source must leave the tty alone, or it turns echo off with
-	      nothing to turn it back on. */
-	   int on_tty = (infile == (void*)stdin);
+	   int on_tty = (infile == (void*)stdin); /* a string source must leave the tty alone */
 	 if (linecmtchr || linecmtstr)
 	   while( (on_tty ? tty_echo_before_read() : (void)0,
 		   infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
@@ -292,10 +278,7 @@ int bs_ident = 0;
 		   buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
 	     if (outfunc && !_continuation_prompt_disabled && !echo_suppressed
 		 && outfunc == (int(*)(const char*,void*))&stdout_puts && self_echo)
-	       (*outfunc) ( buffer, outfile );  /* echo the comment line too -- it's
-	                                            still being silently consumed
-	                                            here, just no longer shown by
-	                                            OS echo on its own */
+	       (*outfunc) ( buffer, outfile );  /* echo the comment line too, still consumed but no longer shown by OS echo */
              (*linenum)++;  /* skip all script comments */
          }
 	 else {
@@ -617,11 +600,7 @@ int bs_ident = 0;
 	       TOKEN_ADD( hexval );
                }
 
-	 /* 'c' indicates a control-character escape, Perl/PCRE-style
-	    (Larry Wall's \cX, not an invented notation): \cX is X^0x40,
-	    for X in '?'..'_' (0x3F-0x5F).  Valid in both char literals and
-	    strings alike -- there is no bare, unescaped form to collide
-	    with, so this needs no per-context handling. */
+	 /* 'c' is a Perl/PCRE control-char escape: \cX is X^0x40, X in '?'..'_' (0x3F-0x5F) */
 	    else if( NEXT_CHAR == 'c' ) {
 	       ADVANCE_CHAR;
 	       if( NEXT_CHAR < 0x3f || NEXT_CHAR > 0x5f ) {
@@ -694,9 +673,7 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 /* ':' only counts as isident() via _colon_ident, so a colon here is
-	    ending a number cleanly (e.g. a range operand), not a malformed
-	    numeric-identifier like "1abc". */
+	 /* ':' only counts as isident() via _colon_ident, so a colon ends a number cleanly, not "1abc" */
 	 else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	    return ERR_BADINT;
          else
@@ -727,8 +704,7 @@ int bs_ident = 0;
 	       }
 	    goto token_return;
 	    }
-	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
-	    so it should end an octal-looking number cleanly, not fail it. */
+	 /* see TOK_DFINT above: ':' ends an octal-looking number cleanly too */
 	 else if( isdigit( CURR_CHAR ) || (CURR_CHAR != ':' && isident( CURR_CHAR )))
 	    return ERR_BADOCT;
 	 else if( *toklen == 0 ) {
@@ -751,8 +727,7 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
-	    so it should end a hex number cleanly, not fail it. */
+	 /* see TOK_DFINT above: ':' ends a hex number cleanly too */
 	 else if( (CURR_CHAR != ':' && isident( CURR_CHAR )) || *toklen == 0 )
 	    return ERR_BADHEX;
 	 else
@@ -780,8 +755,7 @@ int bs_ident = 0;
 	       ADVANCE_CHAR;
 	       double_state = FLOAT_NEWEXPON;
 	       }
-	    /* see TOK_DFINT above: ':' only counts as isident() via
-	       _colon_ident, so it should end the fraction cleanly. */
+	    /* see TOK_DFINT above: ':' ends the fraction cleanly too */
 	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
@@ -804,8 +778,7 @@ int bs_ident = 0;
 	 if( double_state == FLOAT_EXPONENT ) {
 	    if( isdigit( CURR_CHAR ))
 	       TOKEN_ADD( CURR_CHAR )
-	    /* see TOK_DFINT above: ':' only counts as isident() via
-	       _colon_ident, so it should end the exponent cleanly. */
+	    /* see TOK_DFINT above: ':' ends the exponent cleanly too */
 	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
@@ -1024,11 +997,7 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
-   /* recorded in true document-scan order, unlike the *toktype and *bufptr
-      output params: lookahead can call scanner(), and so lexscan(), more than
-      once per token handed to the caller, so those params may reflect
-      whichever call ran last rather than the token immediately before this
-      one in source order. */
+   /* unlike *toktype/*bufptr, stays in true scan order even when lookahead calls scanner() extra times */
    _lexscan_last_tokend = *bufptr;
    _lexscan_last_toktype = token_state;
    return FUNCOK;
