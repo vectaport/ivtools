@@ -69,9 +69,9 @@ public:
     virtual void execute();
     virtual const char* docstring() {
       return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- "
-        "open file command; modestr is passed straight through to fopen(3), so "
-        "a glibc mode-string extension like \"wx\" (fail instead of truncating "
-        "an existing file) works same as any other fopen(3) mode"; }
+        "open file command; modestr: \"r\"|\"w\"|\"a\"|\"r+\"|\"w+\"|\"a+\", each "
+        "optionally suffixed with \"b\" (binary) or \"x\" (fail instead of "
+        "truncating an existing file, w/w+ only)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":pipe      open pipe command",
