@@ -69,7 +69,7 @@ public:
     virtual void execute();
     virtual const char* docstring() {
       return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- "
-        "open file command; modestr r w a r+ w+ a+, plus b/x suffixes"; }
+        "open file command; modestr r w a r+ w+ a+, plus b suffix or x (fail if exists, w/w+ only)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":pipe      open pipe command",
