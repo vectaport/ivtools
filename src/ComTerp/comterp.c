@@ -487,8 +487,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* free any FuncObjPendingArg markers still standing at invocation end,
-     since unref_as_needed() won't clean them up and they'd leak */
+  /* free any FuncObjPendingArg markers still standing at invocation
+     end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {
     if (posvals[i].is_object(FuncObjPendingArg::class_symid()))
       delete (FuncObjPendingArg*)posvals[i].obj_val();
@@ -532,8 +532,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
             NextFunc::execute_impl(this, v);
             if (stack_top().is_unknown()) { pop_stack(); done = true; }
             else if (stack_top().is_object(Attribute::class_symid())) {
-              /* an Attribute element becomes a ":key value" keyword: push value,
-                 then keyword; pop_stack(false) avoids a symbol-lookup crash */
+              /* an Attribute element becomes a ":key value" keyword:
+                 push value, then keyword; pop_stack(false) skips lookup */
               ComValue av(pop_stack(false));
               Attribute* attr = (Attribute*)av.obj_val();
               ComValue valv(*attr->Value());
@@ -762,8 +762,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
       fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
       for(int i=stack_base+1; i<=_stack_top; i++)
           std::cerr << i << ":  " << _stack[i] << "\n";
-      /* trim stray extra value(s) left by an under-consumed post_eval command,
-         or they leak into later statements via run("file")'s nesting */
+      /* trim stray extra value(s) left by an under-consumed post_eval
+         command, so nested run("file") calls don't inherit them */
       decr_stack(_stack_top - (stack_base+1));
     }
     else if (stack_base+1 > _stack_top) {
