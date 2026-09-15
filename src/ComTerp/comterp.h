@@ -581,9 +581,8 @@ public:
   void*& inptr() { return _inptr; }
   AttributeList*& alist() { return _alist; }
 
-  /* ComTerpServ's own string-input buffers, unused by ComTerp itself --
-     ComTerpServ::push_servstate()/pop_servstate() are the only ones that
-     read or write these */
+  /* ComTerpServ's own string-input buffers; only its push_servstate()/
+     pop_servstate() read or write these, not ComTerp's own */
   char*& instr() { return _instr; }
   int& inpos() { return _inpos; }
   boolean& instr_eof() { return _instr_eof; }

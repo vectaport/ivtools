@@ -84,12 +84,8 @@ public:
     // flag to test if ComTerp or ComTerpServ
 
     virtual void push_servstate();
-    // push ComTerp::push_servstate()'s state, plus this class's own
-    // string-input buffers (_instr/_inpos/_instr_eof/_instr_final and
-    // the _outstr/_linesize they're allocated in step with), swapping
-    // in fresh ones so a nested load_string() can't clobber the
-    // caller's read position -- same protection runfile() already gets
-    // via its FILE*-owning _inptr.
+    // also swaps in fresh _instr/_outstr buffers, so a nested
+    // load_string() can't clobber the caller's read position.
 
     virtual void pop_servstate();
     // restore what push_servstate() saved.

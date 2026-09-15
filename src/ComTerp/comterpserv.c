@@ -159,10 +159,8 @@ void ComTerpServ::push_servstate() {
     cts_state->outpos() = _outpos;
     cts_state->linesize() = _linesize;
 
-    /* fresh buffers at the current size, same as the constructor, so a
-       nested load_string() reads/writes its own copy instead of the
-       caller's -- mirrors how push_servstate() swaps in a fresh
-       _buffer for the postfix-token scanner */
+    /* fresh buffers at the current size, so a nested load_string()
+       can't touch the caller's -- same swap-in _buffer already gets */
     _instr = new char[_linesize];
     _outstr = new char[_linesize];
     _inpos = 0;
