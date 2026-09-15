@@ -1789,13 +1789,11 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
 
-  /* _pfnum/_pfbuf are this instance's state, not this call's: they persist
-     across separate run() calls on the same instance (one per socket line
-     in ComterpHandler::handle_input(), say).  A trailing TOK_EOF token is
-     case TOK_EOF's normal, harmless mark of a clean parse in _parser.c, but
-     eof() below takes it as "this instance has nothing left to parse" --
-     true only when it reflects this call's own input.  Clear a leftover one
-     before the loop starts so eof() only ever answers for this call. */
+  /* eof() below must answer for this call alone, but the postfix buffer
+     it reads (_pfnum/_pfbuf) is this instance's state, outliving any one
+     run() call.  A trailing TOK_EOF token there is only ever _parser.c's
+     normal mark of where an earlier parse ended, not a report on this
+     call's input, so clear it before eof() can mistake the two. */
   if (_pfnum && _pfbuf[_pfnum-1].type == TOK_EOF) _pfnum = 0;
 
   int status = 1;
