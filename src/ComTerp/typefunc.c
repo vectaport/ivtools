@@ -52,10 +52,7 @@ void TypeSymbolFunc::execute() {
   int numargs = nargs();
 
   if (all_flag) {
-    /* the whole closed set, in enum order -- every value in the language has
-       one of these, so unlike class() this list is complete by construction.
-       ListType and ArrayType are one type under two names; the symbol is
-       ListType, so ArrayType never appears. */
+    /* the whole closed set in enum order, complete by construction; ArrayType never appears since ListType covers it */
     reset_stack();
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
@@ -71,8 +68,7 @@ void TypeSymbolFunc::execute() {
   }
 
   if (!numargs) {
-    /* no value named at all -- blank, the "nothing was asked" answer, the same
-       distinction class() draws.  nil stays the answer about a named value. */
+    /* no value named at all -- blank, not nil, is the "nothing was asked" answer */
     reset_stack();
     push_stack(ComValue::blankval());
     return;
@@ -121,11 +117,7 @@ void ClassSymbolFunc::execute() {
   boolean comps_flag = stack_key(comps_symid).is_true();
 
   if (all_flag || comps_flag) {
-    /* every class that used CLASS_SYMID, enrolled before main() -- so this is
-       what the binary linked, not what it happens to have touched.  :comps
-       narrows to the CLASS_SYMID2 classes, the ones carrying a Unidraw
-       ClassId.  Sorted by name: the registry is in dynamic-initializer order,
-       which no standard pins down. */
+    /* every class that used CLASS_SYMID, enrolled before main(); sorted by name since registry order is unspecified */
     std::vector<const char*> names;
     for (ClassSymid* node = class_symid_list(); node; node = node->next)
       if (!comps_flag || node->iscomp) names.push_back(node->classname);
@@ -135,8 +127,7 @@ void ClassSymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<names.size(); i++) {
-      /* the registry holds names, so the ids are made here -- symbol_add() is
-	 idempotent, so this is the same id class_symid() hands back */
+      /* symbol_add() is idempotent, so this is the same id class_symid() hands back */
       ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
       av->bquote(1);
       avl->Append(av);
@@ -148,8 +139,7 @@ void ClassSymbolFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) {
-    /* no value named at all -- blank, the "nothing was asked" answer.  nil is
-       reserved for the value that was named but has no class to report. */
+    /* no value named at all -- blank; nil is reserved for a named value with no class */
     reset_stack();
     push_stack(ComValue::blankval());
     return;
@@ -363,11 +353,7 @@ void IsListFunc::execute() {
   else if (attrflag.is_true())
     match = is_attr;
   else
-    /* bare, no keyword: any ArrayType, comma- or colon-built together --
-       "can this be indexed/iterated like a list", not "how was it built"
-       (list()'s own constructor keeps the opposite default -- bare
-       list(...) builds only a comma-list -- since a constructor has to
-       commit to exactly one shape, where a predicate doesn't). */
+    /* bare, no keyword: any ArrayType matches -- "can this be indexed like a list", not "how was it built" */
     match = is_array;
   push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }

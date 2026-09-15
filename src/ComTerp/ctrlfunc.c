@@ -426,11 +426,7 @@ void PatchKeyFunc::execute() {
     ComValue commitidv(stack_key(commitid_sym));
     reset_stack();
 
-    /* :commitid resolves a key's git tag to its commit id (rev-list -n 1
-       dereferences either tag kind); a key value after :commitid picks which
-       one, a bare :commitid resolves this build's own PATCH_KEY.  Branch on
-       type rather than is_true(), since a StringType's truthiness isn't a
-       reliable stand-in for "was a key actually supplied". */
+    /* :commitid resolves a key's git tag to its commit id; branch on type rather than is_true(), since a StringType's truthiness doesn't mean "was a key supplied". */
     const char* key = nil;
     if (commitidv.type() == ComValue::StringType || commitidv.type() == ComValue::SymbolType)
 	key = commitidv.string_ptr();
@@ -438,14 +434,7 @@ void PatchKeyFunc::execute() {
 	key = PATCH_KEY;
 
     if (key) {
-	/* PATCH_KEY, and any key passed in, is a plain literal rather than
-	   something derived from git, so resolving it to a commit means asking
-	   git for the matching tag pushed at merge time.
-
-	   A caller-supplied key is reachable over the socket interface, so it
-	   is rejected outright -- not merely quoted -- if it holds anything
-	   outside the character set a real PATCH_KEY tag can contain, closing
-	   the shell-injection path through snprintf/popen below. */
+	/* a caller-supplied key is reachable over the socket interface, so reject it outright if it holds anything outside a real tag's charset, closing the shell-injection path below. */
 	static const char* key_charset =
 	    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 	if (key[0] == '\0' || strspn(key, key_charset) != strlen(key)) {
@@ -453,21 +442,12 @@ void PatchKeyFunc::execute() {
 	    return;
 	}
 
-	/* shell_string() called directly rather than through ShellFunc's
-	   stack machinery.  A nonexistent tag leaves stdout empty, so an empty
-	   result means unresolved -- not yet tagged, or a stale key -- rather
-	   than an error worth surfacing.  Stderr goes to /dev/null so a failed
-	   lookup does not leak git's diagnostics. */
+	/* shell_string() called directly; an empty result means unresolved (not an error), and stderr goes to /dev/null so a failed lookup doesn't leak git's diagnostics. */
 	char cmdbuf[BUFSIZ];
 	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
-	    /* git rev-list's own --abbrev is a minimum length, not a fixed
-	       one (it silently grows past 8 if two commits ever share an
-	       8-char prefix), so truncate the full SHA in C instead, giving
-	       an id that's always exactly 8 characters -- plenty to
-	       disambiguate in this repo, and the same length as a PATCH_KEY
-	       tag, which is all this command's callers need. */
+	    /* git rev-list's --abbrev is a minimum, not fixed, length, so truncate the full SHA in C to a consistent 8 characters instead. */
 	    char shortid[9];
 	    snprintf(shortid, sizeof(shortid), "%.8s", commitid);
 	    ComValue keyv(shortid);
@@ -524,14 +504,7 @@ NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void NilFunc::execute() {
-    /* token_to_comvalue routes any call-shaped symbol here at conversion
-       time, once, frozen into the token -- which is wrong when the name is
-       defined earlier in the same ";"-sequence, since the whole sequence
-       converts before any of it runs.  So re-check by name here: if the name
-       is a FuncObj by the time this fires, evaluate the pending args and
-       dispatch to it as an ordinary call would.  If not, fall through without
-       touching the args and return nil, which is the plugin-hook gate
-       idiom. */
+    /* re-check the command name by symbol here, since token_to_comvalue froze it at conversion time; if it now names a FuncObj, dispatch to it, else fall through and return nil. */
     static int nil_symid = symbol_add("nil");
     int comm_symid = funcstate()->command_symid();
     if (comm_symid && comm_symid != nil_symid) {
@@ -541,12 +514,7 @@ void NilFunc::execute() {
 	FuncObj* target_fo = (FuncObj*)target.obj_val();
 	int n = nargsfixed();
 	if (target_fo->posteval()) {
-	  /* :posteval target -- don't evaluate anything.  Bookmark each
-	     pending positional/keyword's still-unevaluated span instead
-	     (same walk as the eager branch below, just stops short of
-	     calling post_eval_expr on it) and hand fire_funcobj the marker
-	     arrays directly; arg()/a keyword's own first read pulls each
-	     one later, on demand, from inside the fired body. */
+	  /* :posteval target -- bookmark each pending arg's unevaluated span and hand fire_funcobj the markers directly; each is pulled on demand from inside the fired body. */
 	  ComValue* posvals = bookmark_stack_arg_post_eval_nargsfixed();
 	  AttributeList* keys = bookmark_stack_keys_post_eval();
 	  reset_stack();
@@ -556,20 +524,10 @@ void NilFunc::execute() {
 	  delete keys;  /* copied into fire_funcobj's own AttributeList; we own it */
 	  return;
 	}
-	/* batch (stack_arg_post_eval_nargsfixed/stack_keys_post_eval), not
-	   per-i/per-id post-eval calls: each one re-reads stack_top() as its
-	   own anchor bookmark, which a push_stack() of a prior result would
-	   already have clobbered.  Both resolve their own token-span
-	   bookmarks up front, before evaluating anything, and neither
-	   disturbs the shared stack in a way the other depends on, so
-	   either order is safe -- positionals, then keywords, here. */
+	/* batch post-eval, not per-i/per-id: each call re-reads stack_top() as its anchor, which a prior result's push_stack() would already have clobbered. */
 	ComValue** argvals = stack_arg_post_eval_nargsfixed();
 	AttributeList* keys = stack_keys_post_eval();
-	/* reset_stack() -- once, now that every arg is safely loaded into
-	   argvals[]/keys (local copies) -- clears whatever pre-call stack
-	   state (the argoff anchor bookmark, etc.) is still sitting there;
-	   skipping it left a leftover entry behind (real regression, caught
-	   live: "nil pushed more than a single value on stack"). */
+	/* reset_stack() now that args are safely copied into argvals[]/keys; skipping it leaves a leftover entry ("nil pushed more than a single value on stack"). */
 	reset_stack();
 	for (int i=0; i<n; i++) {
 	  push_stack(*argvals[i]);

@@ -80,24 +80,12 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
     unsigned type = toks[i].type;
 
     if (type == TOK_BLANK) {
-        /* A matched-parens boundary around a pure grouping expression, e.g.
-           the ")" closing "(a+b)" in "(a+b)*c" -- NOT a value of its own.
-           The live evaluator (comterp.c:709,805,858, all three checking
-           is_blank()) never pushes one either; whatever's already on the
-           stack from the group's own content is what a following command
-           should see. Pushing a leaf span here would orphan that content
-           and make the enclosing command consume the wrong operand. */
+        /* A matched-parens boundary (e.g. the ")" closing "(a+b)") is not a value of its own; pushing a leaf span here would orphan the group's content and confuse the consuming command */
         return;
     }
 
     if (type == TOK_KEYWORD) {
-        /* A keyword marker's own narg is 0 (bare flag) or 1 (keyword+value)
-           -- the count of already-pushed values it binds, per
-           doc/FUNC-AND-ARGS-DESIGN.md and dotfunc.c's "knarg is 0 or 1 by
-           construction". Combine marker + bound value (if any) into one
-           span so a command consuming this keyword-group sees it as a
-           single operand, matching comterp.c's own keyword-then-positional
-           pop order (comterp.c:584-608). */
+        /* A keyword marker's narg is 0 (bare flag) or 1 (keyword+value); combine marker + bound value (if any) into one span so it's consumed as a single operand */
         int n = toks[i].narg;
         int start = i;
         if (n > 0) {
@@ -112,13 +100,7 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
         int nkey = toks[i].nkey;
         int narg = toks[i].narg;
 
-        /* Keywords are pushed last (positionals-first-then-keywords is a
-           parser-enforced invariant, doc/POSTFIX-INDEXING.md's "Trailing
-           positionals" section), so they're popped first here. Each
-           sub-group is copied out to its own exactly-sized heap array
-           (not a fixed-size local one -- narg/nkey come straight from the
-           parser and are not bounded by any compile-time constant) before
-           the next pop_into_consumed call reuses _consumed's low indices. */
+        /* Keywords are pushed last (positionals-first-then-keywords, per parser invariant), so they're popped first; copy each sub-group out to its own heap array before the next pop_into_consumed reuses _consumed's low indices */
         int keyword_val_total = 0;
         Span* keygroups = nkey > 0 ? new Span[nkey] : nil;
         int nkeygroups = 0;
@@ -127,11 +109,7 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
             for (int k = 0; k < nkey; k++) {
                 keygroups[nkeygroups++] = _consumed[k];
             }
-            /* bound_value_count of each popped keyword-group entry was on
-               the stack Entry, not the Span -- recover it by re-deriving
-               narg-for-that-keyword from the token at its span's last
-               index (the keyword marker itself is always the last token
-               in its own combined span). */
+            /* bound_value_count lived on the stack Entry, not the Span -- recover it from the marker token at each span's last index */
             for (int k = 0; k < nkey; k++) {
                 int markeridx = keygroups[k].start + keygroups[k].count - 1;
                 keyword_val_total += toks[markeridx].narg;
@@ -149,12 +127,7 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
             }
         }
 
-        /* Public consumed() order: plain positionals first, then keyword
-           groups -- source order, per the same parser invariant above.
-           Ensure room for BOTH groups combined before writing -- the two
-           pop_into_consumed calls above each only guaranteed capacity for
-           their own individual count, not the sum, so this call is not
-           redundant with those. */
+        /* Public consumed() order: plain positionals first, then keyword groups; ensure room for BOTH combined, since the pop_into_consumed calls above each only sized for their own count */
         ensure_consumed_capacity(nposgroups + nkeygroups);
         _consumed_count = 0;
         int start = i;
@@ -175,7 +148,6 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
         return;
     }
 
-    /* Leaf: a literal value token (int, string, etc) or TOK_BLANK -- just
-       itself, no operands. */
+    /* Leaf: a literal value token (int, string, etc) or TOK_BLANK -- just itself, no operands */
     push(Span{i, 1}, 0);
 }

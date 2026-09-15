@@ -249,23 +249,7 @@ void AddFunc::execute() {
     case ComValue::StringType:
     case ComValue::SymbolType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-          /* Go-style append: b's bytes go into operand1's own backing symid
-             in place when there is room, with no copy.  operand1 must be
-             be_only_string(), never SymbolType -- a symbol's characters are
-             its identity, shared by every value holding that symid.  An
-             interned literal is excluded without an extra check, its symid
-             having been sized to exactly its own text, so the in-place branch
-             finds no room and falls through.  The result is handed back as a
-             slice over operand1's symid, so a caller holding it at a nonzero
-             sliceoff() does not read from the front of the shared buffer.
-
-             The fallback copy goes through symbol_add(), which interns by
-             content, rather than symbol_new(), whose ids are deliberately
-             absent from symbol_find()'s reverse index -- symadd() and global()
-             rely on a StringType's symid naming a searchable symbol.  So a
-             plain concat gets no growth headroom and copies again on its next
-             append; only appending onto an over-provisioned string() buffer
-             takes the zero-copy path. */
+          /* Go-style append: grows operand1's own backing symid in place when there's room, otherwise falls back to a copy via symbol_add() */
           std::string scratch1, scratch2;
           const char* s1 = operand1.cstr(scratch1);
           int len1 = operand1.sliced() ? operand1.slicelen() : (int)strlen(s1);
@@ -279,12 +263,7 @@ void AddFunc::execute() {
             int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
             if (growable && end1+len2 < cap1) {
               char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              /* memmove, not memcpy: operand2 can share
-                 operand1's own backing symid -- e.g. appending an unsliced
-                 buf onto a nonzero-offset slice of that same buf -- in
-                 which case s2 (read via cstr() above) points into this
-                 very buffer and the [s2,s2+len2) source range can overlap
-                 [buf+end1,buf+end1+len2), which memcpy doesn't allow. */
+              /* memmove, not memcpy: s2 can point into this same buffer (e.g. a slice of it), so the ranges can overlap */
               memmove(buf+end1, s2, len2);
               buf[end1+len2] = '\0';
               result.string_ref() = operand1.symbol_val();

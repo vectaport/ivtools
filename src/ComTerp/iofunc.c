@@ -169,9 +169,7 @@ void PrintFunc::execute() {
   static int prefix_symid = symbol_add("prefix");
   ComValue prefixv(stack_key(prefix_symid));
 
-  /* cstr(), not string_ptr() -- formatstr can itself be a sliced string, and fstr backs fstrptr's scan through the whole multi-value
-     format string below (narg>1 branch); string_ptr() would read the
-     shared parent's full text instead of just the slice's own window. */
+  /* cstr(), not string_ptr(): formatstr can be a sliced string, and string_ptr() would read the parent's full text */
   std::string fscratch;
   const char* fstr = formatstr.is_string() ? formatstr.cstr(fscratch) : "nil";
   ComValue::comterp(comterp());
@@ -228,25 +226,14 @@ void PrintFunc::execute() {
     }
 
   } else {
-    /* :prefix applies to a real format string too.  Only the narg==1 branch
-       above ever emitted it, so a prefix supplied alongside a format string
-       and its values was silently discarded, along with the trailing newline
-       the docstring promises ("insert str before and new-line after").
-       Emitted once around the whole formatted result rather than per
-       argument -- one prefix and one newline for the statement, matching
-       what the single-argument branch produces. */
+    /* :prefix applies to a real format string too, emitted once around the whole formatted result */
     if (prefixv.is_string()) out << prefixv.symbol_ptr();
     const char* fstrptr = fstr;
     int curr=1;
     while (curr<narg) {
 
       char fbuf[BUFSIZ];
-      /* conscious relay of the output wrapper: the annotation never rides
-	 along on a copy, so read it off the stack slot before copying and
-	 put it back deliberately -- and only for %v, the verb that renders
-	 a value as it is.  That is what lets an overdriven size() print its
-	 per-element {n}.  A numeric verb like %d formats a number and stays
-	 bare. */
+      /* relay the output wrapper off the stack slot before copying -- lets %v (only) print an overdriven size()'s per-element {n} */
       ComValue& argstackv = stack_arg(curr);
       int argwrapper = argstackv.wrapper();
       ComValue printval(argstackv);
@@ -272,12 +259,7 @@ void PrintFunc::execute() {
       } else {
         strncpy(fbuf, fstrptr, BUFSIZ-1);
         fbuf[BUFSIZ-1] = '\0';
-        /* scan the already-truncated, bounded fbuf itself, not the
-           unbounded fstrptr it came from -- specstart must stay within
-           fbuf's own extent, since it's used to index fbuf below.  A
-           spec straddling the truncation point just won't be recognized
-           here (falls back to the ordinary, already-safe dispatch)
-           rather than being read out of bounds. */
+        /* scan the truncated fbuf, not fstrptr, so specstart stays within fbuf's extent used to index it below */
         const char* specptr = fbuf;
         int flen;
         while (*specptr && !(flen=format_extent(specptr))) specptr++;
@@ -298,14 +280,7 @@ void PrintFunc::execute() {
 	continue;
       }
 
-      /* The last argument's fbuf is whatever's left of the format string
-         verbatim (built above), which can contain more format specs than
-         there are values left to fill them -- only the first one
-         (specstart/speclen) has a real argument behind it.  Any further
-         spec in there, %n above all, would make out_form's snprintf read
-         a vararg that was never passed.  Count them so that case routes
-         through the same safe fallback as an outright %s/%n mismatch,
-         regardless of what the first spec's own character is. */
+      /* the last argument's fbuf can hold more format specs than there are values -- count them to force the safe fallback */
       int speccount = 0;
       for (const char* scanptr = fbuf; *scanptr; ) {
         int flen = format_extent(scanptr);
@@ -313,27 +288,8 @@ void PrintFunc::execute() {
         else scanptr++;
       }
 
-      /* %s expects a readable char*, which String/Symbol/Object values
-         genuinely provide (via symbol_pntr) -- but handing one of the raw
-         numeric accessors below to out_form's snprintf under a %s spec
-         makes it dereference whatever bit pattern the number happens to
-         be, a reliable crash for most values.  %n is worse: it writes an
-         int back THROUGH its argument, so even the pointer String/Symbol/
-         Object hand it is unsafe -- that's someone's interned symbol-table
-         string, not a caller-owned int to write into.  No ComValue type
-         here has a legitimate use for %n, so it's refused unconditionally.
-         Both fall back to the value's normal string representation, same
-         as Boolean already did for just the %s case (generalized below). */
-      /* A list reaching a format spec is a type mismatch like the others
-         below, not an invitation for print to iterate it.  print used to
-         hand-roll an overdrive here -- re-invoking itself per element via
-         exec(2,0) -- which rendered the elements through a fresh stream of
-         their own instead of this call's, so they bypassed :str entirely
-         (leaking to stdout) and left the stack unbalanced.  Streams already
-         overdrive print at the language level, and correctly:
-         print("%d\n" $$lst) formats each element.  So the list prints as
-         the value it is, and per-element formatting is spelled the one way
-         the language already spells it. */
+      /* %s needs a real char*, and %n writes through its arg -- neither is safe on a raw numeric or non-string value, so both fall back to the value's normal string representation */
+      /* a list reaching a format spec is a type mismatch, not an invitation to iterate it -- streams already overdrive print correctly at the language level */
       if (specchar == 'n' || speccount > 1 ||
           printval.type() == ComValue::ArrayType ||
           (specchar == 's' &&
@@ -431,10 +387,7 @@ void PrintFunc::execute() {
 
   reset_stack();
   if (stringflag.is_true() || strflag.is_true()) {
-    /* the terminator sputc()'d straight to strmbuf, bypassing
-       ctrlfilterbuf -- it marks the end of the buffer for str() below,
-       it is not print() output, and NUL is one of the bytes the filter
-       would otherwise rewrite to "\c@". */
+    /* NUL terminator goes straight to strmbuf, bypassing ctrlfilterbuf, which would otherwise rewrite it to "\c@" */
     strmbuf->sputc('\0');
     ComValue retval(((std::strstreambuf*)strmbuf)->str());
     push_stack(retval);
@@ -577,12 +530,7 @@ void OpenFileFunc::execute() {
       pipe_handler->log_only(1);
     }
   } else {
-    /* modestr is passed straight through to fopen()/popen() below with no
-       validation, so it already accepts glibc's fopen(3) mode-string
-       extensions unmodified -- "wx" (O_CREAT|O_EXCL: fail rather than
-       follow/truncate a pre-existing path, including a symlink planted
-       by another local process) chief among them for a script that
-       needs to atomically create a unique file. */
+    /* modestr passes straight through to fopen()/popen(), unvalidated, so glibc mode extensions like "wx" work unmodified */
     const char* modestr = modev.is_string() ? modev.string_ptr() : "r";
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modestr, pipeflagv.is_true());
     if (fileobj->fptr())  {
@@ -681,9 +629,7 @@ void GetArgFunc::execute() {
   reset_stack();
   int n = numv.int_val();
   if (comterp()->funcobj_active()) {
-    /* inside a FuncObj body: nth positional -- an already-materialized
-       eager value, or (:posteval) pulled fresh on every call, transparently
-       either way (see ComTerp::funcobj_arg()'s own comment). */
+    /* inside a FuncObj body: nth positional, eager or :posteval-pulled fresh, transparently either way */
     ComValue retval(comterp()->funcobj_arg(n));
     push_stack(retval);
     return;

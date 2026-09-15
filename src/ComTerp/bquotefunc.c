@@ -37,10 +37,7 @@ void BackQuoteFunc::execute() {
   ComValue retval(stack_arg(0, true));
   reset_stack();
 
-  /* `StreamObj is the obsolete name for `StreamType (the printed name of
-     a StreamType value, as returned by class()).  Warn once per session
-     so scripts still carrying the old back-quoted name are nudged forward
-     without flooding stderr from a loop.  To silence: comment this out. */
+  /* `StreamObj is obsolete for `StreamType; warn once per session, not per loop iteration */
   static int streamobj_symid = symbol_add("StreamObj");
   static boolean streamobj_warned = false;
   if (!streamobj_warned && retval.type() == ComValue::SymbolType &&

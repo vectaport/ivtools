@@ -85,20 +85,12 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 	    if (!symbol) {
 	        boolean was_pending = argref.is_symbol() &&
 		  _comterp->is_posteval_pending(argref.symbol_val());
-		/* the slot is transport, not a result: resolving it in place
-		   assigns over it, and an assignment drops the output wrapper
-		   by design.  Carry the annotation across the resolution so a
-		   command that means to relay it (print's %v) can still see
-		   what its argument arrived wearing. */
+		/* resolving the slot in place drops its output wrapper via assignment, so carry the wrapper across (keeps print's %v seeing it) */
 		int slotwrapper = argref.wrapper();
 	        argref = _comterp->lookup_symval(argref);
 		if (slotwrapper != AttributeValue::NoWrapper)
 		  argref.wrapper(slotwrapper);
-		/* fire_if_funcobj() returns a reference into its own per-fire
-		   pool entry rather than a shared slot, so a caller resolving
-		   two pending FuncObj operands before consuming either gets
-		   two distinct entries and the second fire cannot overwrite
-		   the first. */
+		/* fire_if_funcobj() returns a per-fire pool entry, not a shared slot, so resolving two pending FuncObj operands before consuming either won't overwrite one with the other */
 		if (was_pending && argref.is_object(FuncObj::class_symid()))
 		  return _comterp->fire_if_funcobj(argref);
 	    }
@@ -145,18 +137,12 @@ ComValue& ComFunc::stack_dotname(int n) {
 }
 
 ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
-  /* no keys to skip and no fixed arg at position n means nothing to fire, so
-     nothing needs a valid anchor either.  An empty {} or [] literal's own
-     construction calls this with nargsfixed()==0, which is a silent no-op --
-     checked before the anchor is read, so it never reaches the guard below. */
+  /* nothing to fire means no anchor is needed either -- keeps an empty {} or [] literal's own construction a silent no-op */
   if (nkeys()==0 && n>=nargsfixed()) return dflt;
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* the same anchor-recovered-offtop guard stack_key_post_eval uses.  This is
-     the path DotFunc and GrDotFunc take to fire arg 0, where a corrupt anchor
-     does not crash: it walks _pfcomvals from the wrong position and returns
-     whatever token sits there, typically a bogus CommandType. */
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; guards the DotFunc/GrDotFunc arg-0 path against a corrupt anchor silently yielding a bogus CommandType */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_arg_post_eval: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -280,9 +266,7 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
 
 AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
   AttributeList* al = new AttributeList();
-  /* same nkeys()==0 short-circuit as stack_key_post_eval -- nothing to
-     enumerate, and no reason to read a possibly-stale operand-stack
-     anchor for it (see that function's fuller comment). */
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- nothing to enumerate, so no reason to read the operand-stack anchor */
   if (nkeys() == 0) return al;
 
   ComValue argoff(comterp()->stack_top());
@@ -294,9 +278,7 @@ AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
             offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
     return al;
   }
-  /* same walk as stack_key_post_eval's search loop, generalized: instead
-     of stopping at the first keyword matching a sought id, evaluate and
-     collect every one. */
+  /* same walk as stack_key_post_eval's search loop, generalized to collect every keyword instead of stopping at the first match */
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
@@ -370,24 +352,13 @@ AttributeList* ComFunc::bookmark_stack_keys_post_eval() {
 
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt) {
-  /* no keyword tokens for this command means the sought keyword is absent,
-     which is a normal silent result -- return nil without reading the operand
-     stack.  That also disarms the offtop guard below for a benign case: when
-     remote() re-enters the interpreter to de-serialize a returned list, the
-     argoff anchor still belongs to the outer in-flight command, so the anchor
-     read here would be bogus.  The warning stays for nkeys()>0, where a bad
-     anchor is a genuine anomaly. */
+  /* nkeys()==0 -> keyword absent, return nil without reading the operand stack (also sidesteps a bogus anchor during remote()'s re-entrant de-serialization) */
   if (nkeys() == 0)
     return ComValue::nullval();
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* guard the anchor-recovered offtop: a bad/missing argoff anchor (e.g. left by
-     an upstream command that failed to push its bookmark -- a nil remote() return
-     is one cause) yields a wild offtop, and expr_top(offtop) would then read
-     unmapped memory.  mirror the loc<0 guard in stack_arg_post (below) and warn
-     so the cause can be tracked down.  match expr_top's real bound: the slot it
-     reads is _pfcomvals[_pfnum-1+offtop], so _pfnum+offtop must be >=1. */
+  /* guard against a bad/missing argoff anchor yielding a wild offtop, which would make expr_top(offtop) read unmapped memory (mirrors the loc<0 guard in stack_arg_post below) */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_key_post_eval: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -417,17 +388,13 @@ ComValue ComFunc::stack_key_post_eval
 boolean ComFunc::stack_key_present(int id, boolean* has_value) {
   if (has_value) *has_value = false;
 
-  /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the fuller
-     note there. */
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the fuller note there. */
   if (nkeys() == 0)
     return false;
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* same anchor-recovered-offtop guard as stack_key_post_eval; a corrupt
-     anchor here would already have been reported by whichever keyword this
-     command looks up first (:nilchk/:until for while()'s callers, etc.),
-     so stay silent rather than double-warn. */
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; stay silent since a corrupt anchor here would already have been reported by the first keyword lookup */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1)
     return false;
 
@@ -470,10 +437,7 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 
 ComValue& ComFunc::stack_key_post
 (int id, boolean symbol, ComValue& dflt) {
-  /* nkeys()==0 -> keyword definitively absent; return nil without touching
-     the operand stack (an absent keyword is silent by design, and the
-     offtop guard below would otherwise warn on the benign re-entrant
-     de-serialization case).  See the fuller note in stack_key_post_eval. */
+  /* nkeys()==0 -> keyword absent; return nil without touching the operand stack, see the fuller note in stack_key_post_eval */
   if (nkeys() == 0)
     return ComValue::nullval();
 
@@ -603,9 +567,7 @@ int ComFunc::bintest(const char* command) {
   char testbuf[BUFSIZ];
   if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  // `which' echoes the resolved path; if it printed nothing (or less than the
-  // command name), the command is not on PATH.  Guard the tail comparison so an
-  // empty/short result can't index before testbuf.
+  // guard the tail comparison so a short/empty `which' result can't index before testbuf
   size_t tlen = strlen(testbuf);
   size_t clen = strlen(command);
   if (tlen < clen + 1 ||
@@ -626,10 +588,8 @@ ComFuncState* ComFunc::funcstate() {
 
 void ComFunc::push_funcstate(int nargs, int nkeys, int pedepth,
 			     int command_symid, unsigned linenum) {
-  /* funcid() is the command's own symbol -- set by ComTerp::add_command, and
-     by hand for the internally-constructed next-funcs -- so it names what was
-     actually called ("streamnext") where classid() named a C++ class. */
-  ComFuncState cfs(nargs, nkeys, pedepth, 
+  /* funcid() names what was actually called ("streamnext"), unlike classid() which names the C++ class */
+  ComFuncState cfs(nargs, nkeys, pedepth,
 		   command_symid==0 ? funcid() : command_symid, linenum );
   _comterp->push_funcstate(cfs);
 }
@@ -721,16 +681,7 @@ int& ComFunc::pedepth() {
 AttributeList* ComFunc::stack_keys(boolean symbol, AttributeValue& dflt) {
   AttributeList* al = new AttributeList();
   int count = nargs() + nkeys() - npops();
-  /* Walk the keyword run bottom-up (deepest/first-written slot first),
-     not top-down: the stack holds keywords in push order, so the
-     top-down direction visits the LAST-written keyword first, and
-     add_attr()'s append-at-tail (attrlist.c) then makes it the FIRST
-     entry of the result -- e.g. attrlist(:foo 42 :bar "hello") used to
-     come out (:bar "hello" :foo 42), reversed from how it reads.  This
-     is pure insertion-order choice (add_attr()'s own pairing/dedup logic
-     is unaffected either way, since each marker's value lookup below is
-     still a strictly local marker/value relationship regardless of scan
-     direction), so there's no reason to keep the surprising order. */
+  /* walk bottom-up (deepest/first-written slot first) so add_attr()'s append-at-tail keeps the result in the order the keywords were written */
   for (int i=count-1; i>=0; i--) {
     ComValue& keyref = _comterp->stack_top(-i);
     if( keyref.type() == ComValue::KeywordType) {

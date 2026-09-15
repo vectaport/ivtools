@@ -187,36 +187,12 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	return 0;
     }
 
-    /* This handler assembles its own line and evaluates it from a string, so
-       the lexer's terminal hooks do not apply here (_lexscan.c gates them on
-       reading stdin).  Hold echo across the evaluation, and hand it back on
-       the way out, below. */
+    /* this handler assembles its own line and evaluates it from a string, so the lexer's terminal hooks don't apply; hold echo across the evaluation and hand it back below. */
     if (fd == 0) tty_echo_hold();
 
     if (!ComterpHandler::logger_mode() && !log_only()) {
 
-      /* Typed input can arrive while a script is already running on this same
-         interpreter -- e.g. a -runfile for-loop whose update() pumped the ACE
-         reactor and dispatched this line.  ComTerp::run(!nested) resets the
-         shared operand stack (eval_expr's `_stack_top = -1`, plus the trailing
-         `if (!nested) decr_stack(_stack_top+1)`), which wipes the suspended
-         script's in-progress stack -> it resumes on an empty stack and crashes
-         (ForFunc reads a garbage argoff via stack_top()).  When re-entrant,
-         isolate the eval so the running script sees no trace of it:
-           - push_servstate() protects the postfix buffer (_pfbuf/_pfnum/...)
-             that load_string()/read_expr() would otherwise clobber;
-           - run *nested* so the shared operand stack is not reset, then pop the
-             typed line's result(s) so the cursor is exactly where it was;
-           - save/restore _just_reset.  The script can be suspended right after
-             a reset_stack() (comfunc.c) with _just_reset==1 -- the signal for
-             eval_expr_internals to push the blankval that stands in for the
-             just-reset result.  The typed eval's own push_stack() clears the
-             flag to 0 (comterp.c), so without this the blankval is never pushed,
-             the script's stack comes up one short, and skip_arg walks off the
-             end (offlimit).  push_servstate() does NOT cover this flag (its save
-             is commented out, because the synchronous re-entrant callers -- run,
-             remote -- rely on _just_reset propagating across that boundary; an
-             async stdin interruption must instead be fully transparent). */
+      /* typed input can arrive while a script is already suspended on this interpreter (e.g. a -runfile for-loop pumping the reactor); when re-entrant, run *nested* and save/restore stack height and _just_reset so the suspended script sees no trace of this eval. */
       boolean reentrant = comterp_->running();
       int stack_base = 0;
       boolean old_just_reset = false;
@@ -245,22 +221,12 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	comterp_->pop_servstate();
       } else if (comterp_->force_nested())
 	ComValue retval(comterp_->pop_stack(false));
-      /* delete_later() is a request for the OUTERMOST active context to
-         delete the interpreter once it is truly idle.  When re-entrant, the
-         suspended outer script still holds this interpreter live -- deleting
-         here would be a use-after-free when it resumes.  Leave the flag set;
-         the outer frame's own check (or shutdown) performs the delete. */
+      /* delete_later() is for the outermost active context; when re-entrant, the suspended outer script still holds this interpreter live, so leave the flag set and let that frame delete it. */
       if (!reentrant && comterp_->delete_later()) {
 	delete comterp_;
 	comterp_ = nil;
       }
-      /* This handler assembles its own line with read(), so the lexer never
-         reads the tty here and _lexscan.c's before-read hook never runs --
-         without this, echo stays off from the first command on and typing
-         goes invisible (ttyecho.c).  Returning anything but 0 retires the
-         handler, and a retired handler gets no further read to restore from,
-         so give echo back unconditionally on that path rather than only when
-         nothing is queued. */
+      /* this handler reads via read(), so the lexer's before-read hook never runs and echo must be restored here explicitly, or typing goes invisible (ttyecho.c). */
       { int staying = input_good && (status==0||status==3||status==2);
         if (fd == 0) {
           if (staying) tty_echo_before_read();

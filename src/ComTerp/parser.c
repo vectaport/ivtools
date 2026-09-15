@@ -80,13 +80,7 @@ void Parser::init() {
     __lexscan_last_tokend = 0;
     __lexscan_last_toktype = TOK_NONE;
 
-    /* And the backup copies of the parse state proper, which nothing set
-       before: check_parser_client() installs these when this parser takes the
-       globals over, so leaving them indeterminate meant the first parse ran on
-       whatever the previous client had left there -- and save_parser_client()
-       then copied that client's ParenStack POINTER in here, aliasing two
-       interpreters onto one stack of argument and keyword counts.  A NULL stack
-       makes parser() allocate one belonging to this parser alone. */
+    /* zero the backup parse state so save_parser_client() can't alias this parser's ParenStack onto a previous client's; NULL makes parser() allocate its own. */
     _expecting = 0;
     _ParenStack = NULL;
     _TopOfParenStack = -1;
@@ -103,8 +97,7 @@ void Parser::init() {
     for (int i=0; i<OPTYPE_NUM; i++)
       _NextOp_ids[i] = 0;
 
-    /* the operator table is legitimately shared -- every parser wants the same
-       operators -- so take the current values rather than emptying them */
+    /* the operator table is legitimately shared, so take the current values rather than emptying them */
     _opr_tbl_ptr = opr_tbl_ptr_get();
     _opr_tbl_numop = opr_tbl_numop_get();
     _opr_tbl_maxop = opr_tbl_maxop_get();
@@ -241,12 +234,7 @@ void Parser::check_parser_client(boolean restore) {
       for (int i=0; i<OPTYPE_NUM; i++)
 	NextOp_ids[i] = _NextOp_ids[i];
     }
-    /* The operator table is the one thing here that is legitimately shared --
-       every parser wants the same operators, and a saved copy is only ever a
-       copy of the one global.  Restoring a snapshot on a parser's FIRST parse
-       would undo an optable(:insert) made since that parser was constructed
-       (%% is defined that way at runtime), so this keeps the guard the parse
-       state above no longer needs. */
+    /* skip restoring the operator table on a parser's first parse, or it would undo an optable(:insert) made since construction (e.g. %%). */
     if (_linenum != 0) {
       opr_tbl_ptr_set(_opr_tbl_ptr);
       opr_tbl_numop_set(_opr_tbl_numop);
