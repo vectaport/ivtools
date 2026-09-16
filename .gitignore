@@ -429,3 +429,6 @@ configure~
 config/config-*.defs
 
 *.zip
+
+# AI-assistant working files, never intended for the repo
+.claude/
