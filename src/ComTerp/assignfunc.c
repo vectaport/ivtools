@@ -54,18 +54,8 @@ void AssignFunc::execute() {
     }
     
     if (operand1.type() != ComValue::SymbolType) {
-        // if lhs is a global() or local() call, set lhs_assign flag on its
-        // ComValue so the scope command can distinguish lhs from rhs context.
-        // Same for at() (including via the @ operator, lst@N=val) --
-        // ListAtFunc checks its own lhs_assign() (symbolfunc.c's
-        // GlobalFunc/LocalFunc do the same) to tell "lst@0=val" apart from
-        // an ordinary read.  Only matters for the ArrayType (plain list)
-        // case -- an AttributeList read always returns a detached, single-
-        // entry copy (never a live handle back into the source list, on
-        // purpose -- see ListAtFunc's own comment, listfunc.c), so
-        // al@N=val can't reach this far as a writable lvalue at all; it
-        // falls through to the WARNING branch below like any other
-        // non-writable assignment target.
+        // if lhs is global()/local()/at() (including lst@N=val),
+        // set lhs_assign on its ComValue to distinguish lhs from rhs context
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
         static int at_symid = symbol_add("at");
@@ -92,15 +82,8 @@ void AssignFunc::execute() {
 #endif
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
-	/* global() lvalue must be tested BEFORE the func-frame branch:
-	   the whole point of global(x)=val is to escape the frame.
-	   The old-value cleanup must read the globaltable DIRECTLY
-	   (globalvalue()), not via lookup_symval: the lvalue symbol
-	   carries bquote (the anti-resolution shield), and lookup_symval
-	   returns nil for bquoted symbols -- so the old cleanup never
-	   fired and every reassignment stacked a fresh table entry over
-	   the orphaned old one (~95 bytes leaked per global(x)=val,
-	   observable as global(:cnt) growth). */
+	/* global() lvalue tested before func-frame branch; old-value cleanup reads
+	   globaltable directly via globalvalue(), not lookup_symval() (nil for bquoted symbols) */
 	if (operand1.global_flag()) {
 	    ComValue* oldval = comterp()->globalvalue(operand1.symbol_val());
 	    if (oldval) {
@@ -110,9 +93,7 @@ void AssignFunc::execute() {
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
 	} else if (operand1.local_flag()) {
 	    /* local() lvalue: write the default (per-instance) symbol table,
-	       skipping any func frame -- outside a func this is what bare
-	       assignment does anyway; inside one it is the session-scope
-	       escape (global() being the process-scope escape). */
+	       skipping any func frame -- the session-scope escape */
 	    ComValue* oldval = comterp()->localvalue(operand1.symbol_val());
 	    if (oldval) {
 	      comterp()->localtable()->remove(operand1.symbol_val());
@@ -155,16 +136,8 @@ void AssignFunc::execute() {
       }
       attr->Value(operand2);
     } else if (operand1.is_array() && operand1.lhs_assign()) {
-      /* the @ operator: lst@N=val.  ListAtFunc (listfunc.c), seeing its
-	 own lhs_assign() flag set and an ArrayType before-part, handed back
-	 a [list, idx] pair instead of performing a read (lhs_assign() still
-	 set on the pair itself, so this branch can tell it apart from an
-	 ordinary array-valued read reaching here some other way).  Complete
-	 the write by re-driving at() itself with a real :set keyword --
-	 pushed the same way comterp.c's own EvalFunc call does (value, then
-	 a KeywordType marker carrying the keyword's symid+narg) -- so the
-	 mutation goes through at()'s single, already-tested :set code path
-	 instead of a second, hand-rolled one here. */
+      /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,
+         so complete the write by re-driving at() with a real :set keyword */
       AttributeValueList* pair = operand1.array_val();
       static int set_symid = symbol_add("set");
       push_stack(*pair->Get(0));
@@ -174,11 +147,8 @@ void AssignFunc::execute() {
       push_stack(setkey);
       ListAtFunc atfunc(comterp());
       atfunc.funcid(symbol_add("at"));
-      /* narg counts non-keyword args INCLUDING the value that follows a
-	 keyword (see the ~~ spread-operator rebuild, comterp.c ~316) --
-	 4 physical pushes above (list, idx, :set's value, :set's marker)
-	 means narg=3 (list, idx, and the :set value it counts) and
-	 nkey=1 (just the marker), not narg=2. */
+      /* narg counts non-keyword args including the value after a keyword --
+         4 pushes here mean narg=3, nkey=1, not narg=2 */
       atfunc.exec(3, 1);
       ComValue result(pop_stack());
       *operand2 = result;
