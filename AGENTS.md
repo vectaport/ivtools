@@ -477,6 +477,11 @@ worth looking.
   `.md` — proposed openly like any other change, never slipped in as a
   dotdir bundled into an unrelated commit. If something learned during a
   session seems worth keeping, say so and add it here in the open.
+- **When babysitting a PR's review comments, reply to a finding before
+  pushing its fix, not after.** A push kicks off a fresh review pass; if
+  that lands before your reply is attached to the thread, the reply loses
+  its context and the finding can get re-reviewed and re-charged for no
+  reason.
 - CI is a real gate: `.github/workflows/ci.yml` builds the whole tree with g++
   on Ubuntu (a different compiler from the macOS dev builds, so g++-only
   warnings surface there) on every push to `master` and every PR, then runs
