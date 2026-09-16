@@ -289,6 +289,29 @@ C++ work. The essentials:
   that bar, shorten it and move the substantive content to the relevant
   `.md` file.
 
+**Density, not just length, decides how far a comment compresses.** A
+comment stating **one** idea compresses safely to one or two lines. A
+comment stating **two or more independent facts** does not — squeezing it
+into the same budget tends to silently drop one fact, or blur two into a
+claim that's accurate for neither. Before shortening a multi-line comment,
+count the independent facts it makes (not independent sentences — a
+sentence can just restate the same fact). If there's more than one, split
+into that many short comments, one fact each, rather than cramming them
+into a single dense paragraph. If a fact is genuinely no longer relevant
+(bug history, see the rule above), drop it outright rather than blur it
+into what remains — never shorten by quietly thinning detail.
+
+**Re-derive the claim from the code, not from the old comment's wording.**
+Paraphrasing the previous text risks silently inverting or softening what
+it says; checking the rewritten sentence against the function/variable it
+names does not. Two shapes of this mistake to watch for:
+- **Merged distinctions**: the original gives two things different reasons
+  ("X fails because A; Y fails because B") and compression collapses them
+  into one reason that's only actually true of one of them.
+- **Dropped qualifiers**: a small word carrying real meaning — "the
+  content of X" vs. "X", "if installed" vs. unconditional, "never" vs.
+  "usually" — gets trimmed as if it were filler, changing the claim.
+
 ### Naming
 - `comterp` (lowercase) = the interpreter / binary / `.comt` scripts / REPL.
 - `ComTerp` (PascalCase) = the C++ library and its classes.
