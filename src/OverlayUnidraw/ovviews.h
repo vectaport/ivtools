@@ -54,11 +54,11 @@ public:
     virtual void RedrawHandles();
     // redraw tic mark handles and highlight some things with a new graphic state.
     virtual void InitHandles();
-    // initialize tic mark handles and set up to highlight some things with a new 
+    // initialize tic mark handles, and set up highlighting via a new
     // graphic state.
     virtual void EraseHandles();
-    // erase tic mark handles and unhighlight some things by replacing their
-    // old graphic state.
+    // erase tic mark handles, and unhighlight by restoring the prior
+    // graphic state.
 
     virtual boolean Highlightable();
     // true if set up to be highlighted with a graphic state. 
@@ -106,11 +106,11 @@ public:
     // fixed location graphics adjust accordingly.
 
     virtual void Interpret(Command*);
-    // interpret hide-view, desensitize-view, (un)fix-size, and (un)fix-location 
-    // commands.
+    // interpret hide-view, desensitize-view, (un)fix-size, and
+    // (un)fix-location commands.
     virtual void Uninterpret(Command*);
-    // uninterpret hide-view, desensitize-view, (un)fix-size, and (un)fix-location 
-    // commands.
+    // uninterpret hide-view, desensitize-view, (un)fix-size, and
+    // (un)fix-location commands.
 
     virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
     // create move tool manipulator.

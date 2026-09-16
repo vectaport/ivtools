@@ -66,8 +66,8 @@ public:
     // get flag that indicates whether to read from command pipe.
 
     virtual void AdjustBaseDir(const char* oldpath, const char* newpath);
-    // adjust base directory used for generating pathnames for this component,
-    // done when a document is saved to a new location.
+    // adjust the pathname base directory, done when a document is saved
+    // to a new location.
 protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);

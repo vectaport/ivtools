@@ -1573,8 +1573,8 @@ SetTransformCmd::SetTransformCmd (Editor* ed, Transformer* t)
 SetTransformCmd::~SetTransformCmd () { Unref(_prev); }
 
 void SetTransformCmd::Execute () {
-    /* remember where the graphic was before the delta goes on, so undo can
-       put it back exactly rather than composing its way back approximately */
+    /* snapshot the graphic's pre-delta transform, so undo restores it
+       exactly instead of composing its way back approximately */
     Unref(_prev);
     _prev = nil;
     _snapped = false;
@@ -1589,10 +1589,8 @@ void SetTransformCmd::Execute () {
 	    if (cb->Done(i)) {          /* exactly one, as trans() sends */
 		Graphic* gr = comp ? comp->GetGraphic() : nil;
 		if (gr) {
-		    /* having no transformer is a state to restore, not the
-		       absence of one -- undo must put the graphic back to nil
-		       rather than leave an identity behind, which would show
-		       up as a :transform keyword that was never there */
+		    /* nil transformer is a state to restore -- undo must put
+		       nil back, not an identity that implies a :transform */
 		    Transformer* cur = gr->GetTransformer();
 		    _prev = cur ? new Transformer(*cur) : nil;
 		    Resource::ref(_prev);

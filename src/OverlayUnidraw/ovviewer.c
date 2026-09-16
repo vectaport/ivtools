@@ -340,9 +340,7 @@ void OverlayViewer::Manipulate (Manipulator* m, Event& e) {
     Listen(allEvents);
     m->Grasp(e);
 
-    /*
-     * boolean b is just here to workaround a cfront 3.0 bug.
-     */
+    /* b works around a cfront 3.0 compiler quirk. */
     boolean b = false;
     GetCanvas()->window()->grab_pointer();
     do {

@@ -165,8 +165,8 @@ public:
     virtual boolean Definition(ostream&);
     // output variable-length ASCII record that defines the component.
     static int ReadRaster(istream&, void*, void*, void*, void*);
-    // read raster pathname if it exists, and construct OverlayRasterRect 
-    // a OverlayRaster or GrayRaster inside.
+    // read the raster pathname if present, constructing an OverlayRaster
+    // or GrayRaster inside an OverlayRasterRect.
     static int ReadRGB(istream&, void*, void*, void*, void*);
     // read RGB pixel values directly from serialized file.
     static int ReadGrayChar(istream&, void*, void*, void*, void*);
@@ -277,9 +277,8 @@ public:
     // raster.
     
     void damage_flush();
-    // if a damage rectangle is set this does a partial flush
-    // by calling Raster::flushrect.  This clears the flag
-    // returned by ::damage_done.
+    // if a damage rectangle is set, flush it via Raster::flushrect and
+    // clear the flag returned by ::damage_done.
 
     void damage_rect(IntCoord l, IntCoord b, IntCoord r, IntCoord t);
     // set rectangle used by ::damage_flush for calling Raster::flushrect.
@@ -333,9 +332,8 @@ public:
 	ColorIntensity red, ColorIntensity green, ColorIntensity blue,
 	float alpha
     );
-    // lookup Color that best matches a given 'red', 'green', 'blue', and
-    // 'alpha' value, and poke corresponding entry in the colormap into
-    // the raster.
+    // look up the Color best matching 'red','green','blue','alpha', and
+    // poke its colormap entry into the raster.
 
     virtual void graypeek(unsigned long x, unsigned long y, unsigned int&);
     // get green pixel value at 'x','y' and convert to an unsigned int.
@@ -360,8 +358,8 @@ public:
     // set rgb pixel values at 'x','y' with the contents of an AttributeValue.
 
     virtual void highlight(unsigned long x, unsigned long y) {}
-    // saturate the red value at 'x','y' to highlight a pixel.  Implemented
-    // only in GrayRaster.
+    // saturate the red value at 'x','y' to highlight a pixel; GrayRaster
+    // only.
     virtual void unhighlight() {}
     // clear the highlighted pixels.  Implemented only in GrayRaster.
 
@@ -378,20 +376,20 @@ public:
     virtual OverlayRaster* scale(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster scaled between 'mingray' and 'maxgray', and return
-    // command string to reproduce this effect after save/restore.
+    // create a raster scaled between 'mingray' and 'maxgray', returning
+    // 'cmd' to reproduce the effect after save/restore.
 
     virtual OverlayRaster* pseudocolor(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster pseudo-colored between 'mingray' and 'maxgray', 
-    // and return command string to reproduce this effect after save/restore.
+    // create a raster pseudo-colored between 'mingray' and 'maxgray',
+    // returning 'cmd' to reproduce the effect after save/restore.
 
     virtual OverlayRaster* logscale(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster logarithmically scaled between 'mingray' and 'maxgray', 
-    // and return command string to reproduce this effect after save/restore.
+    // create a log-scaled raster between 'mingray','maxgray', returning
+    // 'cmd' to reproduce the effect after save/restore.
 
     virtual boolean write(ostream& out);
     // write pixel values of raster to ostream as comma-separated 
@@ -416,14 +414,14 @@ public:
     virtual OverlayRaster* addgrayramp(
         CopyString& cmd, RampAlignment = R_LT
     );
-    // embed gray-level ramp in raster at given alignment, and return 'cmd'
-    // string to reproduce this effect after save/restore.
+    // embed a gray-level ramp at the given alignment; 'cmd' reproduces
+    // the effect after save/restore.
 
     virtual OverlayRaster* addgrayramp(
         CopyString& cmd, IntCoord x, IntCoord y
     );
-    // embed gray-level ramp in raster at given alignment, and return 'cmd'
-    // string to reproduce this effect after save/restore.
+    // embed a gray-level ramp at 'x','y'; 'cmd' reproduces the effect
+    // after save/restore.
 
     virtual void paintgrayramp(
         IntCoord left, IntCoord bottom, unsigned width, unsigned height,

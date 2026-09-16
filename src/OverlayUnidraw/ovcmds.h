@@ -398,9 +398,8 @@ public:
     void Init();
 
     virtual void Execute();
-    // prompt for pathname, then export current viewer canvas as a 
-    // clickable imagemap, with URL's written out where-ever "url"
-    // attributes exist.
+    // prompt for pathname, then export the viewer canvas as a clickable
+    // imagemap, writing out URLs wherever "url" attributes exist.
 
     virtual Command* Copy();
 

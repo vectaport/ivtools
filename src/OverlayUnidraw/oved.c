@@ -325,10 +325,8 @@ void OverlayEditor::add_edlauncher(const char* name, editor_launcher edlauncher)
   if (!edlauncher) return;
   if (!_edlauncherlist) 
     _edlauncherlist = new AttributeList();
-  /* a real class symbol rather than 0: symbol 0 is an ordinary symbol, and
-     AttributeValue's ObjectType constructor refs the pointer when the classid
-     matches Attribute or AttributeList -- which it would, given whichever
-     class the linker registers first. */
+  /* real symbol, not 0: 0 is an ordinary symbol, and ObjectType's ctor
+     would misread it as whichever class the linker registers first. */
   static int launcher_symid = symbol_add("editor_launcher");
   AttributeValue* av = new AttributeValue(launcher_symid, (void *)edlauncher);
   _edlauncherlist->add_attr(name, av);

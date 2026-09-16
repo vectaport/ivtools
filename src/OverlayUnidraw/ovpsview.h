@@ -54,9 +54,8 @@ public:
     OverlayPS* CreateOvPSView(GraphicComp*);
     // utility method for creating a "PostScript" view from a component.
     OverlayPS* CreateOvPSViewFromGraphic(Graphic*, boolean comptree=false);
-    // utility method for creating a "PostScript" view from a graphic.
-    // The 'comptree' flag indicates whether any composite graphic is part 
-    // of a tree of components or not.
+    // create a "PostScript" view from a graphic; 'comptree' says whether
+    // a composite graphic is part of a tree of components.
 
     OverlayComp* GetOverlayComp();
 

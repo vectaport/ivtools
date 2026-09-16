@@ -43,8 +43,8 @@ public:
     virtual void Execute();
     // present ExportChooser to specify pathname, export flags, and export mode.
     virtual boolean Export(const char* path);
-    // export by constructing appropriate ExternView for idraw or drawtool format,
-    // and using it to transcribe the contents of the selected components to 'path'.
+    // build the ExternView for idraw or drawtool format, and use it to
+    // transcribe the selected components' contents to 'path'.
     virtual boolean Reversible();
     // returns false.
 
