@@ -37,8 +37,8 @@ class AttributeList;
 class Attribute : public Resource {
 public:
     Attribute(const char* name =0, AttributeValue* value =0);
-    // construct an attribute by generating a symbol id for the 'name'
-    // character string, and accepting a pointer to an externally allocated 'value'.
+    // construct an attribute by generating a symbol id for 'name', accepting
+    // a pointer to an externally allocated 'value'.
     Attribute(int symid, AttributeValue* value =0);
     // construct an attribute with a symbol id instead of a character string, 
     // and accepting a pointer to an externally allocated 'value'.
@@ -60,10 +60,8 @@ public:
     // return the id of the symbol in the symbol table.
 
     AttributeList* Owner() const { return _owner; }
-    // the AttributeList this Attribute is stored in, or nil for one not
-    // (or not yet) added to any list -- set by AttributeList::add_attr,
-    // the sole gateway by which an Attribute becomes part of a list's
-    // storage.
+    // the AttributeList this Attribute is stored in, or nil if not yet
+    // added -- set by AttributeList::add_attr, the sole gateway onto a list.
 
 protected:
     int symbolid;

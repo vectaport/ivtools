@@ -126,10 +126,8 @@ public:
     // enum for states -- occupies the low nibble of the state word
 
     enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper };
-    // enum for output wrappers -- a display-only annotation that surrounds
-    // the printed value with one matching set of delimiters.  Orthogonal to
-    // ValueState (a hex uint can also be bracketed) so it lives in its own
-    // field of the state word.
+    // enum for output wrappers, a display-only annotation surrounding the
+    // printed value in matching delimiters -- orthogonal to ValueState.
 
     AttributeValue(ValueType type);
     // construct with specified type and unitialized value.
@@ -253,13 +251,8 @@ public:
 
 
     const char* string_ptr();
-    // lookup and return pointer to string associated with string.  Not
-    // slice-aware: a sliced StringType returns its whole shared backing
-    // string here rather than its own window, for which ComValue::cstr() is
-    // the slice-correct read.  Deliberately not virtual -- a ComValue& taken
-    // straight off the interpreter stack is a raw reference into an array
-    // grown by dmm_realloc, so its vtable pointer is not reliably ComValue's
-    // own and a virtual call there quietly returns the wrong text.
+    // return the string pointer, not slice-aware -- use ComValue::cstr()
+    // for the slice-correct read; not virtual: a stack ref's vtable may lie.
     const char* symbol_ptr();
     boolean global_flag();
     // return true if a symbol and the global flag is set.
@@ -285,15 +278,13 @@ public:
     // true if object is wrapped with a ComponentView
 
     int stream_mode();
-    // 0 = disabled, negative = internal, positive = external
-    // NOTE: reports 0 whenever stream_list() is empty, regardless of what
-    // mode is actually stored -- see stream_mode_raw() for the stored value.
+    // 0 = disabled, negative = internal, positive = external; reports 0
+    // whenever stream_list() is empty, regardless of the stored mode.
     void stream_mode(int mode) { if (is_stream()) _stream_mode = mode; }
     // 0 = disabled, negative = internal, positive = external
     int stream_mode_raw() { return is_stream() ? _stream_mode : 0; }
-    // the stored mode, without stream_mode()'s "empty list -> 0" override --
-    // for callers (e.g. the STREAM_NESTED tag check) that need to know what
-    // was actually set even after the underlying list has been drained.
+    // the stored mode, without stream_mode()'s "empty list -> 0" override,
+    // for callers that need what was set even after the list has drained.
     void* stream_func() { return is_stream() ? _v.streamval.funcptr : nil; }
     // return function pointer associated with stream object
     void stream_func(void* func) { if (is_stream()) _v.streamval.funcptr = func; }
@@ -321,10 +312,8 @@ public:
     static void out_char_brief(ostream& out, unsigned char cv, boolean quoted = true);
     // render a char as itself where that is safe: 'a', '\n', '\cA', or the `\NNN` escape
     static const char* named_ctrl_escape(unsigned char cv);
-    // the C mnemonic ("n", "t", ...) for one of the 7 named control bytes,
-    // nil for anything else -- shared with ParamList::filter so a control
-    // byte gets the same escape whether it's rendered as a char or found
-    // inside a string.
+    // the C mnemonic ("n","t",...) for one of 7 named control bytes, nil
+    // otherwise -- shared with ParamList::filter for consistent escaping.
 
     void negate();
     // negate numeric values.
@@ -427,33 +416,15 @@ public:
     // return true if ObjectType matches or is a parent class
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
-    // output AttributeValue to ostream -- consults render_hook() first
-    // (below) for ArrayType/StringType if one is installed, since those are
-    // the only two types with ComTerp-specific meaning layered on the
-    // shared block (see install_render_hook()'s own comment); every other
-    // type always uses this class's own generic printing.
+    // output to ostream, consulting render_hook() first for ArrayType/
+    // StringType (see install_render_hook()); other types print here.
     virtual const char* String();
     // generate string using << operator
 
     typedef ostream& (*RenderHook)(ostream&, const AttributeValue&);
     static void install_render_hook(RenderHook hook) { _render_hook = hook; }
-    // let a caller from outside this library render an ArrayType/StringType
-    // value its own way -- e.g. ComTerp (comvalue.c) installs one at
-    // library-load time so an AttributeList's own top-level print of an
-    // attribute's value (its stored type is always a plain AttributeValue*,
-    // attrlist.c) goes through ComValue::operator<< instead of this
-    // class's own generic printing, and so gets ComTerp-specific
-    // interpretation of the shared narg/nkey/nids/flags block (a
-    // coloned() list's ':' form, a sliced string's own window via
-    // cstr()) that this class only stores, never interprets (see the
-    // block's own comment below).  Every other type keeps this class's own
-    // formatting regardless of whether a hook is installed -- it's already
-    // correct, and ComValue's own printing follows different, brief-REPL-
-    // echo conventions for some of them (e.g. an unquoted char) that would
-    // be wrong in an attribute's embedded-value context.  Passing nil
-    // clears the hook, reverting to this class's own rendering for
-    // ArrayType/StringType too -- handy for seeing exactly what the raw
-    // bytes look like without any hook's interpretation layered on.
+    // lets an outside caller (e.g. ComTerp) render ArrayType/StringType
+    // its own way; other types keep this class's own formatting; nil reverts.
     static RenderHook _render_hook;
 
     void* value_ptr() { return &_v; }
@@ -488,17 +459,8 @@ protected:
       int _state; // useful for any type other than CommandType, ObjectType, or
                   // StreamType
     };
-    /* Three more ints, widening the block above to a full 128 bits -- give
-       every AttributeValue the storage weight of a ComValue's command arity
-       (narg/nkey/nids) or a StringType slice window (sliceoff/slicelen),
-       without AttributeValue itself knowing which. ComValue (comvalue.h) is
-       the only class that interprets them; here they are just bytes that
-       get stored and copied.  ComValue's bquote/lhs_assign/local/coloned/
-       sliced flag bits live in _ext3 too, above nids()'s own low byte --
-       NOT in _state/_command_symid above: a real command_symid is an
-       unbounded symbol-table index (comvalue.h has the story of the
-       collision that ruled that out), so nothing sharing its word can use
-       small fixed bits safely, unlike _ext3's bounded low byte. */
+    // 3 more ints, matching ComValue's narg/nkey/nids/slice storage width;
+    // only ComValue interprets these (comvalue.h), never the union above.
     int _ext1, _ext2, _ext3;
     static int* _type_syms;
 

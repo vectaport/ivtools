@@ -53,12 +53,8 @@ public:
     ParamStruct(const char* name, ParamFormat format, param_callback ifunc,
 		int offset1, int offset2, int offset3, int offset4,
 		int indirection = -1);
-    // construct with 'name' and 'format', a pointer to a static method
-    // with 'param_callback' signature, and up to 4 offsets relative to a 
-    // base pointer that will be used in constructing the contents of another
-    // object during a de-serialization process (an istream constructor).
-    // Also possible to specify an 'indirection' amount used when adding
-    // offsets to the base.
+    // construct with 'name', 'format', a param_callback, up to 4 base-
+    // relative offsets (de-serializing via istream ctor), and 'indirection'.
     ParamStruct(ParamStruct&);
     // copy constructor.
     ~ParamStruct();
@@ -80,13 +76,11 @@ public:
     int offset3()               {return _offset3;}
     // third offset from base.
     int offset4()               {return _offset4;}
-    // fourth offset from base.  If this is not enough either an array can
-    // can be passed by using the first two, or these can be ignored
-    // all together and you can use fixed locations within the object being 
-    // deserialized.
+    // fourth offset from base; if not enough, pass an array via the first
+    // two, or ignore these for fixed locations in the deserialized object.
     int indirection()           {return _indirection;}
-    // offset from base address used to retrieve another address (by indirection). 
-    // disabled if less than zero.
+    // offset from base address, for retrieving another address (by
+    // indirection); disabled if less than zero.
 
     void* addr1(void* base);
     // compute address by adding offset1() to 'base' or an indirect base
@@ -151,26 +145,18 @@ public:
 	const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
 	void* base, void* offset, void* addr1, 
 	void* addr2 = nil, void* addr3 = nil, void* addr4 = nil);
-    // compose and insert ParamStruct, computing offsets 1 thru 4 by differing
-    // against the content of 'offset', and subtracting 'base' from 'offset'
-    // to arrive at indirection offset to set in the ParamStruct (the offset from
-    // the base address of the object being constructed where you will find
-    // an address to add the other offsets to, to arrive a final address).
+    // compose and insert ParamStruct, computing offsets 1-4 against
+    // 'offset'; indirection is 'offset'-'base', the real-base slot.
     void add_param_first(
 	const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
 	void* base = (void*)0x1, void* addr1 = (void*)0x1, 
 	void* addr2 = nil, void* addr3 = nil, void* addr4 = nil);
-    // compose and insert ParamStruct as far forward in the ParamList as possible
-    // given its desired format type.  In this manner a parameter handler can be 
-    // easily overriden.
+    // compose and insert ParamStruct as far forward in the ParamList as
+    // its format type allows, easing parameter-handler overrides.
 
     boolean read_args(istream& in, void* base);
-    // work-horse method that assumes istream is positioned right before
-    // the open-paren of the serialized object (the object name precedes
-    // the open-paren).  Handles the logic to parse first required, then
-    // optional, then keyword arguments (or 'other' arugments, which means
-    // pass the rest of the arguments on as is).  Invokes all the function
-    // pointers of type param_callback.
+    // istream must be positioned right before the object's open-paren;
+    // parses required, optional, then keyword/other args via param_callback.
 
     /* static callback functions */
     static int read_int(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
@@ -213,8 +199,8 @@ public:
     // parse text string, converting embedded octal constants, and handling 
     // embedded quotes preceded by back-slashes, for use of a param_callback.
     static char* parse_textbuf(istream& in);
-    // parse multi-line comma-separated set of character strings into a single buffer,
-    // for use of a param_callback.
+    // parse multi-line comma-separated character strings into a single
+    // buffer, for use of a param_callback.
     static int output_text(ostream& out, const char* text, int indent=0);
     // output text in a format readable by parse_text().
     static int parse_pathname(istream& in, char* buffer, int buflen, const char* dir);
