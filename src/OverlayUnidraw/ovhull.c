@@ -115,10 +115,8 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 
 	    hx = new float[nhp];
 	    hy = new float[nhp];
-	    // A truncated or out-of-range qhull index would otherwise be silently
-	    // clamped to point 0, yielding a valid-but-wrong hull.  Stop at the
-	    // last good point instead and warn once (matching read_ascii_component's
-	    // truncation reporting), so the caller knows the hull is short.
+	    // stop at the last good point and warn once, rather than silently
+	    // clamping a bad qhull index to point 0, so the hull reads short.
 	    int i = 0;
 	    for (; i < nhp; i++) {
 	      int idx = 0;

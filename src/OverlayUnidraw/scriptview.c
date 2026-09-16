@@ -988,11 +988,8 @@ void OverlayScript::Attributes(ostream& out) {
     AttributeList* attrlist = GetOverlayComp()->GetAttributeList();
     if (!attrlist->Number()) return;
     if (!unidraw || !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist)) {
-      /* serialize() writes no leading space before its first attribute, so
-         without one here it runs onto the value before it -- ":transform
-         1,0,0,1,89,163" followed by ":myattr 7" came out as "163:myattr 7".
-         PrintAttributeList leads every attribute with a space of its own, so
-         the separator belongs on this branch only. */
+      /* serialize() emits no leading space before its first attribute, so
+         only this branch needs one to avoid running onto the prior value. */
       out << " ";
       out << *attrlist;
     }

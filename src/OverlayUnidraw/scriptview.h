@@ -71,17 +71,15 @@ public:
     // output a description of a graphic state adequate for a stencil graphic (UStencil).
 
     boolean DefaultGS();
-    // return true if this is default gs, with no brush, colors, font, or pattern
-    // specified.
+    // true if this is the default gs: no brush, colors, font, or pattern.
     int MatchedGS(Clipboard*);
     // return index of where the graphic state of this component
     // matches the graphic state of a component in the clipboard.
     Iterator MatchedGS(Clipboard*, int&);
-    // return iterator that points to where the graphic state of this component
-    // matches the graphic state of a component in the clipboard.
+    // Iterator to the clipboard component whose graphic state matches.
     virtual boolean EmitGS(ostream&, Clipboard*, boolean);
-    // output a decription of this component's graphic state, and append a
-    // copy to a clipboard used to avoid outputting it twice.
+    // write this component's graphic state, appending a copy to the
+    // clipboard so it isn't written twice.
     virtual Clipboard* GetGSList();
     // return pointer to clipboard of components with unique graphic states.
 
@@ -89,8 +87,7 @@ public:
     // return index of where the point list of this component
     // matches the point list of a component in the clipboard.
     Iterator MatchedPts(Clipboard*, int&);
-    // return iterator that points to where the point list of this component
-    // matches the point list of a component in the clipboard.
+    // Iterator to the clipboard component whose point list matches.
     virtual boolean EmitPts(ostream&, Clipboard*, boolean);
     // output a decription of this component's point list, and append a 
     // copy to a clipboard used to avoid outputting it twice.
@@ -101,17 +98,15 @@ public:
     // return index of where the compound graphic of this component
     // matches the compound graphic of a component in the clipboard.
     Iterator MatchedPic(Clipboard*, int&);
-    // return iterator that points to where the compound graphic of this component
-    // matches the compound graphic of a component in the clipboard.
+    // Iterator to the clipboard component whose compound graphic matches.
     virtual boolean EmitPic(ostream&, Clipboard*, Clipboard*, boolean);
-    // output a decription of this component's compound graphic, and append a 
-    // copy to a clipboard used to avoid outputting it twice.
+    // write this component's compound graphic, appending a copy to the
+    // clipboard so it isn't written twice.
     virtual Clipboard* GetPicList();
     // return pointer to clipboard of components with unique compound graphics.
     
     virtual boolean GetByPathnameFlag();
-    // return flag that indicates whether to serialize component
-    // by only a pathname or by the raw data.
+    // true if the component serializes by pathname alone, not raw data.
 
     static int ReadGS(istream&, void*, void*, void*, void*);
     // method used by OverlayComp istream constructor to deserialize 
@@ -140,7 +135,7 @@ public:
     // the none-pattern description.
     static int ReadPattern(istream&, void*, void*, void*, void*);
     // method used by OverlayComp istream constructor to deserialize 
-    // all brush descriptions except for a none-pattern and gray-pattern.
+    // all patterns except none-pattern and gray-pattern.
     static int ReadGrayPat(istream&, void*, void*, void*, void*);
     // method used by OverlayComp istream constructor to deserialize 
     // the gray-pattern description.
@@ -152,9 +147,8 @@ public:
     // method used by OverlayComp istream constructor to deserialize 
     // an annotation.
     static int ReadOther(istream&, void*, void*, void*, void*);
-    // method used by OverlayComp istream constructor to deserialize 
-    // any keyword-prefixed argument with unknown keyword symbol, by
-    // adding the value to a components property list (an AttributeList).
+    // deserialize an unknown keyword-prefixed argument by adding its
+    // value to the component's property list (an AttributeList).
 
     static boolean skip_comp(istream& in);
     // skip the text for the current component while de-serializing.
@@ -172,9 +166,8 @@ public:
     // can be overridden by flag associated with Command objects
 
     static boolean percomp_format();
-    // true if exporting each component as its own runnable command (e.g. "rect"
-    // not "rectangle", and no enclosing drawtool() wrapper) -- see export(:percomp).
-    // static (only consults the global _format), unlike svg_format().
+    // true if exporting each component as its own runnable command, e.g.
+    // "rect" with no drawtool() wrapper; see export(:percomp).
     static void percomp_format(boolean);
     // set/clear the per-component command export format
 
@@ -224,17 +217,16 @@ public:
 
     virtual void SetCompactions
     (boolean gs = false, boolean pts = false, boolean pic=false);
-    // set flags to indicate what should be compacted when serialized,
-    // graphic state ('gs'), point lists ('pts'), or composite graphics ('pic').
+    // set which of graphic state ('gs'), point lists ('pts'), or composite
+    // graphics ('pic') get compacted when serialized.
 
     virtual boolean EmitGS(ostream&, Clipboard*, boolean);
     // iterate over sub-views, outputting decriptions of each unique graphic state.
     virtual boolean EmitPts(ostream&, Clipboard*, boolean);
     // iterate over sub-views, outputting decriptions of each unique point list.
     virtual boolean EmitPic(ostream&, Clipboard*, Clipboard*, boolean);
-    // iterate over sub-views, outputting decriptions of each unique 
-    // composite graphic.  This is not yet fully generalized, because there are
-    // questions as to what that would mean.
+    // iterate over sub-views, outputting each unique composite graphic
+    // (not yet fully generalized for nested composites).
     virtual boolean Definition(ostream&);
     // output variable-length ASCII record that defines the component.
 
@@ -248,8 +240,8 @@ public:
     static int ReadChildren(istream&, void*, void*, void*, void*);
     // static method to read a list of arbitrary objects when de-serializing.
     static int ReadPic(istream&, void*, void*, void*, void*);
-    // static method to read a composite graphic id (a pic), and substitute
-    // the corresponding component from a list.
+    // read a composite graphic id (a pic) and substitute the matching
+    // component from a list.
 
     virtual ExternView* GetView(Iterator);
     // get sub-view pointed to by the Iterator.
@@ -291,14 +283,13 @@ public:
 
     virtual void SetCompactions
     (boolean gs = false, boolean pts = false, boolean pic=false);
-    // set flags to indicate what should be compacted when serialized,
-    // graphic state ('gs'), point lists ('pts'), or composite graphics ('pic').
+    // set which of graphic state ('gs'), point lists ('pts'), or composite
+    // graphics ('pic') get compacted when serialized.
     virtual void SetByPathnameFlag(boolean);
-    // set flag that indicates whether to serialize component
-    // by only a pathname or by the raw data.
+    // set whether the component serializes by pathname alone or by its
+    // raw data.
     virtual boolean GetByPathnameFlag();
-    // return flag that indicates whether to serialize component
-    // by only a pathname or by the raw data.
+    // true if the component serializes by pathname alone, not raw data.
 
     virtual boolean Emit(ostream&);
     // serialize entire document to ostream.

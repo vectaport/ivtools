@@ -340,10 +340,7 @@ void OverlayViewer::Manipulate (Manipulator* m, Event& e) {
     Listen(allEvents);
     m->Grasp(e);
 
-    /*
-     * boolean b is just here to workaround a cfront 3.0 bug.
-     */
-    boolean b = false;
+    boolean b = false;  // holds the do/while loop's continue flag
     GetCanvas()->window()->grab_pointer();
     do {
         Read(e);

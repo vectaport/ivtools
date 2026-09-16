@@ -291,10 +291,7 @@ void OverlayKit::InitViewer () {
     _ed->_comp->Attach(view);
     view->Update();
 
-    /*
-     * These statements had to be moved down here to workaround
-     * a strange cfront 3.0 bug.
-     */
+    /* must follow view->Update(); do not reorder. */
     float w = Math::round(atof(page_w) * ivinches);
     float h = Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
@@ -372,11 +369,8 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
 
       ed->GetKeyMap()->Execute(CODE_SELECT);
 
-      // inline comterp (comt) text-entry pane: enabled by the global
-      // (compiled-in default off) OR the "comt" attribute, which comdraw's
-      // -comt command-line option sets.  Handy for TUI-style comterp
-      // sessions (etchasketch/spirograph) -- scroll back and hit Return on
-      // an old line to re-run it -- when the terminal REPL is less convenient.
+      // inline comterp text-entry pane, enabled by the global flag or the
+      // "comt" attribute set via comdraw's -comt option; handy for TUI use.
       const char* comt_string = catalog->GetAttribute("comt");
       boolean comt_flag = comt_string ? strcmp(comt_string, "true")==0 : false;
       if (ed->comterp() && (inlineTextEditor || comt_flag)) {
@@ -880,8 +874,7 @@ Glyph* OverlayKit::MenuPatRect (PSPattern * pat) {
     Coord w = (MENU_WIDTH*ivcm);
     Coord h = (MENU_HEIGHT*ivcm);
     
-// this is totally unbelievable - some part of Xlib defines "None" to be 0L,
-// which the preprocessor happily converts here, thus breaking the compiler.
+// Xlib defines "None" to be 0L, which the preprocessor converts here too.
     if (pat->None()) {
 	return lk.fixed(lk.vbox(lk.vglue(),
 				lk.hbox(lk.hglue(), wk.label("None"), lk.hglue()),

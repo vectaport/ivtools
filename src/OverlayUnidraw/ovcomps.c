@@ -1119,8 +1119,8 @@ void OverlaysComp::SelectViewsOf (OverlayComp* comp, Editor* ed) {
 void OverlaysComp::SelectClipboard (Clipboard* cb, Editor* ed) {
     Selection* s = ed->GetSelection();
 
-    /* leaving the selection alone is how a node stops reaching for what other
-       people draw: selecting an arrival is what sends the request. */
+    /* leaving the selection alone stops this node reaching for what
+       others draw; selecting an arrival is what sends the request. */
     if (!((OverlaySelection*)s)->select_arrivals()) return;
 
     s->Clear();

@@ -197,8 +197,8 @@ public:
     static const char* mouse_custom;
 
     void otherdisplay(const char* display);
-    // set possible alternate X display string for constructing viewer.  
-    // Not yet working.
+    // set an alternate X display string for constructing the viewer;
+    // not yet working.
 
     boolean& set_button_flag() { return _set_button_flag; }
     // flag to add setr button to text editor
@@ -220,22 +220,18 @@ public:
     virtual ColorCmd* make_color_cmd(Editor*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
     // factory method for creating ColorCmd; fgnum/bgnum are menu indices from colors() command
     virtual PatternCmd* make_pattern_cmd(ControlInfo*, PSPattern*, int patnum=0, const char* maskargs=nil);
-    // factory method for creating PatternCmd; patnum is the menu index from
-    // pattern(), maskargs the literal argument text from patternmask() -- one
-    // or the other reproduces the originating call, same idea as fgnum/bgnum
+    // factory for PatternCmd; patnum (from pattern()) or maskargs (from
+    // patternmask()) reproduces the originating call, like fgnum/bgnum.
     virtual PatternCmd* make_pattern_cmd(Editor*, PSPattern*, int patnum=0, const char* maskargs=nil);
     // factory method for creating PatternCmd; see the ControlInfo form
     virtual FontCmd* make_font_cmd(ControlInfo*, PSFont*, int fontnum=0, const char* fontname=nil);
-    // factory method for creating FontCmd; fontnum is the menu index from
-    // font(), fontname the name given to fontbyname() -- whichever made the
-    // command is what gets replayed, same as make_pattern_cmd
+    // factory for FontCmd; fontnum (from font()) or fontname (from
+    // fontbyname()) reproduces the originating call, like make_pattern_cmd.
     virtual FontCmd* make_font_cmd(Editor*, PSFont*, int fontnum=0, const char* fontname=nil);
     // factory method for creating FontCmd; see the ControlInfo form
     virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
-    // factory method for creating the command behind trans().  Unlike the
-    // graphic-state factories this one takes no extra arguments: the matrix
-    // is the whole of what a transform says, and the command names its own
-    // target through its clipboard rather than through the selection.
+    // factory for trans()'s command; unlike the graphic-state factories,
+    // it takes no extra args, naming its target via its clipboard.
   
 protected:
     Glyph* MenuLine(PSBrush*);

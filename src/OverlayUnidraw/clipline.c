@@ -88,10 +88,7 @@ int find_furthest_visible_point(CPoint &alpha,
     if ( Rm & Rp1 )  { p1 = M;  Rp1 = Rm; }
     else  { p0 = M;  Rp0 = Rm; }
   }
-  return 1;  // this is a dummy return statement,
-	     // put here to satisfy the compiler,
-	     // execution never gets to this
-	     // point.
+  return 1;  // dummy return to satisfy the compiler; never reached.
 }
 
 int clip(CPoint &p0, CPoint &p1)

@@ -917,9 +917,8 @@ static void ImageSetup(
                             hscale = srep->hscale_;
                             vscale = srep->vscale_;
                         } else if ((hscale < 1.) && (vscale < 1.)) {
-                            // we need some sort of hueristic, we may just want
-                            // to read the 1x res
-                            // need to store this later in source_table
+                            // TODO: pick a heuristic res and cache it
+                            // in source_table
                             sri = OvFileImage::create(d, r_r);
                             assert(sri);
                             swidth = sri->Width(); 

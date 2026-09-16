@@ -43,8 +43,8 @@ public:
     GrayRaster(unsigned long width, unsigned long height, 
 	       AttributeValue::ValueType type = AttributeValue::UCharType,
 	       void* data = nil);
-    // construct a GrayRaster of 'width','height' and 'type', with an optional
-    // copy of 'data', a linear array of 'width'*'height' values of 'type'.
+    // construct a GrayRaster of 'width','height','type', optionally
+    // copying 'data', an array of 'width'*'height' values of 'type'.
     GrayRaster(const GrayRaster& raster);
     // construct a GrayRaster by copying 'raster'.
     virtual ~GrayRaster();
@@ -95,20 +95,20 @@ public:
     virtual OverlayRaster* scale(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster scaled between 'mingray' and 'maxgray', and return
-    // command string to reproduce this effect after save/restore.
+    // create a raster scaled between 'mingray' and 'maxgray', returning
+    // 'cmd' to reproduce the effect after save/restore.
 
     virtual OverlayRaster* pseudocolor(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster pseudo-colored between 'mingray' and 'maxgray', 
-    // and return command string to reproduce this effect after save/restore.
+    // create a raster pseudo-colored between 'mingray' and 'maxgray',
+    // returning 'cmd' to reproduce the effect after save/restore.
 
     virtual OverlayRaster* logscale(
         ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd
     );
-    // create new raster logarithmically scaled between 'mingray' and 'maxgray', 
-    // and return command string to reproduce this effect after save/restore.
+    // create a log-scaled raster between 'mingray','maxgray', returning
+    // 'cmd' to reproduce the effect after save/restore.
 
     virtual AttributeValue::ValueType value_type() const { return _type; }
     // pixel type.
@@ -128,14 +128,14 @@ public:
     virtual OverlayRaster* addgrayramp(
         CopyString& cmd, RampAlignment = R_LT
     );
-    // embed gray-level ramp in raster at given alignment, and return 'cmd'
-    // string to reproduce this effect after save/restore.
+    // embed a gray-level ramp at the given alignment; 'cmd' reproduces
+    // the effect after save/restore.
 
     virtual OverlayRaster* addgrayramp(
         CopyString& cmd, IntCoord x, IntCoord y
     );
-    // embed gray-level ramp in raster at 'x', 'y',  and return 'cmd' string 
-    // to reproduce this effect after save/restore.
+    // embed a gray-level ramp at 'x','y', returning 'cmd' to reproduce
+    // the effect after save/restore.
 
     void set_minmax(double minval, double maxval, boolean fixminmax = false); 
     // set 'minval' and 'maxval' used for flush().

@@ -41,8 +41,8 @@ public:
     virtual ~GrLocTool();
 
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
-    // use event to select a component and determine graphic-relative coordinates
-    // to display in a pop-up window.
+    // select a component via event, then show its graphic-relative
+    // coordinates in a pop-up window.
 
     virtual Tool* Copy();
     virtual ClassId GetClassId();

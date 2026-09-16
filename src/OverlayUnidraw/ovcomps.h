@@ -76,8 +76,7 @@ public:
     // pass command to component for reverse interpretation.
 
     boolean valid();
-    // for checking if istream constructor was successfull (if de-serialization
-    // was successful).							   
+    // true if the istream constructor's de-serialization succeeded.
     boolean visited() { return _valid; }
     // reuse of valid flag as visited flag
     void visited(int flag) { _valid = flag; }
@@ -95,21 +94,21 @@ public:
     virtual const char* GetPathName();
     // get pathname associated with this component.
     virtual void SetByPathnameFlag(boolean);
-    // set flag that determines whether component will be serialized (converted to
-    // external persistent storage) by just the pathname or by the internal contents.
+    // set whether the component serializes by pathname alone or by its
+    // full internal contents.
     virtual boolean GetByPathnameFlag();
     // return by-pathname flag
     virtual void SetFromCommandFlag(boolean);
-    // set flag that determines whether component will be serialized (converted to
-    // external persistent storage) by just the pathname or by the internal contents.
+    // set whether the component serializes by pathname alone or by its
+    // full internal contents.
     virtual boolean GetFromCommandFlag();
     // return by-pathname flag
     virtual const char* GetBaseDir();
-    // set base directory used for generating pathnames for this component
-    // and all of its children.
+    // base directory for generating pathnames for this component and
+    // all of its children.
     virtual void AdjustBaseDir(const char* oldpath, const char* newpath);
-    // adjust base directory used for generating pathnames for this component,
-    // done when a document is saved to a new location.
+    // adjust the pathname base directory, done when a document is saved
+    // to a new location.
 
     virtual Graphic* GetIndexedGS(int);
     // return graphic state (gs) from table, a use of IndexedGsMixin.
@@ -131,29 +130,27 @@ public:
     // compare another component, including its graphic, for non-equality to this one.
 
     AttributeList* GetAttributeList(); 
-    // return pointer to associated AttributeList (property list made up of
-    // arbitrary AttributeValue objects), creating if necessary.
+    // return the associated AttributeList (a property list of arbitrary
+    // AttributeValue objects), creating it if necessary.
     void SetAttributeList(AttributeList*);
-    // set new property list for component, de-referencing the old one, and
-    // increment the reference-count of the new one.
+    // replace the component's property list, dereferencing the old one
+    // and ref-counting the new one.
     AttributeList* attrlist() { return _attrlist; }
     // return pointer to property list, without allocating a new one if it is nil.
     virtual AttributeValue* FindValue
       (const char* name, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
-    // search component tree for specified attribute value by 'name'.  Only
-    // two modes supported so far:  the default argument mode which returns the
-    // first occurence found with a downward depth-first search, and upward search.
+    // find the attribute value named 'name' in the tree, via a downward
+    // depth-first search by default, or upward if requested.
     virtual AttributeValue* FindValue
       (int symid, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
-    // search component tree for specified attribute value by 'symid'.  Only
-    // default argument mode implemented so far -- return first occurence found
-    // with a downward depth-first search.
+    // find the value with symbol id 'symid' in the tree, via a downward
+    // depth-first search (the only mode implemented).
 
     virtual void Configure(Editor*);
-    // to be filled in by derived class.  Useful for initializing a component
-    // after the Editor has been constructed.								    
+    // overridden by derived classes to initialize a component after the
+    // Editor has been constructed.
     OverlayComp* TopComp();
     // returns pointer to top-level component in the component tree.
 
@@ -162,7 +159,7 @@ public:
     virtual void notify() {Notify();} 
     // notify method for an  Observer/Observable design pattern.
     virtual void Notify(); 
-    // method specialized from Component that incorporates the Observer/Observable
+    // Component::Notify specialized to combine the Observer/Observable
     // notification with the original Unidraw notification.
     virtual void NotifyLater();
     // defers notifications when enabled
@@ -198,15 +195,11 @@ public:
 
 protected:
     ParamList* GetParamList();
-    // return ParamList of required/optional/keyword arguments to be read
-    // from an external (serialized) representation in the istream constructor
-    // of a component.  Includes pointers to static methods that read portions of
-    // an istream.  keyword arguments (or fields) not found in the ParamList are 
-    // used to construct a new entry in the components property list instead of
-    // being handled by one of the static methods.
+    // ParamList of required/optional/keyword args read by the istream
+    // constructor; an unlisted keyword becomes a property-list entry.
     void GrowParamList(ParamList*);
-    // construct the ParamList for this class if one does not exist, optionally
-    // using similar base class methods to assist.
+    // construct the ParamList for this class if none exists, optionally
+    // via similar base-class methods.
 
     static ParamList* _overlay_comp_params;
     // static holder for this classes ParamList.
@@ -259,16 +252,13 @@ public:
     // return number of elements
 
     virtual GraphicComp* GetComp(Iterator);
-    // return pointer to component within the current element of the list
-    // as pointed to by the Iterator.
+    // return the component in the list element pointed to by the Iterator.
     virtual OverlayComp* GetCompForIndex(int index);
-    // return pointer to component within the current element of the list
-    // as pointed to by the index
+    // return the component in the list element pointed to by 'index'.
     virtual int GetIndexForComp(OverlayComp*);
     // return index to component within this composite component
     virtual void SetComp(GraphicComp*, Iterator&);
-    // set Iterator to point to the element of the list that contains the
-    // given component.
+    // point the Iterator to the list element containing 'component'.
     virtual void Bequeath();
     // pass graphic state of this component's graphic to children.
 
@@ -277,11 +267,9 @@ public:
     virtual void Prepend(GraphicComp*);
     // append component to beginning of the list, which is rearmost when rendered.
     virtual void InsertBefore(Iterator, GraphicComp*);
-    // insert component before current position indicated by the Iterator,
-    // which means to the rear in screen ordering.
+    // insert before the Iterator's position, i.e. to the rear on screen.
     virtual void InsertAfter(Iterator, GraphicComp*);
-    // insert component after current position indicated by the Iterator,
-    // which means to the fore in screen ordering.
+    // insert after the Iterator's position, i.e. to the fore on screen.
     virtual void Remove(GraphicComp*);
     // search for and remove component from list.
     virtual void Remove(Iterator&);
@@ -320,15 +308,13 @@ public:
     virtual AttributeValue* FindValue
       (const char* name, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
-    // search component tree for specified attribute value by 'name'.  Only
-    // default argument mode implemented so far -- return first occurence found
-    // with a downward depth-first search.
+    // find the attribute value named 'name' in the tree, via a downward
+    // depth-first search (the only mode implemented).
     virtual AttributeValue* FindValue
       (int symid, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
-    // search component tree for specified attribute value by 'symid'.  Only
-    // default argument mode implemented so far -- return first occurence found
-    // with a downward depth-first search.
+    // find the value with symbol id 'symid' in the tree, via a downward
+    // depth-first search (the only mode implemented).
 
     virtual void DeferredNotify();
     // do all deferred Notify's
@@ -355,8 +341,7 @@ protected:
     // add views of components in clipboard to selection list in this editor.
 
     void StorePosition(OverlayComp*, Command*);  
-    // store position of this component in composite list for later reference
-    // by a command.
+    // save this component's list position for a command to reference later.
     void RestorePosition(OverlayComp*, Command*); 
     // restore position of this component in composite list from command.
 
@@ -392,8 +377,8 @@ public:
     // construct component tree from 'pathname', with optional 'parent'
     // to graft onto.
     OverlayIdrawComp(istream&, const char* pathname = nil, OverlayComp* parent = nil);
-    // de-serialize component tree from istream, remembering optional 'pathname'
-    // if available, with optional 'parent' to graft onto.
+    // de-serialize a component tree from istream, remembering 'pathname'
+    // if given, with an optional 'parent' to graft onto.
     virtual ~OverlayIdrawComp();
 
     virtual Component* Copy();

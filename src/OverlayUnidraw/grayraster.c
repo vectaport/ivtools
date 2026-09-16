@@ -118,9 +118,7 @@ void GrayRaster::poke(
   unsigned long yloc = 
     top2bottom() ? y : (unsigned long)rep()->pheight_ - y - 1;
 
-  // compute an equivalent gray
-  // From ppmtopgm.c, netpbm
-  // color to lumin. value: 0.299 r + 0.587 g + 0.114 b.
+  // gray = 0.299 r + 0.587 g + 0.114 b, per ppmtopgm.c (netpbm).
 
   if (AttributeValue::is_char(value_type())) {
     unsigned char gray;

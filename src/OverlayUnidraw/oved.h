@@ -75,9 +75,8 @@ public:
     // construct an editor for editing a given component, using the 'ok'
     // OverlayKit to build the surrounding menus and tools.
     OverlayEditor(const char* file, OverlayKit* ok = OverlayKit::Instance());
-    // construct an editor for opening and editing a given component, specified
-    // the pathname 'file, using the 'ok'  OverlayKit to build the surrounding 
-    // menus and tools.
+    // construct an editor for the component at pathname 'file', using
+    // the 'ok' OverlayKit to build the surrounding menus and tools.
     OverlayEditor(boolean initflag, OverlayKit* ok = OverlayKit::Instance());
     // constructor for use of derived classes.  Probably could be protected.
     virtual ~OverlayEditor();
@@ -85,10 +84,8 @@ public:
     virtual void Update();
     // update every viewer associated with this editor (usually only one).
     virtual void InitCommands();
-    // to be filled in by derived classes, for any kind of initialization
-    // that needs to occur after the environment has been fully constructed,
-    // i.e. after the viewer has been displayed on the screen (after a call
-    // to OverlayViewer::Resize()).
+    // overridden by derived classes for init that must happen after the
+    // viewer is displayed on screen (after OverlayViewer::Resize()).
 
     OverlayViewer* GetOverlayViewer() { return (OverlayViewer*)GetViewer(); }
     // return pointer to default viewer.
@@ -104,12 +101,11 @@ public:
     virtual void Annotate(OverlayComp*);
     // invoke annotation dialog box for this component.
     virtual void AttrEdit(OverlayComp*);
-    // invoke dialog box for editing attribute list (property list) associated
-    // with this component.
+    // invoke the dialog for editing this component's attribute list.
 
     ObservableText* MouseDocObservable();
-    // return pointer to observable text that contains current mouse documentation
-    // (a text string associated with the current tool).
+    // return the observable text holding the current tool's mouse
+    // documentation string.
 
     virtual void InformComponents();
     // inform components in the tree of the current editor.
@@ -146,8 +142,8 @@ public:
     // return pointer to static list of ComTerpServ objects.
     
     virtual void DoAutoNewFrame() { };
-    // empty method for use by multi-frame editors for creating a new frame
-    // when auto-new-frame is enabled.
+    // overridden by multi-frame editors to create a new frame when
+    // auto-new-frame is enabled.
 
     static boolean opaque_flag();
     // return global flag indicating whether opaque tranformations are enabled.
@@ -194,9 +190,8 @@ protected:
     Interactor* Interior();
     // lay out the Interactor based interior of a drawing editor.
     OverlayPanner* make_panner();
-    // make panner/zoomer/slider buttons, paying attention to 
-    // command line arguments/default resources for positioning and enable/disable 
-    // hints.
+    // make panner/zoomer/slider buttons, honoring command-line args and
+    // default resources for positioning and enable/disable hints.
     int panner_align();
     // handle -panner_align or -pal command line argument.
 

@@ -79,8 +79,8 @@ public:
     virtual boolean IsA(ClassId);
 
     virtual void Execute();
-    // check for non-empty selection, pop-up dialog box to specify input path
-    // and other import parameters, then import and paste result.
+    // pop up a dialog for the input path and other import parameters,
+    // then import and paste the result.
     virtual boolean Reversible();
     // returns false.
     virtual GraphicComp* PostDialog();
@@ -112,10 +112,8 @@ public:
 	const char*, boolean delayed = false, OverlayRaster* = nil,
 	IntCoord xbeg=-1, IntCoord xend=-1, IntCoord ybeg=-1, IntCoord yend=-1
     );
-    // generate raster from PGM file, with option to delay reading pixel data
-    // until needed for display, and ability to specify a subimage.  This method
-    // supports pre-tiled rasters as well, indicated by a "# tile <width> <height>"
-    // comment in the PGM header.
+    // generate raster from PGM file, optionally delaying pixel data
+    // until display, with a subimage or a "# tile <w> <h>" header tag.
     static GraphicComp* PGM_Image(istream&, boolean ascii=false);
     // generate RasterOvComp from PGM istream.
     static OverlayRaster* PGM_Raster(istream&, boolean ascii=false);
@@ -127,10 +125,8 @@ public:
 	const char*, boolean delayed = false, OverlayRaster* = nil,
 	IntCoord xbeg=-1, IntCoord xend=-1, IntCoord ybeg=-1, IntCoord yend=-1
     );
-    // generate raster from PPM file, with option to delay reading pixel data
-    // until needed for display, and ability to specify a subimage.  This method
-    // supports pre-tiled rasters as well, indicated by a "# tile <width> <height>"
-    // comment in the PPM header.
+    // generate raster from PPM file, optionally delaying pixel data
+    // until display, with a subimage or a "# tile <w> <h>" header tag.
     static GraphicComp* PPM_Image(istream&, boolean ascii=false);
     // generate RasterOvComp from PPM istream.
     static OverlayRaster* PPM_Raster(istream& in, boolean ascii=false);
@@ -140,26 +136,16 @@ public:
     // generate RasterOvComp from a PNM istream (PBM, PGM, or PPM).
     static GraphicComp* PNM_Image_Filter(istream&, boolean return_fd, int& fd,
 					 const char* filter = nil);
-    // generate RasterOvComp from a PNM istream (PBM, PGM, or PPM), using a 
-    // specified filter to convert from another format to one of the PNM formats.
-    // if 'return_fd' is true this method sets up and returns a file handle
-    // to import a raw PPM image.
+    // generate RasterOvComp from a PNM istream, converting via 'filter'
+    // if given; if 'return_fd', return a file handle for a raw PPM.
 
     static int Pipe_Filter(istream& in, const char* filter);
-    // low-level mechanism to filter an istream using an arbitrary command line
-    // filter.  Uses a double-pipe/double-fork mechanism, where a child process
-    // is set up to read the istream and pipe it to a grandchild process,
-    // which reads the other end of the pipe, runs the data through the filter,
-    // and writes the result to a pipe whose other end is indicated by the 
-    // return value of this method.  This double-pipe/double-fork architecture
-    // avoids the deadlock possible in a double-pipe/single-fork architecture,
-    // especially when decompressing the incoming istream.
+    // filter an istream via double-pipe/double-fork, returning the
+    // filtered output's fd; avoids a single-fork pipeline's deadlock risk.
 
     static boolean Tiling(int& width, int& height);
-    // return on-the-fly tiling parameters from command line: -tile, -twidth w,
-    // and -theight.  When enabled this causes large PGM or PNM images to be
-    // read in as a grid of sub-image components, and any subsequent export or 
-    // save to disk will reflect this.
+    // tiling params from -tile/-twidth/-theight; enables reading large
+    // PGM/PNM images as a grid of sub-images, reflected in export/save.
 
     static GraphicComp* XBitmap_Image(const char*);
     // generate StencilOvComp from a X Bitmap file.
@@ -175,17 +161,11 @@ public:
     // generate bitmap from a PBM istream.
 
     static const char* ReadCreator(const char* pathname);
-    // read creator from 'pathname', returning one of "COMPRESS", "GZIP",
-    // "TIFF", "SUN", "PBM", "PGM", "PPM", "PBMA", "PGMA", "PPMA", "JPEG",
-    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "PNG", "idraw", 
-    // or something else for arbitrary "PostScript".
+    // read the creator tag from 'pathname': a known format name (PBM,
+    // PGM, PPM, TIFF, JPEG, PNG, idraw, ...), else "PostScript".
     static const char* ReadCreator(istream& in, FileType& type);
-    // read creator from istream, returning one of "COMPRESS", "GZIP",
-    // "TIFF", "SUN", "PBM", "PGM", "PPM", "PBMA", "PGMA", "PPMA", "JPEG",
-    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "PNG", "idraw", 
-    // or something else for arbitrary "PostScript", plus a FileType enum.
-    // The bytes read to determine the creator are pushed back onto
-    // the istream.
+    // read the creator tag from istream plus a FileType enum, pushing
+    // back the bytes read; creator is a format name or "PostScript".
 
     static FILE* CheckCompression(
 	FILE* file, const char *pathname, boolean& compressed);
@@ -281,10 +261,8 @@ public:
     void maxval(int maxv) { _maxval = maxv; }
     int maxval() { return _maxval; }
 
-    // Read one ASCII pixel component; on a truncated/malformed stream return
-    // black (0) rather than leave the value uninitialized, and warn ONCE per
-    // image (a per-pixel message would flood).  On a well-formed file the guard
-    // never fires and behavior is unchanged.
+    // read one ASCII pixel component; on a malformed stream return black
+    // (0), not an uninitialized value, warning once per image.
     int read_ascii_component( FILE* file );
 protected:
     boolean _is_ascii;

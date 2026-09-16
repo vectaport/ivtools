@@ -58,9 +58,8 @@ public:
     void Redraw(Coord, Coord, Coord, Coord);
     // double-buffered drawing of sub-screen.
     void Resize();
-    // called after screen canvas is allocated.  From here the ::Configure
-    // method is called on any components, and the OverlayEditor::InitCommands
-    // is called as well.
+    // called once the screen canvas is allocated; calls ::Configure on any
+    // components and OverlayEditor::InitCommands.
 
     virtual void UseTool(Tool*, Event&);
 
@@ -100,33 +99,27 @@ public:
 
     void ScreenToGraphic
       (float xscreen, float yscreen, Graphic* gr, float& xgr, float& ygr);
-    // utility method for converting screen coordinates to graphic relative 
-    // coordinates.  The graphic coordinates are relative to the origin of the 
-    // screen when the graphic was originally drawn , expect for rasters, stencils, 
-    // and text which use their own origin instead.
+    // convert screen to graphic-relative coordinates, relative to the
+    // screen origin at draw time (rasters/stencils/text use their own).
     void ScreenToGraphic
       (Coord xscreen, Coord yscreen, Graphic* gr, float& xgr, float& ygr);
-    // utility method for converting screen coordinates to graphic relative
-    // coordinates.  
+    // convert screen coordinates to graphic-relative coordinates.
     void GraphicToScreen
       (Graphic* gr, float xgr, float ygr, float &xscreen, float& yscreen);    
-    // utility method for converting graphic relative coordinates to screen
-    // coordinates.  The graphic coordinates are relative to the origin of the 
-    // screen when the graphic was originally drawn , expect for rasters, stencils, 
-    // and text which use their own origin instead.
+    // convert graphic-relative to screen coordinates, relative to the
+    // screen origin at draw time (rasters/stencils/text use their own).
     void GraphicToScreen
       (Graphic* gr, float xgr, float ygr, int &xscreen, int& yscreen);    
-    // utility method for converting graphic relative coordinates to screen
-    // coordinates. 
+    // convert graphic-relative coordinates to screen coordinates.
 
     virtual OverlayView* GetCurrent() { return GetOverlayView(); }
 
     boolean scribble_pointer() { return _scribble_pointer; }
-    // return flag that indicates whether the mouse is in continuous mode,
-    // for smooth drawing of polygons and other multi-point graphics.
+    // whether the mouse is in continuous mode, for smooth drawing of
+    // polygons and other multi-point graphics.
     void scribble_pointer(boolean flag) { _scribble_pointer = flag; }
-    // set flag that indicates whether the mouse is in continuous mode,
-    // for smooth drawing of polygons and other multi-point graphics.
+    // set continuous mode, for smooth drawing of polygons and other
+    // multi-point graphics.
 
     virtual void SetMagnification(float);
 

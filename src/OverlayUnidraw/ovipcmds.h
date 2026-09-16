@@ -150,9 +150,8 @@ public:
     ~ProcessingCmd();
 
     void Execute();
-    // take selected raster, or foremost raster if none is selected,
-    // wrap up the image processing command with necessary cut/paste commands,
-    // and invoke the whole thing.
+    // wrap the image-processing command with cut/paste around the
+    // selected raster (or foremost raster, if none selected), and invoke it.
     
     virtual boolean PrepareToExecute(GraphicComp*);
     // wrapping the image processing command with necessary cut/paste commands.

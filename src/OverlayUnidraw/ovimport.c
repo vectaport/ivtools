@@ -403,8 +403,7 @@ ReadImageHandler::~ReadImageHandler() {
   _itr = nil;
 
   if (_timed_out) {
-    // we can't call pclose right now because that calls wait4 and then we will
-    // hang possible forever
+    // pclose here would call wait4 and risk hanging forever
     _helper.forget();
   }
   else {
@@ -588,8 +587,7 @@ int ReadImageHandler::inputReady(int fd) {
   if (_creator) {
     Dispatcher::instance().stopTimer(this);
 
-    // for now assume that we have at least read the creator, if not then we
-    // will just have to block
+    // assume the creator has already been read; block if it hasn't.
 
     clr_fl(_fd, O_NONBLOCK);
 
@@ -1827,9 +1825,9 @@ const char* PGM_Helper::magic() {
 void PGM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
-    unsigned int gray;   // graypoke() is overloaded (unsigned int/long/float/...),
-                         // so `int' would make the call ambiguous.  read_ascii_component()
-                         // clamps negatives to 0 at the source, so nothing wraps here.
+    // unsigned, not int: graypoke() overloads on the type and int would
+    // be ambiguous; negatives are clamped to 0 already.
+    unsigned int gray;
     if (is_ascii()) {
         gray = read_ascii_component(file);
 #if 0
@@ -2081,8 +2079,7 @@ const char* OvImportCmd::Create_Tiled_File(
 
     TileIterator it(twidth, theight, width, height);
 
-    // This is a slow way of reading the file since we are buffering lots
-    // of data that we are throwing out.  But we do this only once per file.
+    // slow: buffers and discards lots of data, but only once per file.
  
     long data = ftell(infile);
     int bpp = pih->bytes_per_pixel(); 
