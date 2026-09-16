@@ -471,6 +471,12 @@ worth looking.
   permission. (A task that assigns you a specific branch overrides this — use
   the branch it names.)
 - Do **not** open a pull request unless explicitly asked.
+- **No hidden `.claude/`-style working files in the repo.** A convention
+  worth keeping for future AI-assisted work belongs in a public,
+  human-readable file — an addition to this file, or a new top-level
+  `.md` — proposed openly like any other change, never slipped in as a
+  dotdir bundled into an unrelated commit. If something learned during a
+  session seems worth keeping, say so and add it here in the open.
 - CI is a real gate: `.github/workflows/ci.yml` builds the whole tree with g++
   on Ubuntu (a different compiler from the macOS dev builds, so g++-only
   warnings surface there) on every push to `master` and every PR, then runs
