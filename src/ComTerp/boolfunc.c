@@ -294,8 +294,8 @@ void EqualFunc::execute() {
 	}
 	break;
       case ComValue::StringType: {
-	/* always a text comparison, never symbol_val() identity, since a
-	   slice shares its parent's symid; cstr() is not slice-aware here */
+	/* always a text comparison, never symbol_val() identity: a slice
+	   shares its parent's symid; cstr(), not string_ptr(), is slice-aware */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
