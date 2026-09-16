@@ -223,13 +223,8 @@ void AttributeList::print_attrlist(std::ostream& out, AttributeList* al) {
 
 ostream& AttributeList::serialize(ostream& out, boolean parens) const {
 
-    /* bare mode -- parens=false, the operator<< default -- emits an empty list
-       as nothing rather than "()".  Bare output is per-component attributes
-       trailing a command, read back as ":key val" keywords, where a stray "()"
-       is not a sentinel but noise.
-
-       The value-display paths wrap explicitly and so still show "()" for an
-       empty list, which round-trips as an attribute-list literal. */
+    /* bare mode (parens=false) never emits "()" for an empty list: output
+       is per-component ":key val" keywords, where a stray "()" is noise. */
     AttributeList* attrlist = (AttributeList*)this;
     if (parens) out << "(";
     ALIterator i;

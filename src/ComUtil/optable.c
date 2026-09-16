@@ -115,8 +115,11 @@ struct _opr_tbl_default_entry {
   // ":" pairs into a colon-list at priority 78, one above "@"(77),
   // so str@0:3 reads as str@(0:3)
   {":",          "colonlist",          78,         FALSE,      OPTYPE_BINARY },
-  // "@" is sugar for at(): priority 77 sits below the stream
-  // operators (..=90 **=80 %%=79) and above arithmetic
+  // "@" is sugar for at(): lst@0 == at(lst 0), chaining left to right.
+  // It is its own operator rather than a numeric rhs on ".", since '@' is
+  // never part of a number's syntax, unlike lst.0.1.2.
+  // priority 77 sits below the stream operators (..=90 **=80 %%=79)
+  // and above arithmetic, so lst@0..10 and lst@i+1 parse without parens.
   {"@",          "at",                 77,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
   // "next" sits one above "mpy" (71 vs 70) so "2 * *s" settles each
