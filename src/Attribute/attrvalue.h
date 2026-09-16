@@ -459,10 +459,8 @@ protected:
       int _state; // useful for any type other than CommandType, ObjectType, or
                   // StreamType
     };
-    // 3 more ints, matching ComValue's narg/nkey/nids/slice storage width;
-    // only ComValue interprets these (comvalue.h), never the union above.
-    // ComValue's bquote/lhs_assign/local/coloned/sliced bits live in _ext3
-    // (above nids()'s low byte), never _command_symid's unbounded index.
+    // 3 more ints matching ComValue's narg/nkey/nids/slice width; its flag
+    // bits live in _ext3, never _command_symid's unbounded symbol index.
     int _ext1, _ext2, _ext3;
     static int* _type_syms;
 
