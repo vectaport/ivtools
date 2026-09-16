@@ -55,7 +55,8 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
-  // use strstreambuf + fputs to avoid FILEBUF destructor closing stdout fd
+  // use strstreambuf + fputs to avoid FILEBUF destructor closing
+  // stdout fd
   std::strstreambuf sbuf;
   ostream out(&sbuf);
  
@@ -166,15 +167,8 @@ ForFunc::ForFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ForFunc::execute() {
   static int body_symid = symbol_add("body");
-  /* :body predates today's positional multi-body support; see
-     WhileFunc::execute() for the fuller rationale -- mixed with positional
-     bodies it's flatly ignored (with a warning), but used alone it's the
-     legacy sole-body idiom and must keep firing every iteration, or a
-     for() whose only side effect lived in :body would silently stop having
-     any (Greptile's "legacy for bodies are skipped").  Dropped from
-     docstring()/dockeys() either way, so it no longer shows up in help()
-     or the man page.  stack_key_present() only decides which warning (if
-     any) to print without itself ever firing the keyword's expression. */
+  /* :body is the deprecated legacy sole-body idiom, ignored (with a
+     warning) when a positional body is also given */
   boolean body_present = stack_key_present(body_symid);
   if (body_present) {
     if (nargsfixed()>= 4)
@@ -191,12 +185,8 @@ void ForFunc::execute() {
     if (whileexpr.is_false()) break;
     delete bodyexpr;
     if (nargsfixed()>= 4) {
-      /* positions 3..N-1 are one or more space-separated bodies.  All but
-	 the last run for side effects only; an orphaned stream among them
-	 gets drained instead of silently dropped.  The last body's value
-	 is kept.  A control transfer (break/continue/return/quit) raised by
-	 an earlier body stops the remaining ones from running, same as
-	 SeqFunc::execute does for ';'. */
+      /* positions 3..N-1 are space-separated bodies; all but the last
+         run for side effects only, draining orphaned streams */
       for (int i=3; i<nargsfixed(); i++) {
 	ComValue v(stack_arg_post_eval(i));
 	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
@@ -210,9 +200,8 @@ void ForFunc::execute() {
       }
     }
     else {
-      /* no positional body -- :body (if present) is the legacy sole body
-	 and must keep running every iteration for backward compatibility;
-	 absent, this is just a bodyless for(). */
+      /* no positional body -- :body (if present) is the legacy sole
+         body, still fired every iteration */
       ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
     }
@@ -239,21 +228,8 @@ void WhileFunc::execute() {
   static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
-  /* :body predates today's positional multi-body support.  Mixed with
-     positional bodies it never composed with them (a :body value alongside
-     positional bodies used to silently discard the positionals) -- that
-     combination is now flatly ignored (with a warning) rather than
-     evaluated, since nothing could have been relying on behavior that was
-     already broken.  Used ALONE, though, :body is the pre-multibody idiom
-     for the entire loop body (e.g. "while(i :body i=i-1)") and has to keep
-     firing every iteration exactly as before -- Greptile correctly flagged
-     that a from-now-on-inert :body hangs a legacy loop whose condition only
-     changes inside it.  Either way it's dropped from docstring()/dockeys()
-     (so it no longer shows up in help() or the man page) in favor of
-     positional bodies.  stack_key_present() only walks the keyword's token
-     span to decide which warning (if any) to print -- unlike
-     stack_key_post_eval, it never calls post_eval_expr, so this presence
-     check alone never fires the keyword's expression. */
+  /* :body is the deprecated legacy sole-body idiom, ignored (with a
+     warning) when a positional body is also given */
   boolean body_present = stack_key_present(body_symid);
   if (body_present) {
     if (nargsfixed()>= 2)
@@ -270,12 +246,8 @@ void WhileFunc::execute() {
     }
     delete bodyexpr;
     if (nargsfixed()>= 2) {
-      /* positions 1..N-1 are one or more space-separated bodies.  All but
-	 the last run for side effects only; an orphaned stream among them
-	 gets drained instead of silently dropped.  The last body's value
-	 is kept.  A control transfer (break/continue/return/quit) raised by
-	 an earlier body stops the remaining ones from running, same as
-	 SeqFunc::execute does for ';'. */
+      /* positions 1..N-1 are space-separated bodies; all but the last
+         run for side effects only, draining orphaned streams */
       for (int i=1; i<nargsfixed(); i++) {
 	ComValue v(stack_arg_post_eval(i));
 	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
@@ -289,9 +261,8 @@ void WhileFunc::execute() {
       }
     }
     else {
-      /* no positional body -- :body (if present) is the legacy sole body
-	 and must keep running every iteration for backward compatibility;
-	 absent, this is just a bodyless while() (e.g. "while(v=next(s))"). */
+      /* no positional body -- :body (if present) is the legacy sole
+         body, still fired every iteration */
       ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
     }
@@ -321,11 +292,8 @@ void SeqFunc::execute() {
       push_stack(arg1);
     }
     else {
-      /* arg1 (the statement before this ";") is simply discarded, same as
-	 any other discarded value -- no forced draining of an orphaned
-	 stream here.  for()/while()/func() bodies drain explicitly instead
-	 (each one's own body-sequencing loop calls orphan_stream_count()
-	 on a non-final result); ';' stays a plain discard on purpose. */
+      /* arg1 is simply discarded, no orphan-stream draining -- ';'
+         stays a plain discard on purpose */
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
       push_stack(arg2.is_blank() ? arg1 : arg2);
@@ -439,12 +407,8 @@ FuncObjFunc::FuncObjFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 
 void FuncObjFunc::execute() {
-  /* one or more space-separated bodies, same shape as for()/while()'s
-     positional bodies -- each copied span is a complete,
-     independently-parsed expression, so concatenating them back to back
-     (no separator token needed) gives ComTerpServ::run_funcobj_body() a
-     buffer it can walk one span at a time at fire time, autostreaming all
-     but the last exactly as for()/while() already do for their own bodies. */
+  /* space-separated bodies concatenated back to back so
+     run_funcobj_body() can walk them span at a time */
   int nspans = nargsfixed();
   postfix_token** spanbufs = nspans>0 ? new postfix_token*[nspans] : nil;
   int* spanlens = nspans>0 ? new int[nspans] : nil;
@@ -480,21 +444,12 @@ void FuncObjFunc::execute() {
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen, spanlens, nspans);
     tokbufobj->posteval(postevalv.is_true());
 
-    /* capture this body's free variables (read-only or
-       read-before-write -- see funcobjscan.h) at
-       declaration time, so a later fire sees the value that was live now,
-       not whatever's live at call time.  is_plain_var[i] tells the
-       classifier which tokens are ordinary variable references rather
-       than registered commands -- built by the same shared helper the help path's
-       :help fire-time analysis uses (FuncObjVarScan::build_is_plain_var),
-       not reimplemented here. */
+    /* capture this body's free variables at declaration time so a
+       later fire sees the value live now, not at call time */
     boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(comterp(), tokbuf, toklen);
     AttributeList* classification = FuncObjVarScan::classify(tokbuf, toklen, is_plain_var);
-    /* RAII guard, not dead code: the AttributeValue ctor/dtor pair
-       ref/unrefs classification automatically (HACKING.md's "Resource
-       ref/unref and AttributeValue Constructors") so it's freed at scope
-       exit -- classification itself is only ever read through the raw
-       pointer below, never through this wrapper. */
+    /* RAII guard, not dead code: ref/unrefs classification so
+       it's freed at scope exit */
     ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
     delete [] is_plain_var;
 
@@ -505,10 +460,8 @@ void FuncObjFunc::execute() {
       int kind = attr->Value()->int_val();
       if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
 	if (!captures) captures = new AttributeList();
-	/* lookup_symval(int) checks localtable() only; the full fallthrough an
-	   ordinary read uses -- _alist, then localtable unless global_flag,
-	   then globaltable -- is the ComValue& overload.  Anything narrower
-	   under-captures a name set only through global()=. */
+	/* use the ComValue& overload, not lookup_symval(int), for the
+	   full _alist/localtable/globaltable fallthrough */
 	ComValue symval(attr->SymbolId(), ComValue::SymbolType);
 	ComValue curval(comterp()->lookup_symval(symval));
 	captures->add_attr(attr->SymbolId(), curval);

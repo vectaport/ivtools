@@ -47,29 +47,23 @@ public:
     void load_string(const char*);
     // load string to be interpreted into buffer.
     void read_string(const char*);
-    // load string to be interpreted into buffer, and read postfix
-    // tokens from it.
+    // load string to be interpreted into buffer,
+    // and read postfix tokens from it.
     postfix_token* gen_code(const char*, int& codelen);
-    // generate buffer of length 'codelen' of postfix tokens ready
-    // to be converted into ComValue objects and executed.
+    // generate buffer of length 'codelen' of postfix tokens,
+    // ready to be converted into ComValue objects and executed.
 
     virtual int run(boolean one_expr=false, boolean nested=false);
     // run this interpreter until quit or exit command.
     virtual ComValue run(const char*, boolean nested=false);
-    // interpret and return value of expression.  'nested' flag used
-    // to indicated nested call to the run() method, to avoid
-    // re-initialization.
+    // interpret and return value of expression;
+    // 'nested' avoids re-initialization on a nested call to run().
     virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
 
     ComValue run_funcobj_body(class FuncObj*);
-    // fire a FuncObj's one or more space-separated bodies: each span runs
-    // via run_one_span() in turn, all but the last autostreaming an
-    // orphaned-stream result instead of losing it (same treatment
-    // for()/while() give their own bodies), the last kept as the overall
-    // result.  A control transfer raised by a non-final span
-    // (break()/continue()/return()/quit()) stops the remaining spans,
-    // same as SeqFunc::execute already does for ';'.
+    // fire a FuncObj's space-separated bodies via run_one_span(),
+    // autostreaming all but the last, stopping on a control transfer.
 
     AttributeValueList* parse_next_expr(FILE*);
     // parse the next expression from a file.
@@ -89,12 +83,8 @@ public:
 protected:
 
     ComValue run_one_span(postfix_token*, int);
-    // shared body of run(postfix_token*, int), minus the final
-    // returnflag(false) -- run_funcobj_body() needs to see whether a span
-    // set returnflag() (a return() call) before it's cleared, to know
-    // whether to run the spans that follow; run(postfix_token*, int)
-    // itself is just this plus that one clear, unchanged for every other
-    // caller.
+    // shared body of run(postfix_token*, int), minus returnflag(false),
+    // so run_funcobj_body() can see whether a span returned.
 
     static char* s_fgets(char* s, int n, void* serv);
     // signature like fgets used to copy input from a buffer.
