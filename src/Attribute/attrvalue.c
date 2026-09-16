@@ -326,10 +326,8 @@ AttributeValue::~AttributeValue() {
 }
 
 void AttributeValue::clear() {
-    /* zero the WHOLE value union, not just sizeof(double): any union
-       member field past the first 8 bytes would otherwise be left as
-       construction-path garbage -- a trap discovered (and briefly hit)
-       when a field was added past that boundary. */
+    // zero the WHOLE value union, not just sizeof(double): fields past the
+    // first 8 bytes would otherwise hold construction-path garbage.
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
     _state = 0;
@@ -347,13 +345,8 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     _ext1 = sv._ext1;
     _ext2 = sv._ext2;
     _ext3 = sv._ext3;
-    /* the output wrapper is an annotation on one particular value as it is
-       handed back, not part of what the value IS -- so it never rides along
-       on a copy.  Every consumer (arithmetic seeding a result from an
-       operand, an assignment, a stored list element) is therefore free of it
-       with no local clearing anywhere.  A producer stamps the stack slot it
-       just pushed; a command that means to pass the signal on relays it
-       consciously, as print() does from stack_arg(). */
+    // the output wrapper annotates one value as handed back, never copied --
+    // a producer stamps its stack slot; relaying it stays explicit (print()).
     wrapper(AttributeValue::NoWrapper);
     if (!preserve_flag) ref_as_needed();
     return *this;
@@ -875,36 +868,22 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
     out << q << '\\' << named << q;
   else if (cv < 0x80 && iscntrl(cv))
     out << q << "\\c" << (char)(cv ^ 0x40) << q;
-  /* the two bytes that cannot appear bare between the quotes: a backslash
-     would escape the closing quote, and an apostrophe would be it.  Both
-     escapes are lexer forms, so these keep round-tripping.  Unquoted there is
-     nothing to escape from, and escaping would corrupt the text. */
+  /* use quoted-escape form for backslash and apostrophe to avoid
+     ambiguity with escape processing and the character delimiter. */
   else if (quoted && (cv == '\\' || cv == '\''))
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
     out << q << (char)cv << q;
   else
-    /* q, the same delimiter the other two forms take.  It used to be a pair of
-       backquotes, which read back as nothing: `\240` in a serialized attrlist
-       is an illegal character to the lexer, so the export path was writing a
-       form its own reader rejects.  '\240' is what the lexer already reads,
-       and it round-trips to the byte it came from.  Bare, when printing, the
-       delimiters go and the escape takes the same ambiguity caret notation
-       takes -- run characters together and a literal backslash cannot be told
-       from the start of an escape.  Printing is for reading, not re-reading */
+    // q wraps the octal escape for a lexer round-trip; bare (no q) is
+    // display-only: a bare backslash before digits misparses as an escape.
     out << q << "\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
 	<< std::dec << q << std::resetiosflags(std::ios_base::basefield);
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* Only these two types ever have ComTerp-specific meaning layered on
-       the shared narg/nkey/nids/flags block this class merely stores
-       (attrvalue.h) -- a coloned() list's ':' form, a sliced string's own
-       window via cstr().  Every other type's printing is already correct
-       here; routing it through the hook too would swap in ComValue's own
-       "brief" REPL-echo conventions (e.g. an unquoted char) in a context
-       -- an attribute's embedded value -- that wants this class's own,
-       different-on-purpose formatting instead. */
+    /* hook only fires for ArrayType/StringType, where the shared flags
+       carry ComTerp-specific meaning; other types print correctly here. */
     if (AttributeValue::_render_hook &&
         (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType))
       return AttributeValue::_render_hook(out, sv);
