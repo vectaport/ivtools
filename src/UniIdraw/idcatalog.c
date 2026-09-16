@@ -293,10 +293,9 @@ void IdrawCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
 }
 
 /*
- * PSSkipToEnd consumes a recognized-but-declined object's own body, up
- * through its closing "End" token, so PSReadChildren's next iteration
- * reads the following sibling's tag instead of a token from the middle
- * of the skipped object.
+ * PSSkipToEnd consumes a recognized-but-declined object's own body
+ * through its closing "End" token, so PSReadChildren resumes at the
+ * following sibling's own tag.
  */
 
 void IdrawCatalog::PSSkipToEnd (istream& in) {
