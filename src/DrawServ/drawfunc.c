@@ -177,8 +177,8 @@ void DrawLinkFunc::execute() {
 	}
       }
 
-      /* a ring means the session is reachable another way; refuse only
-	 when it is, not a stale link to the very node reconnecting */
+      /* a ring means reachable another way; refuse only when it is --
+	 not a duplicate to our dialing peer, nor a stale reconnect link. */
       boolean elsewhere = false;
       if (cyclink &&
 	  ((DrawServ*)unidraw)->cycletest
@@ -427,7 +427,8 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
   int spins = 0;
   boolean timed_out = false;
   while (1) {
-    /* compare only: a replacing select() now owns this selection, not us. */
+    /* compare, never dereference: sel may already be deleted -- another
+       connection's select() frees it when installing its own. */
     if ((OverlaySelection*)_ed->GetSelection() != sel) return;
     if (lsel->waiting_count()==0) break;
     if (spins++ >= spin_limit) { timed_out = true; break; }
