@@ -87,7 +87,8 @@ public:
     void shiftcapture_poll();       // heartbeat: bump the watchdog
 
     // portable name for a queued key code: a C literal for printable-ASCII/
-    // space/enter; TAB/DEL/arrows/ins case-vary; F1-PgDn fixed; else decimal.
+    // space/enter; TAB/arrows/ins/Backspace(->"DEL") case-vary; \x7f Delete
+    // never does; F1-PgDn fixed; else decimal.
 
     // Escape is "Esc"/"ESC" (case-varies like Tab), never the raw \x1b byte.
 
