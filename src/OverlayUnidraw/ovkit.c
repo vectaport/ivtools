@@ -291,7 +291,7 @@ void OverlayKit::InitViewer () {
     _ed->_comp->Attach(view);
     view->Update();
 
-    /* ordering works around a cfront 3.0 compiler quirk. */
+    /* must follow view->Update(); do not reorder. */
     float w = Math::round(atof(page_w) * ivinches);
     float h = Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
