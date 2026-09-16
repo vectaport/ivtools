@@ -140,8 +140,7 @@ void HandlesFunc::execute() {
 	return;
     }
 
-    /* same shape as pastemode(): :get reads, no argument toggles, an argument
-       sets, and every one of them says what the value now is */
+    /* same shape as pastemode(): :get reads, no arg toggles, arg sets. */
     boolean enable;
     if (get_flag)
 	enable = sel->HandlesEnabled();
@@ -475,20 +474,14 @@ void ExportFunc::execute() {
         return;
     }
 
-    /* Accumulate the export into an in-memory strstream, then emit it below --
-       never wrap a live output fd in a FILEBUF, whose destructor closes that fd
-       (closing the handler socket / stdout and damaging the comterp connection
-       the command arrived on, seen as a nil result and a corrupted command
-       stream).  Same idiom as PostFixFunc::execute. */
+    /* accumulate the export into an in-memory strstream, then emit it below;
+       never wrap a live output fd in a FILEBUF, whose destructor closes it. */
     boolean string_mode = string.is_true() || str.is_true();
-    /* :percomp emits each component as its own runnable command (rect, not
-       rectangle) with no enclosing appname()(...) wrapper -- a script block ready
-       to run, vs the drawtool() document the default/socket export sends to
-       another editor's import port. */
+    /* :percomp emits each component as its own runnable command (rect,
+       not rectangle), a script block, vs the default drawtool() document. */
     boolean percomp_mode = percomp.is_true();
-    /* the create commands take a flat coordinate run, not parenthesized pairs,
-       so a runnable emission has to drop the parens -- the same reason DrawServ
-       drops them before serializing a command for another editor to execute */
+    /* create commands take a flat coordinate run, not parenthesized pairs,
+       so a runnable emission drops the parens, same as DrawServ does. */
     boolean old_ptlist_parens = OverlayScript::ptlist_parens();
     if (percomp_mode) {
       OverlayScript::percomp_format(true);
@@ -562,9 +555,8 @@ void ExportFunc::execute() {
       ComValue retval(result);
       push_stack(retval);
     } else {
-      /* resolve the destination FILE* and write with fputs/fflush.  close only
-	 fds we open here -- a named file, or a host/port socket we connect --
-	 never stdout or a live handler/peer fd. */
+      /* resolve the destination FILE* and write with fputs/fflush; close
+	 only fds opened here, never stdout or a live handler/peer fd. */
       FILE* fp = nil;
       boolean close_fp = false;
       ACE_SOCK_Stream* socket = nil;
@@ -576,9 +568,8 @@ void ExportFunc::execute() {
 	ComTerpServ* terp = (ComTerpServ*)comterp();
 	ComterpHandler* handler = (ComterpHandler*)terp->handler();
 	if (handler)
-	  fp = handler->wrfptr();   /* persistent peer FILE*: do not close.  (was a
-				       fresh fdopen() per export -- the FILE* leaked,
-				       accumulating in a long-running server.) */
+	  /* persistent peer FILE*: never close it here */
+	  fp = handler->wrfptr();
 	else
 	  fp = stdout;
       }
@@ -592,8 +583,8 @@ void ExportFunc::execute() {
 	  ACE_INET_Addr addr (portnum, hoststr);
 	  if (conn.connect (*socket, addr) == -1)
 	    ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-	  /* dup the handle so this FILE* can be fclosed (below) without closing the
-	     socket fd we close/delete separately -- otherwise the FILE* leaked */
+	  /* dup the handle: fclosing this FILE* must not close the socket fd,
+	     which is closed/deleted separately. */
 	  fp = fdopen(dup(socket->get_handle()), "w");
 	  close_fp = (fp != nil);
 	} else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
@@ -618,11 +609,8 @@ void ExportFunc::compout(OverlayComp* comp, ostream* out) {
   OverlayScript* ovsv = (OverlayScript*) comp->Create(SCRIPT_VIEW);
   comp->Attach(ovsv);
   ovsv->Update();
-  /* Definition() already emitted this comp's attributes, inside the command's
-     own parens where the reader picks them up as ordinary keywords -- that is
-     how :grid and :sid survive a trip to another drawserv.  Appending them
-     again here put a second copy after the closing paren, so any graphic
-     carrying an attribute exported malformed and did not read back. */
+  /* Definition() already emits this comp's attributes inside the command's
+     own parens (how :grid/:sid survive a trip); never append them again. */
   ovsv->Definition(*out);
   delete ovsv;
   out->flush();
@@ -1000,9 +988,8 @@ void TextPaneFunc::execute() {
   reset_stack();
   OverlayEditor* ed = (OverlayEditor*)GetEditor();
   EivTextEditor* te = ed ? ed->TextEditor() : nil;
-  // driving() is a virtual no-op on a plain EivTextEditor (no
-  // interpreter to drive anything) and the real answer on a
-  // ComTextEditor -- see IVGlyph/textedit.h and ComGlyph/comtextedit.h.
+  // driving() is a no-op on a plain EivTextEditor, the real answer on
+  // a ComTextEditor -- see IVGlyph/textedit.h, ComGlyph/comtextedit.h.
   boolean flag = te ? te->driving() : false;
   ComValue retval(flag ? 1 : 0, ComValue::BooleanType);
   push_stack(retval);
@@ -1021,8 +1008,8 @@ void LastKeyFunc::execute() {
   boolean resetflag = stack_key(reset_sym).is_true();
   reset_stack();
 
-  // downcast to the comdraw-layer editor that owns the key queue (the
-  // PointerLocFunc precedent above downcasts GetEditor() the same way)
+  // downcast to the comdraw-layer editor that owns the key queue
+  // (same as PointerLocFunc above downcasting GetEditor())
   ComEditor* ed = (ComEditor*)GetEditor();
   if (!ed) { push_stack(ComValue::nullval()); return; }
 
@@ -1049,8 +1036,8 @@ void LastKeyFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  // return the portable name string (e.g. "up", "UP", "d", "esc"), not the
-  // raw X keysym -- keeps the surface backend-neutral (see ComEditor::keyname)
+  // return the portable name string ("up","UP","d","esc"), not the raw
+  // X keysym; keeps the surface backend-neutral (ComEditor::keyname)
   ComValue retval(ed->keyname(code));
   push_stack(retval);
 }
@@ -1077,9 +1064,8 @@ void KeynameTestFunc::execute() {
   ComEditor* ed = (ComEditor*)GetEditor();
   if (!ed) { push_stack(ComValue::nullval()); return; }
 
-  // fold in modifier flags exactly as keystroke() does for a real
-  // KeyPress, then call the real, production keyname() directly --
-  // this is not a copy of the naming logic, it IS the naming logic.
+  // fold in modifier flags exactly as keystroke() does, then call the
+  // real keyname() directly -- this IS the naming logic, not a copy.
   code |= (shiftflag ? ComEditor::SHIFT_FLAG : 0)
 	| (ctrlflag  ? ComEditor::CTRL_FLAG  : 0)
 	| (altflag   ? ComEditor::ALT_FLAG   : 0)

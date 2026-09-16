@@ -37,15 +37,8 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListAtFunc::execute() {
-  /* Classification (composite graphic or not) reads the argument
-     without mutating its stack slot, since the base ListAtFunc below
-     reads that same slot when this delegates to it. stack_arg(0, true)
-     supplies the raw value unmutated; ComTerp::lookup_symval(ComValue*,
-     false) classifies what a symbol argument would resolve to, also
-     without mutating, so a composite graphic held in a variable is
-     recognized correctly. The one real, mutating resolution happens
-     only once the compview branch below commits to consuming the
-     value itself. */
+  /* classifies the argument without mutating its stack slot, since base
+     ListAtFunc re-reads that same slot when this delegates to it below. */
   ComValue listpeek(stack_arg(0, true));
   AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
   boolean list_is_compview = listclass
@@ -103,8 +96,7 @@ GrListSizeFunc::GrListSizeFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListSizeFunc::execute() {
-  // see GrListAtFunc::execute() above for why this classifies the
-  // argument via a non-mutating resolve rather than stack_arg(0) itself
+  // see GrListAtFunc::execute() above: same non-mutating classify reason
   ComValue listpeek(stack_arg(0, true));
   AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
   boolean list_is_compview = listclass

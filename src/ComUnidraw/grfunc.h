@@ -41,10 +41,8 @@ public:
     CreateGraphicFunc(ComTerp*,Editor*);
     Transformer* get_transformer(AttributeList*);
     void set_graphic_gs(AttributeList*, Graphic*);
-    // read the graphic-state keywords (:brush/:nonebr, :fgcolor/:bgcolor/:fillbg,
-    // :pattern/:graypat/:nonepat) off the list, apply them to the graphic, and
-    // remove them from the list so a subsequent export round-trips them through
-    // the graphic's MinGS instead of duplicating them as leftover attributes.
+    // reads gs keywords (:brush/:fgcolor/:bgcolor/:pattern/etc.) off the
+    // list and applies them to the graphic, so export round-trips via MinGS.
 };
 
 //: rectangle drawing command for comdraw.
@@ -274,8 +272,8 @@ public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual void resolve_requests(OverlaySelection* sel) {}
-    // wait for an answer that arrives asynchronously, before the returned list
-    // is built -- nothing to wait for below DrawServ
+    // wait for an async answer before the list is built; a no-op
+    // below DrawServ
     virtual const char* docstring() { 
 	return "%s([compview ... | compview,compview[,... compview]] :all :clear) -- make these graphics the current selection (dflt is current)"; }
     virtual const char** dockeys() {
