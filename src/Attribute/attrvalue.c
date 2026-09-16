@@ -868,8 +868,8 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
     out << q << '\\' << named << q;
   else if (cv < 0x80 && iscntrl(cv))
     out << q << "\\c" << (char)(cv ^ 0x40) << q;
-  /* backslash and apostrophe cannot appear bare between the quotes --
-     each would end the literal early, so both get quoted-escape form. */
+  /* use quoted-escape form for backslash and apostrophe to avoid
+     ambiguity with escape processing and the character delimiter. */
   else if (quoted && (cv == '\\' || cv == '\''))
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
