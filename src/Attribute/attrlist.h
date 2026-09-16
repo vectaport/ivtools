@@ -71,8 +71,8 @@ public:
     void add_attr(int symid, AttributeValue& value); 
     // add attribute by making copy of an AttributeValue.
     void add_attr(int symid, AttributeValue* value); 
-    // add attribute by using pointer to AttributeValue, assuming responsibility
-    // for the memory.
+    // add attribute by using pointer to AttributeValue, assuming
+    // responsibility for the memory.
 
     void add_attribute(Attribute* attr);
     // add complete Attribute object to the list, accepting responsibility
@@ -133,9 +133,8 @@ protected:
     void InsertBefore(ALIterator, Attribute*);
     // append Attribute before position pointed by iterator.  Could cause duplicates.
     void Remove(ALIterator&);
-    // remove Attribute pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // This requires saving a pointer to the Attribute before calling this method.
+    // removes the Attribute at the iterator and returns responsibility
+    // for freeing it -- save a pointer to it first, before calling this.
 
     void clear(); 
     // empty AttributeList, deleting all Attributes.
@@ -147,10 +146,8 @@ public:
     // nested inside another argument list).
 
     ostream& serialize(ostream& out, boolean parens = false) const;
-    // write the list as ":key val ..."; with parens=true wrap it in "(...)"
-    // (empty -> "()") so it round-trips as an attribute-list literal.  The
-    // friend operator<< uses the bare form; turn parens on only where the list
-    // is printed as a standalone value (see ComValue::operator<<).
+    // write as ":key val ..."; parens=true wraps it in "(...)" ("()" if
+    // empty) so it round-trips; operator<< uses the bare form instead.
 
     void dump();
     // utility method to call ostream output method.
@@ -162,9 +159,8 @@ public:
 
 protected:
     int add_attr(Attribute* attr);
-    // add attribute, returning 0 if new, -1 if it already existed.
-    // When -1 is returned you need to clear the valueptr of 'attr' before 
-    // deleting it.  That's why this is protected.
+    // add attribute, returning 0 if new, -1 if already present -- when -1,
+    // clear 'attr's valueptr before deleting it; hence this is protected.
 
     AList* _alist;
     unsigned int _count;
@@ -216,16 +212,14 @@ public:
     void InsertBefore(ALIterator, AttributeValue*);
     // insert AttributeValue before position pointed to by iterator.
     void Remove(AttributeValue*);
-    // remove AttributeValue from list, returning responsibility for freeing the
-    // associated memory.
+    // remove AttributeValue from list, returning responsibility for
+    // freeing the associated memory.
     void Remove(ALIterator&);
-    // remove AttributeValue pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // This requires saving a pointer to the AttributeValue before calling this method.
+    // removes the AttributeValue at the iterator and returns responsibility
+    // for freeing it -- save a pointer to it first, before calling this.
     AttributeValue* Replace(ALIterator&, AttributeValue*);
-    // remove AttributeValue pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // Then insert new AttributeValue in the same place.
+    // removes the AttributeValue at the iterator (caller must free it),
+    // then inserts the new AttributeValue in its place.
 
 
     AttributeValue* GetAttrVal(ALIterator);
@@ -238,11 +232,11 @@ public:
     AttributeValue* Get(unsigned int index);
     // retrieve value by index, return nil if not there
     AttributeValue* Set(unsigned int index, AttributeValue* av);
-    // set value by index, increase list length if necessary with nil padding,
-    // take responsibility for the memory (and return responsibility for old memory)
+    // set value by index, increase list length if necessary with nil
+    // padding, taking responsibility for memory (and returning the old).
     void Insert(int index, AttributeValue* av);
-    // insert value after index, use -1 to insert at beginning
-    // take responsibility for the memory (and return responsibility for old memory)
+    // insert value after index, use -1 to insert at beginning, taking
+    // responsibility for the memory (and returning responsibility for old).
 
     AList* Elem(ALIterator); 
     // return AList (UList) pointed to by ALIterator (Iterator).
