@@ -323,7 +323,8 @@ boolean LinkSelection::request_resolved_check(boolean granted, const char* filel
   if (waiting_count() > 0) {
     int status = all_requests_resolved(granted);
     if (silent()) {
-      /* a scripted select() reports this as its return value, so it need not also be audible */
+      /* a scripted select() reports this as its return value, so it
+         need not also be audible */
     } else if (status==-1)
       Beep(fileline);
     else if (status==1)

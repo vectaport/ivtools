@@ -125,10 +125,12 @@ public:
     // true if there is a user at the dialog to receive a popup about this link
 
     boolean same_peer(DrawLink* other);
-    // whether another link goes to the same place, by resolved address, not dialled name
+    // whether another link goes to the same place, by resolved
+    // address, not dialled name
 
     void report(const char* title, const char* detail);
-    // tell the user what became of this link: a popup if asked for at the dialog, else stderr
+    // tell the user what became of this link: a popup if asked for
+    // at the dialog, else stderr
 
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
