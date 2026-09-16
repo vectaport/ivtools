@@ -876,7 +876,7 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
     out << q << (char)cv << q;
   else
     // q wraps the octal escape for a lexer round-trip; bare (no q) is
-    // for display only, not meant to be re-read.
+    // display-only: a bare backslash before digits misparses as an escape.
     out << q << "\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
 	<< std::dec << q << std::resetiosflags(std::ios_base::basefield);
 }

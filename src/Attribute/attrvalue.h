@@ -461,6 +461,8 @@ protected:
     };
     // 3 more ints, matching ComValue's narg/nkey/nids/slice storage width;
     // only ComValue interprets these (comvalue.h), never the union above.
+    // ComValue's bquote/lhs_assign/local/coloned/sliced bits live in _ext3
+    // (above nids()'s low byte), never _command_symid's unbounded index.
     int _ext1, _ext2, _ext3;
     static int* _type_syms;
 
