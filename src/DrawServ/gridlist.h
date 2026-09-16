@@ -54,8 +54,7 @@ public:
     void Prev(Iterator&);
     // set iterator to point to previous GraphicId in list.
     boolean Done(Iterator);
-    // return true if iterator is pointing off the end of the list.
-    // works for forward and backward traversals.
+    // return true if iterator is off the end of the list, either direction.
     boolean IsEmpty();
     // true if no GraphicId objects in list.
     int Number();
@@ -70,8 +69,7 @@ public:
     void InsertBefore(Iterator, GraphicId*);
     // insert GraphicId before position pointed to by iterator.
     void Remove(GraphicId*);
-    // remove GraphicId from list, returning responsibility for freeing the
-    // associated memory.
+    // remove GraphicId from list, returning responsibility for freeing it.
 
     GraphicId* GetGraphicId(Iterator);
     // get GraphicId pointed to by iterator.
@@ -87,9 +85,8 @@ public:
 
 protected:
     void Remove(Iterator&);
-    // remove GraphicId pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // This requires saving a pointer to the GraphicId before calling this method.
+    // remove GraphicId pointed to by iterator, returning responsibility for
+    // freeing it; save a pointer to it before calling this method.
 
     UList* _ulist;
     unsigned int _count;

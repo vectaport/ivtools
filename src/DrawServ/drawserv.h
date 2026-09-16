@@ -77,8 +77,7 @@ public:
   DrawLink* linkup(const char* hostname, int portnum, 
 		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil,
 		   int interactive=false);
-  // Create new link to remote drawserv, return -1 if error
-  // state: 0==new_link, 1==one_way, 2==two_way.
+  // Create new link to remote drawserv (state: 0==new_link, 1==one_way, 2==two_way), return -1 if error.
   
   int linkdown(DrawLink* link);
   // shut down existing link to remote drawserv
@@ -192,8 +191,7 @@ public:
   // test if a new outgoing link is really to yourself
 
   virtual boolean PrintAttributeList(ostream& out, AttributeList* list);
-  // alternate method for serializing an AttributeList
-  // returns false if really not there.
+  // alternate method for serializing an AttributeList; returns false if really not there.
 
 protected:
   boolean add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid);

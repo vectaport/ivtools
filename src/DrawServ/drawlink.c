@@ -135,12 +135,8 @@ int DrawLink::open(uuid_t linkid) {
     ostream out(&obuf);
     std::ostringstream sbuf;
     sbuf << "drawlink(\"";
-    /* local_hostname(), not raw gethostname(): on macOS the bare OS-level
-       hostname is often whatever the router assigned over DHCP, which nothing
-       can resolve through getaddrinfo(), so the peer's two-way connect-back to
-       that name fails and the handshake never completes.  local_hostname()
-       uses the mDNS-registered name instead, and falls back to gethostname()
-       where that distinction does not apply. */
+    /* local_hostname(), not raw gethostname(): on macOS the bare OS name
+       may be DHCP-assigned and unresolvable, so use the mDNS name instead. */
     const char* buffer = local_hostname();
 
     uuid_t& sid = ((DrawServ*)unidraw)->sessionid();
@@ -160,11 +156,8 @@ int DrawLink::open(uuid_t linkid) {
     sbuf << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
       sbuf << " :pid " << sessionid->pid();
-      // On a host with no login/USER the username is a NULL pointer, and
-      // ostream operator<<(const char*) on NULL sets the stream's badbit -- the
-      // closing quote, the ')', and the newline then silently vanish, leaving a
-      // truncated, unframed command the receiver can't parse, which stalls the
-      // two-way handshake.  Emit "" for a NULL username so the stream stays good.
+      // a NULL username sets the stream's badbit via operator<<(const char*),
+      // silently dropping the rest of the command, so emit "" instead.
       const char* uname = sessionid->username();
       sbuf << " :user \"" << (uname ? uname : "") << "\"";
     }

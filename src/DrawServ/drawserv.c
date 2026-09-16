@@ -174,9 +174,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
   } else if (state == DrawLink::two_way) {
 
     // search for the link this leg answers: one we opened and are still
-    // waiting on.  A link already up is not awaiting a leg, and finalizing it
-    // a second time would hand its comhandler to whatever connection asked --
-    // after which that connection closing takes the link down with it.
+    // waiting on, since an already-up link is not awaiting a leg.
     Iterator i;
     _linklist->First(i);
     while(!_linklist->Done(i) &&
@@ -334,8 +332,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	const char* script = ((LinkBrushCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	/* exclude the link back toward the change's owner so a relayed brush
-	   flows onward along a chain instead of echoing to its origin (on the
-	   originating node the owner is self -> linkget()==nil -> send to all). */
+	   flows onward along a chain instead of echoing to its origin. */
 	uuid_copy(sid, ((LinkBrushCmd*)cmd)->dist_owner_sid());
 	cmd->Execute();
 	break;
@@ -541,10 +538,8 @@ void DrawServ::grid_message(GraphicId* grid) {
     DrawLink* link = _linklist->find_drawlink(grid);
     
     if (link) {
-      /* a fresh generation each time we ask, so an answer can say which asking
-	 it answers: a refusal delayed past a withdrawal would otherwise be
-	 applied to the request that replaced it, both reading
-	 WaitingToBeSelected and the states alone not telling them apart. */
+      /* a fresh generation each time we ask, so a delayed answer can be
+	 told apart from one for a request that replaced it. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 	       grid->idstr(), grid->selectorstr(), sessionidstr(),
 	       grid->next_reqgen(), grid->compclass(), '\0');
@@ -595,10 +590,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* else deny it, because it is selected */
 	else {
 	  char buf[BUFSIZ];
-	  /* the asker in the selector field and ourselves as the value, the
-	     shape a grant already has, so a refusal can be relayed the way a
-	     grant is: naming only the refuser left it with nowhere to go once
-	     it reached a node that had merely passed the request along. */
+	  /* asker in the selector field, us as the value, the same shape a
+	     grant has, so a refusal can be relayed the same way a grant is. */
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
 		   grid->idstr(), newselector_str, sessionidstr(),
 		   gen, grid->compclass(), '\0');
@@ -617,11 +610,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	SendCmdString(linkget(grid->selector()), buf);
       }
 
-      /* our record points back where the request came from, so passing it on
-	 returns it to the node that sent it.  Refuse instead: the asker gets an
-	 answer, which is more than a request bounced between two nodes will
-	 ever give it -- and on a spoke, whose only link is the hub, an answer
-	 coming back for somebody else cannot be delivered at all. */
+      /* our record points back where the request came from, so passing it
+	 on would just return it; refuse instead so the asker gets an answer. */
       else {
 	fprintf(stderr, "grid: request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
@@ -639,20 +629,15 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	if (linklist()->Number()>1)
 	  fprintf(stderr, "grid: state change passed along to everyone else\n");
 
-	/* an announcement of "free, and still held by the node we asked" is the
-	   condition our request is waiting on, not news that voids it -- the
-	   grant is already on its way, and grid_message_callback recognises it
-	   only while the state reads WaitingToBeSelected.  every other change
-	   does void the request and resets it as before. */
+	/* "free, still held by the node we asked" is what our request is
+	   waiting on, not news that voids it; every other change does. */
 	if (!(grid->selected()==LinkSelection::WaitingToBeSelected &&
 	      state==LinkSelection::NotSelected &&
 	      selector != NULL &&
 	      uuid_compare(grid->selector(), selector)==0)) {
 	  if (grid->selected()==LinkSelection::WaitingToBeSelected) {
-	    /* ownership moved while we were asking.  nobody refused us, but we
-	       are not getting it either, so resolve it the way a denial
-	       resolves -- the count has to come down, and from where the asker
-	       sits this is the same disappointment. */
+	    /* ownership moved while we were asking; nobody refused us, but
+	       resolve it the way a denial resolves, since it reads the same. */
 	    LinkSelection* lsel =
 	      (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
 	    if (lsel) lsel->request_resolved_check(false, FILELINE);
@@ -726,20 +711,15 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
     return;
   }
 
-  /* only while the question is still outstanding.  A refusal can arrive after
-     its request was withdrawn, or after an ownership change voided it -- and
-     applying it then overwrites newer state, while unwinding the count resolves
-     whatever question is outstanding now instead of the one this answers.  The
-     grant is accepted only into WaitingToBeSelected for the same reason. */
+  /* only while the question is still outstanding: applying a refusal
+     after withdrawal or an ownership change would overwrite newer state. */
   if (grid->selected() != LinkSelection::WaitingToBeSelected) {
     fprintf(stderr, "grid: refusal for a request no longer outstanding, ignored\n");
     return;
   }
 
-  /* and only for the asking it answers: a request withdrawn and made again
-     leaves the state reading WaitingToBeSelected either way, so without the
-     generation a delayed refusal for the first would be applied to the second,
-     and the grant that answers the second then refused. */
+  /* and only for the asking it answers, so a delayed refusal for a
+     withdrawn-then-repeated request is not applied to its successor. */
   if (gen != grid->reqgen()) {
     fprintf(stderr, "grid: refusal for asking %d, we are on %d now, ignored\n",
 	    gen, grid->reqgen());
@@ -770,8 +750,7 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
   if (granter==NULL || uuid_is_null(granter)) return;
 
   /* not our grant: a grant reaches its recipient through linkget(selector),
-     so the response has to travel back the same way rather than stopping at
-     the relay it happens to arrive on. */
+     so the response travels back the same way, not stopping at this relay. */
   if (uuid_compare(granter, sessionid())) {
     DrawLink* glink = linkget(granter);
     if (glink && glink != link) {
@@ -793,8 +772,7 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
   }
 
   /* the same asker can be granted the same graphic twice, so naming the
-     responder is not enough to tell one grant from the next: a not-taken for
-     the first would otherwise roll back the second. */
+     responder alone can't tell which grant a not-taken answers; match gen too. */
   if (responder != NULL && uuid_compare(grid->selector(), responder)==0 &&
       gen==grid->grantgen()) {
     grid->selector(sessionid());
@@ -840,17 +818,12 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     }
 
     /* a grant addressed to us that we could not take: say so rather than
-       sending it back out.  linkget(selector) is our own link when the
-       selector is this session, so forwarding it returns it to the node that
-       granted it, which forwards it here again -- 313k messages in half a
-       minute, for eight graphics. */
+       forwarding it back to the granter, which would just send it here again. */
     else if (selector != NULL && uuid_compare(selector, sessionid())==0) {
       fprintf(stderr, "grid:  grant for us arrived on a graphic in %s, dropped\n",
 	      LinkSelection::selected_string(grid->selected()));
-      /* the granter commits the handoff when it sends the grant, so it has to
-	 be told this one did not land.  answer the grant itself rather than
-	 announcing state: a state message is an unconditional assertion and a
-	 stale one would undo a later handoff. */
+      /* answer the grant, not a state message, which asserts unconditionally
+	 and could undo a later handoff if stale; the granter needs to know. */
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
 	       grid->idstr(), sessionidstr(), oldselector_str,
@@ -862,9 +835,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     else {
       fprintf(stderr, "grid:  pass grant request along\n");
       char buf[BUFSIZ];
-      /* a grant passed along kept none of its generation, so a requester two
-	 hops away was handed one reading zero and matched anything -- which in
-	 hub-and-spoke is every grant between spokes. */
+      /* forward the generation, so a requester two hops away sees the real
+	 value rather than zero, which would match every grant here. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
 	       grid->idstr(), selector_str, oldselector_str,
 	       gen, grid->compclass(), '\0');

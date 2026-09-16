@@ -39,10 +39,8 @@ public:
   DrawServHandler (ComTerpServ* serv = NULL);
 
   static DrawServHandler* current() { return _current; }
-  // the handler dispatching the command being executed right now, or nil when
-  // nothing arrived over a connection -- saved and restored around each
-  // dispatch, so a command that runs the event loop and nests another leaves
-  // this reading correctly on the way back out
+  // the handler dispatching the command running right now, or nil off a
+  // connection; saved/restored around each dispatch so nesting stays correct
 
   DrawLink* drawlink() { return _drawlink; }
   // get DrawLink associated with this handler
