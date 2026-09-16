@@ -912,11 +912,8 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	        const char* string = filter(&text[beg], line_len);
 		out << "\"" << string << "\"";
 	    }
-	    /* nextBeg>len (not just ==len) is what "no more segments" means: a
-	       line ending on the text's own last '\n' has nextBeg==len exactly,
-	       and that trailing newline still needs its own (empty) segment, or
-	       the display loses it entirely with no way to tell it was ever
-	       there. */
+	    /* nextBeg>len (not just ==len) means no more segments: a line
+	       ending on its own last '\n' still needs its own empty segment. */
 	    if (nextBeg > len) break;
 	    out << "," << "\n";
 	    for (int i = 0; i < indent; i++)
@@ -962,8 +959,8 @@ int ParamList::bintest(const char* command) {
   char testbuf[BUFSIZ];
   if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  // guard the tail comparison so an empty/short `which' result (here the shell
-  // echoes a bare newline when nothing is found) can't index before testbuf.
+  // guard the tail comparison: an empty/short `which' result (shell echoes
+  // a bare newline when nothing found) must not index before testbuf.
   size_t tlen = strlen(testbuf);
   size_t clen = strlen(command);
   if (tlen < clen + 1 ||
