@@ -271,8 +271,9 @@ void IdrawCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
 	else if (strcmp(_buf, "FSten") == 0)    child = ReadFStencil(in);
 	else if (strcmp(_buf, "Rast") == 0)     child = ReadRaster(in);
 	else if (strcmp(_buf, "ColorRast") ==0) {
-	  child = nil; 
-	  cerr << "Support for reading idraw PostScript with color-printer ready rasters not yet available.\n"; 
+	  child = nil;
+	  cerr << "Support for reading idraw PostScript with color-printer ready rasters not yet available.\n";
+	  PSSkipToEnd(in);
 	}
 	else if (strcmp(_buf, "eop") == 0)      break;
 
@@ -288,6 +289,22 @@ void IdrawCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
 		delete child;
 	    }
 	}
+    }
+}
+
+/*
+ * PSSkipToEnd consumes a recognized-but-declined object's own body, up
+ * through its closing "End" token, so PSReadChildren's next iteration
+ * reads the following sibling's tag instead of a token from the middle
+ * of the skipped object.
+ */
+
+void IdrawCatalog::PSSkipToEnd (istream& in) {
+    /* GetToken does not null-terminate _buf -- strncmp against a fixed
+       length, like every other GetToken-based scan in this file, rather
+       than strcmp against whatever stale bytes trail the token. */
+    while (GetToken(in, _buf, CHARBUFSIZE) != 0) {
+	if (strncmp(_buf, "End", 3) == 0) break;
     }
 }
 

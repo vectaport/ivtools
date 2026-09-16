@@ -35,6 +35,10 @@ if(run("./group.comt")
   :then print("pass: group\n")
   :else print("FAIL: group\n");ok=false)
 
+if(run("./colorrasteps.comt")
+  :then print("pass: colorrasteps\n")
+  :else print("FAIL: colorrasteps\n");ok=false)
+
 if(run("./gsget.comt")
   :then print("pass: gsget\n")
   :else print("FAIL: gsget\n");ok=false)

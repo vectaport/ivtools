@@ -62,6 +62,7 @@ protected:
 
     virtual void PSReadChildren(istream&, GraphicComp*);
     void PSReadTextData(istream&, char*, int);
+    void PSSkipToEnd(istream&);
 
     virtual GraphicComp* ReadPostScript(istream&);
     GraphicComp* ReadPict(istream&);
