@@ -54,10 +54,8 @@ public:
 
   virtual int handle_close (ACE_HANDLE handle,
                             ACE_Reactor_Mask close_mask);
-  // Called when a <handle_*()> method returns -1 or when the
-  // <remove_handler> method is called on an <ACE_Reactor>.  The
-  // <close_mask> indicates which event has triggered the
-  // <handle_close> method callback on a particular <handle>.
+  // Called when a <handle_*()> method returns -1 or <remove_handler> is
+  // called on an <ACE_Reactor>; <close_mask> names the triggering event.
 
   virtual ACE_HANDLE get_handle (void) const;
   // Get the I/O handle.

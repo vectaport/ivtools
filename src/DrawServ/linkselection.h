@@ -83,19 +83,14 @@ public:
   // make confirmation sound
 
   int all_requests_resolved(boolean granted);
-  // check if all requests have been denied.
-  // return values:
-  //  0 = still waiting (more requests in flight)
-  //  1 = all resolved, at least one granted (ding)
-  // -1 = all resolved, all denied (beep)
+  // check if all requests are resolved: 0 = still waiting, 1 = all
+  // resolved with a grant (ding), -1 = all resolved, all denied (beep).
   
   boolean request_resolved_check(boolean granted, const char* fileline);
 
   boolean over_a_link();
-  // whether the command being executed arrived from another session.  Asked of
-  // the handler dispatching right now rather than of the editor's own
-  // interpreter: drawserv runs a ComTerpServ per connection, so the editor's is
-  // a different object from the one executing a command off a link.
+  // whether the command running arrived from another session; asked of the
+  // dispatching handler, since drawserv runs a ComTerpServ per connection.
 
   virtual boolean select_arrivals();
   // a graphic that arrived over a link is selected only while grabnew is on;
@@ -109,9 +104,8 @@ public:
   // a scripted select() waits for the answer and returns it instead.
 
   void request_withdrawn();
-  // unwind one outstanding request that will never be answered because we
-  // stopped asking.  silent: nobody refused us, we withdrew the question.
-  // make beep/ding sound when request resolved and response is known
+  // unwind one outstanding request we stopped asking for, silently:
+  // nobody refused us, we simply withdrew it.
 
   virtual void unlock_key(const char* keystr);
   // unlock graphics owned by keystr for local modification without grid messages

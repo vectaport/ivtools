@@ -323,8 +323,8 @@ boolean LinkSelection::request_resolved_check(boolean granted, const char* filel
   if (waiting_count() > 0) {
     int status = all_requests_resolved(granted);
     if (silent()) {
-      /* a scripted select() is waiting on this and reports it as its return
-	 value -- the answer does not also need to be audible */
+      /* a scripted select() reports this as its return value, so it
+         need not also be audible */
     } else if (status==-1)
       Beep(fileline);
     else if (status==1)
@@ -360,12 +360,8 @@ void LinkSelection::unlock_key(const char* keystr) {
     if (grid && grid->selectorkey() == key)
       grid->unlocked(true);
     else if (grid)
-      /* The node originating a distributed graphic state change holds its
-	 graphics link-selected until every other node has finished applying it,
-	 so the key names whoever this node believes holds the graphic and a
-	 mismatch means the records disagree.  Say so: silently unlocking
-	 nothing leaves the select to negotiate for a graphic it was told it
-	 could simply have. */
+      /* the key names whoever this node believes holds the graphic; say
+	 so on a mismatch, or a silent no-op leaves the select negotiating. */
       fprintf(stderr, "unlock_key: %.8s is held by %.8s here, not %s\n",
 	      grid->idstr(), grid->selectorstr(), keystr);
     Next(it);
