@@ -300,9 +300,8 @@ void IdrawCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
  */
 
 void IdrawCatalog::PSSkipToEnd (istream& in) {
-    /* GetToken does not null-terminate _buf -- strncmp against a fixed
-       length, like every other GetToken-based scan in this file, rather
-       than strcmp against whatever stale bytes trail the token. */
+    /* GetToken doesn't null-terminate _buf, so strncmp a fixed length
+       here, like every other GetToken scan in this file -- not strcmp. */
     while (GetToken(in, _buf, CHARBUFSIZE) != 0) {
 	if (strncmp(_buf, "End", 3) == 0) break;
     }
