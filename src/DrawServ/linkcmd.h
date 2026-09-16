@@ -50,10 +50,8 @@ public:
     // return ComTerp script to distribute, or empty string if none.
 
     const uuid_t& dist_owner_sid() { return _dist_owner_sid; }
-    // session id of the owner the most recent dist_script() was generated for
-    // (cleared if none).  DrawServ::ExecuteCmd excludes the link toward this
-    // session so a relayed change flows onward along a chain without looping
-    // back to its origin.
+    // session id of the owner dist_script() was last generated for (cleared
+    // if none); ExecuteCmd excludes the link toward this session.
 protected:
     uuid_t _dist_owner_sid;
 };

@@ -70,16 +70,8 @@ const char* LinkBrushCmd::dist_script() {
     uint32_t owner_key = 0;
     Iterator it;
 
-    /* Collect the comps whose brush change to propagate.  Originating: comps we
-       own (LocallySelected).  Relaying along a chain: comps a remote owner has
-       temporarily unlocked through us (grid->unlocked()) via the incoming
-       select(:unlock) -- forward those onward so a chain ds1->ds2->ds3 carries
-       the change past the first hop.  Stamp the OWNER's key, not ours, so the
-       forwarded :unlock/:lock bracket stays valid at the next hop.  Today that
-       key is derivable through selectorkey(), but once it becomes a per-owner
-       signature only the owner can mint it, so the relay must forward it rather
-       than re-derive.  Record the owner sid too, so ExecuteCmd can exclude the
-       link back toward the origin. */
+    /* collect comps we own or a remote owner has unlocked through us;
+       stamp the owner's key and sid, not ours, so ExecuteCmd excludes the origin. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
@@ -91,12 +83,8 @@ const char* LinkBrushCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
-                /* interim limitation: the owner key and sid come from the
-                   first matching comp only, so the whole dance relays under one
-                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
-                   link.  Correct while a selection's comps share an owner; a
-                   mixed-ownership selection would mis-stamp the rest, and would
-                   need grouping by owner with one bracket each. */
+                /* interim limitation: owner key and sid come from the first
+                   matching comp, correct only while comps share one owner. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());
@@ -150,9 +138,8 @@ const char* LinkTransformCmd::dist_script() {
     if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
         return _dist_script_buf.c_str();
 
-    /* trans() names its target, so the comp comes from the clipboard rather
-       than the selection -- but the OWNERSHIP still has to come from the grid,
-       for the same reason it does in the relays that read the selection. */
+    /* trans() names its target, so the comp comes from the clipboard, not
+       the selection, but ownership still comes from the grid either way. */
     Clipboard* cb = GetClipboard();
     if (!cb) return _dist_script_buf.c_str();
     Iterator i;
@@ -166,12 +153,8 @@ const char* LinkTransformCmd::dist_script() {
     GraphicId* grid = (GraphicId*)ptr;
     if (!grid) return _dist_script_buf.c_str();   /* not distributed yet */
 
-    /* Relay only what this node owns, or what a remote owner has unlocked
-       through it -- exactly the gate LinkBrushCmd applies.  Without it a node
-       that merely RECEIVED a transform re-emits it to every link including the
-       one it arrived on, and two drawservs bounce it forever: dist_script has
-       no idea it is looking at someone else's change.  A node that owns
-       nothing here now produces an empty script, which is what stops the echo. */
+    /* relay only what this node owns or a remote owner has unlocked through
+       it, the gate LinkBrushCmd applies, else two nodes bounce it forever. */
     boolean locally_owned = (grid->selected() == LinkSelection::LocallySelected);
     if (!locally_owned && !grid->unlocked())
         return _dist_script_buf.c_str();
@@ -182,15 +165,13 @@ const char* LinkTransformCmd::dist_script() {
         uuid_copy(_dist_owner_sid, drawserv->sessionid());
     } else {
         /* forward the owner's key rather than re-derive it, so the bracket
-           stays valid at the next hop -- see LinkBrushCmd for why */
+           stays valid at the next hop; see LinkBrushCmd for why. */
         owner_key = grid->selectorkey();
         uuid_copy(_dist_owner_sid, grid->selector());
     }
 
     /* dist_script runs before Execute, so the graphic still holds the
-       transform this command is about to compose the delta onto.  Work out
-       where it will land and send THAT, so the far node is told a position
-       rather than a nudge. */
+       pre-delta transform; send where it will land, not the nudge. */
     Graphic* gr = comp->GetGraphic();
     if (!gr) return _dist_script_buf.c_str();
     Transformer result;
@@ -204,11 +185,8 @@ const char* LinkTransformCmd::dist_script() {
     char keystr[9];
     snprintf(keystr, sizeof(keystr), "%08X", owner_key);
 
-    /* The select(:unlock)/select(:lock) bracket is not addressing -- trans()
-       already names its graphic.  It carries the OWNER to the far node, which
-       is what lets that node's own dist_script stamp the owner rather than
-       itself, and so exclude the link back toward here.  Leaving it out is
-       what let the transform echo between two nodes without end. */
+    /* the select(:unlock)/select(:lock) bracket carries the owner, not the
+       address (trans() already names its graphic), for the far node's dist_script. */
     std::ostringstream sbuf;
     sbuf << "s=select();select(grid(\"" << grid->idstr() << "\")"
 	 << " :unlock \"" << keystr << "\")"
@@ -263,9 +241,7 @@ const char* LinkFontCmd::dist_script() {
     uint32_t owner_key = 0;
     Iterator it;
 
-    /* same collection and relay rules as LinkBrushCmd -- see its comment for
-       why the owner's key is forwarded rather than re-derived, and for the
-       single-owner limitation this shares with it. */
+    /* same collection and relay rules as LinkBrushCmd; see its comment. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
@@ -327,10 +303,8 @@ const char* LinkPatternCmd::dist_script() {
     _dist_script_buf = "";
     uuid_clear(_dist_owner_sid);
 
-    /* the far node has to be told which call to make, and only the call that
-       built this command knows that -- a menu index or the patternmask bits.
-       With neither there is nothing to say, so say nothing rather than guess
-       a pattern the far node would resolve differently. */
+    /* the far node needs a menu index or the patternmask bits to resolve
+       this the same way; with neither, say nothing rather than guess. */
     if (_patnum <= 0 && _maskargs.empty()) return _dist_script_buf.c_str();
 
     if (!GetPattern()) return _dist_script_buf.c_str();
@@ -350,9 +324,7 @@ const char* LinkPatternCmd::dist_script() {
     uint32_t owner_key = 0;
     Iterator it;
 
-    /* same collection and relay rules as LinkBrushCmd -- see its comment for
-       why the owner's key is forwarded rather than re-derived, and for the
-       single-owner limitation this shares with it. */
+    /* same collection and relay rules as LinkBrushCmd; see its comment. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
@@ -463,9 +435,8 @@ const char* LinkColorCmd::dist_script() {
     uint32_t owner_key = 0;
     Iterator it;
 
-    /* same originate-or-relay collection as LinkBrushCmd::dist_script(): own
-       (LocallySelected) comps when originating, plus remote-owner comps we hold
-       unlocked when relaying onward, stamped with the owner's key. */
+    /* same originate-or-relay collection as LinkBrushCmd::dist_script(),
+       stamped with the owner's key. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
@@ -477,12 +448,8 @@ const char* LinkColorCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
-                /* interim limitation: the owner key and sid come from the
-                   first matching comp only, so the whole dance relays under one
-                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
-                   link.  Correct while a selection's comps share an owner; a
-                   mixed-ownership selection would mis-stamp the rest, and would
-                   need grouping by owner with one bracket each. */
+                /* interim limitation: owner key and sid come from the first
+                   matching comp, correct only while comps share one owner. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());
@@ -501,9 +468,8 @@ const char* LinkColorCmd::dist_script() {
         char keystr[9];
         snprintf(keystr, sizeof(keystr), "%08X", owner_key);
         sbuf << " :unlock \"" << keystr << "\")";
-        /* serialize by RGB intensities so both the menu path and the
-           colors("#RRGGBB") path distribute identically, exactly, and
-           palette-independently */
+        /* serialize by RGB intensities so the menu path and colors()
+           path distribute identically and palette-independently */
         char fghex[8], bghex[8];
         color_to_hex(GetFgColor(), fghex);
         color_to_hex(GetBgColor(), bghex);

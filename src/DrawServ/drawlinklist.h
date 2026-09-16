@@ -58,8 +58,7 @@ public:
     void Prev(Iterator&);
     // set iterator to point to previous DrawLink in list.
     boolean Done(Iterator);
-    // return true if iterator is pointing off the end of the list.
-    // works for forward and backward traversals.
+    // return true if iterator is off the end of the list, either direction.
     boolean IsEmpty();
     // true if no DrawLink objects in list.
     int Number();
@@ -74,8 +73,7 @@ public:
     void InsertBefore(Iterator, DrawLink*);
     // insert DrawLink before position pointed to by iterator.
     void Remove(DrawLink*);
-    // remove DrawLink from list, returning responsibility for freeing the
-    // associated memory.
+    // remove DrawLink from list, returning responsibility for freeing it.
 
     DrawLink* GetDrawLink(Iterator);
     // get DrawLink pointed to by iterator.
@@ -93,9 +91,8 @@ public:
     // invoked when DrawLink is updated
 protected:
     void Remove(Iterator&);
-    // remove DrawLink pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // This requires saving a pointer to the DrawLink before calling this method.
+    // remove DrawLink pointed to by iterator, returning responsibility for
+    // freeing it; save a pointer to it before calling this method.
 
     UList* _ulist;
     unsigned int _count;

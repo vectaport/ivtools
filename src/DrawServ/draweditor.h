@@ -44,8 +44,8 @@ public:
     // method for running Unidraw Command objects after OverlayEditor
     // is constructed.
     virtual void AddCommands(ComTerp*);
-    // method for adding ComFunc objects to the ComTerp associated with
-    // this DrawEditor.
+    // method for adding ComFunc objects to the ComTerp associated
+    // with this DrawEditor.
 
     Selection* last_selection() { return _last_selection; }
     // return point to Selection that shadows the last setting.

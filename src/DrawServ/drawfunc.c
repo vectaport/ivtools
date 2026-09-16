@@ -156,17 +156,12 @@ void DrawLinkFunc::execute() {
 	uuid_parse(linkidv.string_ptr(),linkid);
     }
 	
-    /* The two_way leg names the far end to the node that opened the link, and
-       that node can already know it by another path even when the far end had
-       never heard of us -- which is exactly the ring cycletest() misses at the
-       one_way leg above, its table not yet holding the offering session.  Run
-       the same test here, so whichever end recognizes the ring first casts it
-       off; it takes both ends never having heard of each other to get one. */
+    /* two_way leg: re-run cycletest() here too, since the far end may
+       already know the peer another way that the one_way check misses. */
     if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {
 
-      /* the leg answers a link we opened and are still waiting on -- a link
-	 already up is not awaiting one, and must not be torn down by a leg
-	 that merely names it */
+      /* the leg answers a link we opened and are still waiting on; an
+	 already-up link is not awaiting one and must not be torn down here */
       DrawLink* cyclink = nil;
       DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
       if (linklist) {
@@ -182,10 +177,8 @@ void DrawLinkFunc::execute() {
 	}
       }
 
-      /* and a ring means the session is reachable ANOTHER way: one we know
-	 through a link to the peer we are dialing is no ring but a duplicate,
-	 or a stale link to the very node reconnecting, and refusing that would
-	 leave it unable to come back until its session ages out */
+      /* a ring means the session is reachable another way; refuse only
+	 when it is, not a stale link to the very node reconnecting */
       boolean elsewhere = false;
       if (cyclink &&
 	  ((DrawServ*)unidraw)->cycletest
@@ -198,8 +191,8 @@ void DrawLinkFunc::execute() {
       }
 
       if (elsewhere) {
-	/* tell the far end before dropping our half, so it reports the refusal
-	   rather than an unexpected end-of-file */
+	/* tell the far end before dropping our half, so it reports the
+	   refusal rather than an unexpected end-of-file */
 	fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
 	fflush(comterp()->handler()->wrfptr());
 	char buffer[BUFSIZ];
@@ -422,32 +415,19 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
   LinkSelection* lsel = (LinkSelection*)sel;
   if (!lsel || lsel->waiting_count()==0) return;
 
-  /* a select that arrived over a link is part of somebody else's distributed
-     command -- the :unlock/:lock bracket around a graphic state change runs
-     three of them.  Nothing else in such a command yields, unidraw->Update()
-     deferring rather than repainting, so a grant cannot arrive in the middle of
-     one and be taken for an answer to it.  Waiting here would be the one thing
-     that opened that door, and would stall a node for two seconds over a colour
-     it was only relaying.  Fire and forget, the way the interactive select
-     does. */
+  /* a select() arriving over a link belongs to a distributed command
+     that never yields; fire and forget instead of waiting here. */
   DrawServHandler* wire = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   if (wire && wire->drawlink()) return;
 
-  /* a request answered by another session comes back asynchronously -- the same
-     resolution that beeps or dings for an interactive select.  wait for it, so
-     the list returned is the answer rather than the question, and keep it quiet
-     while waiting: the caller is being told by the return value.  bounded, a
-     node that never replies not being allowed to stall the one that asked, and
-     the selection re-read each time round because running the event loop lets
-     anything arrive, including a select that puts a different one in place. */
+  /* an interactive select's answer comes back asynchronously; wait for
+     it quietly and bounded, re-reading the selection each spin. */
   const int slice_usec = 10000;
   const int spin_limit = 200;   /* two seconds */
   int spins = 0;
   boolean timed_out = false;
   while (1) {
-    /* compare, never dereference: another connection's select() deletes this
-       selection when it installs its own, and then the requests we were
-       waiting on are that select's business, not ours. */
+    /* compare only: a replacing select() now owns this selection, not us. */
     if ((OverlaySelection*)_ed->GetSelection() != sel) return;
     if (lsel->waiting_count()==0) break;
     if (spins++ >= spin_limit) { timed_out = true; break; }
@@ -458,18 +438,8 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
   lsel->silent() = false;
   if (!timed_out) return;
 
-  /* nobody answered.  take the requests back rather than leaving them
-     outstanding: the count would be inherited by the next select through
-     CopyFlags and waited on again, and a graphic left WaitingToBeSelected is
-     one a late grant would still be accepted into -- so select() would have
-     reported nothing acquired and then quietly acquired it.  A grant that
-     arrives after this finds NotSelected, is refused, and the :notaken answer
-     puts the granter's record back, so the two orderings agree.
-
-     Reserve() removed these from the selection when it asked, so the grid
-     table is where they are found; safe because we are still the installed
-     selection, and CopyFlags carries the count forward, so there is only ever
-     the one asker. */
+  /* nobody answered: withdraw requests here since Reserve() moved them to
+     the grid table, where a late grant could otherwise still land unseen. */
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
   TableIterator(GraphicIdTable) it(*table);
   int withdrawn = 0;
@@ -530,8 +500,8 @@ void GraphicIdFunc::execute() {
       uuid_parse(denyv.string_ptr(), denier);
       ((DrawServ*)unidraw)->grid_deny(link, id, selector, denier, genv.int_val());
     } else
-      /* the older bare form names no asker, so it can only be meant for us,
-	 and the selector field is the node that refused */
+      /* the bare form names no asker, so it can only be for us; the
+	 selector field is the node that refused */
       ((DrawServ*)unidraw)->grid_deny(link, id,
 				      ((DrawServ*)unidraw)->sessionid(), selector,
 				      genv.int_val());
@@ -566,11 +536,8 @@ void GraphicIdFunc::execute() {
     }
     
   } else if (idv.is_known() && selectorv.is_unknown()) {
-    /* single id arg -- look up and return the compview.  accept either a full
-       uuid or its 8-char index: inside a linkup the distributed traffic carries
-       only the 8-char, and the gridtable is keyed on it (uuid_key = first 4
-       bytes).  uuid_parse can't parse the 8-char prefix, so for an 8-char id
-       parse it straight to the key. */
+    /* single id arg: look up the compview by full uuid or 8-char prefix,
+       parsing an 8-char id straight to the key since uuid_parse can't. */
     void* ptr = nil;
     const char* idstr = idv.is_string() ? idv.string_ptr() : nil;
     uint32_t key = (idstr && strlen(idstr)==8) ? (uint32_t)strtoul(idstr, nil, 16) : uuid_key(id);
@@ -588,16 +555,8 @@ void GraphicIdFunc::execute() {
 
   } else if (idv.is_unknown()) {
     if (tablev.is_true()) {
-      /* return the gridtable as a list of rows, mirroring the columns of
-         print_gridtable(): grid (8-char uuid prefix), comptype, selector,
-         selected, unlocked.  same idiom as sid(:table).
-
-         unlocked is the bypass LinkSelection::Reserve() consults: a graphic
-         owned by another session is dropped from a selection unless it is set,
-         and the relay bracket -- select(grid :unlock KEY) around a distributed
-         command, select(s :lock KEY) after -- is what sets and clears it.  A
-         graphic left unlocked by a bracket that never closed is selectable by
-         anyone, quietly, so it is worth being able to look. */
+      /* return the gridtable as rows (grid, comptype, selector, selected,
+         unlocked); unlocked is the relay bracket's bypass, worth seeing. */
       static int grid_row_sym     = symbol_add("grid");
       static int comptype_row_sym = symbol_add("comptype");
       static int selector_row_sym = symbol_add("selector");
@@ -611,10 +570,8 @@ void GraphicIdFunc::execute() {
         GraphicId* grid = (GraphicId*)it.cur_value();
         OverlayComp* comp = (OverlayComp*)grid->grcomp();
         const char* comptype = comp ? comp->GetClassName() : "nil";
-        /* first 8 chars of the uuid, matching print_gridtable() and the
-           uuid_key granularity the gridtable itself is keyed on.  a prefix
-           collision in the small set of linked drawservs is expected and
-           simply triggers the normal merge, where the full uuid surfaces. */
+        /* first 8 chars, matching the gridtable's uuid_key granularity; a
+           prefix collision just triggers the normal merge. */
         char id8[9];
         const char* idfull = grid->idstr() ? grid->idstr() : "";
         strncpy(id8, idfull, 8); id8[8] = '\0';
