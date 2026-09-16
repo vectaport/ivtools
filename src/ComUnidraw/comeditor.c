@@ -391,10 +391,8 @@ void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
 void ComEditor::keystroke(const Event& e) {
     KeySym ks = e.keysym();
 
-    // a bare modifier keypress -- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper
-    // pressed on its own, XK_Shift_L..XK_Hyper_R is the whole contiguous
-    // block in keysymdef.h -- is never a "key" lastkey() should report; its
-    // effect is already carried as SHIFT_FLAG on whatever key comes next.
+    // a bare modifier keypress alone is never a "key" lastkey() reports;
+    // its effect rides as SHIFT_FLAG on whatever key comes next.
     if (ks >= XK_Shift_L && ks <= XK_Hyper_R) {
 	OverlayEditor::keystroke(e);
 	return;
@@ -402,29 +400,15 @@ void ComEditor::keystroke(const Event& e) {
 
     boolean shifted = e.shift_is_down() || e.capslock_is_down();
 
-    // Ctrl/Alt/Super ride along as informational bits on every key, just
-    // like SHIFT_FLAG -- orthogonal to :shiftcapture below, which
-    // only decides whether Shift's normal pan/tool-shortcut is ALSO
-    // suppressed.  meta_is_down() tests Mod1Mask, which on essentially
-    // every current keyboard IS Alt, the two sharing a bit.  Event has no
-    // super_is_down() of its own, so
-    // Mod4 (the Windows-logo key on a PC, or Cmd under XQuartz on a Mac)
-    // is tested directly via keymask().
+    // Ctrl/Alt/Super ride along as informational bits on every key,
+    // orthogonal to :shiftcapture below, which only gates suppressing Shift.
     unsigned long flags = (shifted ? SHIFT_FLAG : 0)
 	| (e.control_is_down()      ? CTRL_FLAG  : 0)
 	| (e.meta_is_down()         ? ALT_FLAG   : 0)
 	| ((e.keymask() & Mod4Mask) ? SUPER_FLAG : 0);
 
-    // shift-capture (opt-in, default off): while on, a MODIFIED arrow or
-    // letter -- Shift held OR Caps Lock on -- is routed to the key queue
-    // with SHIFT_FLAG and its normal action (arrow pan, letter tool
-    // shortcut) is suppressed, so a script owns the keyboard while it
-    // drives.  Caps Lock is the hands-free enable (and the natural
-    // two-player enable: both players just tap their keys).  Bare
-    // (unmodified) arrows still pan and bare letters still fire their tool
-    // shortcuts.  e.keysym() already folds shift in (Shift+d arrives as
-    // XK_D), so the queued code carries its natural case; keyname() only
-    // has to invent an uppercase form for keys that don't have one already.
+    // shift-capture (opt-in): queues a Shift/CapsLock-modified arrow or
+    // letter with SHIFT_FLAG, suppressing its normal pan/shortcut.
     if (shifted && e.rep()->xevent_.type == KeyPress && shiftcapture()) {
 	if (ks==XK_Up || ks==XK_Down || ks==XK_Left || ks==XK_Right
 	    || (ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z)) {
@@ -514,15 +498,8 @@ static const char* core_keyname(unsigned long ks, boolean shifted, boolean chord
       case XK_Delete:    return chorded ? "DELETE" : "\x7f";
     }
 
-    /* function keys, and Home/End/PgUp/PgDn, use a fixed capitalized
-       name always, ignoring shift/caps-lock -- ordinary keyboard-label
-       spelling ("F1", "Home", "PgUp"), not curses' abbreviations
-       (KEY_PPAGE/KEY_NPAGE -> "ppage"/"npage" seemed like a good idea
-       at the time, but nobody actually calls Page Up "previous page").
-       No established "shifted" convention exists for any of these the
-       way Shift+arrow or Shift+letter do, so there's no case to vary --
-       grouped with the char-literal keys above: a fixed return, shifted
-       unconsulted. */
+    /* function keys and Home/End/PgUp/PgDn use a fixed, capitalized
+       keyboard-label name always ("F1", "PgUp"); no shifted form exists. */
     switch (ks) {
       case XK_F1:    return "F1";
       case XK_F2:    return "F2";
@@ -549,20 +526,12 @@ static const char* core_keyname(unsigned long ks, boolean shifted, boolean chord
       case XK_Down:      base = "down";  break;
       case XK_Left:      base = "left";  break;
       case XK_Right:     base = "right"; break;
-      /* Insert has no character-literal form either, and Shift+Insert
-	 (paste, on Windows/Linux/many X11 apps) IS an established
-	 convention -- unlike the fixed keys above -- so it stays here,
-	 case-varying like the arrows. */
+      /* Insert has no character-literal form, but Shift+Insert (paste)
+	 is an established convention, so it case-varies like the arrows. */
       case XK_Insert:    base = "ins";   break;  // curses KEY_IC; "ins" reads better
       default:
-	/* X11's Latin-1 keysyms are numerically identical to their ASCII
-	   codepoint across the whole printable range, space 0x20 through
-	   tilde 0x7e, punctuation and shifted symbols included -- so any
-	   printable-ASCII keysym is its own character.  keystroke() folds
-	   shift into ks for letters, and X11 resolves shifted symbols to
-	   their own keysym (Shift+[ is XK_braceleft), so the right character
-	   arrives either way and the uppercasing loop below is a no-op for
-	   anything that is not a lowercase letter. */
+	/* X11 printable-ASCII keysyms equal their ASCII codepoint, so ks is
+	   already the right character; the loop below only affects letters. */
 	if (ks>=0x20 && ks<=0x7e) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
@@ -572,10 +541,8 @@ static const char* core_keyname(unsigned long ks, boolean shifted, boolean chord
 	}
     }
 
-    /* arrows and ins have no shifted form of their own, so shift/caps-lock
-       is signaled by uppercasing the whole name instead ("up" -> "UP") --
-       the same convention letters already get for free from their
-       keysym.  One vocabulary, no "S-" prefix. */
+    /* arrows and ins have no shifted form, so shift/caps-lock is signaled
+       by uppercasing the whole name instead ("up" -> "UP"). */
     if (shifted) {
 	int i = 0;
 	for (const char* p = base; *p && i < (int)bufsz-1; p++, i++)
@@ -605,26 +572,14 @@ const char* ComEditor::keyname(unsigned long code) {
     char corebuf[16];
     const char* core = core_keyname(ks, shifted, chorded, corebuf, sizeof(corebuf));
     if (!chorded) {
-	/* core may point into corebuf, a LOCAL array -- copy through
-	   _keyname_buf (a persistent member, outlives the call) before
-	   returning, same as every other return in this function.
-	   Returning `core` directly here was the bug: for the common
-	   case (any letter/digit/punctuation/arrow with no Ctrl/Alt/
-	   Super held), it silently handed the caller a dangling pointer
-	   into a stack frame that no longer existed. */
+	/* core may point into corebuf, a local array; copy through
+	   _keyname_buf (persistent) before returning, so it stays valid. */
 	snprintf(_keyname_buf, sizeof(_keyname_buf), "%s", core);
 	return _keyname_buf;
     }
 
-    /* Ctrl/Alt/Super chords: fixed "Ctrl-Alt-Super-<key>" order (Ctrl
-       first, matching Emacs/GNOME/Windows documentation convention),
-       each word capitalized when Shift is ALSO held -- that's the one
-       remaining channel to signal Shift on a chord, because a single
-       letter is ALWAYS shown capital right after a modifier prefix
-       regardless of whether Shift was literally down: nobody documents
-       "Ctrl-c", every OS/toolkit writes "Ctrl-C" even for a bare
-       Ctrl+c with no Shift -- which spends the letter's own case, so
-       Shift has to show up on the prefix word instead. */
+    /* Ctrl/Alt/Super chords fix "Ctrl-Alt-Super-<key>" order; the prefix
+       capitalizes for Shift, since a chorded letter is always capital. */
     char keypart[8];
     if (core[0] && !core[1] && core[0]>='a' && core[0]<='z') {
 	keypart[0] = toupper((unsigned char)core[0]);

@@ -37,12 +37,8 @@ GrStreamFunc::GrStreamFunc(ComTerp* comterp) : StreamFunc(comterp) {
 }
 
 void GrStreamFunc::execute() {
-  /* stream literals -- (1 2 3), nargstotal()>1 -- and the empty literal [],
-     nargs()==0, go straight to the base class.  This override only adds
-     something for the single already-evaluated value below, where it peeks for
-     a ComponentView to unwrap.  Without the check, stack_arg_post_eval(0) runs
-     against zero or several args and silently produces nothing, so a literal
-     prints empty. */
+  /* stream literals and the empty literal [] go straight to the base
+     class; this override only peeks the single value for a ComponentView. */
   if (nargstotal() > 1 || nargs() == 0) {
     StreamFunc::execute();
     return;
@@ -79,11 +75,8 @@ void GrStreamFunc::execute() {
     
   } else {
 
-    /* not a compview -- a plain list, say.  convertv above already fired the
-       post_eval argument once to make this check, and re-firing it through a
-       fresh StreamFunc::exec() would run the source expression's side effects
-       a second time.  Hand the already-evaluated value to the shared
-       conversion logic instead. */
+    /* not a compview: convertv already fired the post_eval arg once, so
+       re-firing via StreamFunc::exec() would re-run side effects; reuse it. */
     reset_stack();
     push_stream_from_value(convertv);
     return;

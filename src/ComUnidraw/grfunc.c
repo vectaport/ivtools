@@ -219,8 +219,7 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
     }
 
     /* colors: :fgcolor name,r,g,b  :bgcolor name,r,g,b -- fall back to the
-       graphic's existing color whenever a key is absent OR its lookup fails, so a
-       failed fg lookup doesn't also drop a good bg (or vice versa) */
+       graphic's color when absent or lookup fails, so failed fg keeps bg. */
     AttributeValue* fgv = al->find(fgcolor_sym);
     AttributeValue* bgv = al->find(bgcolor_sym);
     if (fgv || bgv) {
@@ -233,13 +232,8 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	remove_key(al, bgcolor_sym);
     }
 
-    /* font: :font "name","printfont",printsize -- keep the graphic's existing
-       font when the key is absent, or when the literal is malformed and
-       font_from_attrval hands back nil.  A well-formed literal always yields a
-       font: Catalog::FindFont substitutes "fixed" for a name this display does
-       not have, which is what the rest of Unidraw does.  Note that is not the
-       colors' behavior -- FindColor keeps the requested name and defaults only
-       the rgb, so a color survives the trip and a missing font does not. */
+    /* font: :font "name","printfont",printsize -- keep the existing font
+       when absent/malformed; FindFont substitutes "fixed", unlike FindColor. */
     if ((v = al->find(font_sym))) {
 	PSFont* font = font_from_attrval(catalog, v);
 	if (font) gr->SetFont(font);
@@ -252,8 +246,8 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	remove_key(al, fillbg_sym);
     }
 
-    /* :transform was already consumed by get_transformer and applied to the
-       graphic -- strip it here too so it doesn't re-serialize on export */
+    /* :transform is already applied via get_transformer; strip it here
+       so it does not re-serialize on export. */
     remove_key(al, symbol_add("transform"));
 
     /* pattern: :nonepat  or  :graypat level  or  :pattern bits... */
@@ -331,8 +325,8 @@ void CreateRectFunc::execute() {
             }
 	rect->SetTransformer(rel);
 	Unref(rel);
-	/* command-supplied gs keywords win over editor state, and are stripped
-	   from al so they round-trip via the graphic, not as leftover attributes */
+	/* command-supplied gs keywords win over editor state and are
+	   stripped from al so they round-trip via the graphic. */
 	set_graphic_gs(al, rect);
 	RectOvComp* comp = new RectOvComp(rect);
 	comp->SetAttributeList(al);
@@ -501,19 +495,10 @@ void CreateTextFunc::execute() {
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
 
-    /* Two shapes arrive here.  The command form is text(x0,y0 "str"), which is
-       what a person writes.  The serialized form is text(lineheight,"str") --
-       what export() emits, what a saved drawing holds, and what DrawServ sends
-       across a link -- where the position rides in :transform rather than in
-       coordinates, and the string is folded into the first array so nothing is
-       left in argument 1.  Read as the command form it was, that string landed
-       in the y coordinate and the text came out empty, so a text graphic did
-       not survive being exported and re-created, nor reach a far node intact.
-
-       They are told apart by whether a text argument was supplied at all. */
-    /* the serialized form supplies no text argument, so nothing string-like
-       is sitting in argument 1.  (nargs() does not distinguish the two: it
-       reports 2 either way.) */
+    /* two shapes arrive here: text(x0,y0 "str") as typed, or the serialized
+       form text(lineheight,"str"); told apart by whether text was supplied. */
+    /* the serialized form's argument 1 is never string-like; nargs() does
+       not distinguish the two forms, reporting 2 either way. */
     boolean serialized_form = !txtv.is_string();
 
     const char* txt = nil;
@@ -559,22 +544,15 @@ void CreateTextFunc::execute() {
 	text->Translate(args[x0], args[y0]);
 	text->GetTransformer()->postmultiply(rel);
 	Unref(rel);
-	/* command-supplied gs keywords win over editor state, and are stripped
-	   from al so they round-trip via the graphic, not as leftover attributes.
-	   Text is where :font actually appears -- TextGS is the only gs emitter
-	   that writes one for a graphic any create command builds. */
+	/* command-supplied gs keywords win over editor state and are stripped
+	   from al; TextGS is the only gs emitter that writes a :font here. */
 	set_graphic_gs(al, text);
 
-	/* TextScript::Definition writes a transform corrected by lineHeight-1,
-	   to account for the vertical shift between where a text graphic sits
-	   and where its baseline is.  TextOvComp's reading constructor takes
-	   that correction back out when a saved drawing is loaded; reaching the
-	   same serialized form through this command has to do the same, or the
-	   text creeps down the canvas by a line every time it is exported and
-	   re-created -- and once per hop when it crosses a link. */
+	/* TextScript::Definition corrects the transform by lineHeight-1 for
+	   the baseline offset; reading it back must invert the same amount. */
 	if (serialized_form) {
-	    /* the emitter corrects by the GRAPHIC's line height, not the
-	       font's, so the inverse has to use the same one */
+	    /* the emitter uses the GRAPHIC's line height, not the font's;
+	       the inverse must use the same one */
 	    float sep = 1 - text->GetLineHeight();
 	    Transformer* tt = text->GetTransformer();
 	    float dx = 0., dy = sep;
@@ -932,9 +910,8 @@ void CreateRasterFunc::execute() {
       t->Translate(dcoords[x0], dcoords[y0]);
       rasterrect->SetTransformer(t);
       Unref(t);
-      /* the screen coords imply the translate above, so the viewer-relative
-         transformer the other create commands start from would double it --
-         but an explicit :transform off a re-created command still has to win */
+      /* screen coords already imply the translate above, so the viewer-
+         relative transformer would double it; an explicit :transform wins. */
       if (al && al->find(symbol_add("transform"))) {
 	Transformer* rel = get_transformer(al);
 	rasterrect->SetTransformer(rel);
@@ -968,10 +945,8 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     OverlayRaster* raster = new OverlayRaster(w, h, 0);
     OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
 
-    /* pixel data comes in one of three forms, told apart purely by count
-       against w*h: flat r,g,b (three scalars per pixel), nested (r,g,b)
-       triples (one array per pixel), or legacy packed 0xRRGGBB ints (one
-       scalar per pixel) -- see doc/APPENDIX-B-COMTERP-EXAMPLES.md */
+    /* pixel data is flat r,g,b, nested (r,g,b) triples, or legacy packed
+       0xRRGGBB ints, told apart by count; see doc/APPENDIX-B-COMTERP-EXAMPLES.md */
     if (nval == npix*3) {
       for (int row = 0; row < h && !avl->Done(i); row++) {
         for (int col = 0; col < w && !avl->Done(i); col++) {
@@ -1009,9 +984,8 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     if (rel) rasterrect->SetTransformer(rel);
     Unref(rel);
     set_graphic_gs(al, rasterrect);
-    /* the pixels now live in the raster, so drop the keyword that carried them
-       -- left in the list it re-serializes as a trailing attribute alongside
-       the raster's own emitted pixel data */
+    /* the pixels now live in the raster; drop the keyword that carried
+       them, or it re-serializes as a trailing attribute alongside the raster. */
     remove_key(al, symbol_add("rgb"));
 
     RasterOvComp* comp = new RasterOvComp(rasterrect);
@@ -1166,9 +1140,8 @@ void FontByNameFunc::execute() {
   
   if (!xfs){
     char* xfontval=psfonttoxfont(fontvaldup);
-    /* psfonttoxfont hands back its own argument for a name already in X form,
-       so only replace the buffer when it actually converted -- otherwise the
-       free would leave xfontval dangling for the strdup and the retry below */
+    /* psfonttoxfont returns its own argument for a name already in X
+       form; only replace the buffer when it actually converted. */
     if (xfontval != fontvaldup) {
       free(fontvaldup);
       fontvaldup = strdup(xfontval);
@@ -1184,13 +1157,8 @@ void FontByNameFunc::execute() {
     char fontname[CHARBUFSIZE];
     char fontsizeptr[CHARBUFSIZE];
 
-    /* A wildcarded name -- the form font() hands back, and the form :font
-       exports -- loads fine but carries none of these properties.
-       XGetFontProperty then leaves value untouched, and XGetAtomName(0) is a
-       BadAtom that takes the whole editor down, so every lookup has to be
-       guarded and the atom freed.  FindFont defaults the print font and size
-       when they arrive empty, which is the right answer for a name that
-       simply does not carry them. */
+    /* a wildcarded name loads fine but carries none of these properties;
+       guard every lookup (XGetAtomName(0) is a fatal BadAtom); free the atom. */
     fontname[0] = '\0';
     if (XGetFontProperty(xfs, XA_FONT_NAME, &value) && value) {
       char* atom = XGetAtomName(dpy, (Atom)value);
@@ -1250,14 +1218,12 @@ void ColorRgbFunc::execute() {
   PSColor* bgcolor=nil;
   Catalog* catalog = unidraw->GetCatalog();
   fgcolor = catalog->FindColor(fgname);
-  //This comparison is made because the user can set only the foreground color by calling
-  //colorsrgb with one argument.
+  // lets the user set only the foreground color via colorsrgb(fgname)
   if (bgname && strcmp(bgname,"sym")!=0){
     bgcolor = catalog->FindColor(bgname);
   }
-  /* route through the kit factory so DrawKit produces a LinkColorCmd for
-     distribution; LinkColorCmd::dist_script() serializes by RGB intensities
-     so the colors("#RRGGBB") form distributes correctly */
+  /* route through the kit factory so DrawKit produces a LinkColorCmd;
+     dist_script() serializes by RGB, so colors("#RRGGBB") distributes right. */
   OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
   ColorCmd* cmd = kit->make_color_cmd(_ed, fgcolor, bgcolor, 0, 0);
   execute_log(cmd);
@@ -1271,12 +1237,8 @@ void BrushFunc::execute() {
     static int none_sym = symbol_add("none");
 
     if (nargs()==0 && nkeys()==0) {
-        /* brush() -- return the current editor brush as a linepat,width
-           literal (valid input to brush(linepat,width)), or the attrlist
-           singleton (:none true) for the none brush.  A keyword-flag literal
-           travels as an attrlist, never as a raw KeywordType value --
-           eager stack_key() scans frames by type, so a stored keyword
-           would become a live keyword in any frame it entered. */
+        /* brush() -- returns linepat,width, or (:none true) for the none
+           brush; a keyword-flag travels as an attrlist, never a raw KeywordType. */
         reset_stack();
         BrushVar* brVar = (BrushVar*) _ed->GetState("BrushVar");
         PSBrush* br = brVar ? brVar->GetBrush() : nil;
@@ -1303,9 +1265,8 @@ void BrushFunc::execute() {
 
     PSBrush* brush = nil;
 
-    /* the attrlist singleton (:none true) returned by bare brush() is accepted
-       back positionally, so saved=brush(); ...; brush(saved) round-trips
-       the none brush */
+    /* the (:none true) singleton bare brush() returns is accepted back
+       positionally, so saved=brush(); brush(saved) round-trips the none brush. */
     boolean none_by_value = false;
     if (bnum.is_attributelist()) {
         AttributeList* bal = (AttributeList*)bnum.geta(AttributeList::class_symid());
@@ -1353,10 +1314,8 @@ PatternFunc::PatternFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 
 void PatternFunc::execute() {
     if (nargs()==0 && nkeys()==0) {
-        /* pattern() -- return the current editor pattern as its menu number
-           (valid input to pattern(patternnum)); the catalog caches pattern
-           reads, so the state var's pointer matches its menu entry.  nil if
-           the current pattern is not a menu pattern (e.g. patternmask). */
+        /* pattern() -- returns the current pattern's menu number (input
+           to pattern(patternnum)); nil if not a menu pattern (e.g. patternmask). */
         reset_stack();
         PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
         PSPattern* pat = patVar ? patVar->GetPattern() : nil;
@@ -1496,8 +1455,8 @@ void ColorFunc::execute() {
     PSColor* fgcolor = catalog->ReadColor("fgcolor", fgn);
     PSColor* bgcolor = catalog->ReadColor("bgcolor", bgn);
 
-    /* pass fgn/bgn through to make_color_cmd so LinkColorCmd can emit
-       colors(fgn bgn) on the wire -- same pattern as brush(pat,width) */
+    /* pass fgn/bgn to make_color_cmd so LinkColorCmd emits colors(fgn bgn)
+       on the wire, like brush(pat,width). */
     OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
     ColorCmd* cmd = kit->make_color_cmd(_ed, fgcolor, bgcolor, fgn, bgn);
     execute_log(cmd);
@@ -1588,10 +1547,8 @@ void SelectFunc::execute() {
 	  avl->Append(compval);
 	}
       }
-      /* the query form installs no selection at all.  inside the loop this ran
-	 only when there was something to report, so querying an empty selection
-	 fell through to the block below and cleared the editor's selection --
-	 and, once select() waits, blocked on the pending count as well. */
+      /* the query form installs no selection: nil newSel so the block below
+	 neither clears the editor selection nor blocks on the pending count. */
       delete newSel;
       newSel = nil;
 
@@ -1633,27 +1590,16 @@ void SelectFunc::execute() {
       sel->Clear();
       delete sel;
       _ed->SetSelection(newSel);
-      /* Reserve() (the DrawServ wire-protocol claim on these graphics --
-         a no-op below that layer) must fire at select time, but the
-         repaint that Selection::Update wrapped around it must NOT: it
-         repaired all pending damage per select() call, repainting
-         body-by-body in animation loops that select/move/rotate many
-         graphics between update() calls.  Nothing paints until update()
-         -- the deferred unidraw->Update() below repaints at the end of
-         the typed command line, so interactive select feedback (handles
-         at next repaint) is unchanged. */
+      /* Reserve() (DrawServ's wire claim, a no-op below that layer) must
+         fire here, but painting stays deferred to unidraw->Update() below. */
       newSel->Reserve();   // sees unlocked()==true
       if (lockv.is_string())
         newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
 
       resolve_requests(newSel);
 
-      /* report what was acquired rather than what was asked for: Reserve()
-         removes the graphics another session is holding, so a list built while
-         appending describes the request, and a select() that was refused reads
-         back as one that succeeded.  read the editor's selection rather than
-         newSel: resolve_requests() may have run the event loop, and anything
-         that arrived during it could have put a different selection in place. */
+      /* report what was acquired, not asked for: read the editor's
+         selection, not newSel, since resolve_requests() may run the event loop. */
       OverlaySelection* cursel = (OverlaySelection*)_ed->GetSelection();
       if (cursel) {
         Iterator si;
@@ -1665,24 +1611,12 @@ void SelectFunc::execute() {
         }
       }
 
-      /* Clear() above hid the outgoing selection's tic marks and highlighting,
-	 and nothing here put them back: repairing damage repaints graphics and
-	 never draws a handle.  A grant arriving does redraw them, AddComp
-	 ending in Selection::Update, which is why they are only missing when a
-	 select resolves without one -- everything either already ours or
-	 refused outright.  Restore them in the order Selection::Update uses,
-	 with the repaint below standing in for its Repair, and read the
-	 editor's selection since a wait may have replaced ours. */
+      /* Clear() above hid the selection's handles; this repaint restores
+         the repair half, matching Selection::Update's repair-then-draw order. */
       unidraw->Update();
 
-      /* Clear() above hid the outgoing selection's tic marks and highlighting
-	 and nothing put them back.  unidraw->Update() cannot: it defers, and
-	 the repaint it schedules repairs the damage that hiding them made, over
-	 anything drawn here beforehand.  Selection::Update repairs and then
-	 draws, which is the order that survives.  Guarded on HandlesEnabled(),
-	 so animation loops -- which run with handles off -- still skip the cost
-	 of its Repair.  Read the editor's selection, since a wait may have
-	 replaced ours. */
+      /* unidraw->Update() above only repairs damage (deferred), not
+         handles; shown->Update() draws them when handles are enabled. */
       OverlaySelection* shown = (OverlaySelection*)_ed->GetSelection();
       if (shown && shown->HandlesEnabled())
 	shown->Update(viewer);
@@ -2053,14 +1987,8 @@ void TransformerFunc::execute() {
 
 	    Transformer* want = new Transformer(a00, a01, a10, a11, a20, a21);
 
-	    /* TransformCmd applies what it is given on top of what the graphic
-	       already has (GraphicComp::Interpret postmultiplies), so :apply
-	       hands it the matrix directly.  The default -- and :set -- impose
-	       the matrix instead, which is the same operation once the current
-	       transform is backed out first: postmultiply is C*t with C applied
-	       first, so the delta that carries C to the wanted D is inverse(C)*D.
-	       Interpret then lands on D, and Uninterpret inverts the same delta
-	       to restore C, so undo comes free either way. */
+	    /* TransformCmd postmultiplies onto the current transform; :apply
+	       hands the matrix directly; default/:set back out C first. */
 	    Transformer* delta = nil;
 	    if (applyv.is_true() && !setv.is_true()) {
 	      delta = want;
@@ -2076,8 +2004,7 @@ void TransformerFunc::execute() {
 	      float c00, c01, c10, c11, c20, c21;
 	      cur->matrix(c00, c01, c10, c11, c20, c21);
 	      if (c00*c11 - c01*c10 == 0.0) {
-		/* a degenerate current transform cannot be backed out; say so
-		   rather than hand invert() a matrix it has no answer for */
+		/* a degenerate transform cannot be backed out; say so */
 		fprintf(stderr, "trans: current transform is not invertible, cannot impose a new one (try :apply)\n");
 		Unref(want);
 		push_stack(ComValue::nullval());
