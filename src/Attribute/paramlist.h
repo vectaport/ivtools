@@ -146,7 +146,7 @@ public:
 	void* base, void* offset, void* addr1, 
 	void* addr2 = nil, void* addr3 = nil, void* addr4 = nil);
     // compose and insert ParamStruct, computing offsets 1-4 against
-    // 'offset'; indirection is 'offset'-'base', the real-base slot.
+    // *offset's pointed-to value; indirection is 'offset'-'base'.
     void add_param_first(
 	const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
 	void* base = (void*)0x1, void* addr1 = (void*)0x1, 
