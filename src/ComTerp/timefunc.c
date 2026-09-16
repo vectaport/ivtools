@@ -170,6 +170,8 @@ void TimeFunc::execute() {
      CLOCK_MONOTONIC (:mono) is epoch-less but safe for measuring intervals */
   struct timespec ts;
   clock_gettime(monov.is_true() ? CLOCK_MONOTONIC : CLOCK_REALTIME, &ts);
+  // a single reading (ts) feeds every returned unit, so the keywords
+  // can't disagree about which instant they describe.
   long sec = (long)ts.tv_sec;
   long nsec = (long)ts.tv_nsec;
 
