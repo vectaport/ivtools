@@ -168,6 +168,7 @@ public:
     static boolean percomp_format();
     // true if exporting each component as its own runnable command, e.g.
     // "rect" with no drawtool() wrapper; see export(:percomp).
+    // static -- only consults the global _format, unlike svg_format().
     static void percomp_format(boolean);
     // set/clear the per-component command export format
 
