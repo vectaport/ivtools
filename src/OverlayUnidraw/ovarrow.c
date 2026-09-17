@@ -636,65 +636,21 @@ boolean ArrowMultiLinePS::IsA (ClassId id) {
 }
 
 boolean ArrowMultiLinePS::Definition (ostream& out) {
-
-    if (idraw_format()) {
-	ArrowMultiLineOvComp* comp = (ArrowMultiLineOvComp*) GetSubject();
-	ArrowMultiLine* aml = comp->GetArrowMultiLine();
-	
-	const Coord* x, *y;
-	int n = aml->GetOriginal(x, y);
-	float arrow_scale = aml->ArrowScale();
-	
-	out << "Begin " << MARK << " " << Name() << "\n";
-	MinGS(out);
-	out << MARK << " " << n << "\n";
-	for (int i = 0; i < n; i++) {
-	    out << x[i] << " " << y[i] << "\n";
-	}
-	out << n << " " << Name() << "\n";
-	out << MARK << " " << arrow_scale << "\n";
-	out << "End\n\n";
-	
-	return out.good();
-    }
-
     ArrowMultiLine* aml = (ArrowMultiLine*) GetGraphicComp()->GetGraphic();
 
     const Coord* x, *y;
-    int numverts = aml->GetOriginal(x, y);
+    int n = aml->GetOriginal(x, y);
     float arrow_scale = aml->ArrowScale();
 
-    boolean head = aml->Head();
-    boolean tail = aml->Tail();
-    
-    const int limit = 32;
-    int cnt = 0;
-    for (int v=0; v<numverts; v+=limit-1) {
-
-	int n = min(numverts-cnt,limit);
-
-	if (v==0)
-	    aml->SetArrows(head, false);
-	else if ( v+limit>=numverts) 
-	    aml->SetArrows(false, tail);
-	else 
-	    aml->SetArrows(false, false);
-
-	out << "Begin " << MARK << " " << Name() << "\n";
-	MinGS(out);
-	out << MARK << " " << n << "\n";
-	for (int i=0; i < n; i++, cnt++) {
-	    out << x[cnt] << " " << y[cnt] << "\n";
-	}
-	out << n << " " << Name() << "\n";
-	out << MARK << " " << arrow_scale << "\n";
-	out << "End\n\n";
-
-	cnt--;  /* back up so that split lines share a vertex */
-
+    out << "Begin " << MARK << " " << Name() << "\n";
+    MinGS(out);
+    out << MARK << " " << n << "\n";
+    for (int i = 0; i < n; i++) {
+	out << x[i] << " " << y[i] << "\n";
     }
-
-    aml->SetArrows(head, tail);
+    out << n << " " << Name() << "\n";
+    out << MARK << " " << arrow_scale << "\n";
+    out << "End\n\n";
 
     return out.good();
 }
