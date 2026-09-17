@@ -280,18 +280,21 @@ boolean ArrowLinePS::IsA (ClassId id) {
    arrowhead never has its own -- see concatGS() in Arrowhead::draw())
    and so its own transform composes onto the line's, exactly like
    concatGraphic() composes them for the interactive draw(). */
-static void ArrowheadDefinition (
-    ostream& out, Arrowhead* arrow, PSBrush* brush, PSPattern* pattern, Transformer* line_t
-) {
+static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
     if (arrow == nil) return;
 
     Coord xs[4], ys[4];
-    int n = arrow->PSVertices(xs, ys, brush, pattern, line_t);
+    int n = arrow->PSVertices(xs, ys);
 
     Transformer* my_t = arrow->GetTransformer();
     Transformer identity;
 
     out << "Begin\n";
+    /* always solid-filled with the current foreground color, regardless
+       of the line's own (possibly none) pattern -- an arrowhead reads as
+       a solid indicator on screen no matter how its line is filled, and
+       Begin/End's save/restore keeps this override local to this block. */
+    out << MARK << " p\n0 SetP\n";
     if (my_t == nil || *my_t == identity) {
         out << MARK << " t u\n";
     } else {
@@ -316,13 +319,20 @@ boolean ArrowLinePS::Definition (ostream& out) {
     aline->GetOriginal(x0, y0, x1, y1);
     float arrow_scale = aline->ArrowScale();
 
+    /* the line's own persisted endpoints stay exactly as GetOriginal()
+       returns them -- round-trip fidelity matters more than covering a
+       few points of stroke overshoot, and the arrowhead's own full,
+       uncorrected triangle (ArrowheadDefinition() below) reaches this
+       same original point anyway (SetArrows() builds it at x()[0]/[l]
+       before any rotation), so the two meet exactly with nothing to
+       correct for. */
     out << "Begin " << MARK << " Line\n";
     MinGS(out);
     out << MARK << "\n";
     out << x0 << " " << y0 << " " << x1 << " " << y1 << " Line\n";
     out << MARK << " " << arrow_scale << "\n";
-    ArrowheadDefinition(out, aline->HeadArrow(), aline->GetBrush(), aline->GetPattern(), aline->GetTransformer());
-    ArrowheadDefinition(out, aline->TailArrow(), aline->GetBrush(), aline->GetPattern(), aline->GetTransformer());
+    ArrowheadDefinition(out, aline->HeadArrow());
+    ArrowheadDefinition(out, aline->TailArrow());
     out << "End\n\n";
 
     return out.good();
@@ -684,6 +694,8 @@ boolean ArrowMultiLinePS::Definition (ostream& out) {
     int n = aml->GetOriginal(x, y);
     float arrow_scale = aml->ArrowScale();
 
+    /* the vertices stay exactly as GetOriginal() returns them -- see the
+       comment in ArrowLinePS::Definition() above. */
     out << "Begin " << MARK << " " << Name() << "\n";
     MinGS(out);
     out << MARK << " " << n << "\n";
@@ -692,8 +704,8 @@ boolean ArrowMultiLinePS::Definition (ostream& out) {
     }
     out << n << " " << Name() << "\n";
     out << MARK << " " << arrow_scale << "\n";
-    ArrowheadDefinition(out, aml->HeadArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
-    ArrowheadDefinition(out, aml->TailArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
+    ArrowheadDefinition(out, aml->HeadArrow());
+    ArrowheadDefinition(out, aml->TailArrow());
     out << "End\n\n";
 
     return out.good();
@@ -1076,6 +1088,8 @@ boolean ArrowSplinePS::Definition (ostream& out) {
     int n = aml->GetOriginal(x, y);
     float arrow_scale = aml->ArrowScale();
 
+    /* the control points stay exactly as GetOriginal() returns them --
+       see the comment in ArrowLinePS::Definition() above. */
     out << "Begin " << MARK << " " << Name() << "\n";
     MinGS(out);
     out << MARK << " " << n << "\n";
@@ -1084,8 +1098,8 @@ boolean ArrowSplinePS::Definition (ostream& out) {
     }
     out << n << " " << Name() << "\n";
     out << MARK << " " << arrow_scale << "\n";
-    ArrowheadDefinition(out, aml->HeadArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
-    ArrowheadDefinition(out, aml->TailArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
+    ArrowheadDefinition(out, aml->HeadArrow());
+    ArrowheadDefinition(out, aml->TailArrow());
     out << "End\n\n";
 
     return out.good();

@@ -87,31 +87,21 @@ void Arrowhead::CorrectedTip (
     if (my_t != nil) my_t->Transform(tipx, tipy);
 }
 
-int Arrowhead::PSVertices (
-    Coord xs[4], Coord ys[4], PSBrush* br, PSPattern* pat, Transformer* line_t
-) {
-    Transformer total(line_t);
-    Transformer* my_t = GetTransformer();
-    concatTransformer(my_t, line_t, &total);
-
+int Arrowhead::PSVertices (Coord xs[4], Coord ys[4]) {
+    /* Always the full, uncorrected BOTLEFT/TIP/BOTRIGHT/BOTCTR=BOTLEFT
+       triangle -- draw()'s brush-thickness height correction exists to
+       keep a STROKED, screen-rasterized arrowhead from visually
+       overshooting its intended length, and (in the pattern-none case)
+       relies on stroke width alone to fill a self-overlapping,
+       degenerate path; neither concern applies to exported ink, which
+       fills solid and is meant to reach exactly the arrowhead's own
+       tip -- the same point the line itself is written to stop at
+       (see ArrowLinePS::Definition() and friends), so the two meet
+       exactly with no gap and no overshoot to correct for. */
     Coord* vx = Vertices::x();
     Coord* vy = Vertices::y();
     Coord orig_botctr = vy[BOTCTR];
-    Coord orig_tip = vy[TIP];
-
-    if (br == nil || br->None()) {
-        vy[BOTCTR] = vy[BOTLEFT];
-    } else {
-        float thk = UnscaledLength(br->Width(), &total);
-        Coord hcorrect = CorrectedHeight(thk);
-
-        if (pat == nil || pat->None()) {
-            vy[BOTCTR] = vy[TIP] = vy[BOTLEFT] + hcorrect;
-        } else {
-            vy[BOTCTR] = vy[BOTLEFT];
-            vy[TIP] = vy[BOTLEFT] + hcorrect;
-        }
-    }
+    vy[BOTCTR] = vy[BOTLEFT];
 
     for (int i = 0; i < COUNT; i++) {
         xs[i] = vx[i];
@@ -119,7 +109,6 @@ int Arrowhead::PSVertices (
     }
 
     vy[BOTCTR] = orig_botctr;
-    vy[TIP] = orig_tip;
 
     return COUNT;
 }
