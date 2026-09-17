@@ -582,8 +582,7 @@ void ExportFunc::execute() {
 	      origparents[idx]->Next(j);
 	    found = !origparents[idx]->Done(j);
 	  }
-	  /* nextsib missing (also borrowed and not yet reinserted, or was
-	     already last) -- Append matches the original position there. */
+	  /* missing nextsib means it was already last -- Append matches. */
 	  if (found) origparents[idx]->InsertBefore(j, selcomps[idx]);
 	  else origparents[idx]->Append(selcomps[idx]);
 	}
