@@ -77,6 +77,11 @@ using std::cerr;
 static const int hex_encode = 6;
 static const unsigned int color_base = 255;     // 2^color_depth - 1
 
+// generous upper bound on a ColorRast's imported width/height -- well
+// past any real raster this codebase creates, just to keep a malformed
+// or hostile file from driving an oversized allocation.
+static const int max_colorrast_dim = 20000;
+
 static char hexcharmap[] = {
      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
      'a', 'b', 'c', 'd', 'e', 'f'
@@ -132,7 +137,9 @@ static void HexDecode (
 }
 
 // reads one hex byte from a ColorRast payload, skipping the writer's
-// cosmetic line-wrap whitespace between digit pairs.
+// cosmetic line-wrap whitespace between digit pairs. Only ever indexes
+// hexintmap with a char isxdigit already confirmed -- always <128, unlike
+// an arbitrary byte, which would run off the 128-entry table.
 static int ReadHexByte (istream& in) {
     int nibble[2];
     for (int k = 0; k < 2; ++k) {
@@ -140,7 +147,7 @@ static int ReadHexByte (istream& in) {
         do {
             in.get(c);
             if (!in.good()) return -1;
-        } while (isspace(c));
+        } while (!isxdigit((unsigned char)c));
         nibble[k] = hexintmap[(unsigned char)c];
     }
     return (nibble[0] << 4) | nibble[1];
@@ -631,6 +638,13 @@ GraphicComp* OverlayCatalog::ReadColorRast (istream& in) {
     Coord w, h;
     in >> w >> h;
     Skip(in);
+
+    if (!in.good() || w <= 0 || h <= 0 ||
+	w > max_colorrast_dim || h > max_colorrast_dim) {
+	cerr << "ColorRast: bad or out-of-range width/height, skipping\n";
+	PSSkipToEnd(in);
+	return nil;
+    }
 
     OverlayRaster* raster = new OverlayRaster(w, h);
     ReadColorRasterData(raster, in);

@@ -425,19 +425,19 @@ boolean RasterPS::Definition (ostream& out) {
 	for (int j = h-1; j>=0; --j) {
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ir = (int)(r*255);
+		int ir = Math::round(r*255);
 		out << hexcharmap[ir/16] << hexcharmap[ir%16];
 		if (++count%40 == 0) out << "\n";
 	    }
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ig = (int)(g*255);
+		int ig = Math::round(g*255);
 		out << hexcharmap[ig/16] << hexcharmap[ig%16];
 		if (++count%40 == 0) out << "\n";
 	    }
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ib = (int)(b*255);
+		int ib = Math::round(b*255);
 		out << hexcharmap[ib/16] << hexcharmap[ib%16];
 		if (++count%40 == 0) out << "\n";
 	}

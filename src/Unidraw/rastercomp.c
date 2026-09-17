@@ -35,6 +35,8 @@
 #include <InterViews/raster.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <IV-2_6/_enter.h>
 
 #include <stream.h>
@@ -173,19 +175,19 @@ boolean PSRaster::Definition (ostream& out) {
     for (int j = h-1; j>=0; --j) {
 	for (int i=0; i<w; ++i) {
 	    raster->peek(i, j, r, g, b, alpha);
-	    int ir = (int)(r*255);
+	    int ir = Math::round(r*255);
 	    out << hexcharmap[ir/16] << hexcharmap[ir%16];
 	    if (++count%40 == 0) out << "\n";
 	}
 	for (int i=0; i<w; ++i) {
 	    raster->peek(i, j, r, g, b, alpha);
-	    int ig = (int)(g*255);
+	    int ig = Math::round(g*255);
 	    out << hexcharmap[ig/16] << hexcharmap[ig%16];
 	    if (++count%40 == 0) out << "\n";
 	}
 	for (int i=0; i<w; ++i) {
 	    raster->peek(i, j, r, g, b, alpha);
-	    int ib = (int)(b*255);
+	    int ib = Math::round(b*255);
 	    out << hexcharmap[ib/16] << hexcharmap[ib%16];
 	    if (++count%40 == 0) out << "\n";
 	}
