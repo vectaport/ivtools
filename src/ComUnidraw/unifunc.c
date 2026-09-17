@@ -527,11 +527,13 @@ void ExportFunc::execute() {
 	if (!percomp_mode) *out << ")\n";
       } else {
 	/* composite via a throwaway group, like group() already does;
-	   detach and reattach any component that has a real parent. */
+	   detach and reattach any component that has a real parent, at
+	   its original position (its old next sibling, if still there). */
 	AttributeValueList* avl = compviewv.array_val();
 	int nsel = avl->Number();
 	OverlayComp** selcomps = new OverlayComp*[nsel];
 	OverlaysComp** origparents = new OverlaysComp*[nsel];
+	OverlayComp** nextsibs = new OverlayComp*[nsel];
 	Iterator i;
 	int idx = 0;
 	for(avl->First(i);!avl->Done(i); avl->Next(i), ++idx) {
@@ -540,9 +542,24 @@ void ExportFunc::execute() {
 	  if (!selcomps[idx]) break;
 	}
 	int nvalid = idx;
-	OverlaysComp* tempgroup = new OverlaysComp();
 	for (idx = 0; idx < nvalid; ++idx) {
 	  origparents[idx] = (OverlaysComp*) selcomps[idx]->GetParent();
+	  nextsibs[idx] = nil;
+	  if (origparents[idx]) {
+	    Iterator j;
+	    origparents[idx]->First(j);
+	    while (!origparents[idx]->Done(j) &&
+		   (OverlayComp*)origparents[idx]->GetComp(j) != selcomps[idx])
+	      origparents[idx]->Next(j);
+	    if (!origparents[idx]->Done(j)) {
+	      origparents[idx]->Next(j);
+	      if (!origparents[idx]->Done(j))
+		nextsibs[idx] = (OverlayComp*)origparents[idx]->GetComp(j);
+	    }
+	  }
+	}
+	OverlaysComp* tempgroup = new OverlaysComp();
+	for (idx = 0; idx < nvalid; ++idx) {
 	  if (origparents[idx]) origparents[idx]->Remove(selcomps[idx]);
 	  tempgroup->Append(selcomps[idx]);
 	}
@@ -555,11 +572,25 @@ void ExportFunc::execute() {
 	delete psv;
 	for (idx = 0; idx < nvalid; ++idx) {
 	  tempgroup->Remove(selcomps[idx]);
-	  if (origparents[idx]) origparents[idx]->Append(selcomps[idx]);
+	  if (!origparents[idx]) continue;
+	  Iterator j;
+	  boolean found = false;
+	  if (nextsibs[idx]) {
+	    origparents[idx]->First(j);
+	    while (!origparents[idx]->Done(j) &&
+		   (OverlayComp*)origparents[idx]->GetComp(j) != nextsibs[idx])
+	      origparents[idx]->Next(j);
+	    found = !origparents[idx]->Done(j);
+	  }
+	  /* nextsib missing (also borrowed and not yet reinserted, or was
+	     already last) -- Append matches the original position there. */
+	  if (found) origparents[idx]->InsertBefore(j, selcomps[idx]);
+	  else origparents[idx]->Append(selcomps[idx]);
 	}
 	delete tempgroup;
 	delete [] selcomps;
 	delete [] origparents;
+	delete [] nextsibs;
       }
 
     }

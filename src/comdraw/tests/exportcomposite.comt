@@ -76,5 +76,23 @@ print("5c text survives (expect true): %v\n" sawText)
 each(delete($$select(:all)))
 print("6 deleting the reimported raster doesn't crash (expect true): true\n")
 
+// --- test 7: exporting a member of an existing group alongside a
+//             top-level object leaves that group's own child order
+//             untouched -- a member borrowed for a composite export and
+//             later reattached with plain Append() would land at the
+//             end of its group instead of back at its original spot. ---
+each(delete($$select(:all)))
+gr1=rect(0,0,10,10)
+gr2=rect(100,100,110,110)
+gr3=rect(200,200,210,210)
+select(gr1 gr2 gr3)
+g=group()
+before=export(g :string :percomp)
+other=raster(:rgb 2,2, 0xff0000,0x00ff00,0x0000ff,0xffffff)
+export(select(gr2 other) "/tmp/ivtools-exportcomposite-stacking.eps" :idraw)
+after=export(g :string :percomp)
+ok=ok&&(before==after)
+print("7 a grouped member's position in its group survives export (expect true): %v\n" (before==after))
+
 print("exportcomposite: %v\n" ok)
 ok
