@@ -1,0 +1,86 @@
+// src/comdraw/tests/colorrasteps.comt -- #519: a declined ColorRast object no
+// longer desyncs the idraw-format PostScript reader for whatever follows it.
+//
+// Both IdrawCatalog::PSReadChildren and OverlayCatalog::PSReadChildren
+// recognize the ColorRast tag (the real, full-color raster export(:eps)
+// writes) but, before this fix, never consumed its body: the reader resumed
+// mid-object, misread a stray token from partway through the raster's own
+// PostScript as if it were the next sibling's tag, and (in OverlayCatalog)
+// aborted the whole read right there -- silently dropping every graphic
+// after the raster in the file. group(raster,rect) then export(:eps) puts a
+// ColorRast block immediately before a Rect block in one document, exactly
+// the shape #519 was found in while designing #518's raster-format
+// unification. This does not make the raster itself come back (that's
+// #518's job) -- it only proves the sibling after it survives.
+//
+// export(:eps) tags the file "%%Creator: unidraw" (per #515/#518, the real
+// ColorRast writer and the "idraw" creator banner are still coupled to the
+// same format flag today, one of the things #518 unifies), and import()'s
+// own file-type sniffing only routes a "%%Creator: idraw"-tagged file to
+// the catalog reader this bug is in -- anything else goes through an
+// external pstoedit conversion instead. So this rewrites just that one
+// banner line before importing, to exercise the catalog reader directly
+// without pulling in that unrelated dependency. Once #518 lands (one
+// PostScript format, no more idraw/unidraw split) this rewrite step drops
+// out on its own.
+//
+// funcs: raster() rect() select() group() export() import() gets() print()
+
+ok=true
+each(delete($$select(:all)))
+
+// /tmp, not repo-relative -- see rastereps.comt for why.
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+rawpath=print("/tmp/ivtools-colorrasteps-raw-%d.eps" suffix :str)
+idrawpath=print("/tmp/ivtools-colorrasteps-idrawtag-%d.eps" suffix :str)
+
+// --- test 1: group a raster (writes ColorRast under :eps) with a rect, and
+//             export -- confirm the file actually has ColorRast before a
+//             Rect *object* (not the prolog's own "/Rect {" procedure
+//             definition), or the rest of this test proves nothing ---
+ra=raster(0,0,64,64 :rgb 2,2,
+  0xff0000,0x00ff00,
+  0x0000ff,0xffffff)
+rt=rect(200,200,300,260)
+select(ra rt)
+g=group()
+ok=ok&&(size(g)==2)
+export(g rawpath :eps)
+
+fp=open(rawpath "r")
+sawColorRast=false
+sawRect=false
+sawColorRastFirst=false
+while((ln=gets(fp))!=nil
+  if(index(ln "Begin" :substr)==0&&index(ln "ColorRast" :substr)!=nil&&!sawColorRast :then sawColorRast=true);
+  if(index(ln "Begin" :substr)==0&&index(ln "Rect" :substr)!=nil&&!sawRect :then sawRect=true;sawColorRastFirst=sawColorRast))
+close(fp)
+ok=ok&&sawColorRast&&sawRect&&sawColorRastFirst
+print("1 exported file has a ColorRast object before a Rect object (expect true): %v\n" (sawColorRast&&sawRect&&sawColorRastFirst))
+
+// --- rewrite "%%Creator: unidraw" to "%%Creator: idraw" (see file header) ---
+infp=open(rawpath "r")
+outfp=open(idrawpath "w")
+while((ln=gets(infp))!=nil
+  if(index(ln "%%Creator: unidraw" :substr)==0
+    :then print("%%Creator: idraw\n" :file outfp)
+    :else print(ln :file outfp)))
+close(infp)
+close(outfp)
+
+// --- test 2: re-importing must not lose or corrupt the rect that follows
+//             the declined raster.  Before the fix, the reader lands mid-
+//             ColorRast-body on its next token scan, misreads it as a
+//             bogus tag, and aborts -- so the rect never makes it into the
+//             reconstructed picture at all. ---
+each(delete($$select(:all)))
+page=import(idrawpath)
+ok=ok&&(page!=nil)
+e=export(page :string :percomp)
+ok=ok&&(index(e "200,200,300,260")!=nil)
+print("2 surviving rect keeps its original coordinates after the declined raster (expect true): %v\n" ok&&(index(e "200,200,300,260")!=nil))
+print("2b reconstructed picture: %v\n" e)
+
+print("colorrasteps: %v\n" ok)
+ok
