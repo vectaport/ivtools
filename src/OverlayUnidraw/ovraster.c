@@ -375,30 +375,6 @@ boolean RasterPS::Definition (ostream& out) {
     Coord w = raster->Width();
     Coord h = raster->Height();
 
-    if (idraw_format()) {
-      
-	out << "Begin " << MARK << " " << "Rast\n";
-	Transformation(out);
-
-	out << MARK << "\n";
-	out << w << " " << h << " " << color_depth << " Rast ";
-	out << "{ currentfile ";
-	out << (w * color_depth + 7) / 8 << " ";
-	out << "string readhexstring pop }\n";
-	out << "image";
-	
-	IdrawCatalog* catalog = (IdrawCatalog*)unidraw->GetCatalog();
-	catalog->IdrawCatalog::WriteGraymapData(raster, out);
-	
-	catalog->Mark(out);
-	out << "colorimage";
-	catalog->IdrawCatalog::WriteRasterData(raster, out);
-	
-	out << "\nEnd\n\n";
-
-	return out.good();
-    }
-
     if (comp->GetPathName() && strstr(comp->GetPathName(), ".pgm"))  {
 
 	out << "Begin " << MARK << " " << "GrayRast\n";
@@ -421,6 +397,9 @@ boolean RasterPS::Definition (ostream& out) {
 	out << "Begin " << MARK << " " << "ColorRast\n";
 	Transformation(out);
 
+	unidraw->GetCatalog()->Mark(out);
+	out << w << " " << h << "\n";
+
 	out << "\n/readstring {\n";
 	out << "  currentfile exch readhexstring pop\n";
 	out << "} bind def\n";
@@ -436,7 +415,9 @@ boolean RasterPS::Definition (ostream& out) {
 	out << "{ bpicstr readstring }\n";
 	out << "true 3\n";
 	out << "colorimage\n";
-	
+
+	unidraw->GetCatalog()->Mark(out);
+
 	ColorIntensity r, g, b;
 	float alpha;
 	int count = 0;
@@ -444,19 +425,19 @@ boolean RasterPS::Definition (ostream& out) {
 	for (int j = h-1; j>=0; --j) {
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ir = (int)(r*255);
+		int ir = Math::round(r*255);
 		out << hexcharmap[ir/16] << hexcharmap[ir%16];
 		if (++count%40 == 0) out << "\n";
 	    }
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ig = (int)(g*255);
+		int ig = Math::round(g*255);
 		out << hexcharmap[ig/16] << hexcharmap[ig%16];
 		if (++count%40 == 0) out << "\n";
 	    }
 	    for (i=0; i<w; ++i) {
 		raster->peek(i, j, r, g, b, alpha);
-		int ib = (int)(b*255);
+		int ib = Math::round(b*255);
 		out << hexcharmap[ib/16] << hexcharmap[ib%16];
 		if (++count%40 == 0) out << "\n";
 	}

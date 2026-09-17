@@ -1,11 +1,10 @@
-// src/comdraw/tests/rasterepsbig.comt -- same #515 round-trip as
+// src/comdraw/tests/rasterepsbig.comt -- same #515/#518 round-trip as
 // rastereps.comt, but at a normal, non-square image size (640x480,
 // deliberately width!=height so a transposed w/h or row/column bug can't
 // hide behind a square raster) instead of a tiny 2x2 fixture.  This
 // exercises the multi-line-wrapped hex data rastereps.comt's tiny raster
-// is too small to ever reach -- both the lossy grayscale bytes and the
-// hidden %I colorimage comment wrap across many lines at this size, not
-// just one.
+// is too small to ever reach -- the real colorimage hex payload wraps
+// across many lines at this size, not just one.
 //
 // See rastereps.comt for the full explanation of what #515 is and what
 // each check below means; this file only comments on what's different.
@@ -60,22 +59,20 @@ poke(ra wm1 hm1 0xffff00)
 poke(ra wh hh 0xff00ff)
 pflush(ra)
 
-// --- test 2: same #515 byte-signature check as rastereps.comt, now
-//             against a file whose hex data spans many wrapped lines
-//             instead of fitting on one ---
+// --- test 2: same byte-signature check as rastereps.comt, now against a
+//             file whose hex data spans many wrapped lines instead of
+//             fitting on one ---
 export(ra epspath :idraw)
 fp=open(epspath "r")
 sawHiddenColorimage=false
 sawRealColorimage=false
-sawRealImage=false
 while((ln=gets(fp))!=nil
   ci=index(ln "colorimage" :substr);
   if(ci==0 :then sawRealColorimage=true);
-  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true);
-  if(index(ln "image" :substr)==0 :then sawRealImage=true))
+  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true))
 close(fp)
-ok=ok&&sawHiddenColorimage&&!sawRealColorimage&&sawRealImage
-print("2 true color only in a comment, real code is lossy grayscale (expect true): %v\n" (sawHiddenColorimage&&!sawRealColorimage&&sawRealImage))
+ok=ok&&sawRealColorimage&&!sawHiddenColorimage
+print("2 real uncommented colorimage paints it, no hidden comment (expect true): %v\n" (sawRealColorimage&&!sawHiddenColorimage))
 
 // --- test 3: re-import and check the five landmark pixels survive exactly,
 //             at a size where a transposed x/y would show up as a

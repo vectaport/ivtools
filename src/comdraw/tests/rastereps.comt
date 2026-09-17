@@ -1,29 +1,22 @@
 // src/comdraw/tests/rastereps.comt -- round-trips a color raster through a
-// real PostScript .eps file, for #515.
+// real PostScript .eps file, for #515/#518.
 //
-// #515: RasterPS::Definition()'s idraw-format branch (ovraster.c) writes a
-// real, executable grayscale `image` call as the raster's actual paint
-// operation, and writes the true color data afterward only inside an
+// #515: RasterPS::Definition()'s idraw-format branch (ovraster.c) used to
+// write a real, executable grayscale `image` call as the raster's actual
+// paint operation, with the true color data hidden afterward inside an
 // `%I colorimage`-prefixed comment -- inert to any normal PostScript
-// tokenizer.  This test pins down TWO separate facts about today's actual
-// behavior, so neither gets confused with the other:
+// tokenizer.  #518 dropped that branch entirely: the only raster writer
+// left is the real, uncommented `colorimage` code, so this test now
+// documents the FIXED behavior instead of pinning down the bug:
 //
-//   1. comdraw's own reader is NOT fooled -- OverlayCatalog::ReadRaster
-//      deliberately token-scans past the lossy `image` bytes looking for
-//      the literal token "colorimage", then reads the real color data that
-//      follows it.  So exporting a raster to .eps and reading it straight
-//      back into comdraw recovers the exact original color (test 3 below).
-//   2. The bytes on disk are still not valid color PostScript for anyone
-//      else -- the only *executable* raster operator in the file is the
-//      lossy `image` call; a real, unprefixed `colorimage` call never
-//      appears (test 2 below).
-//
-// This test intentionally documents TODAY's bytes, bug included.  Once
-// #518's unification lands (always emit the real, executable colorimage
-// code), test 2's expectations invert -- a real `colorimage` line should
-// exist and the hidden `%I colorimage` comment should not -- and this test
-// needs updating to match, not deleting: it becomes the regression test
-// proving the fix.
+//   1. The exported bytes are real color PostScript for anyone -- a real,
+//      unprefixed `colorimage` call is the raster's paint operation, and
+//      the old lossy `image` call and its hidden `%I` comment are both
+//      gone (test 2 below).
+//   2. comdraw's own reader (OverlayCatalog::ReadColorRast, added by #518)
+//      builds the raster for real from that same data, so exporting and
+//      reading a raster straight back into comdraw recovers the exact
+//      original color (test 3 below).
 //
 // Run from inside comdraw:
 //   run("src/comdraw/tests/rastereps.comt")
@@ -52,25 +45,24 @@ ra=raster(0,0,64,64 :rgb 2,2,
 ok=ok&&(ra!=nil)
 print("1 raster() created (expect true): %v\n" (ra!=nil))
 
-// --- test 2: exported bytes carry #515's signature -- color hidden in a
-//             comment, the only executable raster op is lossy grayscale ---
+// --- test 2: exported bytes are real color PostScript -- an uncommented
+//             colorimage call paints it, no hidden %I comment, no lossy
+//             grayscale image fallback anywhere in the file ---
 export(ra epspath :idraw)
 fp=open(epspath "r")
 sawHiddenColorimage=false
 sawRealColorimage=false
-sawRealImage=false
 while((ln=gets(fp))!=nil
   ci=index(ln "colorimage" :substr);
   if(ci==0 :then sawRealColorimage=true);
-  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true);
-  if(index(ln "image" :substr)==0 :then sawRealImage=true))
+  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true))
 close(fp)
-ok=ok&&sawHiddenColorimage&&!sawRealColorimage&&sawRealImage
-print("2 true color only in a comment, real code is lossy grayscale (expect true): %v\n" (sawHiddenColorimage&&!sawRealColorimage&&sawRealImage))
+ok=ok&&sawRealColorimage&&!sawHiddenColorimage
+print("2 real uncommented colorimage paints it, no hidden comment (expect true): %v\n" (sawRealColorimage&&!sawHiddenColorimage))
 
-// --- test 3: comdraw's own reader is not fooled -- re-import and compare
-//             every pixel against the original, exactly (not the lossy
-//             grayscale fallback a generic renderer would show) ---
+// --- test 3: re-import and compare every pixel against the original,
+//             exactly -- proving ReadColorRast builds the real thing,
+//             not just that some fallback happens to look right ---
 // import() of a whole .eps page returns the page as a group (OverlaysComp)
 // with the raster as its one child, not the raster compview directly.
 rb=import(epspath)
