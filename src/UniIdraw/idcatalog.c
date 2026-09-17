@@ -804,10 +804,10 @@ GraphicComp* IdrawCatalog::ReadBSpline (istream& in) {
         Skip(in);
         in >> mag;
     }
-    /* PSV_ARROWINK writers nest a filled Poly (see ArrowheadDefinition()
-       in ovarrow.c) after the curve data, redundant here since the
-       constructor below already reconstructs the arrowhead from
-       _head/_tail; older files never wrote it. */
+    /* PSV_ARROWINK writers nest a filled Poly (ArrowheadDefinition() in
+       ovarrow.c) after the curve data; older files never wrote it. */
+    /* redundant here: the constructor below rebuilds the arrowhead from
+       _head/_tail on its own. */
     if (_psversion >= PSV_ARROWINK) {
 	if (_head) PSSkipToEnd(in);
 	if (_tail) PSSkipToEnd(in);

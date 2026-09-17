@@ -271,10 +271,9 @@ boolean ArrowLinePS::IsA (ClassId id) {
 }
 
 /* An arrowhead has no brush/pattern/color of its own -- it inherits
-   whatever it's nested inside (see Arrowhead::draw()'s use of the
-   passed-in gs). Its own transform composes onto the already-active
-   one from the enclosing Begin, the same way concatGraphic() composes
-   them for the interactive draw(). */
+   whatever it's nested inside (see Arrowhead::draw()'s use of gs). */
+/* Its transform composes onto the enclosing Begin's, like concatGraphic()
+   does for the interactive draw(). */
 static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
     if (arrow == nil) return;
 
@@ -285,8 +284,8 @@ static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
     Transformer identity;
 
     out << "Begin\n";
-    /* always solid-filled, regardless of the line's own pattern; the
-       enclosing Begin/End's save/restore keeps this override local. */
+    /* always solid-filled, regardless of the line's own pattern. */
+    /* the enclosing Begin/End's save/restore keeps this override local. */
     out << MARK << " p\n0 SetP\n";
     if (my_t == nil || *my_t == identity) {
         out << MARK << " t u\n";
@@ -312,9 +311,8 @@ boolean ArrowLinePS::Definition (ostream& out) {
     aline->GetOriginal(x0, y0, x1, y1);
     float arrow_scale = aline->ArrowScale();
 
-    /* endpoints stay exactly as GetOriginal() returns them -- the
-       arrowhead's own uncorrected triangle (ArrowheadDefinition()
-       below) already reaches this same point by construction. */
+    /* endpoints stay uncorrected: ArrowheadDefinition()'s own triangle
+       below already reaches this exact point by construction. */
     out << "Begin " << MARK << " Line\n";
     MinGS(out);
     out << MARK << "\n";

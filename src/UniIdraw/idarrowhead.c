@@ -88,10 +88,9 @@ void Arrowhead::CorrectedTip (
 }
 
 int Arrowhead::PSVertices (Coord xs[4], Coord ys[4]) {
-    /* the full, uncorrected BOTLEFT/TIP/BOTRIGHT/BOTCTR=BOTLEFT triangle --
-       its tip is the same point the line itself is written to stop at
-       (see ArrowLinePS::Definition() and friends), so the two meet
-       exactly with nothing to correct for. */
+    /* the full, uncorrected BOTLEFT/TIP/BOTRIGHT/BOTCTR=BOTLEFT triangle. */
+    /* its tip is the exact point the line is written to stop at (see
+       ArrowLinePS::Definition() and friends). */
     Coord* vx = Vertices::x();
     Coord* vy = Vertices::y();
     Coord orig_botctr = vy[BOTCTR];
