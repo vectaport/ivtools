@@ -94,5 +94,37 @@ after=export(g :string :percomp)
 ok=ok&&(before==after)
 print("7 a grouped member's position in its group survives export (expect true): %v\n" (before==after))
 
+// --- test 8: an unpasted component (pastemode(1), never paste()'d --
+//             genuinely parentless, not just top-level) exports correctly
+//             alongside a pasted one and is left just as unpasted
+//             afterward. select() itself drops an unpasted component (it
+//             only tracks realized views), so this builds the array
+//             directly instead, the same way a script working entirely
+//             via pastemode(1) would. ---
+each(delete($$select(:all)))
+pastemode(1)
+ura=raster(:rgb 2,2,
+  0xff0000,0x00ff00,
+  0x0000ff,0xffffff
+  :transform [50,0,0,50,150,0])
+ur=rect(0,0,100,100)
+pastemode(0)
+ok=ok&&(parent(ura)==nil)&&(parent(ur)==nil)
+print("8a unpasted raster and rect both start parentless (expect true): %v\n" ((parent(ura)==nil)&&(parent(ur)==nil)))
+
+pt=text(300,0 "hi")
+export([ura,ur,pt] "/tmp/ivtools-exportcomposite-unpasted.eps" :idraw)
+
+page2=import("/tmp/ivtools-exportcomposite-unpasted.eps")
+e2=export(page2 :string :percomp)
+sawRect2=(index(e2 "100,100")!=nil)
+sawRasterColors2=(index(e2 "(255,0,0)")!=nil)&&(index(e2 "(0,255,0)")!=nil)&&(index(e2 "(0,0,255)")!=nil)&&(index(e2 "(255,255,255)")!=nil)
+sawText2=(index(e2 "hi")!=nil)
+ok=ok&&sawRect2&&sawRasterColors2&&sawText2
+print("8b re-imported composite has the rect, all four raster colors, and the text (expect true): %v\n" (sawRect2&&sawRasterColors2&&sawText2))
+
+ok=ok&&(parent(ura)==nil)&&(parent(ur)==nil)
+print("8c unpasted raster and rect are still parentless after export, not left half-attached (expect true): %v\n" ((parent(ura)==nil)&&(parent(ur)==nil)))
+
 print("exportcomposite: %v\n" ok)
 ok
