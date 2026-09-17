@@ -526,20 +526,70 @@ void ExportFunc::execute() {
 	}
 	if (!percomp_mode) *out << ")\n";
       } else {
+	/* composite via a throwaway group, like group() already does;
+	   detach and reattach any component that has a real parent, at
+	   its original position (its old next sibling, if still there). */
 	AttributeValueList* avl = compviewv.array_val();
+	int nsel = avl->Number();
+	OverlayComp** selcomps = new OverlayComp*[nsel];
+	OverlaysComp** origparents = new OverlaysComp*[nsel];
+	OverlayComp** nextsibs = new OverlayComp*[nsel];
 	Iterator i;
-	for(avl->First(i);!avl->Done(i); ) {
+	int idx = 0;
+	for(avl->First(i);!avl->Done(i); avl->Next(i), ++idx) {
 	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-	  if (!comp) break;
-	  OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
-	  comp->Attach(psv);
-	  psv->Update();
-	  psv->Emit(*out);
-	  comp->Detach(psv);
-	  delete psv;
-	  avl->Next(i);
+	  selcomps[idx] = view ? (OverlayComp*)view->GetSubject() : nil;
+	  if (!selcomps[idx]) break;
 	}
+	int nvalid = idx;
+	for (idx = 0; idx < nvalid; ++idx) {
+	  origparents[idx] = (OverlaysComp*) selcomps[idx]->GetParent();
+	  nextsibs[idx] = nil;
+	  if (origparents[idx]) {
+	    Iterator j;
+	    origparents[idx]->First(j);
+	    while (!origparents[idx]->Done(j) &&
+		   (OverlayComp*)origparents[idx]->GetComp(j) != selcomps[idx])
+	      origparents[idx]->Next(j);
+	    if (!origparents[idx]->Done(j)) {
+	      origparents[idx]->Next(j);
+	      if (!origparents[idx]->Done(j))
+		nextsibs[idx] = (OverlayComp*)origparents[idx]->GetComp(j);
+	    }
+	  }
+	}
+	OverlaysComp* tempgroup = new OverlaysComp();
+	for (idx = 0; idx < nvalid; ++idx) {
+	  if (origparents[idx]) origparents[idx]->Remove(selcomps[idx]);
+	  tempgroup->Append(selcomps[idx]);
+	}
+	OverlayPS* psv = (OverlayPS*) tempgroup->Create(POSTSCRIPT_VIEW);
+	psv->idraw_format(idraw_flag.is_true());
+	tempgroup->Attach(psv);
+	psv->Update();
+	psv->Emit(*out);
+	tempgroup->Detach(psv);
+	delete psv;
+	for (idx = 0; idx < nvalid; ++idx) {
+	  tempgroup->Remove(selcomps[idx]);
+	  if (!origparents[idx]) continue;
+	  Iterator j;
+	  boolean found = false;
+	  if (nextsibs[idx]) {
+	    origparents[idx]->First(j);
+	    while (!origparents[idx]->Done(j) &&
+		   (OverlayComp*)origparents[idx]->GetComp(j) != nextsibs[idx])
+	      origparents[idx]->Next(j);
+	    found = !origparents[idx]->Done(j);
+	  }
+	  /* missing nextsib means it was already last -- Append matches. */
+	  if (found) origparents[idx]->InsertBefore(j, selcomps[idx]);
+	  else origparents[idx]->Append(selcomps[idx]);
+	}
+	delete tempgroup;
+	delete [] selcomps;
+	delete [] origparents;
+	delete [] nextsibs;
       }
 
     }
