@@ -87,6 +87,43 @@ void Arrowhead::CorrectedTip (
     if (my_t != nil) my_t->Transform(tipx, tipy);
 }
 
+int Arrowhead::PSVertices (
+    Coord xs[4], Coord ys[4], PSBrush* br, PSPattern* pat, Transformer* line_t
+) {
+    Transformer total(line_t);
+    Transformer* my_t = GetTransformer();
+    concatTransformer(my_t, line_t, &total);
+
+    Coord* vx = Vertices::x();
+    Coord* vy = Vertices::y();
+    Coord orig_botctr = vy[BOTCTR];
+    Coord orig_tip = vy[TIP];
+
+    if (br == nil || br->None()) {
+        vy[BOTCTR] = vy[BOTLEFT];
+    } else {
+        float thk = UnscaledLength(br->Width(), &total);
+        Coord hcorrect = CorrectedHeight(thk);
+
+        if (pat == nil || pat->None()) {
+            vy[BOTCTR] = vy[TIP] = vy[BOTLEFT] + hcorrect;
+        } else {
+            vy[BOTCTR] = vy[BOTLEFT];
+            vy[TIP] = vy[BOTLEFT] + hcorrect;
+        }
+    }
+
+    for (int i = 0; i < COUNT; i++) {
+        xs[i] = vx[i];
+        ys[i] = vy[i];
+    }
+
+    vy[BOTCTR] = orig_botctr;
+    vy[TIP] = orig_tip;
+
+    return COUNT;
+}
+
 float Arrowhead::UnscaledLength (float length, Transformer* t) {
     Transformer inverse(t);
     inverse.Invert();

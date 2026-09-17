@@ -37,6 +37,7 @@
 #include <IVGlyph/observables.h>
 
 #include <UniIdraw/idarrow.h>
+#include <UniIdraw/idarrowhead.h>
 #include <UniIdraw/idarrows.h>
 #include <UniIdraw/idcmds.h>
 #include <UniIdraw/idvars.h>
@@ -269,6 +270,45 @@ boolean ArrowLinePS::IsA (ClassId id) {
     return ARROWLINE_PS == id || LinePS::IsA(id);
 }
 
+/* Arrowhead ink is never drawn by the classic idraw PostScript writer --
+   the head/tail booleans riding on SetB (see the *PS::Brush() overrides
+   below) are round-trip metadata for idraw's own reader to reconstruct
+   an Arrowhead graphic on import, not something a generic PostScript
+   consumer (a real printer, Ghostscript, ...) ever draws. Emit the
+   arrowhead as real "Poly" ink too, nested inside the line's own Begin/
+   End so it inherits the already-written brush/pattern/color (an
+   arrowhead never has its own -- see concatGS() in Arrowhead::draw())
+   and so its own transform composes onto the line's, exactly like
+   concatGraphic() composes them for the interactive draw(). */
+static void ArrowheadDefinition (
+    ostream& out, Arrowhead* arrow, PSBrush* brush, PSPattern* pattern, Transformer* line_t
+) {
+    if (arrow == nil) return;
+
+    Coord xs[4], ys[4];
+    int n = arrow->PSVertices(xs, ys, brush, pattern, line_t);
+
+    Transformer* my_t = arrow->GetTransformer();
+    Transformer identity;
+
+    out << "Begin\n";
+    if (my_t == nil || *my_t == identity) {
+        out << MARK << " t u\n";
+    } else {
+        float a00, a01, a10, a11, a20, a21;
+        my_t->GetEntries(a00, a01, a10, a11, a20, a21);
+        out << MARK << " t\n";
+        out << "[ " << a00 << " " << a01 << " " << a10 << " ";
+        out << a11 << " " << a20 << " " << a21 << " ] concat\n";
+    }
+    out << MARK << " " << n << "\n";
+    for (int i = 0; i < n; i++) {
+        out << xs[i] << " " << ys[i] << "\n";
+    }
+    out << n << " Poly\n";
+    out << "End\n\n";
+}
+
 boolean ArrowLinePS::Definition (ostream& out) {
     ArrowLine* aline = (ArrowLine*) GetGraphicComp()->GetGraphic();
 
@@ -281,6 +321,8 @@ boolean ArrowLinePS::Definition (ostream& out) {
     out << MARK << "\n";
     out << x0 << " " << y0 << " " << x1 << " " << y1 << " Line\n";
     out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aline->HeadArrow(), aline->GetBrush(), aline->GetPattern(), aline->GetTransformer());
+    ArrowheadDefinition(out, aline->TailArrow(), aline->GetBrush(), aline->GetPattern(), aline->GetTransformer());
     out << "End\n\n";
 
     return out.good();
@@ -650,6 +692,8 @@ boolean ArrowMultiLinePS::Definition (ostream& out) {
     }
     out << n << " " << Name() << "\n";
     out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aml->HeadArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
+    ArrowheadDefinition(out, aml->TailArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
     out << "End\n\n";
 
     return out.good();
@@ -1040,6 +1084,8 @@ boolean ArrowSplinePS::Definition (ostream& out) {
     }
     out << n << " " << Name() << "\n";
     out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aml->HeadArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
+    ArrowheadDefinition(out, aml->TailArrow(), aml->GetBrush(), aml->GetPattern(), aml->GetTransformer());
     out << "End\n\n";
 
     return out.good();

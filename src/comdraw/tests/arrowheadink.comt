@@ -1,0 +1,50 @@
+// src/comdraw/tests/arrowheadink.comt -- an arrow's exported idraw-format
+// PostScript draws its arrowhead(s) as real ink (a filled/stroked "Poly"),
+// not just the SetB metadata a generic PostScript viewer or printer
+// silently discards; and reimporting that ink back into idraw/comdraw
+// recovers one arrow object, not the arrow plus a stray extra polygon.
+
+ok=true
+each(delete($$select(:all)))
+
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-arrowheadink-%d.eps" suffix :str)
+
+m=multiline([100,100,300,100] :head :tail :brush 65535,2)
+ok=ok&&(m!=nil)
+e0=export(m :string :percomp)
+sawHead=(index(e0 ":head" :substr)!=nil)
+sawTail=(index(e0 ":tail" :substr)!=nil)
+ok=ok&&sawHead&&sawTail
+print("1 :head/:tail on multiline() actually set the arrow's own head/tail (expect true): %v\n" (sawHead&&sawTail))
+
+export(m epspath :idraw)
+
+// --- test 2: the exported file draws both arrowheads as real "Poly" ink,
+//             not just the SetB compatibility flags ---
+polycount=0
+fp=open(epspath "r")
+while((ln=gets(fp))!=nil
+  if(index(ln "4 Poly" :substr)==0 :then polycount=polycount+1))
+close(fp)
+ok=ok&&(polycount==2)
+print("2 both arrowheads are drawn as real Poly ink (expect 2): %v\n" polycount)
+
+// --- test 3: re-importing recovers ONE arrow object, not the arrow plus
+//             a stray extra polygon from the arrowhead ink ---
+each(delete($$select(:all)))
+page=import(epspath)
+ok=ok&&(page!=nil)
+e=export(page :string :percomp)
+matches=index(e "multiline(" :substr :all)
+mlinecount=size(matches)
+ok=ok&&(mlinecount==1)
+print("3a exactly one arrowmultiline() after re-import, no stray polygon (expect 1): %v\n" mlinecount)
+sawHead2=(index(e ":head" :substr)!=nil)
+sawTail2=(index(e ":tail" :substr)!=nil)
+ok=ok&&sawHead2&&sawTail2
+print("3b both head and tail survive the round trip (expect true): %v\n" (sawHead2&&sawTail2))
+
+print("arrowheadink: %v\n" ok)
+ok

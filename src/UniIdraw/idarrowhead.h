@@ -36,6 +36,15 @@ public:
 
     void CorrectedTip(Coord&, Coord&, PSBrush*, Transformer*);
 
+    // returns the (up to 4) vertices this arrowhead would actually draw
+    // with, given the line's brush/pattern (an arrowhead never has its
+    // own -- it inherits whatever it's attached to) and that line's own
+    // transformer (composed with the arrowhead's own transformer, exactly
+    // as draw() composes them via concatGraphic): the same
+    // brush-thickness-corrected shape draw() rasterizes, for a PostScript
+    // writer to emit as real ink instead of leaving it undrawn.
+    int PSVertices(Coord xs[4], Coord ys[4], PSBrush*, PSPattern*, Transformer* line_t);
+
     virtual Graphic* Copy();
     virtual Graphic& operator = (Graphic&);
     virtual Arrowhead& operator = (Arrowhead&);

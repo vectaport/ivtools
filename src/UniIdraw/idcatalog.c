@@ -804,6 +804,13 @@ GraphicComp* IdrawCatalog::ReadBSpline (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* skip the arrowhead ink a newer writer nests after the curve data --
+       real ink for a generic PostScript consumer, redundant here since
+       ArrowOpenBSpline's own constructor already reconstructs the
+       arrowhead from _head/_tail (see ArrowheadDefinition() in ovarrow.c). */
+    if (_head) PSSkipToEnd(in);
+    if (_tail) PSSkipToEnd(in);
+
     return new ArrowSplineComp(
         new ArrowOpenBSpline(x, y, n, _head, _tail, mag, &gs)
     );
@@ -871,6 +878,11 @@ GraphicComp* IdrawCatalog::ReadLine (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* skip the arrowhead ink a newer writer nests after the line data --
+       see the comment in ReadBSpline() above. */
+    if (_head) PSSkipToEnd(in);
+    if (_tail) PSSkipToEnd(in);
+
     return new ArrowLineComp(new ArrowLine(x0,y0,x1,y1,_head,_tail,mag,&gs));
 }
 
@@ -896,6 +908,11 @@ GraphicComp* IdrawCatalog::ReadMultiLine (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* skip the arrowhead ink a newer writer nests after the vertex data --
+       see the comment in ReadBSpline() above. */
+    if (_head) PSSkipToEnd(in);
+    if (_tail) PSSkipToEnd(in);
+
     return new ArrowMultiLineComp(
         new ArrowMultiLine(x, y, n, _head, _tail, mag, &gs)
     );

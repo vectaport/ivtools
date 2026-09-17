@@ -54,6 +54,8 @@ public:
     void ScaleArrows(float);
     boolean Head();
     boolean Tail();
+    Arrowhead* HeadArrow();
+    Arrowhead* TailArrow();
     float ArrowScale();
 
     virtual void SetPattern(PSPattern*);
@@ -85,6 +87,8 @@ protected:
 
 inline boolean ArrowLine::Head () { return _head != nil; }
 inline boolean ArrowLine::Tail () { return _tail != nil; }
+inline Arrowhead* ArrowLine::HeadArrow () { return _head; }
+inline Arrowhead* ArrowLine::TailArrow () { return _tail; }
 inline float ArrowLine::ArrowScale () { return _arrow_scale; }
 
 class ArrowMultiLine : public SF_MultiLine {
@@ -99,6 +103,8 @@ public:
     void ScaleArrows(float);
     boolean Head();
     boolean Tail();
+    Arrowhead* HeadArrow();
+    Arrowhead* TailArrow();
     float ArrowScale();
 
     virtual Graphic* Copy();
@@ -129,6 +135,8 @@ protected:
 
 inline boolean ArrowMultiLine::Head () { return _head != nil; }
 inline boolean ArrowMultiLine::Tail () { return _tail != nil; }
+inline Arrowhead* ArrowMultiLine::HeadArrow () { return _head; }
+inline Arrowhead* ArrowMultiLine::TailArrow () { return _tail; }
 inline float ArrowMultiLine::ArrowScale () { return _arrow_scale; }
 
 class ArrowOpenBSpline : public SFH_OpenBSpline {
@@ -143,6 +151,8 @@ public:
     void ScaleArrows(float);
     boolean Head();
     boolean Tail();
+    Arrowhead* HeadArrow();
+    Arrowhead* TailArrow();
     float ArrowScale();
 
     virtual Graphic* Copy();
@@ -173,6 +183,8 @@ protected:
 
 inline boolean ArrowOpenBSpline::Head () { return _head != nil; }
 inline boolean ArrowOpenBSpline::Tail () { return _tail != nil; }
+inline Arrowhead* ArrowOpenBSpline::HeadArrow () { return _head; }
+inline Arrowhead* ArrowOpenBSpline::TailArrow () { return _tail; }
 inline float ArrowOpenBSpline::ArrowScale () { return _arrow_scale; }
 
 #endif
