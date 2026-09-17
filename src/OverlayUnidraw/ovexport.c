@@ -114,13 +114,13 @@ void OvExportCmd::Execute () {
 	style = new Style(Session::instance()->style());
 	style->attribute("subcaption", "Export selected graphics to file:");
 	style->attribute("open", "Export");
-	const char *formats_svg[] = {"EPS", "idraw EPS", "drawtool", "SVG"};
-	const char *formats_nosvg[] = {"EPS", "idraw EPS", "drawtool"};
+	const char *formats_svg[] = {"idraw", "drawtool", "SVG"};
+	const char *formats_nosvg[] = {"idraw", "drawtool"};
         const char *svg_arg = unidraw->GetCatalog()->GetAttribute("svgexport");
         const boolean svg_flag = svg_arg && strcmp(svg_arg, "true")==0;
 	const char **formats = svg_flag ? formats_svg : formats_nosvg;
 	int nformats = (svg_flag ? sizeof(formats_svg) : sizeof(formats_nosvg)) / sizeof(char*);
-	const char *commands[] = {"ghostview %s", "idraw %s", "drawtool %s", "firefox %s"};
+	const char *commands[] = {"idraw %s", "drawtool %s", "firefox %s"};
 	chooser_ = new ExportChooser(".", WidgetKit::instance(), style,
 				     formats, nformats, commands, nil, true);
 	Resource::ref(chooser_);
@@ -185,8 +185,8 @@ boolean OvExportCmd::Export (const char* pathname) {
     Iterator i;
     empty ? real_top->First(i) : s->First(i);
     while (empty ? !real_top->Done(i) : !s->Done(i)) {
-      if (chooser_->idraw_format() || chooser_->postscript_format()) {
-	OverlayComp* oc = empty 
+      if (chooser_->idraw_format()) {
+	OverlayComp* oc = empty
 	  ? new OverlayComp(real_top->GetComp(i)->GetGraphic()->Copy())
 	  : new OverlayComp(s->GetView(i)->GetGraphicComp()->GetGraphic()->Copy());
 	false_top->Append(oc);
@@ -200,7 +200,7 @@ boolean OvExportCmd::Export (const char* pathname) {
     }
      
     OverlayPS* ovpsv;
-    if (chooser_->idraw_format() || chooser_->postscript_format())
+    if (chooser_->idraw_format())
       ovpsv = (OverlayPS*) false_top->Create(POSTSCRIPT_VIEW);
     else
       ovpsv = (OverlayPS*) false_top->Create(SCRIPT_VIEW);
@@ -228,7 +228,7 @@ boolean OvExportCmd::Export (const char* pathname) {
 	ostream out(&fbuf);
 	false_top->Attach(ovpsv);
 	ovpsv->SetCommand(this);
-	if (!chooser_->idraw_format() && !chooser_->postscript_format())
+	if (!chooser_->idraw_format())
 	  ((OverlayIdrawScript*)ovpsv)->SetByPathnameFlag(chooser_->by_pathname_flag());
 	ovpsv->Update();
 	ok = ovpsv->Emit(out);

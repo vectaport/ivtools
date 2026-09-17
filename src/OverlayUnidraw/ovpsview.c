@@ -27,8 +27,6 @@
  */
 
 #include <OverlayUnidraw/ovclasses.h>
-#include <OverlayUnidraw/ovexport.h>
-#include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/ovpsview.h>
 
 #include <UniIdraw/idarrows.h>
@@ -102,8 +100,6 @@ static void CollectFontsFromGraphic (Graphic* gr, UList* fonts) {
 }
 
 /*****************************************************************************/
-
-boolean OverlayPS::_idraw_format = true;
 
 ClassId OverlayPS::GetClassId () { return OVERLAY_PS; }
 
@@ -186,20 +182,6 @@ OverlayPS* OverlayPS::CreateOvPSViewFromGraphic (Graphic* graphic, boolean compt
 OverlayComp* OverlayPS::GetOverlayComp () {
     return (OverlayComp*) GetSubject();
 }
-
-boolean OverlayPS::idraw_format() {
-    boolean format = OverlayPS::_idraw_format;
-    Command* cmd = GetCommand();
-    if (cmd) {
-      if (GetCommand()->IsA(OV_EXPORT_CMD))
-	format = ((OvExportCmd*)GetCommand())->idraw_format();
-      else if (GetCommand() && GetCommand()->IsA(OVPRINT_CMD)) 
-	format = ((OvPrintCmd*)GetCommand())->idraw_format();
-    }
-    return format;
-}
-
-void OverlayPS::idraw_format(boolean flag) { _idraw_format = flag; }
 
 /*****************************************************************************/
 
