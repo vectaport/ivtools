@@ -526,20 +526,43 @@ void ExportFunc::execute() {
 	}
 	if (!percomp_mode) *out << ")\n";
       } else {
+	/* one shared document, not N concatenated ones -- borrow the
+	   selected components (not copies -- copying a raster allocates a
+	   real X-shared-memory pixel buffer, and freeing that throwaway
+	   copy corrupts Xlib's request-sequence tracking for whatever
+	   raster is deleted next) into a throwaway OverlaysComp and Emit()
+	   that once, so OverlaysPS's own header/bbox/font-collection
+	   (already correct for a real group, see run_all.comt's "group"
+	   test) composite them instead of each Emit()-ing a full
+	   standalone document back to back. Append/Remove only relink the
+	   Graphic parent pointer (SetParent itself is a no-op in this
+	   class hierarchy), so removing them again after Emit() leaves the
+	   live selection exactly as it was -- and idraw_format(), silently
+	   ignored by this branch before, now reaches them the same way it
+	   already does for a single-component export. */
+	OverlaysComp* tempgroup = new OverlaysComp();
 	AttributeValueList* avl = compviewv.array_val();
 	Iterator i;
-	for(avl->First(i);!avl->Done(i); ) {
+	for(avl->First(i);!avl->Done(i); avl->Next(i)) {
 	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
 	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
 	  if (!comp) break;
-	  OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
-	  comp->Attach(psv);
-	  psv->Update();
-	  psv->Emit(*out);
-	  comp->Detach(psv);
-	  delete psv;
-	  avl->Next(i);
+	  tempgroup->Append(comp);
 	}
+	OverlayPS* psv = (OverlayPS*) tempgroup->Create(POSTSCRIPT_VIEW);
+	psv->idraw_format(idraw_flag.is_true());
+	tempgroup->Attach(psv);
+	psv->Update();
+	psv->Emit(*out);
+	tempgroup->Detach(psv);
+	delete psv;
+	for(avl->First(i);!avl->Done(i); avl->Next(i)) {
+	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
+	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+	  if (!comp) break;
+	  tempgroup->Remove(comp);
+	}
+	delete tempgroup;
       }
 
     }

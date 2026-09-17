@@ -1,0 +1,80 @@
+// src/comdraw/tests/exportcomposite.comt -- #516/#517: export() of a
+// multi-object selection composites into ONE PostScript document, with
+// idraw_format() actually applied, instead of N concatenated standalone
+// documents that ignored the flag.
+
+ok=true
+each(delete($$select(:all)))
+
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-exportcomposite-%d.eps" suffix :str)
+
+r=rect(0,0,100,100)
+ra=raster(:rgb 2,2,
+  0xff0000,0x00ff00,
+  0x0000ff,0xffffff
+  :transform [50,0,0,50,150,0])
+t=text(300,0 "hi")
+allsel=select(r ra t)
+ok=ok&&(size(allsel)==3)
+print("1 three objects selected (expect true): %v\n" (size(allsel)==3))
+
+export(allsel epspath :idraw)
+
+// --- test 2: exactly one document -- one %%Page:, one %%BoundingBox:,
+//             one %%Trailer, not three of each concatenated back to back ---
+fp=open(epspath "r")
+pagecount=0
+bboxcount=0
+trailercount=0
+while((ln=gets(fp))!=nil
+  if(index(ln "%%Page:" :substr)==0 :then pagecount=pagecount+1);
+  if(index(ln "%%BoundingBox:" :substr)==0 :then bboxcount=bboxcount+1);
+  if(index(ln "%%Trailer" :substr)==0 :then trailercount=trailercount+1))
+close(fp)
+ok=ok&&(pagecount==1)&&(bboxcount==1)&&(trailercount==1)
+print("2 exactly one %%Page/%%BoundingBox/%%Trailer (expect 1 1 1): %v %v %v\n" pagecount bboxcount trailercount)
+
+// --- test 3: the live selection survives untouched -- export must not
+//             reparent or otherwise disturb the real document/selection ---
+stillsel=select(r ra t)
+ok=ok&&(size(stillsel)==3)
+print("3 live selection still has all three objects after export (expect true): %v\n" (size(stillsel)==3))
+
+// --- test 4: deleting the original raster right after export doesn't
+//             crash -- regression guard for a real bug an earlier version
+//             of this fix introduced: compositing by copying each selected
+//             component into the temp group. Copying a raster allocates a
+//             real X-shared-memory pixel buffer (OverlayRaster::copy()),
+//             and freeing that throwaway copy corrupted Xlib's
+//             request-sequence tracking, crashing later when the
+//             *original* raster got deleted. The fix borrows the live
+//             components instead of copying them, so no extra raster is
+//             ever allocated or freed. ---
+each(delete($$select(:all)))
+print("4 deleting the original raster after export doesn't crash (expect true): true\n")
+
+// --- test 5: re-importing the composite recovers all three objects,
+//             including the raster's real colors (not a lossy/blank one) ---
+page=import(epspath)
+ok=ok&&(page!=nil)
+e=export(page :string :percomp)
+sawRect=(index(e "100,100")!=nil)
+sawRasterColors=(index(e "(255,0,0)")!=nil)&&(index(e "(0,255,0)")!=nil)&&(index(e "(0,0,255)")!=nil)&&(index(e "(255,255,255)")!=nil)
+sawText=(index(e "hi")!=nil)
+ok=ok&&sawRect&&sawRasterColors&&sawText
+print("5a rect survives (expect true): %v\n" sawRect)
+print("5b raster keeps all four original colors (expect true): %v\n" sawRasterColors)
+print("5c text survives (expect true): %v\n" sawText)
+
+// --- test 6: deleting the reimported raster doesn't crash either --
+//             same guard as test 4, for a raster built by ReadColorRast
+//             (the read path) rather than raster(:rgb ...) (the create
+//             path), in case the two ever diverge in how they wire up
+//             their pixel buffer. ---
+each(delete($$select(:all)))
+print("6 deleting the reimported raster doesn't crash (expect true): true\n")
+
+print("exportcomposite: %v\n" ok)
+ok
