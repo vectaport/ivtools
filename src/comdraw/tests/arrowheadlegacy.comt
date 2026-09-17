@@ -1,0 +1,64 @@
+// src/comdraw/tests/arrowheadlegacy.comt -- a pre-PSV_ARROWINK idraw-format
+// file (head/tail set on SetB, but no nested arrowhead ink to go with it,
+// since older writers never emitted any) must still import cleanly: the
+// object right after the arrow must not get silently swallowed by a reader
+// that assumes ink it was never given.
+
+ok=true
+each(delete($$select(:all)))
+
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+genpath=print("/tmp/ivtools-arrowheadlegacy-gen-%d.eps" suffix :str)
+legacypath=print("/tmp/ivtools-arrowheadlegacy-%d.eps" suffix :str)
+
+// export a real (current-format) composite just to harvest a real prolog
+// and body; the nested arrowhead ink Begin/End blocks it emits are then
+// stripped below to simulate what a pre-PSV_ARROWINK writer produced.
+m=multiline([100,100,400,100] :head :tail :brush 65535,3)
+r=rect(500,500,600,600 :brush 65535,2)
+allsel=select(m r)
+export(allsel genpath :idraw)
+
+// copy the real export verbatim, except: (a) the "%I Idraw N ..." line is
+// rewritten to a version below PSV_ARROWINK, and (b) each nested ink block
+// for an arrowhead -- a bare "Begin" line (no "%I" tag), immediately after
+// the "%I 1" head/tail marker, through its matching bare "End" line -- is
+// dropped. "armed" (set by "%I 1") stays on across the blank line between
+// a head's ink block and a tail's, so both get stripped; it clears on the
+// first non-blank, non-"Begin" line, which is the MLine's own real "End".
+fin=open(genpath "r")
+fout=open(legacypath "w")
+armed=false
+skipdepth=0
+while((ln=gets(fin))!=nil
+  if(index(ln "%I Idraw" :substr)==0 :then
+    print("%I Idraw 13 Grid 8 8\n" :file fout);
+    continue);
+  if(skipdepth>0 :then
+    if(ln=="Begin\n" :then skipdepth=skipdepth+1);
+    if(ln=="End\n" :then skipdepth=skipdepth-1);
+    continue);
+  if(armed&&(ln=="Begin\n") :then
+    skipdepth=1;
+    continue);
+  if(armed&&(ln!="\n") :then armed=false);
+  if(ln=="%I 1\n" :then armed=true);
+  print(ln :file fout))
+close(fin)
+close(fout)
+
+page=import(legacypath)
+ok=ok&&(page!=nil)
+print("1 a hand-written legacy (pre-arrowhead-ink) file imports (expect true): %v\n" (page!=nil))
+
+e=export(page :string :percomp)
+sawArrow=(index(e "arrowmultiline(" :substr)!=nil)
+sawHeadTail=(index(e ":head" :substr)!=nil)&&(index(e ":tail" :substr)!=nil)
+sawRect=(index(e "rect(" :substr)!=nil)
+ok=ok&&sawArrow&&sawHeadTail&&sawRect
+print("2a the arrow survives with both head and tail (expect true): %v\n" (sawArrow&&sawHeadTail))
+print("2b the rect right after it is not swallowed (expect true): %v\n" sawRect)
+
+print("arrowheadlegacy: %v\n" ok)
+ok

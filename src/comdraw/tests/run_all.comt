@@ -51,6 +51,10 @@ if(run("./arrowheadink.comt")
   :then print("pass: arrowheadink\n")
   :else print("FAIL: arrowheadink\n");ok=false)
 
+if(run("./arrowheadlegacy.comt")
+  :then print("pass: arrowheadlegacy\n")
+  :else print("FAIL: arrowheadlegacy\n");ok=false)
+
 if(run("./gsget.comt")
   :then print("pass: gsget\n")
   :else print("FAIL: gsget\n");ok=false)

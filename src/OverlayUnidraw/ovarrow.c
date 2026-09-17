@@ -270,16 +270,11 @@ boolean ArrowLinePS::IsA (ClassId id) {
     return ARROWLINE_PS == id || LinePS::IsA(id);
 }
 
-/* Arrowhead ink is never drawn by the classic idraw PostScript writer --
-   the head/tail booleans riding on SetB (see the *PS::Brush() overrides
-   below) are round-trip metadata for idraw's own reader to reconstruct
-   an Arrowhead graphic on import, not something a generic PostScript
-   consumer (a real printer, Ghostscript, ...) ever draws. Emit the
-   arrowhead as real "Poly" ink too, nested inside the line's own Begin/
-   End so it inherits the already-written brush/pattern/color (an
-   arrowhead never has its own -- see concatGS() in Arrowhead::draw())
-   and so its own transform composes onto the line's, exactly like
-   concatGraphic() composes them for the interactive draw(). */
+/* An arrowhead has no brush/pattern/color of its own -- it inherits
+   whatever it's nested inside (see Arrowhead::draw()'s use of the
+   passed-in gs). Its own transform composes onto the already-active
+   one from the enclosing Begin, the same way concatGraphic() composes
+   them for the interactive draw(). */
 static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
     if (arrow == nil) return;
 
@@ -290,10 +285,8 @@ static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
     Transformer identity;
 
     out << "Begin\n";
-    /* always solid-filled with the current foreground color, regardless
-       of the line's own (possibly none) pattern -- an arrowhead reads as
-       a solid indicator on screen no matter how its line is filled, and
-       Begin/End's save/restore keeps this override local to this block. */
+    /* always solid-filled, regardless of the line's own pattern; the
+       enclosing Begin/End's save/restore keeps this override local. */
     out << MARK << " p\n0 SetP\n";
     if (my_t == nil || *my_t == identity) {
         out << MARK << " t u\n";
@@ -319,13 +312,9 @@ boolean ArrowLinePS::Definition (ostream& out) {
     aline->GetOriginal(x0, y0, x1, y1);
     float arrow_scale = aline->ArrowScale();
 
-    /* the line's own persisted endpoints stay exactly as GetOriginal()
-       returns them -- round-trip fidelity matters more than covering a
-       few points of stroke overshoot, and the arrowhead's own full,
-       uncorrected triangle (ArrowheadDefinition() below) reaches this
-       same original point anyway (SetArrows() builds it at x()[0]/[l]
-       before any rotation), so the two meet exactly with nothing to
-       correct for. */
+    /* endpoints stay exactly as GetOriginal() returns them -- the
+       arrowhead's own uncorrected triangle (ArrowheadDefinition()
+       below) already reaches this same point by construction. */
     out << "Begin " << MARK << " Line\n";
     MinGS(out);
     out << MARK << "\n";
