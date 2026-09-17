@@ -526,28 +526,25 @@ void ExportFunc::execute() {
 	}
 	if (!percomp_mode) *out << ")\n";
       } else {
-	/* one shared document, not N concatenated ones -- borrow the
-	   selected components (not copies -- copying a raster allocates a
-	   real X-shared-memory pixel buffer, and freeing that throwaway
-	   copy corrupts Xlib's request-sequence tracking for whatever
-	   raster is deleted next) into a throwaway OverlaysComp and Emit()
-	   that once, so OverlaysPS's own header/bbox/font-collection
-	   (already correct for a real group, see run_all.comt's "group"
-	   test) composite them instead of each Emit()-ing a full
-	   standalone document back to back. Append/Remove only relink the
-	   Graphic parent pointer (SetParent itself is a no-op in this
-	   class hierarchy), so removing them again after Emit() leaves the
-	   live selection exactly as it was -- and idraw_format(), silently
-	   ignored by this branch before, now reaches them the same way it
-	   already does for a single-component export. */
-	OverlaysComp* tempgroup = new OverlaysComp();
+	/* composite via a throwaway group, like group() already does;
+	   detach and reattach any component that has a real parent. */
 	AttributeValueList* avl = compviewv.array_val();
+	int nsel = avl->Number();
+	OverlayComp** selcomps = new OverlayComp*[nsel];
+	OverlaysComp** origparents = new OverlaysComp*[nsel];
 	Iterator i;
-	for(avl->First(i);!avl->Done(i); avl->Next(i)) {
+	int idx = 0;
+	for(avl->First(i);!avl->Done(i); avl->Next(i), ++idx) {
 	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-	  if (!comp) break;
-	  tempgroup->Append(comp);
+	  selcomps[idx] = view ? (OverlayComp*)view->GetSubject() : nil;
+	  if (!selcomps[idx]) break;
+	}
+	int nvalid = idx;
+	OverlaysComp* tempgroup = new OverlaysComp();
+	for (idx = 0; idx < nvalid; ++idx) {
+	  origparents[idx] = (OverlaysComp*) selcomps[idx]->GetParent();
+	  if (origparents[idx]) origparents[idx]->Remove(selcomps[idx]);
+	  tempgroup->Append(selcomps[idx]);
 	}
 	OverlayPS* psv = (OverlayPS*) tempgroup->Create(POSTSCRIPT_VIEW);
 	psv->idraw_format(idraw_flag.is_true());
@@ -556,13 +553,13 @@ void ExportFunc::execute() {
 	psv->Emit(*out);
 	tempgroup->Detach(psv);
 	delete psv;
-	for(avl->First(i);!avl->Done(i); avl->Next(i)) {
-	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-	  if (!comp) break;
-	  tempgroup->Remove(comp);
+	for (idx = 0; idx < nvalid; ++idx) {
+	  tempgroup->Remove(selcomps[idx]);
+	  if (origparents[idx]) origparents[idx]->Append(selcomps[idx]);
 	}
 	delete tempgroup;
+	delete [] selcomps;
+	delete [] origparents;
       }
 
     }
