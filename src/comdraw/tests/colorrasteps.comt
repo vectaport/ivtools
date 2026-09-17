@@ -1,28 +1,24 @@
-// src/comdraw/tests/colorrasteps.comt -- #519: a declined ColorRast object no
-// longer desyncs the idraw-format PostScript reader for whatever follows it.
+// src/comdraw/tests/colorrasteps.comt -- #518/#519: a grouped raster and a
+// following graphic both round-trip correctly through idraw-format
+// PostScript.
 //
-// Both IdrawCatalog::PSReadChildren and OverlayCatalog::PSReadChildren
-// recognize the ColorRast tag (the real, full-color raster export(:eps)
-// writes) but, before this fix, never consumed its body: the reader resumed
-// mid-object, misread a stray token from partway through the raster's own
-// PostScript as if it were the next sibling's tag, and (in OverlayCatalog)
-// aborted the whole read right there -- silently dropping every graphic
-// after the raster in the file. group(raster,rect) then export(:eps) puts a
-// ColorRast block immediately before a Rect block in one document, exactly
-// the shape #519 was found in while designing #518's raster-format
-// unification. This does not make the raster itself come back (that's
-// #518's job) -- it only proves the sibling after it survives.
+// Originally written for #519 alone: IdrawCatalog::PSReadChildren and
+// OverlayCatalog::PSReadChildren both recognized the ColorRast tag (the
+// real, full-color raster export writes) but, before that fix, never
+// consumed its body when declining it -- the reader resumed mid-object,
+// misread a stray token as the next sibling's tag, and (in OverlayCatalog)
+// aborted the whole read right there, silently dropping every graphic
+// after the raster in the file. #518 then gave OverlayCatalog real
+// ColorRast-build support (ReadColorRast, ovcatalog.c) and made the
+// corrected colorimage code the only raster writer (ovraster.c), so this
+// now checks the stronger, real thing: the raster itself comes back
+// pixel-correct, not just that its declined-and-skipped neighbor survives.
 //
-// export(:eps) tags the file "%%Creator: unidraw" (per #515/#518, the real
-// ColorRast writer and the "idraw" creator banner are still coupled to the
-// same format flag today, one of the things #518 unifies), and import()'s
-// own file-type sniffing only routes a "%%Creator: idraw"-tagged file to
-// the catalog reader this bug is in -- anything else goes through an
-// external pstoedit conversion instead. So this rewrites just that one
-// banner line before importing, to exercise the catalog reader directly
-// without pulling in that unrelated dependency. Once #518 lands (one
-// PostScript format, no more idraw/unidraw split) this rewrite step drops
-// out on its own.
+// export()'s idraw_format() split no longer affects the raster writer or
+// the %%Creator: banner (both fixed by #518), so :idraw and :eps produce
+// identical PostScript for this test's purposes, and import()'s own
+// Creator-based file-type sniffing routes straight to the real catalog
+// reader with no workaround needed.
 //
 // funcs: raster() rect() select() group() export() import() gets() print()
 
@@ -32,13 +28,12 @@ each(delete($$select(:all)))
 // /tmp, not repo-relative -- see rastereps.comt for why.
 srand(int(time(:raw)))
 suffix=int(rand(0,999999))
-rawpath=print("/tmp/ivtools-colorrasteps-raw-%d.eps" suffix :str)
-idrawpath=print("/tmp/ivtools-colorrasteps-idrawtag-%d.eps" suffix :str)
+epspath=print("/tmp/ivtools-colorrasteps-%d.eps" suffix :str)
 
-// --- test 1: group a raster (writes ColorRast under :eps) with a rect, and
-//             export -- confirm the file actually has ColorRast before a
-//             Rect *object* (not the prolog's own "/Rect {" procedure
-//             definition), or the rest of this test proves nothing ---
+// --- test 1: group a raster with a rect, and export -- confirm the file
+//             has a ColorRast object before a Rect *object* (not the
+//             prolog's own "/Rect {" procedure definition), or the rest
+//             of this test proves nothing ---
 ra=raster(0,0,64,64 :rgb 2,2,
   0xff0000,0x00ff00,
   0x0000ff,0xffffff)
@@ -46,9 +41,9 @@ rt=rect(200,200,300,260)
 select(ra rt)
 g=group()
 ok=ok&&(size(g)==2)
-export(g rawpath :eps)
+export(g epspath :idraw)
 
-fp=open(rawpath "r")
+fp=open(epspath "r")
 sawColorRast=false
 sawRect=false
 sawColorRastFirst=false
@@ -59,28 +54,21 @@ close(fp)
 ok=ok&&sawColorRast&&sawRect&&sawColorRastFirst
 print("1 exported file has a ColorRast object before a Rect object (expect true): %v\n" (sawColorRast&&sawRect&&sawColorRastFirst))
 
-// --- rewrite "%%Creator: unidraw" to "%%Creator: idraw" (see file header) ---
-infp=open(rawpath "r")
-outfp=open(idrawpath "w")
-while((ln=gets(infp))!=nil
-  if(index(ln "%%Creator: unidraw" :substr)==0
-    :then print("%%Creator: idraw\n" :file outfp)
-    :else print(ln :file outfp)))
-close(infp)
-close(outfp)
-
-// --- test 2: re-importing must not lose or corrupt the rect that follows
-//             the declined raster.  Before the fix, the reader lands mid-
-//             ColorRast-body on its next token scan, misreads it as a
-//             bogus tag, and aborts -- so the rect never makes it into the
-//             reconstructed picture at all. ---
+// --- test 2: re-importing recovers BOTH graphics correctly -- the raster
+//             with its original pixel colors, and the rect (after it in
+//             the file) with its original coordinates.  export(:percomp)
+//             walks the real GraphicComp tree directly, so this doesn't
+//             depend on the view-realization timing children() needs. ---
 each(delete($$select(:all)))
-page=import(idrawpath)
+page=import(epspath)
 ok=ok&&(page!=nil)
 e=export(page :string :percomp)
-ok=ok&&(index(e "200,200,300,260")!=nil)
-print("2 surviving rect keeps its original coordinates after the declined raster (expect true): %v\n" ok&&(index(e "200,200,300,260")!=nil))
-print("2b reconstructed picture: %v\n" e)
+sawRasterColors=(index(e "(255,0,0)")!=nil)&&(index(e "(0,255,0)")!=nil)&&(index(e "(0,0,255)")!=nil)&&(index(e "(255,255,255)")!=nil)
+sawRectCoords=(index(e "200,200,300,260")!=nil)
+ok=ok&&sawRasterColors&&sawRectCoords
+print("2a raster recovers all four original pixel colors (expect true): %v\n" sawRasterColors)
+print("2b rect keeps its original coordinates after the raster (expect true): %v\n" sawRectCoords)
+print("2c reconstructed picture: %v\n" e)
 
 print("colorrasteps: %v\n" ok)
 ok

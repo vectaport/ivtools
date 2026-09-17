@@ -44,6 +44,11 @@
 
 static const int color_depth = 8;               // bits per color in PostScript
 
+static char hexcharmap[] = {
+     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+     'a', 'b', 'c', 'd', 'e', 'f'
+};
+
 /*****************************************************************************/
 
 ClassId RasterComp::GetClassId () { return RASTER_COMP; }
@@ -137,22 +142,54 @@ boolean PSRaster::Definition (ostream& out) {
     Coord w = raster->Width();
     Coord h = raster->Height();
 
-    out << "Begin " << MARK << " " << "Rast\n";
+    out << "Begin " << MARK << " " << "ColorRast\n";
     Transformation(out);
 
-    out << MARK << "\n";
-    out << w << " " << h << " " << color_depth << " Rast ";
-    out << "{ currentfile ";
-    out << (w * color_depth + 7) / 8 << " ";
-    out << "string readhexstring pop }\n";
-    out << "image";
-
     Catalog* catalog = unidraw->GetCatalog();
-    catalog->WriteGraymapData(raster, out);
+    catalog->Mark(out);
+    out << w << " " << h << "\n";
+
+    out << "\n/readstring {\n";
+    out << "  currentfile exch readhexstring pop\n";
+    out << "} bind def\n";
+    out << "/rpicstr " << w << " string def\n";
+    out << "/gpicstr " << w << " string def\n";
+    out << "/bpicstr " << w << " string def\n\n";
+
+    out << w << " " << h << " scale\n";
+    out << w << " " << h << " 8\n";
+    out << "[ " << w << " 0 0 -" << h << " 0 " << h << " ]\n";
+    out << "{ rpicstr readstring }\n";
+    out << "{ gpicstr readstring }\n";
+    out << "{ bpicstr readstring }\n";
+    out << "true 3\n";
+    out << "colorimage\n";
 
     catalog->Mark(out);
-    out << "colorimage";
-    catalog->WriteRasterData(raster, out);
+
+    ColorIntensity r, g, b;
+    float alpha;
+    int count = 0;
+    for (int j = h-1; j>=0; --j) {
+	for (int i=0; i<w; ++i) {
+	    raster->peek(i, j, r, g, b, alpha);
+	    int ir = (int)(r*255);
+	    out << hexcharmap[ir/16] << hexcharmap[ir%16];
+	    if (++count%40 == 0) out << "\n";
+	}
+	for (int i=0; i<w; ++i) {
+	    raster->peek(i, j, r, g, b, alpha);
+	    int ig = (int)(g*255);
+	    out << hexcharmap[ig/16] << hexcharmap[ig%16];
+	    if (++count%40 == 0) out << "\n";
+	}
+	for (int i=0; i<w; ++i) {
+	    raster->peek(i, j, r, g, b, alpha);
+	    int ib = (int)(b*255);
+	    out << hexcharmap[ib/16] << hexcharmap[ib%16];
+	    if (++count%40 == 0) out << "\n";
+	}
+    }
 
     out << "\nEnd\n\n";
 

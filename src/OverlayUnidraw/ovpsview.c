@@ -116,7 +116,9 @@ OverlayPS::OverlayPS (OverlayComp* subj) : PostScriptView(subj) {
 }
 
 void OverlayPS::Creator (ostream& out) {
-    out << "%%Creator: " << (idraw_format() ? "idraw" : "unidraw") << "\n";
+    // always "idraw": OvImportCmd::DoImport's Creator sniff routes anything
+    // else through an external pstoedit conversion instead of this catalog.
+    out << "%%Creator: idraw\n";
 }
 
 UList* OverlayPS::GetPSFonts () {

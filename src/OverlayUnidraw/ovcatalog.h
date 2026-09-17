@@ -72,6 +72,7 @@ public:
     GraphicComp* ReadSStencil(istream&);
     GraphicComp* ReadFStencil(istream&);
     GraphicComp* ReadRaster(istream&);
+    GraphicComp* ReadColorRast(istream&);
 
     virtual void SetParent(OverlayComp*);
     // set parent component to pass to OverlayIdrawComp istream constructor.

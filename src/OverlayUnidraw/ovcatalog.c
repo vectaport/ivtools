@@ -131,6 +131,44 @@ static void HexDecode (
     ib = float(b) / float(color_base);
 }
 
+// reads one hex byte from a ColorRast payload, skipping the writer's
+// cosmetic line-wrap whitespace between digit pairs.
+static int ReadHexByte (istream& in) {
+    int nibble[2];
+    for (int k = 0; k < 2; ++k) {
+        char c;
+        do {
+            in.get(c);
+            if (!in.good()) return -1;
+        } while (isspace(c));
+        nibble[k] = hexintmap[(unsigned char)c];
+    }
+    return (nibble[0] << 4) | nibble[1];
+}
+
+// ColorRast's payload is planar per row (all reds, then all greens, then
+// all blues), matching the {rpicstr}{gpicstr}{bpicstr} true 3 colorimage
+// operator it's written for -- unlike ReadRasterData's per-pixel triples.
+static void ReadColorRasterData (OverlayRaster* raster, istream& in) {
+    Coord w = raster->Width();
+    Coord h = raster->Height();
+    ColorIntensity* rrow = new ColorIntensity[w];
+    ColorIntensity* grow = new ColorIntensity[w];
+    ColorIntensity* brow = new ColorIntensity[w];
+
+    for (int j = h-1; j >= 0; --j) {
+        for (int i = 0; i < w; ++i) rrow[i] = float(ReadHexByte(in)) / float(color_base);
+        for (int i = 0; i < w; ++i) grow[i] = float(ReadHexByte(in)) / float(color_base);
+        for (int i = 0; i < w; ++i) brow[i] = float(ReadHexByte(in)) / float(color_base);
+        for (int i = 0; i < w; ++i) raster->poke(i, j, rrow[i], grow[i], brow[i], 1);
+    }
+
+    delete [] rrow;
+    delete [] grow;
+    delete [] brow;
+    raster->flush();
+}
+
 /*****************************************************************************/
 
 OverlayCatalog::OverlayCatalog (
@@ -329,11 +367,7 @@ void OverlayCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
 	else if (strcmp(_buf, "SSten") == 0)    child = ReadSStencil(in);
 	else if (strcmp(_buf, "FSten") == 0)    child = ReadFStencil(in);
 	else if (strcmp(_buf, "Rast") == 0)     child = ReadRaster(in);
-	else if (strcmp(_buf, "ColorRast") ==0) {
-	  child = nil;
-	  cerr << "Support for reading idraw PostScript with color-printer ready rasters not yet available.\n";
-	  PSSkipToEnd(in);
-	}
+	else if (strcmp(_buf, "ColorRast") ==0) child = ReadColorRast(in);
 	else if (strcmp(_buf, "eop") == 0)      break;
 
 	else {
@@ -583,6 +617,23 @@ GraphicComp* OverlayCatalog::ReadRaster (istream& in) {
 
     OverlayRaster* raster = new OverlayRaster(w, h);
     ReadRasterData(raster, in);
+
+    return new RasterOvComp(new OverlayRasterRect(raster, &gs));
+}
+
+// ColorRast's writer marks the width/height and the start of the hex
+// payload (RasterPS::Definition, ovraster.c) so this can Skip() straight
+// to each rather than token-scanning past the PostScript procedure defs.
+GraphicComp* OverlayCatalog::ReadColorRast (istream& in) {
+    FullGraphic gs;
+    PSReadTransformer(in, &gs);
+    Skip(in);
+    Coord w, h;
+    in >> w >> h;
+    Skip(in);
+
+    OverlayRaster* raster = new OverlayRaster(w, h);
+    ReadColorRasterData(raster, in);
 
     return new RasterOvComp(new OverlayRasterRect(raster, &gs));
 }
