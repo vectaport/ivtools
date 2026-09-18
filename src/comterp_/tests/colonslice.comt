@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print eq split string strcap + index gt lt ge le isslice islist
+// funcs: colonlist at size print eq split string strcap + index gt lt ge le isslice islist char
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -288,6 +288,22 @@ print("   islist(c24 :colon), islist(l24 :colon) (expect true false): %v %v\n" i
 print("   islist(c24 :list), islist(l24 :list) (expect false true): %v %v\n" islist(c24 :list) islist(l24 :list))
 print("   islist(al24), islist(al24 :attr) (expect false true): %v %v\n" islist(al24) islist(al24 :attr))
 print("   islist(al24 :any), islist(c24 :any) (expect true true): %v %v\n\n" islist(al24 :any) islist(c24 :any))
+
+// --- 25: cstr() returns a genuine C string, not a slice's full raw
+//         byte range -- an embedded NUL inside a slice's own window
+//         ends print()/==, the same as any C string, even though
+//         size() still reports the slice's full declared length
+//         (slicelen() is a stored field, unrelated to cstr()'s read) ---
+buf25=string(10)
+at(buf25 0 :set 'h')
+at(buf25 1 :set 'i')
+at(buf25 2 :set char(0))
+at(buf25 3 :set 'X')
+sl25=buf25@0:10
+ok=ok&&(size(sl25)==10)
+ok=ok&&(print(sl25 :str)=="hi")
+ok=ok&&(sl25=="hi")
+print("25 an embedded NUL ends cstr()'s text there, not slicelen() (expect 10 hi true): %v %s %v\n" size(sl25) print(sl25 :str) (sl25=="hi"))
 
 print("colonslice: %v\n" ok)
 ok

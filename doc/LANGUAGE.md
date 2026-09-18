@@ -2921,14 +2921,64 @@ strcap(a)                     // 20 -- same buffer, not reallocated
 buf                             // "hi there" -- visible through buf too
 ```
 
-`+` writes into a string's own spare capacity when there's room, the
-same amortized-growth model Go's `append()` uses — no copy, and (same
-tradeoff as above) the growth is visible through every reference to
-that buffer. Once capacity runs out, `+` falls back to allocating a
-fresh, larger string and copying, leaving the original untouched.
-Concatenating two ordinary strings (no spare capacity to reuse) always
-takes this copying path — the fast path is specifically for a
-`string()` buffer with room left in it.
+`+` writes into a string's own spare capacity when there's room — no
+copy, and (same tradeoff as above) the growth is visible through every
+reference to that buffer. Once capacity runs out, `+` falls back to
+allocating a fresh string at the exact size needed and copying,
+leaving the original untouched and giving the result no spare room of
+its own — a second `+` past that point copies again. `append()`, below,
+is the one that gets Go's real amortized-doubling growth on that path.
+
+**`append(dest val)`** is `+`'s by-name sibling: it grows `dest` (a
+string, itself or a slice of one) by `val` (a string or a single char)
+using the exact same in-place-vs-reallocate logic as `+`, and when
+`dest` is a bare local variable it also writes the grown result back
+under that name:
+
+```
+s="";append(s "hi")        // s is now "hi"
+append(s "!")                // s is now "hi!"
+```
+
+Unlike `+`'s copy path, `append()`'s own reallocation doubles the
+needed length, so a run of appends past a buffer's original capacity
+still amortizes to O(1) each, the same as Go's `append`. If `dest`
+isn't a bare symbol — an expression, `global(x)`, a literal — `append()`
+just returns the grown value like any other command, with no name to
+write back to.
+
+Because `append()` is an ordinary command (not `post_eval`, the way
+`=` is), a stream-valued `val` drives the same per-element re-firing
+any other command's stream argument does — each firing sees the
+previous one's write, since the write-back is a real, persistent
+update to `dest`'s symbol table entry. That makes `append()` a genuine
+stream fold:
+
+```
+s="";append(s print(0..9 :str))
+s                               // "0123456789" -- built one element at a time
+```
+
+`append(dest val)` on `dest` bound to anything that isn't a string (or
+unbound) returns `nil` and leaves `dest` untouched, the same nil-on-
+mismatch fallback `+` and the comparison operators already use.
+
+**`string(str)`** copies a string or slice instead of allocating a
+buffer, when its argument is itself a string rather than a capacity —
+a genuine C string by default (stopping at the first embedded NUL, if
+there is one), or the slice's full declared range with `:raw`:
+
+```
+buf=string(8)
+at(buf 0 :set 'a'); at(buf 1 :set 'b'); at(buf 2 :set 'c')
+at(buf 3 :set char(0)); at(buf 4 :set 'd')
+sl=buf@0:8
+string(sl)                   // "abc" -- stops at the embedded NUL
+size(string(sl :raw))        // 8 -- the full range, NUL and "d" included
+```
+
+Either form returns a fresh, independent copy, never an alias of the
+original's backing storage.
 
 `:` is comterp's colon-pair operator, not slice-specific — `str@lo:hi`
 is just `at()` fed a two-element `:`-built list as its index. `lo:hi`

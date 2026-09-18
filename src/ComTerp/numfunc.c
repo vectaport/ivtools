@@ -248,63 +248,9 @@ void AddFunc::execute() {
 	break;
     case ComValue::StringType:
     case ComValue::SymbolType:
-        { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-          /* Go-style append: grows operand1's own backing symid in place
-             when there's room, otherwise falls back to a copy via symbol_add() */
-          std::string scratch1, scratch2;
-          const char* s1 = operand1.cstr(scratch1);
-          int len1 = operand1.sliced() ? operand1.slicelen() : (int)strlen(s1);
-          int base1 = operand1.sliced() ? operand1.sliceoff() : 0;
-          int end1 = base1 + len1;
-          boolean growable = operand1.is_only_string();
-          int cap1 = growable ? symbol_len(operand1.symbol_val()) : 0;
-
-          if (operand2.is_string()) {
-            const char* s2 = operand2.cstr(scratch2);
-            int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
-            if (growable && end1+len2 < cap1) {
-              char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              /* memmove, not memcpy: s2 can point into this same
-                 buffer (e.g. a slice of it), so the ranges can overlap */
-              memmove(buf+end1, s2, len2);
-              buf[end1+len2] = '\0';
-              result.string_ref() = operand1.symbol_val();
-              result.ref_as_needed();
-              result.sliceoff(base1);
-              result.slicelen(len1+len2);
-              result.sliced(1);
-            } else {
-              int newlen = len1+len2;
-              std::vector<char> vbuf(newlen+1);
-              memcpy(&vbuf[0], s1, len1);
-              memcpy(&vbuf[0]+len1, s2, len2);
-              vbuf[newlen] = '\0';
-              result.string_ref() = symbol_add(&vbuf[0]);
-              result.ref_as_needed();
-              result.sliced(0);
-            }
-          } else {
-            if (growable && end1+1 < cap1) {
-              char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              buf[end1] = operand2.char_val();
-              buf[end1+1] = '\0';
-              result.string_ref() = operand1.symbol_val();
-              result.ref_as_needed();
-              result.sliceoff(base1);
-              result.slicelen(len1+1);
-              result.sliced(1);
-            } else {
-              int newlen = len1+1;
-              std::vector<char> vbuf(newlen+1);
-              memcpy(&vbuf[0], s1, len1);
-              vbuf[len1] = operand2.char_val();
-              vbuf[newlen] = '\0';
-              result.string_ref() = symbol_add(&vbuf[0]);
-              result.ref_as_needed();
-              result.sliced(0);
-            }
-          }
-	}
+        /* shared with append() (ComValue::append_str()), but with no headroom
+           on the copy path -- '+' always allocates an exact fit. */
+        result = operand1.append_str(operand2, false);
 	break;
     case ComValue::ArrayType: 
         {

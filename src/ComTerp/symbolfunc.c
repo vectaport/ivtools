@@ -278,7 +278,26 @@ void StringFunc::execute() {
   static int spaces_symid = symbol_add("spaces");
   ComValue spacesv(stack_key(spaces_symid));
   boolean spacesflag = spacesv.is_true();
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key(raw_symid));
+  boolean rawflag = rawv.is_true();
   reset_stack();
+
+  /* string(str) is a copy, not a capacity request: :raw copies the full
+     slice (append_str()'s own byte range), bare stops at the first NUL
+     (cstr()'s C-string contract) -- see SLICES.md for the distinction. */
+  if (capv.is_string()) {
+    if (rawflag) {
+      ComValue dest("");
+      ComValue retval = dest.append_str(capv, true);
+      push_stack(retval);
+    } else {
+      std::string scratch;
+      ComValue retval(capv.cstr(scratch));
+      push_stack(retval);
+    }
+    return;
+  }
 
   int cap = capv.int_val();
   int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
@@ -816,6 +835,51 @@ void SubStrFunc::execute() {
       push_stack(strv);
     else
       push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+AppendFunc::AppendFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void AppendFunc::execute() {
+  /* stack_arg(0,true) peeks arg0 unresolved -- only a bare symbol carries
+     a name to write the grown result back under. */
+  ComValue arg0(stack_arg(0, true));
+  boolean have_name = arg0.is_symbol();
+  ComValue dest;
+  if (have_name) {
+    ComValue probe(arg0);
+    dest = comterp()->lookup_symval(probe);
+  } else {
+    dest = arg0;
+  }
+  ComValue addend(stack_arg(1));
+  reset_stack();
+
+  if (!dest.is_only_string() || !(addend.is_string() || addend.is_char())) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComValue result = dest.append_str(addend, true /* headroom */);
+
+  /* write back only on success, into whichever table holds the binding. */
+  /* local shadows global on read, so check local first, then global. */
+  if (have_name && result.is_only_string()) {
+    void* vptr = nil;
+    if (comterp()->localtable()->find(vptr, arg0.symbol_val())) {
+      comterp()->localtable()->remove(arg0.symbol_val());
+      delete (ComValue*)vptr;
+      comterp()->localtable()->insert(arg0.symbol_val(), new ComValue(result));
+    } else if (comterp()->globaltable()->find(vptr, arg0.symbol_val())) {
+      comterp()->globaltable()->remove(arg0.symbol_val());
+      delete (ComValue*)vptr;
+      comterp()->globaltable()->insert(arg0.symbol_val(), new ComValue(result));
+    }
+  }
+
+  push_stack(result);
 }
 
 

@@ -118,10 +118,11 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "str=%s(cap :spaces) -- cap bytes, NUL-filled (or space-filled with :spaces)"; }
+      return "str=%s(cap :spaces | str :raw) -- cap bytes if cap is an int; a copy of str otherwise (:raw for its full range, else NUL-terminated)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":spaces    fill with spaces instead of NUL bytes",
+	":spaces    fill with spaces instead of NUL bytes (int form only)",
+	":raw       copy str's full range, not just up to its first NUL",
 	nil
       };
       return keys;
@@ -248,5 +249,21 @@ public:
     }
 };
 
+//: Go-style append -- grow a string in place when there's room, else reallocate.
+// slc=append(dest val) -- appends val (a string or a char) onto dest.  When
+// dest is a bare local variable, the grown result is also written back
+// under that name, so append() can drive a stream fold (append(s stream)
+// re-fires once per element, each firing seeing the previous one's write).
+// When dest is anything else (an expression, a global()/local() read, a
+// literal), append() just returns the grown value, same as any other
+// command -- there's no name to write back to.
+class AppendFunc : public ComFunc {
+public:
+    AppendFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "slc=%s(dest val) -- append val onto dest, growing in place when there's room"; }
+};
 
 #endif /* !defined(_symbolfunc_h) */

@@ -313,9 +313,11 @@ Print a usage summary of all the invocation modes above and exit.
 
 .SH STRING COMMANDS
 
- str=string(cap :spaces) -- cap bytes, NUL-filled (or space-filled with :spaces)
+ str=string(cap :spaces | str :raw) -- cap bytes if cap is an int; a copy of str otherwise (:raw for its full range, else NUL-terminated)
 
  n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator
+
+ slc=append(dest val) -- append val onto dest, growing in place when there's room
 
  lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 

@@ -37,18 +37,31 @@ each one repurposing storage a `StringType` never otherwise needs:
 
 `coloned()` (`COMVALUE_COLONED_FLAG`, `comvalue.h:150-152`) is a
 separate, unrelated flag on `ArrayType` values, marking a list built
-by `:` rather than `,` — see §6.
+by `:` rather than `,` — see §7.
 
 ## 2. `cstr()` is the only correct read
 
 `ComValue::cstr(std::string& scratch)` (`comvalue.c:179-193`) is the
-slice-aware text accessor. Not sliced: returns
+slice-aware text accessor, and it returns a genuine C string, not the
+slice's full raw byte range. Not sliced: returns
 `AttributeValue::string_ptr()` (the whole shared string) directly, no
 copy. Sliced: copies `[sliceoff(), sliceoff()+slicelen())` into
-`scratch` and returns `scratch.c_str()` — a real copy is unavoidable
-here, because a slice's own end is not a real `'\0'` in the shared
-backing string, and writing one there would reintroduce the bug §7
-describes for a different reason.
+`scratch`, but stops early at the first embedded `'\0'` if there is
+one (via `memchr`, bounded by `slicelen()` either way) — every actual
+caller (`strcmp`/`strncmp`, `strlen`, `strstr`, `symbol_add()`,
+`ostream::operator<<`) already treats the result as NUL-terminated
+regardless of what gets copied, so there's nothing upstream of the
+first NUL for a longer copy to buy: none of them ever look past the
+byte a plain C string API would stop at anyway. This also makes
+`cstr()` cheap even when a slice's declared window is huge but its
+real content is short and NUL-delimited — the copy (and the `memchr`
+scanning for the terminator) is bounded by *that*, not by
+`slicelen()`. A copy is still unavoidable rather than returning a raw
+pointer into the shared buffer: a slice's own end (or its embedded
+NUL) is not something safe to hand out a live pointer to, since
+another live reference to the same backing symid can still write
+through it — see §4's aliasing tradeoff, and the bug that section
+documents fixing on the write side of exactly this hazard.
 
 Every migrated call site declares its own local `std::string scratch`
 and calls `.cstr(scratch)` — never a shared/static buffer. `cstr()` is
@@ -78,10 +91,11 @@ Slice-aware via `cstr()`: `print()` (`iofunc.c`, both the `%s`-spec and
 no-spec paths, plus `operator<<`'s own `StringType` case, `comvalue.c`
 — covers `%v` and the REPL's bare-echo), `==`/`!=` (`EqualFunc`/
 `NotEqualFunc`, `boolfunc.c`), `split()` (`SplitStrFunc`,
-`symbolfunc.c`), `+` (`AddFunc`, `numfunc.c` — §4), `index()`
-(`ListIndexFunc`, `listfunc.c`), and `<`/`>`/`<=`/`>=`
-(`boolfunc.c` — §5). `symadd()` reads `cstr()` too, for a different
-reason (§6).
+`symbolfunc.c`), `index()` (`ListIndexFunc`, `listfunc.c`), and
+`<`/`>`/`<=`/`>=` (`boolfunc.c` — §6). `symadd()` reads `cstr()` too,
+for a different reason (§8). `+` and `append()` are slice-aware but
+deliberately *not* through `cstr()` — §4 explains why growth needs the
+raw bytes, not a NUL-truncated C-string view.
 
 `==`/`!=` also stopped short-cutting to `symbol_val()` identity for
 `StringType` — valid only for two genuine symbols, or two ordinary
@@ -115,21 +129,33 @@ that symid; writing through one would corrupt everyone else's
 view). Given that, the in-place condition is:
 
 ```
-a.sliceoff() + a.slicelen() + b.length < symbol_len(a's symid)
+a.sliceoff() + a.slicelen() + b.length <= symbol_len(a's symid)
 ```
 
 When it holds, `b`'s bytes are `memmove`'d (not `memcpy` — see below)
 straight into the spare trailing capacity of `a`'s own backing symid,
 and the result is handed back as a slice over that *same* symid with
-the extended length — zero copy. Otherwise, a fresh, larger buffer is
-allocated via `symbol_add()` and both operands are copied in once.
+the extended length — zero copy, and no terminating `'\0'` is written:
+the result is always `sliced()`, so `slicelen()` is the real end, the
+same way `cstr()` already treats a slice's own end as not a real `'\0'`
+on the read side (§2). Writing one anyway, at `a`'s new end, would risk
+landing inside some *other* still-live slice's own valid window further
+into the same symid and corrupting it — exactly the bug an earlier
+version of this write-in-place path had, caught by `append()`'s own
+test suite (`append.comt`, cases 16a/16b: an unnamed slice expression
+growing into its parent's spare capacity, then a later append through
+the parent silently overwriting bytes the first slice still considers
+valid — the overwrite itself is expected aliasing, described below, but
+a phantom terminator briefly made `print()` truncate the surviving
+bytes too). Otherwise, a fresh, larger buffer is allocated via
+`symbol_add()` and both operands are copied in once.
 
 ### Why `symbol_add()`, not `symbol_new()`, on the copy path
 
 The first version of the copy path used `symbol_new()` with 2x
 amortized headroom, matching Go's own growth-on-realloc policy
 exactly — reasonable by analogy, and wrong. `symadd()`'s `StringType`
-branch (`SymAddFunc::execute()`, before its own fix in §6) reused a
+branch (`SymAddFunc::execute()`, before its own fix in §8) reused a
 `StringType` argument's own symid directly as a symbol id, with no
 lookup — valid only because, pre-`string()`, every `StringType` value's
 symid necessarily *did* come from `symbol_add()` already: deduped,
@@ -145,8 +171,9 @@ already-over-provisioned `string()` buffer, gets zero-copy growth.
 
 `b` (the value being appended) can alias `a`'s own buffer — e.g.
 `sl=buf@0:5; sl+buf` appends `buf`'s own unsliced text onto a slice of
-itself, so the read range (`b`'s `cstr()`) and the write range
-(`a`'s trailing capacity) can genuinely overlap. `memcpy`'s
+itself, so the read range (`b`'s own bytes, read via `string_ptr()` +
+`sliceoff()`, not `cstr()` — see above) and the write range (`a`'s
+trailing capacity) can genuinely overlap. `memcpy`'s
 non-overlap requirement is trivially satisfied when writing into a
 *fresh* allocation (the copy path, always a brand-new buffer) but never
 guaranteed when the destination is existing, potentially-shared
@@ -168,15 +195,178 @@ array:
   `symbol_len()`) — an append can only ever extend forward into space
   nothing has fenced off, never outside the symid's own allocation.
 
-No amortized/doubling growth policy exists for a *plain* (non-`string()`
--backed) repeated-append loop — `for(...) a=a+x` starting from an
-ordinary string still copies on every iteration, since an ordinary
-string's own capacity always equals its length. Only a `string()`
-buffer with real spare capacity gets the fast path. Open question, not
-yet decided: whether that's worth a dedicated growable-string type
-distinct from a plain interned `StringType`.
+No amortized/doubling growth policy exists on `+`'s own copy path — a
+`for(...) a=a+x` loop starting from an ordinary string, or one that has
+already exhausted a `string()` buffer's capacity once, copies again on
+every further iteration, since the copy path's result (via
+`symbol_add()`, above) never carries spare room of its own. Only a
+`string()` buffer's original, explicitly-requested capacity gets the
+fast path through repeated `+`.
 
-## 5. Ordering comparisons: a pre-existing gap, not a slice bug
+### `append()`: the same logic, with real headroom on its own copy path
+
+`append(dest val)` (`AppendFunc::execute()`, `symbolfunc.c`) is `+`'s
+by-name sibling (#396): same in-place-vs-copy decision, same
+`memmove`-for-aliasing write, same aliasing tradeoff above — both share
+one implementation, `ComValue::append_str(ComValue& addend, boolean
+headroom)` (`comvalue.c`), with `AddFunc::execute()`'s `StringType`/
+`SymbolType` case now just `operand1.append_str(operand2, false)`.
+The `headroom` argument is the one place the two callers diverge:
+`+` passes `false` (the exact-fit `symbol_add()` path above, left
+unchanged); `append()` passes `true`, which routes the copy path
+through `symbol_new(2*newlen)` instead — safe now in a way it wasn't
+when the copy path's own `symbol_new()` attempt was reverted (see "Why
+`symbol_add()`, not `symbol_new()`" above): that revert was about
+`symadd()` trusting a `StringType`'s symid directly, a bug §8 fixes
+independently of which allocator either copy path uses. So
+`append()`'s own copy path gets real, Go-style amortized-doubling
+growth: a run of `append()` calls past a buffer's original capacity
+settles into the same O(1)-per-call in-place path `+` already has,
+once the first reallocation's headroom is in place.
+
+`append()`'s other half — by-name mutation — is unrelated to
+`append_str()` itself and lives entirely in `AppendFunc::execute()`:
+it peeks its first argument raw (`stack_arg(0, true)`, the same
+unresolved-symbol mechanism `:` uses, §7 below), and only when that
+peek is a bare symbol does it look up the current value and write the
+grown result back under that name (`comterp()->localtable()`, the same
+remove-old/insert-new pattern `AssignFunc::execute()` uses for a plain
+local write). Anything else — an expression, `global(x)`, a literal —
+arrives already resolved, with no name to write back to; `append()`
+still computes and returns the grown value, the same as any other
+command, it just has nowhere to persist it. `append()` deliberately
+stays a plain, non-`post_eval` command to get this: unlike `=`/`++`
+and their `AssignFunc` siblings, which must be `post_eval` to tell a
+bare symbol apart from a `global(x)=`/`at()` lvalue expression before
+it evaluates, `append()`'s first argument only ever needs "is this a
+bare local symbol," which plain `stack_arg(0, true)` already answers
+without deferring evaluation. That in turn is what makes `append()` a
+genuine stream fold for free: staying non-`post_eval` means a
+stream-valued second argument still triggers the ordinary
+overdrive-detection scan (`comterp.c:626`) and per-element re-firing
+every other command's stream argument gets, and each firing's by-name
+write-back is a real, persistent update the next firing reads back.
+
+### `string(str)`: an explicit copy, either kind
+
+`StringFunc::execute()` overloads on its argument's type: an `IntType`
+requests a capacity, same as always; a string or slice requests a
+*copy* of it instead, and which of the two byte-range contracts (§2's
+`cstr()` vs. §4's raw `append_str()` read) it copies through is
+`:raw`'s job to pick. Bare, it's `capv.cstr(scratch)` boxed into a
+fresh `ComValue` — a genuine C string, stopping at the first embedded
+NUL. With `:raw`, it's `ComValue("").append_str(capv, true)` — the
+same mechanism `append("" str)` already gave script code, just under a
+less roundabout name, copying the argument's full `slicelen()` range,
+embedded NULs and anything past them included. Either form returns an
+independent copy: the `:raw` path's destination starts from a fresh,
+zero-capacity `""`, so `append_str()`'s reallocate-and-copy branch
+always runs, never its in-place-alias one.
+
+## 5. Two views, one storage: C strings and byte buffers coexisting
+
+Every `StringType` value is, underneath, just a byte buffer —
+`symbol_new()`/`symbol_add()`-backed memory, optionally windowed by
+`sliceoff()`/`slicelen()`. Nothing about that storage requires NUL
+termination, and nothing stops any byte position, `'\0'` included,
+from being written (`at(s n :set 0)`; `string()`'s own initial fill is
+all NUL). So a comterp string can be "shorter than its own storage" in
+two unrelated senses: by an explicit, tracked boundary (`slicelen()`),
+or by an *embedded* NUL sitting somewhere inside that boundary. Those
+give rise to two deliberately separate readings of the same value:
+
+- **The byte buffer view** — `[sliceoff(), sliceoff()+slicelen())`,
+  verbatim, `'\0'` included wherever it falls. What `append()`/`+`
+  (`ComValue::append_str()`) read and grow, and what `string(str
+  :raw)` copies.
+- **The C string view** — `cstr()`'s contract (§2): the buffer view,
+  truncated at the first embedded `'\0'`, because that's what every
+  actual C-string-consuming API (`strcmp`, `strlen`, `strstr`,
+  `symbol_add()`, `ostream::operator<<`) does the instant it touches
+  the result, regardless of what got handed to it. What
+  `==`/`!=`/`<`/`>`/`<=`/`>=`, `split()`, `index()`, `print()`, and
+  `string(str)` (bare) all return.
+
+Neither view is "more correct" — they answer different questions (what
+are this slice's bytes, vs. what does it look like as a string), and
+one comterp string genuinely supports both, at once, without
+contradiction. What was never supported, correctly, is a single
+function trying to answer both at the same time.
+
+### Getting each view explicitly
+
+- A fresh copy of the full byte range, embedded NULs and all:
+  `string(str :raw)`, or the equivalent `t=""; append(t str)`.
+- A fresh, NUL-terminated copy: `string(str)`, or `print(str :str)`.
+- Comparing text stops at the first NUL either side: `==`/`!=` and the
+  four ordering operators (§6) all go through `cstr()`. There is
+  currently no exposed way to compare two slices' full byte ranges.
+
+`string(str [:raw])` is the direct, named form of this choice (#396).
+It isn't new machinery — its two branches are exactly `cstr()` and
+`append_str()`, the same two paths `print(str :str)` and `append(""
+str)` already exposed; the overload just gives that choice a name that
+doesn't require knowing either internal to reach for.
+
+### Why they have to be genuinely separate, not one function guessing
+
+Two reasons, both surfaced as real bugs while building this feature:
+
+1. **A raw pointer into shared, mutable storage is unsafe to hand out,
+   NUL or no NUL.** `cstr()` could, in principle, detect "this slice
+   already happens to be NUL-terminated inside its own window" and
+   return a pointer straight into the buffer instead of copying — but
+   that pointer would be a live view into storage another reference
+   can still write through before the caller is done with it. `cstr()`
+   always copies for exactly this reason. Trying to skip the copy on
+   some detected-safe path would reopen the same class of bug that
+   `append_str()`'s old eager terminator-write caused on the write
+   side (below) — a snapshot beats a live alias either direction.
+2. **A C string cannot losslessly represent an embedded NUL, no matter
+   which function reads it.** If a slice's real content is `"abc\0defg"`
+   (8 bytes, by design), no NUL-terminated C string represents all 8 —
+   `"abc"` is the only thing any NUL-based reader can ever produce from
+   it. Making `cstr()` "smarter" wouldn't recover those bytes; it would
+   just move the loss from a function whose name says what it does to
+   one whose name gave no warning it might silently drop data.
+
+Given both, `append_str()` — which genuinely needs the byte-buffer view
+— reads directly off `string_ptr()+sliceoff()` and never calls
+`cstr()` at all. Not an optimization: a correctness requirement,
+found the hard way. An earlier version of this same patch had
+`append_str()` compute its copy *length* from `slicelen()` while
+reading its copy *source* through `cstr()`; once `cstr()` started
+truncating at the first NUL, that mismatch became a genuine
+out-of-bounds read whenever the value being grown held real content
+past an embedded NUL.
+
+### How the two views got this cleanly separated
+
+They didn't start out this way — getting here took three rounds inside
+this same PR, each one simpler than the last:
+
+1. `append()`'s in-place growth path eagerly wrote a `'\0'` into the
+   shared buffer after every append, unconditionally — including at a
+   position that could belong to some *other* live slice further into
+   the same symid. Fixed by dropping the write: an in-place append's
+   result is always `sliced()`, so `slicelen()`, not a physical NUL,
+   is what actually marks its end.
+2. `cstr()` itself always copied a slice's full `slicelen()` range
+   regardless of embedded NULs, on the theory that some caller might
+   need all of it. Checking every real caller showed none do — all of
+   them already stop at the first NUL the moment they touch the
+   result. Fixed by having `cstr()` do that truncation itself
+   (`memchr`, bounded by `slicelen()`), which is both cheaper (no
+   copying bytes nothing will read) and an honest description of what
+   the function actually hands back.
+3. That exposed the `append_str()`/`cstr()` mismatch above, fixed by
+   decoupling `append_str()` from `cstr()` entirely.
+
+Each step made the design simpler, not more special-cased — reading a
+slice's true bytes now means reading its true bytes, and asking for a
+C string now means genuinely getting one.
+
+## 6. Ordering comparisons: a pre-existing gap, not a slice bug
 
 `<`/`>`/`<=`/`>=` (`GreaterThanFunc`/`GreaterThanOrEqualFunc`/
 `LessThanFunc`/`LessThanOrEqualFunc`, `boolfunc.c`) had no
@@ -197,7 +387,7 @@ with `if (!operand2.is_string()) { result = ComValue::nullval(); break; }`
 before touching operand2's text, bailing to `nil` the same way the old
 default-case fallback always did for a mismatch.
 
-## 6. `:` — generic, not slice-specific
+## 7. `:` — generic, not slice-specific
 
 `ColonListFunc` (`listfunc.c`) is registered as the `:` operator,
 priority 78 (`optable.c`, above `@`'s 77 so `str@lo:hi` groups the
@@ -284,7 +474,7 @@ rather than guessed at. `colonlist(lo hi)` (a plain command call,
 reaching `stack_arg(i, true)` the same unresolved way) is the working
 substitute for that one spacing.
 
-## 7. `symadd()`: symbols stay idempotent, strings don't anymore
+## 8. `symadd()`: symbols stay idempotent, strings don't anymore
 
 `SymAddFunc::execute()` (`symbolfunc.c`) used to hand back a
 `StringType` argument's own symid directly (`val.string_val()`), no
@@ -304,7 +494,7 @@ being "the same" object, so any command that used to lean on "a
 string's symid is already a proper registered symbol" needs to
 re-derive from the text instead of trusting the symid.
 
-## 8. Surviving a boxed copy
+## 9. Surviving a boxed copy
 
 A slice keeps its `sliced()` tag — and a colon-list its `coloned()` tag,
 along with `narg`/`nkey`/`nids` — when the `ComValue` is boxed into a
@@ -316,8 +506,16 @@ lets `AttributeList`'s own top-level print go through
 `ComValue::operator<<` for the two types (`ArrayType`/`StringType`)
 that need it.
 
-## 9. Known gaps
+## 10. Known gaps
 
+- `append()`'s by-name write-back only reaches a plain local variable —
+  `global(x)`/`local(x)`/`lst@n` as a destination aren't special-cased
+  the way `=`'s lvalue handling special-cases them for assignment;
+  `append(global(x) val)` computes and returns the grown value but
+  doesn't write it back into the global table. Not a restriction coded
+  in by hand: it falls out of `append()` only ever getting a name from
+  a bare-symbol peek (§4's "`append()`: the same logic" above), and it
+  wasn't needed for the stream-fold use case #396 was written for.
 - `:set`/`:ins`/`:del` through a slice — not yet supported; falls
   through to `nil`.
 - Slicing a plain list/array — only `is_only_string()` triggers slice

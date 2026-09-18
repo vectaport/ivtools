@@ -179,15 +179,17 @@ public:
     // no-op -- see blocksz() above.
 
     const char* cstr(std::string& scratch);
-    // the slice-aware way to get a StringType value's text: narrows to
-    // [sliceoff(), sliceoff()+slicelen()) when sliced(), where
-    // AttributeValue::string_ptr() would return the whole shared backing
-    // string.  Takes a caller-owned std::string rather than keeping the copy
-    // on the ComValue, which must stay trivially relocatable -- _stack grows
-    // by dmm_realloc, a raw realloc of the whole ComValue array, so no member
-    // with real construction or destruction survives the move.  A copy is
-    // unavoidable in the sliced case: a mid-buffer slice's end is not a real
-    // '\0' in the backing string, and writing one there would corrupt it.
+    // the slice-aware way to get a StringType value's text as a genuine C
+    // string: narrows to [sliceoff(), sliceoff()+slicelen()) when sliced(),
+    // stopping earlier at the first embedded NUL if there is one -- every
+    // caller (strcmp/strlen/strstr/symbol_add/ostream<<) already treats the
+    // result that way, so there's nothing to gain copying past it. Not
+    // sliced: returns AttributeValue::string_ptr(), the whole shared
+    // backing string, no copy. Takes a caller-owned std::string rather than
+    // keeping the copy on the ComValue, which must stay trivially
+    // relocatable -- _stack grows by dmm_realloc, a raw realloc of the
+    // whole ComValue array, so no member with real construction or
+    // destruction survives the move.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.
@@ -255,6 +257,16 @@ public:
     // return true if ObjectType of SocketObj
     boolean is_dateobj();
     // return true if ObjectType of DateObj
+
+    ComValue append_str(ComValue& addend, boolean headroom);
+    // shared growth logic behind both '+' and append(): appends addend (a
+    // string or a single char) onto this value's own backing, writing into
+    // spare trailing capacity when there's room, else allocating a fresh
+    // buffer and copying both operands in. headroom is '+' (false) vs.
+    // append() (true): false matches the exact-fit buffer '+' has always
+    // allocated (symbol_add(), interned, no spare room left for a next
+    // append); true allocates 2x the needed length via symbol_new(), so a
+    // run of append() calls amortizes to O(1) each the way Go's append does.
 
 protected:
     // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into
