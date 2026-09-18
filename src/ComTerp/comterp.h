@@ -256,9 +256,7 @@ public:
     // localtable(). 'newval' becomes table-owned (heap ComValue*, deleted
     // on a future replace/removal, never by the caller after this call).
     // Shared by AssignFunc's plain '=' and AppendFunc's by-name write-back,
-    // so both stay scoped exactly like an ordinary bare read of the same
-    // name would resolve, and neither frees a value still live under a
-    // different table's key.
+    // so both use the same bare-write scoping.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
     const char* errmsg() { return _errbuf; }
     const char* last_errmsg() { return _errbuf2; }

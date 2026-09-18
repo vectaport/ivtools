@@ -19,9 +19,18 @@
 // The fix: bare writes now mirror bare reads exactly -- local if PRESENT
 // (regardless of its value, so an explicit local nil still shadows a
 // same-named global -- test 5), else the existing global, else a fresh
-// local. ComTerp::assign_symval() (comterp.c) centralizes this, used by
-// both AssignFunc's catchall '=' branch and AppendFunc's write-back, so
-// neither frees a value while a different table still points at it.
+// local. ComTerp::assign_symval() (comterp.c) centralizes the local/global
+// half of this, used by both AssignFunc's catchall '=' branch and
+// AppendFunc's write-back, so neither frees a value while a different
+// table still points at it -- but a func's own frame (_alist) is a third
+// case assign_symval() never looks at, so both AssignFunc and AppendFunc
+// check comterp()->get_attributes() first and write the frame directly
+// when it's non-nil, only falling to assign_symval() at top level.
+// AppendFunc missed that check on first pass (review on PR #561 caught
+// it): its write-back called assign_symval() unconditionally, so inside a
+// func it either leaked a stray localtable() entry (test 10) or, worse,
+// silently grew an unrelated same-named global instead of the frame
+// (test 11).
 // +=/-=/*=//=/%=/++/-- never had this bug -- they mutate whatever
 // lookup_symval()'s pointer search finds, in place, no table surgery --
 // but they're the reference for what "mirrors a bare read" already meant
@@ -127,6 +136,34 @@ gwf9=func(gsc_i=2; 0)
 gwf9()
 ok=ok&&(global(gsc_i)==1)
 print("9 a func-frame bare write never reaches a same-named global (expect 1): %v\n\n" global(gsc_i))
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: append()'s write-back must land in the frame too, same as
+//              test 9 for '=' -- the read side already checked the frame
+//              first (lookup_symval() checks _alist before local/global),
+//              but the write-back used to call assign_symval() unconditionally,
+//              which never looks at the frame at all, so it fell through to
+//              creating a stray localtable() entry instead of updating the
+//              frame's own gsc_j (found by review on PR #561) ---
+gwf10=func(gsc_j="abc"; append(gsc_j "!"); gsc_j)
+result10=gwf10()
+ok=ok&&(result10=="abc!")
+ok=ok&&(local(gsc_j)==nil)
+print("10 append() inside a func writes the frame, no stray local (expect abc! nil): %v %v\n\n" result10 local(gsc_j))
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: same bug, worse consequence -- with a same-named global
+//              also present, assign_symval() would find no local (correct,
+//              it's not in localtable()) but then find and silently
+//              corrupt the GLOBAL instead, since assign_symval() falls
+//              through to globaltable() next. The frame must win, and the
+//              global must be untouched, same guarantee as test 9. ---
+global(gsc_k)="global value"
+gwf11=func(gsc_k="abc"; append(gsc_k "!"); gsc_k)
+result11=gwf11()
+ok=ok&&(result11=="abc!")
+ok=ok&&(global(gsc_k)=="global value")
+print("11 append() inside a func never reaches a same-named global (expect abc! \"global value\"): %v %v\n\n" result11 global(gsc_k))
 prev_ok=check_fail(:ok ok)
 
 print("\nglobalscope: %v\n" ok)
