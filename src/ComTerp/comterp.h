@@ -249,6 +249,16 @@ public:
     // value associated with a symbol id in the local symbol table.
     ComValue* globalvalue(int symid);
     // value associated with a symbol id in the global symbol table.
+    void assign_symval(int symid, ComValue* newval);
+    // bare-write scoping, mirroring the same table a bare read would find:
+    // present in localtable() -> replace it there; else present in
+    // globaltable() -> replace it there; else insert newval fresh into
+    // localtable(). 'newval' becomes table-owned (heap ComValue*, deleted
+    // on a future replace/removal, never by the caller after this call).
+    // Shared by AssignFunc's plain '=' and AppendFunc's by-name write-back,
+    // so both stay scoped exactly like an ordinary bare read of the same
+    // name would resolve, and neither frees a value still live under a
+    // different table's key.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
     const char* errmsg() { return _errbuf; }
     const char* last_errmsg() { return _errbuf2; }

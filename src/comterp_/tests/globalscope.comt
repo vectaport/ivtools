@@ -1,0 +1,133 @@
+// src/comterp_/tests/globalscope.comt -- bare (unwrapped) read/write scoping
+// across local/global/func-frame, and the fix for a real use-after-free
+//
+// funcs: global local append at
+//
+// globaltable() is a single process-wide table (declared static,
+// comterp.h), shared by every ComTerp session in the process; localtable()
+// is per-session. A bare read already chained func-frame -> local ->
+// global, first PRESENT entry wins (lookup_symval(), comterp.c) -- but a
+// bare WRITE (plain '=', outside any global()/local()/func-frame) used to
+// always target localtable() regardless of where the OLD value actually
+// lived. When only a global existed, that meant: find the old value in
+// globaltable() (via the local-then-global search), remove-and-delete it
+// from LOCALTABLE (a no-op, it was never there), then delete the object
+// still referenced by globaltable()'s own node -- a genuine use-after-free,
+// confirmed under valgrind, with a real symptom: the global read back as
+// nil afterward, not merely "shadowed."
+//
+// The fix: bare writes now mirror bare reads exactly -- local if PRESENT
+// (regardless of its value, so an explicit local nil still shadows a
+// same-named global -- test 5), else the existing global, else a fresh
+// local. ComTerp::assign_symval() (comterp.c) centralizes this, used by
+// both AssignFunc's catchall '=' branch and AppendFunc's write-back, so
+// neither frees a value while a different table still points at it.
+// +=/-=/*=//=/%=/++/-- never had this bug -- they mutate whatever
+// lookup_symval()'s pointer search finds, in place, no table surgery --
+// but they're the reference for what "mirrors a bare read" already meant
+// (assignops.comt test 6 pins %= against a global; tests 6/7 here do the
+// same for ++ and append(), so all three operator families are checked
+// side by side).
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/globalscope.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: bare '=' with only a local existing writes the local,
+//             global table untouched (baseline, always worked) ---
+gsc_a=1
+gsc_a=2
+ok=ok&&(gsc_a==2)
+ok=ok&&(global(gsc_a)==nil)
+print("1 bare '=' with only a local (expect 2 nil): %v %v\n\n" gsc_a global(gsc_a))
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: bare '=' with only a global existing now updates that
+//             global in place -- the UAF repro, valgrind-clean, and the
+//             actual observable fix: this used to read back nil ---
+global(gsc_b)="hello world"
+gsc_b="local shadow"
+ok=ok&&(gsc_b=="local shadow")
+ok=ok&&(global(gsc_b)=="local shadow")
+ok=ok&&(local(gsc_b)==nil)
+print("2 bare '=' with only a global reaches it, no local created (expect \"local shadow\" \"local shadow\" nil): %v %v %v\n\n" gsc_b global(gsc_b) local(gsc_b))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: bare '=' with BOTH a local and a global of the same name
+//             writes the local only; the global is never touched ---
+global(gsc_c)=100
+local(gsc_c)=200
+gsc_c=300
+ok=ok&&(local(gsc_c)==300)
+ok=ok&&(global(gsc_c)==100)
+print("3 bare '=' prefers an existing local, global untouched (expect 300 100): %v %v\n\n" local(gsc_c) global(gsc_c))
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: bare '=' with neither existing creates a fresh local ---
+gsc_d=42
+ok=ok&&(local(gsc_d)==42)
+ok=ok&&(global(gsc_d)==nil)
+print("4 bare '=' with neither existing creates a local (expect 42 nil): %v %v\n\n" local(gsc_d) global(gsc_d))
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: presence, not value-nilness, decides -- an explicit local
+//             nil is a PRESENT entry and still shadows an existing global,
+//             the same way local.comt/global.comt already treat presence
+//             for reads. (Without this, "local not nil" read as a value
+//             test would let a deliberate local(x)=nil fall through to an
+//             existing global instead of shadowing it.) ---
+global(gsc_e)="global value"
+local(gsc_e)=nil
+gsc_e="written"
+ok=ok&&(local(gsc_e)=="written")
+ok=ok&&(global(gsc_e)=="global value")
+print("5 an explicit local nil is still present, shadows the global (expect \"written\" \"global value\"): %v %v\n\n" local(gsc_e) global(gsc_e))
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: ++ (and by the same mechanism, +=/-=/*=//=/%=) already
+//             mirrored bare reads before this fix -- confirmed still true,
+//             alongside '=' and append() rather than in isolation ---
+global(gsc_f)=1
+gsc_f++
+ok=ok&&(global(gsc_f)==2)
+ok=ok&&(local(gsc_f)==nil)
+print("6 gsc_f++ with only a global mutates it in place, no local created (expect 2 nil): %v %v\n\n" global(gsc_f) local(gsc_f))
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: append() with only a global existing grows it in place,
+//             the same rule as '=' and ++ -- AppendFunc::execute()'s
+//             write-back now goes through the same assign_symval() -- ---
+global(gsc_g)="abc"
+append(gsc_g "def")
+ok=ok&&(global(gsc_g)=="abcdef")
+ok=ok&&(local(gsc_g)==nil)
+print("7 append(gsc_g val) with only a global grows it in place (expect abcdef nil): %v %v\n\n" global(gsc_g) local(gsc_g))
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: append() with both a local and a global grows the local
+//             only, same as test 3 for '=' ---
+global(gsc_h)="abc"
+local(gsc_h)="xyz"
+append(gsc_h "!")
+ok=ok&&(local(gsc_h)=="xyz!")
+ok=ok&&(global(gsc_h)=="abc")
+print("8 append(gsc_h val) prefers an existing local, global untouched (expect xyz! abc): %v %v\n\n" local(gsc_h) global(gsc_h))
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: a func's own frame variable is decided at func-definition
+//             time, never by this local/global chain -- bare writes
+//             inside a func body always target the frame, even when a
+//             same-named global already exists (already pinned by
+//             global.comt tests 12-14; repeated here so the "sure case"
+//             sits next to the "unsure case" this file is about) ---
+global(gsc_i)=1
+gwf9=func(gsc_i=2; 0)
+gwf9()
+ok=ok&&(global(gsc_i)==1)
+print("9 a func-frame bare write never reaches a same-named global (expect 1): %v\n\n" global(gsc_i))
+prev_ok=check_fail(:ok ok)
+
+print("\nglobalscope: %v\n" ok)
+ok

@@ -33,6 +33,10 @@ if(run("./assignops.comt")
   :then print("pass: assignops\n")
   :else print("FAIL: assignops\n");topok=false)
 
+if(run("./globalscope.comt")
+  :then print("pass: globalscope\n")
+  :else print("FAIL: globalscope\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)

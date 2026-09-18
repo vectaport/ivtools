@@ -100,8 +100,10 @@ positionals and keywords deferred exactly this way (see `LANGUAGE.md`).**
 - to get a value out you `return` it — and that return may be an **attrlist**,
   which is how you hand back several named results at once — or you deliberately
   escape the scope: `local(x)=…` writes the interpreter's default symbol table
-  (the scope bare assignment uses outside a func), and `global(x)=…` writes the
-  interpreter-shared table (one per process, all server connections).  The
+  (what a bare write outside a func falls back to when nothing already claims
+  the name locally or globally — see LANGUAGE.md's *Scoping rules*), and
+  `global(x)=…` writes the interpreter-shared table (one per process, all
+  server connections).  The
   backquote is *not* an escape — `` `x `` is the symbol-quote, and assigning
   through it stays in the current scope like any other write.
 

@@ -208,9 +208,10 @@ public:
 //: command to read/write the interpreter's default (local) symbol table
 // sym=local(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- designate a
 // symbol instance as local: the default symbol table by name, skipping any
-// func frame.  local() names the scope that bare assignment already uses
-// outside a func; inside a func it escapes the per-invocation frame the way
-// global() escapes everything.
+// func frame.  local() names the table a bare write outside a func falls
+// back to when no existing local or global already claims that name;
+// inside a func it escapes the per-invocation frame the way global()
+// escapes everything.
 class LocalSymbolFunc : public ComFunc {
 public:
     LocalSymbolFunc(ComTerp*);

@@ -864,20 +864,9 @@ void AppendFunc::execute() {
 
   ComValue result = dest.append_str(addend, true /* headroom */);
 
-  /* write back only on success, into whichever table holds the binding. */
-  /* local shadows global on read, so check local first, then global. */
-  if (have_name && result.is_only_string()) {
-    void* vptr = nil;
-    if (comterp()->localtable()->find(vptr, arg0.symbol_val())) {
-      comterp()->localtable()->remove(arg0.symbol_val());
-      delete (ComValue*)vptr;
-      comterp()->localtable()->insert(arg0.symbol_val(), new ComValue(result));
-    } else if (comterp()->globaltable()->find(vptr, arg0.symbol_val())) {
-      comterp()->globaltable()->remove(arg0.symbol_val());
-      delete (ComValue*)vptr;
-      comterp()->globaltable()->insert(arg0.symbol_val(), new ComValue(result));
-    }
-  }
+  /* write back only on success, scoped exactly like a bare read of arg0. */
+  if (have_name && result.is_only_string())
+    comterp()->assign_symval(arg0.symbol_val(), new ComValue(result));
 
   push_stack(result);
 }
