@@ -116,12 +116,9 @@ void AssignFunc::execute() {
 	    Unref(attrlist);
 	}
 	else {
-	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);
-	    if (oldval) {
-	      comterp()->localtable()->remove(operand1.symbol_val());
-	      delete (ComValue*)oldval;
-	    }
-            comterp()->localtable()->insert(operand1.symbol_val(), operand2);
+	    /* bare write mirrors a bare read's own scoping: local if present,
+	       else the existing global, else a fresh local -- see SLICES.md */
+	    comterp()->assign_symval(operand1.symbol_val(), operand2);
 	}
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();

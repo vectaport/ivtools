@@ -508,13 +508,17 @@ that need it.
 
 ## 10. Known gaps
 
-- `append()`'s by-name write-back only reaches a plain local variable —
-  `global(x)`/`local(x)`/`lst@n` as a destination aren't special-cased
-  the way `=`'s lvalue handling special-cases them for assignment;
+- `append()`'s by-name write-back only reaches a *bare* variable, scoped
+  exactly like a bare `=` (an existing local, else an existing global,
+  else a fresh local — `ComTerp::assign_symval()`, comterp.c). Writing
+  through `global(x)`/`local(x)`/`lst@n` explicitly as the destination
+  isn't special-cased the way `=`'s lvalue handling special-cases them:
   `append(global(x) val)` computes and returns the grown value but
-  doesn't write it back into the global table. Not a restriction coded
-  in by hand: it falls out of `append()` only ever getting a name from
-  a bare-symbol peek (§4's "`append()`: the same logic" above), and it
+  doesn't write it back into the global table, because `global(x)` used
+  this way (not immediately followed by `=`) evaluates eagerly to a
+  plain value, same as any other read. Not a restriction coded in by
+  hand: it falls out of `append()` only ever getting a name from a
+  bare-symbol peek (§4's "`append()`: the same logic" above), and it
   wasn't needed for the stream-fold use case #396 was written for.
 - `:set`/`:ins`/`:del` through a slice — not yet supported; falls
   through to `nil`.

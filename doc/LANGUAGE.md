@@ -318,8 +318,7 @@ Declare a variable global with `global()` to share it across all
 ComTerp instances in the process:
 
 ```
-global(counter)
-counter=0
+global(counter)=0
 ```
 
 Global variables persist across script runs and are visible to all
@@ -940,9 +939,27 @@ Variable lookup follows a three-level priority chain:
   reads and writes it explicitly
 
 A variable can be **read** from any level — func scope wins over local,
-local wins over global. A variable **written** inside a func always goes
-to func scope only, never propagating outward. The only exception is
-`global()` which explicitly reaches the global scope.
+local wins over global, each level winning only if it actually has the
+name (a level with nothing bound falls through to the next).
+
+**Written**, the rule differs by level. Inside a func, a bare write
+always goes to func scope, full stop — never local, never global,
+regardless of what's already bound to that name elsewhere; `local()`/
+`global()` are the only way out. Outside a func, a bare write mirrors
+that same read priority: it updates a local of that name if one already
+exists, else an existing global of that name, else it creates a fresh
+local. `local(x)=`/`global(x)=` always force a specific table either way. See
+*Escaping the func scope* below for the two escapes.
+
+Outside a func, a bare write mirroring the read chain is a deliberate
+design choice, not the original behavior: an earlier version always
+targeted local regardless of an existing global, which (when the old
+value actually lived in the global table) freed it while leaving the
+global table still pointing at the freed memory — a genuine
+use-after-free, not just a surprising shadow. Making the write follow
+the same lookup the read already uses closed that gap by construction:
+there's only ever one table being consulted at a time, never a mismatch
+between where a value is found and where its replacement is written.
 
 Func scopes do **not** chain: a func called from inside another func
 reads its own frame and then the top-level table — never the calling
@@ -1604,11 +1621,12 @@ not through some func-specific mechanism.
 When a func genuinely needs to write outside its own frame, two
 commands name the outer scopes explicitly, as both lvalue and rvalue:
 
-- **`local(x)`** — the interpreter's default variable table: the scope
-  bare assignment already uses *outside* a func, named so it can be
-  reached from *inside* one.  As an lvalue, `local(x)=val` writes that
-  table, skipping the frame; as an rvalue, `local(x)` reads that table
-  and only that table — no func-frame shadow, no global fallback.
+- **`local(x)`** — the interpreter's default variable table: the table
+  a bare write outside a func creates a name in when nothing existing
+  claims it first (see *Scoping rules* above), named so it can be
+  reached from *inside* a func too.  As an lvalue, `local(x)=val` writes
+  that table, skipping the frame; as an rvalue, `local(x)` reads that
+  table and only that table — no func-frame shadow, no global fallback.
 - **`global(x)`** — the interpreter-shared table (one per process,
   shared by every interpreter instance — every connection of a comterp
   or drawserv server).  `global(x)=val` writes it from anywhere;
@@ -2932,8 +2950,10 @@ is the one that gets Go's real amortized-doubling growth on that path.
 **`append(dest val)`** is `+`'s by-name sibling: it grows `dest` (a
 string, itself or a slice of one) by `val` (a string or a single char)
 using the exact same in-place-vs-reallocate logic as `+`, and when
-`dest` is a bare local variable it also writes the grown result back
-under that name:
+`dest` is a bare variable it also writes the grown result back under
+that name — scoped exactly like a bare assignment (*Scoping rules*
+above): an existing local if there is one, else an existing global,
+else a fresh local:
 
 ```
 s="";append(s "hi")        // s is now "hi"
@@ -2945,7 +2965,9 @@ needed length, so a run of appends past a buffer's original capacity
 still amortizes to O(1) each, the same as Go's `append`. If `dest`
 isn't a bare symbol — an expression, `global(x)`, a literal — `append()`
 just returns the grown value like any other command, with no name to
-write back to.
+write back to (`global(x)` used explicitly this way still evaluates to
+a plain value here, not a writable reference, so it takes this branch
+too — see `doc/SLICES.md` §10's Known gaps for why).
 
 Because `append()` is an ordinary command (not `post_eval`, the way
 `=` is), a stream-valued `val` drives the same per-element re-firing

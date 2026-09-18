@@ -5,11 +5,14 @@
 // missing: ~local(lvalue-return-type) -- in local(sym)=val the return value belongs
 //          to the assign operator, not local(); untestable in isolation for local() alone
 //
-// local() names the scope bare assignment already uses OUTSIDE a func: the
-// interpreter's default per-instance symbol table.  As an lvalue inside a
-// func it escapes the per-invocation frame (the way global() escapes to the
-// process-wide table); as an rvalue it reads the default table and ONLY that
-// table -- no func-frame shadow, no globaltable fallback.
+// local() names the interpreter's default per-instance symbol table --
+// the one a bare assignment OUTSIDE a func targets when it creates a
+// fresh binding, or when a local of that name is already present
+// (globalscope.comt covers what a bare write does when only a
+// same-named global exists instead).  As an lvalue inside a func it
+// escapes the per-invocation frame (the way global() escapes to the
+// process-wide table); as an rvalue it reads the default table and ONLY
+// that table -- no func-frame shadow, no globaltable fallback.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/local.comt")

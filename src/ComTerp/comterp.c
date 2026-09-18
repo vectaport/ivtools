@@ -2225,8 +2225,23 @@ ComValue* ComTerp::globalvalue(int symid) {
     void* vptr = nil;
     table->find(vptr, symid);
     return (ComValue*)vptr;
-  } else 
+  } else
     return &ComValue::unkval();
+}
+
+void ComTerp::assign_symval(int symid, ComValue* newval) {
+  void* vptr = nil;
+  if (localtable()->find(vptr, symid)) {
+    localtable()->remove(symid);
+    delete (ComValue*)vptr;
+    localtable()->insert(symid, newval);
+  } else if (globaltable()->find(vptr, symid)) {
+    globaltable()->remove(symid);
+    delete (ComValue*)vptr;
+    globaltable()->insert(symid, newval);
+  } else {
+    localtable()->insert(symid, newval);
+  }
 }
 
 void ComTerp::disable_prompt() { set_continuation_prompt_disabled(1); }

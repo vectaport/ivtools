@@ -28,6 +28,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
@@ -864,18 +865,19 @@ void AppendFunc::execute() {
 
   ComValue result = dest.append_str(addend, true /* headroom */);
 
-  /* write back only on success, into whichever table holds the binding. */
-  /* local shadows global on read, so check local first, then global. */
+  /* write back only on success, scoped exactly like a bare read of arg0:
+     inside a func frame that's AssignFunc's own attrlist branch, not
+     assign_symval() (local/global only, no frame) -- same split AssignFunc
+     makes on its bare '=' path. */
   if (have_name && result.is_only_string()) {
-    void* vptr = nil;
-    if (comterp()->localtable()->find(vptr, arg0.symbol_val())) {
-      comterp()->localtable()->remove(arg0.symbol_val());
-      delete (ComValue*)vptr;
-      comterp()->localtable()->insert(arg0.symbol_val(), new ComValue(result));
-    } else if (comterp()->globaltable()->find(vptr, arg0.symbol_val())) {
-      comterp()->globaltable()->remove(arg0.symbol_val());
-      delete (ComValue*)vptr;
-      comterp()->globaltable()->insert(arg0.symbol_val(), new ComValue(result));
+    AttributeList* attrlist = comterp()->get_attributes();
+    if (attrlist) {
+      Resource::ref(attrlist);
+      Attribute* attr = new Attribute(arg0.symbol_val(), new ComValue(result));
+      attrlist->add_attribute(attr);
+      Unref(attrlist);
+    } else {
+      comterp()->assign_symval(arg0.symbol_val(), new ComValue(result));
     }
   }
 
