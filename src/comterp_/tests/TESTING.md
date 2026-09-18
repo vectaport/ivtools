@@ -317,7 +317,7 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-17 of 56 scripts declare coverage (four more are scored table-only, marked
+17 of 57 scripts declare coverage (four more are scored table-only, marked
 with a dagger). The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
@@ -334,8 +334,9 @@ not gaps in testing -- do not read `—` as untested.
 | listat.comt               | at  list  size                                        |       — |     — |    — |
 | stackkey.comt             | at  list                                              |       — |     — |    — |
 | colonlist.comt            | colonlist at size                                     |       — |     — |    — |
-| string_cap.comt           | string strcap size at @                               |       — |     — |    — |
-| colonslice.comt           | colonlist at size print eq split                      |       — |     — |    — |
+| string_cap.comt           | string strcap size at @ char isslice symid symvar     |       — |     — |    — |
+| colonslice.comt           | colonlist at size print eq split string strcap + index gt lt ge le isslice islist char |       — |     — |    — |
+| append.comt               | append string strcap size symid symvar global print at char |       — |     — |    — |
 | print.comt                | print                                                 |      24 |    35 |  69% |
 | parser.comt               | attrlist(:literal) errmsg postfix class type          |      29 |    39 |  74% |
 | symbol.comt               | ` symadd symid symbol symstr symval symvar strref     |      36 |    42 |  86% |

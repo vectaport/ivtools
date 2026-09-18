@@ -1,0 +1,214 @@
+// src/comterp_/tests/append.comt -- append(), Go-style string growth by
+// name (#396)
+//
+// funcs: append string strcap size symid symvar global print at char
+//
+// append(dest val) grows dest (a string or symbol) by val (a string or a
+// single char), writing into dest's own spare trailing capacity when
+// there's room, else reallocating with real 2x headroom (unlike '+',
+// which shares the same in-place-vs-copy logic but allocates only an
+// exact fit on its own copy path -- see ComValue::append_str(),
+// comvalue.c). When dest is a bare local variable, the grown result is
+// also written back under that name; append() is an ordinary (non-post_eval)
+// command, so a stream-valued val drives the normal per-element overdrive
+// re-firing, making append() a genuine stream fold.
+
+ok=true
+
+// --- 1: in-place growth writes back under the destination's own name,
+//        and stays at the same capacity while there's room ---
+buf=string(20)
+append(buf "hi")
+ok=ok&&(print(buf :str)=="hi")
+ok=ok&&(size(buf)==2)
+ok=ok&&(strcap(buf)==20)
+print("1 append(buf \"hi\") writes back, same 20-byte capacity (expect hi 2 20): %s %v %v\n" print(buf :str) size(buf) strcap(buf))
+
+append(buf ' ')
+append(buf "there")
+ok=ok&&(print(buf :str)=="hi there")
+ok=ok&&(strcap(buf)==20)
+print("2 a char and a string both append in place (expect hi there 20): %s %v\n" print(buf :str) strcap(buf))
+
+// --- 3: discarded return still performs the write-back (append(buf ...)
+//        above already relied on this; make it explicit) ---
+append(buf "!")
+ok=ok&&(print(buf :str)=="hi there!")
+print("3 discarded-return append still writes back (expect hi there!): %s\n" print(buf :str))
+
+// --- 4: captured return also works, and is the same value as the
+//        destination afterward ---
+r=append(buf "?")
+ok=ok&&(r==buf)
+print("4 t=append(...) captures the same grown value (expect true): %v\n" (r==buf))
+
+// --- 5: no spare capacity -- reallocates rather than corrupting or
+//        refusing; both the return value and the destination see the
+//        grown result, sharing the new backing ---
+s="short"
+oldcap=strcap(s)
+r2=append(s "!!!")
+ok=ok&&(print(s :str)=="short!!!")
+ok=ok&&(r2==s)
+ok=ok&&(symid(symvar(r2))==symid(symvar(s)))
+ok=ok&&(strcap(s)>oldcap)
+print("5 reallocating append grows past a literal's exact-fit capacity, dest and return share it (expect true true true): %v %v %v\n" (print(s :str)=="short!!!") (symid(symvar(r2))==symid(symvar(s))) (strcap(s)>oldcap))
+
+// --- 6: the reallocated buffer gets real headroom (unlike '+', which
+//        allocates only the exact fit on its own copy path) -- a second
+//        append onto the same (now-grown) destination doesn't grow
+//        strcap() again, because #5 already over-provisioned it ---
+cap_after_first_grow=strcap(s)
+append(s "?")
+ok=ok&&(strcap(s)==cap_after_first_grow)
+print("6 headroom from #5 absorbs a second append without growing strcap() again (expect true): %v\n" (strcap(s)==cap_after_first_grow))
+
+// --- 7: a plain '+' concatenation, by contrast, still gets no headroom
+//        on its own copy path -- unchanged, existing behavior ---
+a="ab"
+b=a+"cd"
+ok=ok&&(strcap(b)==4)
+print("7 '+' still allocates an exact fit, no headroom (expect 4): %v\n" strcap(b))
+
+// --- 8: the real stream fold this feature exists for -- append() is not
+//        post_eval, so a stream-valued second argument re-fires append()
+//        once per element, each firing seeing the previous one's write ---
+fold=""
+append(fold print(0..9 :str))
+ok=ok&&(print(fold :str)=="0123456789")
+print("8 append(s print(0..9 :str)) folds one element at a time (expect 0123456789): %s\n" print(fold :str))
+
+// --- 9: a slice taken before growth keeps its own frozen window -- growth
+//        past a slice's own bound is invisible through that slice, safe
+//        by construction (an existing slice can never observe bytes past
+//        its own recorded end) ---
+buf2=string(20)
+append(buf2 "hello world")
+sl=buf2@0:5
+append(buf2 "!!!")
+ok=ok&&(print(sl :str)=="hello")
+ok=ok&&(print(buf2 :str)=="hello world!!!")
+print("9 a slice's own window is unaffected by growth past its end (expect hello / hello world!!!): %s / %s\n" print(sl :str) print(buf2 :str))
+
+// --- 10: the real aliasing hazard -- two REFERENCES to the same
+//         not-yet-sliced buffer (so length comes from the shared NUL
+//         terminator, not a frozen window) both see growth through either
+//         one, the same tradeoff Go's own append has ---
+buf3=string(20)
+t=buf3
+append(buf3 "ab")
+ok=ok&&(print(t :str)=="ab")
+print("10 an unsliced reference sees growth through the shared buffer (expect ab): %s\n" print(t :str))
+
+// --- 11: a non-symbol first argument -- append() still computes and
+//         returns the grown value, but there is no name to write back to,
+//         so nothing is mutated. An unbound global() resolves to
+//         something that isn't a string at all, so this also exercises
+//         the type-mismatch path (expect nil, not a crash). ---
+gr=append(global(nosuch396) "x")
+ok=ok&&(gr==nil)
+print("11 append() on a non-symbol/unbound target returns nil, doesn't crash (expect nil): %v\n" gr)
+
+// --- 12: a local bound to a non-string is left untouched, not coerced ---
+n=5
+u=append(n "x")
+ok=ok&&(u==nil)
+ok=ok&&(n==5)
+print("12 append() on a non-string local returns nil and leaves it alone (expect nil 5): %v %v\n" u n)
+
+// --- 13: symid() stays exactly the same across every in-place append,
+//         right up until capacity is actually exhausted ---
+buf4=string(10)
+id0=symid(symvar(buf4))
+append(buf4 "ab")
+id1=symid(symvar(buf4))
+append(buf4 "cd")
+id2=symid(symvar(buf4))
+ok=ok&&(id0==id1)
+ok=ok&&(id1==id2)
+print("13 symid(buf4) unchanged across two in-place appends (expect true true): %v %v\n" (id0==id1) (id1==id2))
+
+// --- 14: ...and then changes exactly once, on the append that finally
+//         needs more room than the buffer has left ---
+append(buf4 "efghi")            // buf4 now "abcdefghi", 9 of 10 bytes used, still fits
+id3=symid(symvar(buf4))
+ok=ok&&(id3==id2)
+append(buf4 "XX")                 // pushes past the 10-byte capacity -- must reallocate
+id4=symid(symvar(buf4))
+ok=ok&&(id4!=id3)
+print("14 symid(buf4) holds until capacity is truly exhausted, then changes exactly there (expect true true): %v %v\n" (id3==id2) (id4!=id3))
+
+// --- 15: write-back respects the binding's actual scope -- appending
+//         onto a global-bound name updates globaltable() itself, not a
+//         stray local shadow that leaves the old global entry dangling
+//         (review finding on #558, confirmed as a real use-after-free
+//         under valgrind before this fix) ---
+global(gvar398)="hello world"
+append(gvar398 " there")
+ok=ok&&(gvar398=="hello world there")
+ok=ok&&(global(gvar398)=="hello world there")
+print("15 append() on a global writes back through globaltable(), not a dangling local shadow (expect true true): %v %v\n" (gvar398=="hello world there") (global(gvar398)=="hello world there"))
+
+// --- 16: a fresh slice EXPRESSION (never bound to a name) as append's
+//         target still grows in place when its parent has spare
+//         capacity -- but nothing reserves that borrowed space, so a
+//         later append through the parent can silently overwrite it.
+//         Not a bug in append() itself: the same aliasing tradeoff as
+//         #9/#10, just reached through an unnamed expression instead
+//         of a second variable. print() is reliable here (unlike an
+//         earlier version of this fix): in-place growth never plants a
+//         physical '\0' mid-buffer, only slicelen() marks a slice's
+//         end, so a later append through buf5 can only ever overwrite
+//         r16's bytes, never truncate how many of them print(). ---
+buf5=string(30)
+append(buf5 "0123456789abcdefghij")
+r16=append(buf5@10:20 "XX")
+ok=ok&&(size(r16)==12)
+ok=ok&&(at(r16 10)=='X')
+ok=ok&&(at(r16 11)=='X')
+ok=ok&&(print(r16 :str)=="abcdefghijXX")
+print("16a an anonymous slice grows in place, borrowing its parent's spare capacity (expect 12 X X abcdefghijXX): %v %v %v %s\n" size(r16) at(r16 10) at(r16 11) print(r16 :str))
+
+append(buf5 "!")
+ok=ok&&(size(r16)==12)
+ok=ok&&(at(r16 10)=='!')
+ok=ok&&(print(r16 :str)=="abcdefghij!X")
+print("16b a later append through the parent silently overwrites the borrowed bytes -- r16's own length stays 12, its full content still prints correctly (expect 12 ! abcdefghij!X): %v %v %s\n" size(r16) at(r16 10) print(r16 :str))
+
+// --- 17: in-place growth can use every last byte of a buffer's own
+//         capacity -- no byte needs to be held back for a terminator,
+//         since the result is always sliced() and slicelen() is what
+//         actually marks its end ---
+buf6=string(5)
+id17=symid(symvar(buf6))
+append(buf6 "abcde")
+ok=ok&&(print(buf6 :str)=="abcde")
+ok=ok&&(symid(symvar(buf6))==id17)
+print("17 in-place append fills a buffer's full capacity without reallocating (expect abcde true): %s %v\n" print(buf6 :str) (symid(symvar(buf6))==id17))
+
+// --- 18: append() reads its source bytes directly, not through cstr() --
+//         a slice with an embedded NUL and real content past it (sl18 is
+//         "hi\0X", 4 bytes) still grows/copies its FULL slicelen() bytes
+//         as addend or dest, never just the NUL-truncated prefix a
+//         C-string reader like print()/== would stop at ---
+buf18=string(10)
+at(buf18 0 :set 'h')
+at(buf18 1 :set 'i')
+at(buf18 2 :set char(0))
+at(buf18 3 :set 'X')
+sl18=buf18@0:4
+t18=""
+append(t18 sl18)
+ok=ok&&(size(t18)==4)
+ok=ok&&(at(t18 2)==char(0))
+ok=ok&&(at(t18 3)=='X')
+print("18a append() copies an addend's full bytes past an embedded NUL (expect 4 true true): %v %v %v\n" size(t18) (at(t18 2)==char(0)) (at(t18 3)=='X'))
+
+r18b=append(sl18 'Y')
+ok=ok&&(size(r18b)==5)
+ok=ok&&(at(r18b 2)==char(0))
+ok=ok&&(at(r18b 4)=='Y')
+print("18b append() onto a NUL-containing slice dest grows from its real length, not a truncated one (expect 5 true Y): %v %v %s\n" size(r18b) (at(r18b 2)==char(0)) print(at(r18b 4) :str))
+
+print("append: %v\n" ok)
+ok

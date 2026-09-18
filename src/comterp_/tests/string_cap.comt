@@ -1,7 +1,7 @@
 // src/comterp_/tests/string_cap.comt -- string(), strcap(), and @ into a
 // capacity-bearing buffer (#394)
 //
-// funcs: string strcap size at @
+// funcs: string strcap size at @ char isslice symid symvar
 //
 // string(cap) creates a blank, writable buffer -- cap bytes of NUL, plus
 // one guaranteed terminator, none of it shared or deduplicated with any
@@ -86,6 +86,32 @@ print("7 #394 repro: at(t 2 :set 0) then :set 67 restores ABCDEF: %s\n" print(t 
 // by every string, not something string() introduces) -- string() is
 // exactly as well-behaved here as an ordinary string, no better and no
 // worse.
+
+// --- 8: string(str) on a string/slice argument is a copy, not a
+//        capacity request -- it stops at the first embedded NUL, same
+//        contract as cstr()/print(str :str), just less obtuse (#396) ---
+buf8=string(8)
+at(buf8 0 :set 'a')
+at(buf8 1 :set 'b')
+at(buf8 2 :set 'c')
+at(buf8 3 :set char(0))
+at(buf8 4 :set 'd')
+sl8=buf8@0:8
+r8=string(sl8)
+ok=ok&&(r8=="abc")
+ok=ok&&(size(r8)==3)
+ok=ok&&(isslice(r8)==false)
+print("8 string(sl8) stops at the first NUL, a fresh unsliced copy (expect abc 3 false): %s %v %v\n" r8 size(r8) isslice(r8))
+
+// --- 9: string(str :raw) copies str's full declared range instead,
+//        embedded NULs and any bytes past them included -- independent
+//        storage, not an alias of str's own backing symid ---
+r9=string(sl8 :raw)
+ok=ok&&(size(r9)==8)
+ok=ok&&(at(r9 3)==char(0))
+ok=ok&&(at(r9 4)=='d')
+ok=ok&&(symid(symvar(r9))!=symid(symvar(sl8)))
+print("9 string(sl8 :raw) copies the full 8 bytes into independent storage (expect 8 true d true): %v %v %s %v\n" size(r9) (at(r9 3)==char(0)) print(at(r9 4) :str) (symid(symvar(r9))!=symid(symvar(sl8))))
 
 print("string_cap: %v\n" ok)
 ok

@@ -43,9 +43,11 @@
 #include <memory.h>
 
 #include <string.h>
+#include <vector>
 #include <iostream.h>
 #include <strstream>
 #include <string>
+#include <climits>
 using namespace std;
 
 ComValue ComValue::_nullval(ComValue::UnknownType);
@@ -183,7 +185,12 @@ const char* ComValue::cstr(std::string& scratch) {
      on a raw _stack element whose vtable pointer isn't reliably ComValue's */
   const char* full = AttributeValue::string_ptr();
   if (!sliced()) return full;
-  scratch.assign(full + sliceoff(), slicelen());
+  /* a genuine C string -- stop at the first embedded NUL, capped by
+     slicelen() -- since every caller already treats the result that way. */
+  const char* base = full + sliceoff();
+  const void* nulp = memchr(base, '\0', slicelen());
+  size_t len = nulp ? (const char*)nulp - base : (size_t)slicelen();
+  scratch.assign(base, len);
   return scratch.c_str();
 }
 
@@ -546,5 +553,77 @@ boolean ComValue::is_socketobj() {
 boolean ComValue::is_dateobj() {
   ComValue tv = *this;
   return tv.is_object(DateObj::class_symid());
+}
+
+ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
+  ComValue result(*this);
+  /* string_ptr(), not cstr() -- growth needs a slice's true bytes,
+     embedded NULs included, not a NUL-truncated C-string view. */
+  int base1 = sliced() ? sliceoff() : 0;
+  const char* raw1 = AttributeValue::string_ptr();
+  int len1 = sliced() ? slicelen() : (int)strlen(raw1);
+  const char* s1 = raw1 + base1;
+  int end1 = base1 + len1;
+  boolean growable = is_only_string();
+  int cap1 = growable ? symbol_len(symbol_val()) : 0;
+
+  boolean addend_is_char = !addend.is_string();
+  const char* s2 = nil;
+  int len2;
+  char addend_char = '\0';
+  if (!addend_is_char) {
+    int base2 = addend.sliced() ? addend.sliceoff() : 0;
+    const char* raw2 = addend.AttributeValue::string_ptr();
+    len2 = addend.sliced() ? addend.slicelen() : (int)strlen(raw2);
+    s2 = raw2 + base2;
+  } else {
+    addend_char = addend.char_val();
+    len2 = 1;
+  }
+
+  if (growable && end1+len2 <= cap1) {
+    /* room in the backing's own spare trailing capacity: write in place.
+       memmove, not memcpy -- addend can alias this same buffer (e.g. a
+       slice of it), so the ranges can overlap. */
+    char* buf = (char*)symbol_pntr(symbol_val());
+    if (!addend_is_char) memmove(buf+end1, s2, len2);
+    else buf[end1] = addend_char;
+    /* no terminator write: the result is always sliced(), so
+       slicelen() -- not a physical '\0' -- marks its real end. */
+    result.string_ref() = symbol_val();
+    result.ref_as_needed();
+    result.sliceoff(base1);
+    result.slicelen(len1+len2);
+    result.sliced(1);
+  } else {
+    if (len1 > INT_MAX - len2) return ComValue::nullval();
+    int newlen = len1+len2;
+    if (!headroom) {
+      std::vector<char> vbuf(newlen+1);
+      memcpy(&vbuf[0], s1, len1);
+      if (!addend_is_char) memcpy(&vbuf[0]+len1, s2, len2);
+      else vbuf[len1] = addend_char;
+      vbuf[newlen] = '\0';
+      result.string_ref() = symbol_add(&vbuf[0]);
+      result.ref_as_needed();
+      result.sliced(0);
+    } else {
+      if (newlen > INT_MAX/2) return ComValue::nullval();
+      int newcap = newlen>0 ? newlen*2 : 1;
+      int newid = symbol_new((unsigned)newcap);
+      if (newid < 0) return ComValue::nullval();
+      char* buf = (char*)symbol_pntr(newid);
+      memcpy(buf, s1, len1);
+      if (!addend_is_char) memcpy(buf+len1, s2, len2);
+      else buf[len1] = addend_char;
+      /* symbol_new() already NUL-filled the rest, including buf[newlen] */
+      result.string_ref() = newid;
+      result.ref_as_needed();
+      result.sliceoff(0);
+      result.slicelen(newlen);
+      result.sliced(1);
+    }
+  }
+  return result;
 }
 

@@ -1928,6 +1928,7 @@ void ComTerp::add_defaults() {
     add_command("strref", new StrRefFunc(this));
     add_command("string", new StringFunc(this));
     add_command("strcap", new StrCapFunc(this));
+    add_command("append", new AppendFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
     add_command("local", new LocalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
