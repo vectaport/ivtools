@@ -37,6 +37,7 @@
 #include <IVGlyph/observables.h>
 
 #include <UniIdraw/idarrow.h>
+#include <UniIdraw/idarrowhead.h>
 #include <UniIdraw/idarrows.h>
 #include <UniIdraw/idcmds.h>
 #include <UniIdraw/idvars.h>
@@ -269,6 +270,40 @@ boolean ArrowLinePS::IsA (ClassId id) {
     return ARROWLINE_PS == id || LinePS::IsA(id);
 }
 
+/* An arrowhead has no brush/pattern/color of its own -- it inherits
+   whatever it's nested inside (see Arrowhead::draw()'s use of gs). */
+/* Its transform composes onto the enclosing Begin's, like concatGraphic()
+   does for the interactive draw(). */
+static void ArrowheadDefinition (ostream& out, Arrowhead* arrow) {
+    if (arrow == nil) return;
+
+    Coord xs[4], ys[4];
+    int n = arrow->PSVertices(xs, ys);
+
+    Transformer* my_t = arrow->GetTransformer();
+    Transformer identity;
+
+    out << "Begin\n";
+    /* always solid-filled, regardless of the line's own pattern. */
+    /* the enclosing Begin/End's save/restore keeps this override local. */
+    out << MARK << " p\n0 SetP\n";
+    if (my_t == nil || *my_t == identity) {
+        out << MARK << " t u\n";
+    } else {
+        float a00, a01, a10, a11, a20, a21;
+        my_t->GetEntries(a00, a01, a10, a11, a20, a21);
+        out << MARK << " t\n";
+        out << "[ " << a00 << " " << a01 << " " << a10 << " ";
+        out << a11 << " " << a20 << " " << a21 << " ] concat\n";
+    }
+    out << MARK << " " << n << "\n";
+    for (int i = 0; i < n; i++) {
+        out << xs[i] << " " << ys[i] << "\n";
+    }
+    out << n << " Poly\n";
+    out << "End\n\n";
+}
+
 boolean ArrowLinePS::Definition (ostream& out) {
     ArrowLine* aline = (ArrowLine*) GetGraphicComp()->GetGraphic();
 
@@ -276,11 +311,15 @@ boolean ArrowLinePS::Definition (ostream& out) {
     aline->GetOriginal(x0, y0, x1, y1);
     float arrow_scale = aline->ArrowScale();
 
+    /* endpoints stay uncorrected: ArrowheadDefinition()'s own triangle
+       below already reaches this exact point by construction. */
     out << "Begin " << MARK << " Line\n";
     MinGS(out);
     out << MARK << "\n";
     out << x0 << " " << y0 << " " << x1 << " " << y1 << " Line\n";
     out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aline->HeadArrow());
+    ArrowheadDefinition(out, aline->TailArrow());
     out << "End\n\n";
 
     return out.good();
@@ -636,65 +675,25 @@ boolean ArrowMultiLinePS::IsA (ClassId id) {
 }
 
 boolean ArrowMultiLinePS::Definition (ostream& out) {
-
-    if (idraw_format()) {
-	ArrowMultiLineOvComp* comp = (ArrowMultiLineOvComp*) GetSubject();
-	ArrowMultiLine* aml = comp->GetArrowMultiLine();
-	
-	const Coord* x, *y;
-	int n = aml->GetOriginal(x, y);
-	float arrow_scale = aml->ArrowScale();
-	
-	out << "Begin " << MARK << " " << Name() << "\n";
-	MinGS(out);
-	out << MARK << " " << n << "\n";
-	for (int i = 0; i < n; i++) {
-	    out << x[i] << " " << y[i] << "\n";
-	}
-	out << n << " " << Name() << "\n";
-	out << MARK << " " << arrow_scale << "\n";
-	out << "End\n\n";
-	
-	return out.good();
-    }
-
     ArrowMultiLine* aml = (ArrowMultiLine*) GetGraphicComp()->GetGraphic();
 
     const Coord* x, *y;
-    int numverts = aml->GetOriginal(x, y);
+    int n = aml->GetOriginal(x, y);
     float arrow_scale = aml->ArrowScale();
 
-    boolean head = aml->Head();
-    boolean tail = aml->Tail();
-    
-    const int limit = 32;
-    int cnt = 0;
-    for (int v=0; v<numverts; v+=limit-1) {
-
-	int n = min(numverts-cnt,limit);
-
-	if (v==0)
-	    aml->SetArrows(head, false);
-	else if ( v+limit>=numverts) 
-	    aml->SetArrows(false, tail);
-	else 
-	    aml->SetArrows(false, false);
-
-	out << "Begin " << MARK << " " << Name() << "\n";
-	MinGS(out);
-	out << MARK << " " << n << "\n";
-	for (int i=0; i < n; i++, cnt++) {
-	    out << x[cnt] << " " << y[cnt] << "\n";
-	}
-	out << n << " " << Name() << "\n";
-	out << MARK << " " << arrow_scale << "\n";
-	out << "End\n\n";
-
-	cnt--;  /* back up so that split lines share a vertex */
-
+    /* the vertices stay exactly as GetOriginal() returns them -- see the
+       comment in ArrowLinePS::Definition() above. */
+    out << "Begin " << MARK << " " << Name() << "\n";
+    MinGS(out);
+    out << MARK << " " << n << "\n";
+    for (int i = 0; i < n; i++) {
+	out << x[i] << " " << y[i] << "\n";
     }
-
-    aml->SetArrows(head, tail);
+    out << n << " " << Name() << "\n";
+    out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aml->HeadArrow());
+    ArrowheadDefinition(out, aml->TailArrow());
+    out << "End\n\n";
 
     return out.good();
 }
@@ -1076,6 +1075,8 @@ boolean ArrowSplinePS::Definition (ostream& out) {
     int n = aml->GetOriginal(x, y);
     float arrow_scale = aml->ArrowScale();
 
+    /* the control points stay exactly as GetOriginal() returns them --
+       see the comment in ArrowLinePS::Definition() above. */
     out << "Begin " << MARK << " " << Name() << "\n";
     MinGS(out);
     out << MARK << " " << n << "\n";
@@ -1084,6 +1085,8 @@ boolean ArrowSplinePS::Definition (ostream& out) {
     }
     out << n << " " << Name() << "\n";
     out << MARK << " " << arrow_scale << "\n";
+    ArrowheadDefinition(out, aml->HeadArrow());
+    ArrowheadDefinition(out, aml->TailArrow());
     out << "End\n\n";
 
     return out.good();

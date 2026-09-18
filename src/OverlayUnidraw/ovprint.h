@@ -50,8 +50,6 @@ public:
 
     virtual boolean to_printer();
     // return flag that indicates whether "to printer" is checked in dialog box.
-    virtual boolean idraw_format();
-    // return flag that indicates whether "idraw format" is checked in dialog box.
 
     int print(const char* cmd, const char* file);
 

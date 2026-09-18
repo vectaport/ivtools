@@ -69,13 +69,11 @@ PrintChooser::PrintChooser( Style* s ) : OpenFileChooser(s) {
 }
 
 boolean PrintChooser::to_printer() { return ((PrintChooserImpl*)impl_)->_to_printer; }
-boolean PrintChooser::idraw_format() { return ((PrintChooserImpl*)impl_)->_idraw_format; }
 
 /** class PrintChooserImpl **/
 
 PrintChooserImpl::PrintChooserImpl() {
     _to_printer = false;
-    _idraw_format = false;
 }
 
 void PrintChooserImpl::build() {
@@ -111,9 +109,6 @@ void PrintChooserImpl::build() {
     );
     Action* printer = new ActionCallback(PrintChooserImpl)(
 	this, &PrintChooserImpl::to_printer_callback
-    );
-    Action* idraw = new ActionCallback(PrintChooserImpl)(
-	this, &PrintChooserImpl::idraw_format_callback
     );
     if (editor_ == nil) {
 	editor_ = DialogKit::instance()->field_editor(
@@ -180,8 +175,6 @@ void PrintChooserImpl::build() {
 	    layout.hbox(
 		layout.hglue(10.0),
 		layout.vcenter(kit.check_box("pipe to command", printer)),
-		layout.hspace(10.0),
-		layout.vcenter(kit.check_box("idraw format", idraw)),
 		layout.hglue(10.0)
 	    ),
 	    layout.vspace(15.0),
@@ -215,10 +208,6 @@ void PrintChooserImpl::to_printer_callback() {
       if (strcmp(editor_->text()->string(), "ghostview %s")==0)
 	editor_->field("./");
     }
-}
-
-void PrintChooserImpl::idraw_format_callback() {
-    _idraw_format = !_idraw_format;
 }
 
 void PrintChooserImpl::accept_editor(FieldEditor* e) {

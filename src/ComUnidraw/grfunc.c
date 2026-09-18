@@ -620,7 +620,15 @@ void CreateMultiLineFunc::execute() {
         Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
-	ArrowMultiLine* multiline = new ArrowMultiLine(&x[0], &y[0], npts, aVar->Head(), aVar->Tail(),
+	static int head_sym = symbol_add("head");
+	static int tail_sym = symbol_add("tail");
+	AttributeValue* headv = al->find(head_sym);
+	AttributeValue* tailv = al->find(tail_sym);
+	boolean head = headv ? headv->int_val() : aVar->Head();
+	boolean tail = tailv ? tailv->int_val() : aVar->Tail();
+	if (headv) remove_key(al, head_sym);
+	if (tailv) remove_key(al, tail_sym);
+	ArrowMultiLine* multiline = new ArrowMultiLine(&x[0], &y[0], npts, head, tail,
 					_ed->GetViewer()->GetMagnification(), stdgraphic);
 
 	if (brVar != nil) multiline->SetBrush(brVar->GetBrush());

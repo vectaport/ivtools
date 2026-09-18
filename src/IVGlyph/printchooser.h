@@ -48,7 +48,6 @@ public:
     PrintChooser( Style* );
 
     virtual boolean to_printer();
-    virtual boolean idraw_format();
 };
 
 class PrintChooserImpl : public OpenFileChooserImpl {
@@ -62,10 +61,8 @@ public:
     virtual void cancel_editor(FieldEditor*);
 
     void to_printer_callback();
-    void idraw_format_callback();
 
     boolean _to_printer;
-    boolean _idraw_format;
 };
 
 declareActionCallback(PrintChooserImpl)

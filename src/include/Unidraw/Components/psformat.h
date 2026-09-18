@@ -31,6 +31,11 @@
 
 #include <Unidraw/enter-scope.h>
 
+static const float PSV_ARROWINK      = 15; // arrowheads on Line/MLine/BSpl
+                                           // nest a filled Poly of real ink
+                                           // after the curve data; readers
+                                           // older than this never wrote it
+                                           // and must not try to skip it
 static const float PSV_CAPJOINSTYLE  = 14; // support for capstyle/joinstyle
                                            // (probably won't be backward compatible)
 static const float PSV_LOADFONT      = 13; // support for executable fonts
@@ -59,6 +64,6 @@ static const float PSV_NONREDUNDANT  =  3; // eliminated unnecessary text
 static const float PSV_FGCOLOR       =  2; // added foreground color
 static const float PSV_ORIGINAL      =  1; // original format
 
-#define PSV_LATEST PSV_LOADFONT
+#define PSV_LATEST PSV_ARROWINK
 
 #endif

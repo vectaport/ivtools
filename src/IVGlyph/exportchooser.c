@@ -88,13 +88,7 @@ boolean ExportChooser::idraw_format() {
 	: false;
 }
 
-boolean ExportChooser::postscript_format() { 
-    return ((ExportChooserImpl*)impl_)->_obse 
-	? strncmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "idraw", 5) == 0  || strcasecmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "EPS") == 0 
-	: false;
-}
-
-boolean ExportChooser::svg_format() { 
+boolean ExportChooser::svg_format() {
     return ((ExportChooserImpl*)impl_)->_obse 
 	? strncmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "SVG", 3) == 0 
 	: false;

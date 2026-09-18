@@ -87,6 +87,25 @@ void Arrowhead::CorrectedTip (
     if (my_t != nil) my_t->Transform(tipx, tipy);
 }
 
+int Arrowhead::PSVertices (Coord xs[4], Coord ys[4]) {
+    /* the full, uncorrected BOTLEFT/TIP/BOTRIGHT/BOTCTR=BOTLEFT triangle. */
+    /* its tip is the exact point the line is written to stop at (see
+       ArrowLinePS::Definition() and friends). */
+    Coord* vx = Vertices::x();
+    Coord* vy = Vertices::y();
+    Coord orig_botctr = vy[BOTCTR];
+    vy[BOTCTR] = vy[BOTLEFT];
+
+    for (int i = 0; i < COUNT; i++) {
+        xs[i] = vx[i];
+        ys[i] = vy[i];
+    }
+
+    vy[BOTCTR] = orig_botctr;
+
+    return COUNT;
+}
+
 float Arrowhead::UnscaledLength (float length, Transformer* t) {
     Transformer inverse(t);
     inverse.Invert();

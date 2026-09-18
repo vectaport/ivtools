@@ -1,0 +1,47 @@
+// src/comdraw/tests/arrowmultiline.comt -- a long arrow-tipped multiline
+// (more vertices than the old chunking threshold) round-trips through
+// idraw-format PostScript as one object, not split into several.
+
+ok=true
+each(delete($$select(:all)))
+
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-arrowmultiline-%d.eps" suffix :str)
+
+pts=[0,0,10,5,20,10,30,15,40,20,50,25,60,30,70,35,80,40,90,45,100,50,110,55,120,60,130,65,140,70,150,75,160,80,170,85,180,90,190,95,200,100,210,105,220,110,230,115,240,120,250,125,260,130,270,135,280,140,290,145,300,150,310,155,320,160,330,165,340,170,350,175,360,180,370,185,380,190,390,195,400,200,410,205,420,210,430,215,440,220,450,225,460,230,470,235,480,240,490,245]
+
+m=multiline(pts)
+ok=ok&&(m!=nil)
+print("1 a 50-vertex multiline was created (expect true): %v\n" (m!=nil))
+
+export(m epspath :idraw)
+
+// --- test 2: exactly one MLine object in the file -- the old chunking
+//             split anything over 32 vertices into several ---
+objcount=0
+fp=open(epspath "r")
+while((ln=gets(fp))!=nil
+  if(index(ln "Begin" :substr)==0&&index(ln "MLine" :substr)!=nil :then objcount=objcount+1))
+close(fp)
+ok=ok&&(objcount==1)
+print("2 exactly one MLine object in the file (expect 1): %v\n" objcount)
+
+// --- test 3: re-importing recovers ONE arrowmultiline with all 50
+//             vertices -- chunking would come back as several shorter
+//             objects instead, since the reader never merges them ---
+each(delete($$select(:all)))
+page=import(epspath)
+ok=ok&&(page!=nil)
+e=export(page :string :percomp)
+matches=index(e "multiline(" :substr :all)
+mlinecount=size(matches)
+ok=ok&&(mlinecount==1)
+print("3a exactly one arrowmultiline() after re-import (expect 1): %v\n" mlinecount)
+sawFirst=(index(e "0,0,10,5")!=nil)
+sawLast=(index(e "480,240,490,245")!=nil)
+ok=ok&&sawFirst&&sawLast
+print("3b both the first and last original vertices survive (expect true): %v\n" (sawFirst&&sawLast))
+
+print("arrowmultiline: %v\n" ok)
+ok

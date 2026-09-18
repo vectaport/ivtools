@@ -190,4 +190,3 @@ int OvPrintCmd::print (const char* print_cmd, const char* file) {
 }
 
 boolean OvPrintCmd::to_printer() { return chooser_->to_printer(); }
-boolean OvPrintCmd::idraw_format() { return chooser_->idraw_format(); }

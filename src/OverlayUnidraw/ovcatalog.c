@@ -430,6 +430,15 @@ GraphicComp* OverlayCatalog::ReadBSpline (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* PSV_ARROWINK writers nest a filled Poly (ArrowheadDefinition() in
+       ovarrow.c) after the curve data; older files never wrote it. */
+    /* redundant here: the constructor below rebuilds the arrowhead from
+       _head/_tail on its own. */
+    if (_psversion >= PSV_ARROWINK) {
+	if (_head) PSSkipToEnd(in);
+	if (_tail) PSSkipToEnd(in);
+    }
+
     return new ArrowSplineOvComp(
         new ArrowOpenBSpline(x, y, n, _head, _tail, mag, &gs)
     );
@@ -497,6 +506,13 @@ GraphicComp* OverlayCatalog::ReadLine (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* skip the arrowhead ink a newer writer nests after the line data --
+       see the comment in ReadBSpline() above. */
+    if (_psversion >= PSV_ARROWINK) {
+	if (_head) PSSkipToEnd(in);
+	if (_tail) PSSkipToEnd(in);
+    }
+
     return new ArrowLineOvComp(new ArrowLine(x0,y0,x1,y1,_head,_tail,mag,&gs));
 }
 
@@ -522,6 +538,13 @@ GraphicComp* OverlayCatalog::ReadMultiLine (istream& in) {
         Skip(in);
         in >> mag;
     }
+    /* skip the arrowhead ink a newer writer nests after the vertex data --
+       see the comment in ReadBSpline() above. */
+    if (_psversion >= PSV_ARROWINK) {
+	if (_head) PSSkipToEnd(in);
+	if (_tail) PSSkipToEnd(in);
+    }
+
     return new ArrowMultiLineOvComp(
         new ArrowMultiLine(x, y, n, _head, _tail, mag, &gs)
     );

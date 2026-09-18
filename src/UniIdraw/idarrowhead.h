@@ -36,6 +36,12 @@ public:
 
     void CorrectedTip(Coord&, Coord&, PSBrush*, Transformer*);
 
+    // returns the (up to 4) vertices of this arrowhead's full, solid
+    // triangle -- its own local shape, untransformed -- for a
+    // PostScript writer to emit as real ink instead of leaving it
+    // undrawn.
+    int PSVertices(Coord xs[4], Coord ys[4]);
+
     virtual Graphic* Copy();
     virtual Graphic& operator = (Graphic&);
     virtual Arrowhead& operator = (Arrowhead&);

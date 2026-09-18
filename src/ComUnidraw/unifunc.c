@@ -425,9 +425,9 @@ ExportFunc::ExportFunc(ComTerp* comterp, Editor* editor,
   _docstring = nil;
 }
 
-const char* ExportFunc::docstring() { 
+const char* ExportFunc::docstring() {
   const char* df =
-    "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :eps :idraw) -- export in %s format ";
+    "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :idraw) -- export in %s format ";
   if (!_docstring) {
     _docstring = new char[strlen(df)+strlen(appname())+1];
     sprintf(_docstring, df, "%s", appname() );
@@ -441,7 +441,6 @@ const char** ExportFunc::dockeys() {
     ":port int              port number on remote host\n",
     ":socket                use existing socket connection\n",
     ":string|str            export to string\n",
-    ":eps                   export in EPS format\n",
     ":idraw                 export in idraw format\n",
     nil
   };
@@ -454,7 +453,7 @@ void ExportFunc::execute() {
     static int _sock_symid = symbol_add("socket");
     static int _string_symid = symbol_add("string");
     static int _str_symid = symbol_add("str");
-    static int _eps_symid = symbol_add("eps");
+    static int _eps_symid = symbol_add("eps");    // undocumented alias for :idraw
     static int _idraw_symid = symbol_add("idraw");
     static int _percomp_symid = symbol_add("percomp");
     ComValue compviewv(stack_arg(0));
@@ -502,7 +501,6 @@ void ExportFunc::execute() {
 	if (!percomp_mode) *out << ")\n";
       } else {
 	OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
-	psv->idraw_format(idraw_flag.is_true());
 	comp->Attach(psv);
 	psv->Update();
 	psv->Emit(*out);
@@ -564,7 +562,6 @@ void ExportFunc::execute() {
 	  tempgroup->Append(selcomps[idx]);
 	}
 	OverlayPS* psv = (OverlayPS*) tempgroup->Create(POSTSCRIPT_VIEW);
-	psv->idraw_format(idraw_flag.is_true());
 	tempgroup->Attach(psv);
 	psv->Update();
 	psv->Emit(*out);
