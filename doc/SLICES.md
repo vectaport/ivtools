@@ -392,15 +392,17 @@ default-case fallback always did for a mismatch.
 `ColonListFunc` (`listfunc.c`) is registered as the `:` operator,
 priority 78 (`optable.c`, above `@`'s 77 so `str@lo:hi` groups the
 range before `at()` consumes it). What it builds is deliberately
-generic — a plain `coloned()`-tagged `AttributeValueList`,
-arity-disambiguated rather than type-disambiguated: two elements reads
-as a range/slice, three as a capped slice on `@` (see "A third element:
-`lo:hi:cap`" below) or, failing that, `hr:min:sec` elsewhere as a
-`TimeObj` (see "`hr:min:sec`: a second three-element reading" below).
-Nothing about `:` itself knows it's sometimes used for
-slicing; `ListAtFunc`'s `@` is the one specific consumer that
-recognizes a `coloned()` list and knows to build a slice from it
-(`listfunc.c`, the `is_only_string() && nv.coloned()` branch).
+generic — a plain `coloned()`-tagged `AttributeValueList`, and stays
+that way regardless of element count or value: `:` never inspects what
+it's building, only pairs and flattens. Nothing about `:` itself knows
+it's sometimes used for slicing, or for a time literal; `ListAtFunc`'s
+`@` is the one specific consumer that recognizes a `coloned()` list and
+knows to build a (possibly capped) slice from it (`listfunc.c`, the
+`is_only_string() && nv.coloned()` branch) — two elements as a
+range/slice, three as a capped slice (see "A third element:
+`lo:hi:cap`" below). A three-element chain elsewhere stays a plain
+list; nothing currently reads it as `hr:min:sec` (see `TimeObj`,
+`timefunc.h`/`.c`).
 
 A bare identifier operand is captured as its own **unresolved symbol**,
 never looked up (`stack_arg(0, true)` / `stack_arg(1, true)` — the

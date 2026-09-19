@@ -47,9 +47,9 @@ class DateObj {
   CLASS_SYMID("DateObj");
 };
 
-//: hr:min:sec, recognized by the ':' operator -- minute and second bounded
-// to a clock face, hour left unbounded so an elapsed duration (25:00:00)
-// still constructs.  Plain storage, no epoch or date attached.
+//: An hour/minute/second value -- minute and second bounded to a clock
+// face, hour left unbounded so an elapsed duration (25:00:00) still
+// constructs.  Plain storage, no epoch or date attached.
 class TimeObj {
  public:
   TimeObj(int hour, int minute, int second);
