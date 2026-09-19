@@ -394,9 +394,10 @@ priority 78 (`optable.c`, above `@`'s 77 so `str@lo:hi` groups the
 range before `at()` consumes it). What it builds is deliberately
 generic — a plain `coloned()`-tagged `AttributeValueList`,
 arity-disambiguated rather than type-disambiguated: two elements reads
-as a range/slice, three (see "A third element: `lo:hi:cap`" below)
-as a capped slice on `@`, a future `hr:min:sec` elsewhere as a
-`TimeObj`. Nothing about `:` itself knows it's sometimes used for
+as a range/slice, three as a capped slice on `@` (see "A third element:
+`lo:hi:cap`" below) or, failing that, `hr:min:sec` elsewhere as a
+`TimeObj` (see "`hr:min:sec`: a second three-element reading" below).
+Nothing about `:` itself knows it's sometimes used for
 slicing; `ListAtFunc`'s `@` is the one specific consumer that
 recognizes a `coloned()` list and knows to build a slice from it
 (`listfunc.c`, the `is_only_string() && nv.coloned()` branch).
@@ -551,15 +552,87 @@ It only ever sees the *very next* postfix token, not an arbitrary
 distance ahead — reliable for a colon chain's closing `:` because it
 always sits immediately before its consumer in postfix, not a general
 "will this reach `@` eventually" oracle for an arbitrary expression.
-It's also only reliable at the ordinary (non-`post_eval`) postfix walk
-a colon chain and `@` naturally run in — evaluating it as the operand
-of a `post_eval` command (`=`, `&&`, ...) breaks the peek, since those
-evaluate their own operands via a separate, recursive sub-evaluation
-(`stack_arg_post_eval()`) that resets what `pfoff()` sees as "next"
-partway through. Confirmed live (`colonlist.comt` tests 13/14's own
-comment) — not a problem for the real use case, which never runs
-inside a `post_eval` sub-evaluation, but the reason those two tests are
-bare, un-assigned statements rather than folded into `ok`.
+
+Reliable inside a `post_eval` operand too (`=`, `&&`, `if`, `while`,
+`func`, ...), not just the ordinary top-level postfix walk — this took
+a second mechanism to get right. Those commands evaluate their own
+operands via a separate, recursive sub-evaluation
+(`ComTerp::post_eval_expr()`), which walks the same postfix buffer with
+its own local `offset` rather than advancing `_pfoff` — the outer walk
+has already skipped clean over the entire `post_eval` span (see
+`eval_expr()`'s `pedepth`-skip loop, `comterp.c`) by the time a command
+inside that span runs, so `_pfoff` by itself would answer about
+whatever follows the *whole* `post_eval` command, not the next token
+within the span (confirmed live: `sl=str@lo:hi:cap` under a plain
+assignment silently lost its cap before this fix, since the `@`
+exclusion read the wrong "next" token). `_pe_active`/`_pe_cursor`
+(`comterp.h`) are `post_eval_expr()`'s own analog of `_pfoff`/`pfoff()`
+for its span — set immediately before each `eval_expr_internals()` call
+it makes, exactly the same "already past the command about to fire"
+relationship `_pfoff` has in the main walk — and `next_command_is()`
+reads them instead of `_pfoff` whenever `_pe_active` is set. Saved and
+restored around each `post_eval_expr()` call for correct nesting (an
+`&&` inside an assignment's RHS recurses back into a deeper `pedepth`),
+and reset to `false` at the start of every fresh top-level statement
+(`eval_expr(boolean)`) — needed for a *nested* script (`run()` invoked
+as some outer `post_eval` command's own operand, e.g.
+`if(run("...") :then ...)` in `run_all.comt` itself) so the nested
+script's own statements don't inherit `_pe_active` still set from the
+outer call, reading `_pe_cursor` as an offset into a postfix buffer
+that's since been swapped out from under it by `push_servstate()`.
+
+### `hr:min:sec`: a second three-element reading
+
+A three-element colon chain that isn't about to land on `@` is checked
+against clock bounds — minute and second to `0..59`, hour left
+unbounded so an elapsed duration (`25:00:00`) still constructs — and
+becomes a `TimeObj` (`timefunc.h`/`.c`, wrapping `int hour/minute/second`
+the same way `DateObj` wraps a `Date*`) if it fits, or falls through to
+the ordinary flattened colon list otherwise, per `:`'s own guiding rule:
+a literal it doesn't recognize is just a list. `time(timeobj :hour
+:minute :second)` reads a field back off it — the same `:day`/`:month`/
+`:year`-over-a-positional-argument shape `date()` already uses for
+`DateObj` — and `time()`'s other keywords (`:raw`, `:mono`, `:ms`,
+`:us`, `:ns`, for the current wall clock or a monotonic reading) are
+unaffected; a `TimeObj` first argument is checked before any of them.
+`colon_triple_is_timeobj()` (`listfunc.c`) is the recognition site,
+alongside `ListAtFunc`'s own 2-/3-element `lo:hi(:cap)` reading.
+
+Printing doesn't zero-pad (`TimeObj::printOn()`, `timefunc.c`, always
+`"%d:%d:%d"`) — a source literal like `08` fails to re-parse
+(`ERR_BADOCT`: `8`/`9` aren't octal digits, `_lexscan.c`'s `TOK_OCT`
+case), a pre-existing scanner quirk on any leading-zero literal, not
+specific to `TimeObj`. Zero-padding would silently break round-tripping
+a printed `TimeObj` straight back through the scanner for any
+minute/second of `8` or `9`.
+
+`next_command_is(`at`)` is the only forward-peek recognition needs
+here — unlike the `lo:hi:cap` cap-slice above, `hr:min:sec` doesn't
+also need to ask "is another `:` coming", because it can't: the next
+literal, not the next `:`, always sits between one `colonlist` call and
+the next in postfix (`1:2:3:4` is `1 2 colonlist 3 colonlist 4
+colonlist`, not `colonlist colonlist colonlist` back to back), so a
+one-token lookahead structurally cannot see a chain continuing past
+three elements. Recognition fires at three regardless, harmlessly:
+`colon_unwind_timeobj()` (`listfunc.c`) is the other half of the
+tradeoff, turning a `TimeObj` back into its three elements the instant
+it shows up as a *later* `:`'s own left operand, so `1:2:3:4` still
+flattens to `{1,2,3,4}` — `colonlist.comt` test 5b, `timeobj.comt` test
+6. `colonlist.comt`'s own tests 5/5b use out-of-bounds values
+(`100:200:300`) rather than `1:2:3`, precisely so they keep testing
+"chained `:` flattens" without colliding with this recognition.
+
+One limitation is real and left as-is: `x=0:4:8` on its own statement,
+followed by `buf@x` on a later one, has no way to be told `@` is coming
+— `x`'s own three elements are in-bounds, so `x` becomes a `TimeObj`,
+and `buf@x` reads `nil` rather than slicing, since `@` only recognizes
+an *un*-recognized, still-`coloned()` list. Only a `str@lo:hi(:cap)`
+written directly in the same expression is protected; a chain built
+across a variable binding is invisible to the one-token peek the same
+way a chain extending past three elements would be, but there's no
+retroactive fix here the way `colon_unwind_timeobj()` provides for the
+mid-chain case — `timeobj.comt` test 7 pins the current (accepted)
+behavior rather than leaving it to be rediscovered as a surprise.
 
 ## 8. `symadd()`: symbols stay idempotent, strings don't anymore
 

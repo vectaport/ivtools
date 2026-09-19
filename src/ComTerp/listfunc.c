@@ -498,18 +498,23 @@ ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 /* hr:min:sec -> TimeObj, once a colon chain reaches exactly three elements
-   -- unless it's about to land on @ (a slice descriptor) or extend through
-   another ':' (not done chaining yet), checked via next_command_is() so
-   neither @ nor ':' itself needs to know what the other is doing.  Any
-   element that isn't a plain int, or falls outside a clock's bounds
-   (minute/second to 0..59; hour left unbounded for elapsed time), falls
-   through to the ordinary flattened colon list per the guiding rule: a
-   colon operator that doesn't recognize its literal just returns a list. */
+   -- unless it's about to land on @ (a slice descriptor), checked via
+   next_command_is() so @ doesn't need to know anything about ':'.  A
+   chain that keeps extending past three (1:2:3:4) is handled the other
+   way around: colon_unwind_timeobj() below turns a TimeObj back into its
+   three elements if it shows up as a later ':''s left operand, so a
+   premature three-element recognition costs nothing -- next_command_is()
+   can't see past the literal that would sit between this call and a
+   following ':' in postfix, so catching "still chaining" going forward
+   isn't possible, only undoing it going backward is.  Any element that
+   isn't a plain int, or falls outside a clock's bounds (minute/second to
+   0..59; hour left unbounded for elapsed time), falls through to the
+   ordinary flattened colon list per the guiding rule: a colon operator
+   that doesn't recognize its literal just returns a list. */
 static boolean colon_triple_is_timeobj(ComTerp* comterp, AttributeValueList* avl,
                                         ComValue& retval) {
   static int at_symid = symbol_add("at");
-  static int colonlist_symid = symbol_add("colonlist");
-  if (comterp->next_command_is(at_symid) || comterp->next_command_is(colonlist_symid))
+  if (comterp->next_command_is(at_symid))
     return false;
 
   ComValue hrv(*avl->Get(0));
@@ -533,6 +538,24 @@ static boolean colon_triple_is_timeobj(ComTerp* comterp, AttributeValueList* avl
   return true;
 }
 
+/* the other half of colon_triple_is_timeobj()'s tradeoff: a TimeObj
+   arriving as a later ':''s left operand means the chain wasn't done at
+   three elements after all -- rebuild the plain coloned list from it
+   (freeing the TimeObj, whose only reference this was) so flattening
+   continues exactly as if recognition had never fired */
+static AttributeValueList* colon_unwind_timeobj(ComValue& lo) {
+  TimeObj* timeobj = (TimeObj*)lo.obj_val();
+  AttributeValueList* avl = new AttributeValueList();
+  ComValue hrv(timeobj->hour());
+  ComValue mnv(timeobj->minute());
+  ComValue scv(timeobj->second());
+  avl->Append(new AttributeValue(hrv));
+  avl->Append(new AttributeValue(mnv));
+  avl->Append(new AttributeValue(scv));
+  delete timeobj;
+  return avl;
+}
+
 void ColonListFunc::execute() {
   /* symbol=true: eager like any other operator,
      but a bare identifier arrives as its own symbol, not looked up */
@@ -552,6 +575,15 @@ void ColonListFunc::execute() {
       }
     }
     push_stack(lo);
+  } else if (lo.is_timeobj()) {
+    /* a TimeObj extended by another ':' wasn't a finished literal after
+       all -- unwind and keep flattening, always landing above three
+       elements here so recognition can't re-fire on the same call */
+    AttributeValueList* avl = colon_unwind_timeobj(lo);
+    avl->Append(new AttributeValue(hi));
+    ComValue retval(avl);
+    retval.coloned(1);
+    push_stack(retval);
   } else {
     AttributeValueList* avl = new AttributeValueList();
     avl->Append(new AttributeValue(lo));

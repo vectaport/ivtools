@@ -250,6 +250,13 @@ boolean ComTerp::brief() const {
 int ComTerp::eval_expr(boolean nested) {
   if(_pfnum==0) return FUNCBAD;
   _pfoff = 0;
+  /* a fresh top-level statement never starts inside a post_eval span --
+     without this, a nested run() invoked as some outer post_eval command's
+     own operand (e.g. run_all.comt's if(run("...") :then ...)) would have
+     every statement of the nested script see _pe_active still set from
+     the outer call, reading _pe_cursor as an offset into a buffer that's
+     since been swapped out from under it */
+  _pe_active = false;
   delete [] _pfcomvals;
   _pfcomvals = nil;
 
@@ -275,6 +282,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   push_servstate();
 
   _pfoff = 0;
+  _pe_active = false;
   _pfnum = npfvals;
   _pfcomvals = pfvals;
 
@@ -980,6 +988,12 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
   int numtok = tokcnt;
 #endif
   if (tokcnt) {
+    /* saved/restored, not just set: a nested post_eval command (e.g. &&
+       inside an assignment's RHS) recurses back into this function at a
+       deeper pedepth, and its own cursor must not leak into the outer
+       span once it returns */
+    boolean saved_pe_active = _pe_active;
+    int saved_pe_cursor = _pe_cursor;
     int offset = _pfnum+offtop;
     while (tokcnt>0) {
       while (tokcnt>0) {
@@ -1021,12 +1035,18 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	if ((stack_top().is_type(ComValue::CommandType) || pe_funcobj_top ||
 	     pe_pending_call_top) && stack_top().pedepth() == pedepth) break;
       }
-#ifdef POSTEVAL_EXPERIMENT 
+      /* offset already points past the command about to fire -- the
+         same relationship _pfoff has to the main walk's next command */
+      _pe_active = true;
+      _pe_cursor = offset;
+#ifdef POSTEVAL_EXPERIMENT
       if (!(stack_top().is_symbol()&&numtok==1&&nolookup))
 #endif
       eval_expr_internals(pedepth);
-      
+
     }
+    _pe_active = saved_pe_active;
+    _pe_cursor = saved_pe_cursor;
   }
   return FUNCOK;
 }
@@ -2008,7 +2028,11 @@ void ComTerp::set_attributes(AttributeList* alist) {
 AttributeList* ComTerp::get_attributes() { return _alist;}
 
 boolean ComTerp::next_command_is(int funcid) {
-  int off = pfoff();
+  /* inside a post_eval operand span, the main walk has already skipped
+     past the whole span (see eval_expr()'s pedepth-skip loop), so _pfoff
+     answers about whatever follows the entire post_eval command --
+     post_eval_expr()'s own cursor is the one that tracks this span */
+  int off = _pe_active ? _pe_cursor : pfoff();
   if (off<0 || (unsigned)off>=pfnum() || !pfcomvals()) return false;
   ComValue& nx = pfcomvals()[off];
   if (!nx.is_type(ComValue::CommandType)) return false;

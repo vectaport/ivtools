@@ -161,6 +161,13 @@ void DateFunc::execute() {
 TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
+  ComValue timev(stack_arg(0));
+  static int hour_sym = symbol_add("hour");
+  static int minute_sym = symbol_add("minute");
+  static int second_sym = symbol_add("second");
+  ComValue hourv(stack_key(hour_sym));
+  ComValue minutev(stack_key(minute_sym));
+  ComValue secondv(stack_key(second_sym));
   static int ms_sym = symbol_add("ms");
   static int us_sym = symbol_add("us");
   static int ns_sym = symbol_add("ns");
@@ -175,6 +182,22 @@ void TimeFunc::execute() {
                    || monov.is_true() || rawv.is_true();
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
+
+  if (timev.is_timeobj()) {
+    TimeObj* timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
+    if (hourv.is_true()) {
+      ComValue retval(timeobj->hour());
+      push_stack(retval);
+    } else if (minutev.is_true()) {
+      ComValue retval(timeobj->minute());
+      push_stack(retval);
+    } else if (secondv.is_true()) {
+      ComValue retval(timeobj->second());
+      push_stack(retval);
+    } else
+      push_stack(timev);
+    return;
+  }
 
   /* the bare call is reserved for a future TimeObj return;
      answering a plain number now would entrench the wrong type */

@@ -88,7 +88,9 @@ public:
 };
 
 //: time returns the current time as a plain number -- wall clock by
-// default, or a monotonic reading with :mono.
+// default, or a monotonic reading with :mono -- or, given a TimeObj,
+// reads a field off it (:hour/:minute/:second), same shape as date()'s
+// :day/:month/:year over a DateObj.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
 // exceed a 32-bit int -- so every unit is returned as a long, and seconds
 // too rather than changing type with the keyword.
@@ -98,9 +100,12 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "long = %s(:raw :mono :ms :us :ns) -- current time as a number, seconds by default; the bare call is reserved for TimeObj"; }
+      return "long|int = %s([timeobj] :hour :minute :second :raw :mono :ms :us :ns) -- current time as a number, seconds by default, or a field off a TimeObj argument; the bare call with no argument is reserved for TimeObj"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
+	":hour      hour of a TimeObj argument",
+	":minute    minute of a TimeObj argument",
+	":second    second of a TimeObj argument",
 	":raw       seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  The default clock, and",
 	"           what a unit keyword on its own implies",

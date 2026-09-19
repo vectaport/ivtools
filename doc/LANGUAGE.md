@@ -3035,13 +3035,48 @@ more than the backing actually has; asking for more than either
 refuses (`nil`), rather than silently granting less room than asked.
 `cap==hi` (explicitly zero room) is legal and distinct from omitting a
 cap entirely, which falls back to the ordinary uncapped rule instead.
-Re-slicing a capped slice can still reach into its own granted room,
-not just its visible window. The sharp edge from the plain `@lo:hi`
-case above applies here too — an in-place append lands in the shared
-backing, visible to any other slice still windowed over those bytes.
+Re-slicing a capped slice — with or without repeating `:cap` — inherits
+its parent's own remaining room, not just its visible window, so the
+boundary travels with the slice rather than evaporating the moment it's
+re-sliced. The sharp edge from the plain `@lo:hi` case above applies
+here too — an in-place append lands in the shared backing, visible to
+any other slice still windowed over those bytes.
 
 See `doc/SLICES.md` for the fuller design story — the aliasing model,
 the growth/append mechanics, and the gaps not yet closed.
+
+### `hr:min:sec` and `TimeObj`
+
+A three-element `:` chain is also how a time literal is written. If the
+numbers fit a clock face — minute and second `0..59`, hour left
+unbounded so an elapsed duration past 24 hours still works — and the
+chain isn't about to land on `@`, it becomes a `TimeObj` instead of a
+plain list:
+
+```
+t=1:8:30
+class(t)          // "TimeObj"
+t                  // 1:8:30 -- prints the same shape it was written in
+time(t :hour)      // 1
+time(t :minute)    // 8
+time(t :second)    // 30
+```
+
+Out of bounds falls back to an ordinary `:`-built list, per the same
+rule any unrecognized colon literal follows:
+
+```
+1:70:30           // 1:70:30, a plain 3-element list -- 70 isn't a valid minute
+```
+
+A chain that keeps extending past three elements (`1:2:3:4`) still
+flattens normally — recognizing `1:2:3` as a `TimeObj` along the way
+costs nothing, since it's undone the moment a fourth element arrives.
+One thing recognition can't see across is a variable binding: `x=0:4:8`
+followed by `buf@x` on a later statement leaves `x` as a `TimeObj` (its
+own three elements are in-bounds), so `buf@x` no longer has a plain
+colon list to slice with. Only a `str@lo:hi(:cap)` written directly in
+the same expression is protected from this; see `doc/SLICES.md` for why.
 
 ## Symbols
 

@@ -1,0 +1,103 @@
+// src/comterp_/tests/timeobj.comt -- hr:min:sec recognized as a TimeObj
+
+// funcs: colonlist time class print size at
+
+// A colon chain that reaches exactly three elements is checked against
+// hr:min:sec bounds -- minute and second to a clock face (0..59), hour
+// left unbounded so an elapsed duration (25:00:00) still constructs -- and
+// becomes a TimeObj if it fits, a plain coloned list otherwise (colonlist.comt
+// tests 5/5b cover the plain-list side, out-of-bounds on purpose so they
+// don't collide with this recognition). time(timeobj :hour|:minute|:second)
+// reads a field back off it, the same shape date()'s :day/:month/:year
+// already use for DateObj. Construction and print()ing are covered here
+// directly; time.comt covers time()'s other, unrelated keywords (:raw,
+// :mono, :ms, :us, :ns) for the current wall clock/monotonic reading.
+//
+// Two things a TimeObj recognition site can't do, both because
+// ComTerp::next_command_is() only ever sees the ONE postfix token right
+// after the command that's about to return -- not an arbitrary distance
+// ahead, and never across a variable binding to a later statement:
+//
+//   - A chain that keeps extending past three elements (1:2:3:4) can't be
+//     told "don't recognize yet, more is coming" going forward, because
+//     the next literal (not the next ':') always sits between this call
+//     and the following one in postfix.  Recognition still fires at
+//     three, harmlessly: colon_unwind_timeobj() (listfunc.c) turns the
+//     TimeObj back into its three elements the moment it shows up as a
+//     later ':''s own left operand, so flattening continues exactly as
+//     if recognition had never fired -- see test 6.
+//   - x=0:4:8 followed by buf@x on a LATER statement has no way to see
+//     that @ is coming; x becomes a TimeObj (0,4,8 are in-bounds) and
+//     buf@x reads nil rather than slicing, since @ only recognizes an
+//     un-recognized, still-coloned list -- see test 7.  Only str@lo:hi:cap
+//     written directly in the same expression is protected (colonslice.comt).
+
+ok=true
+
+// --- 1: hr:min:sec within bounds becomes a TimeObj, not a plain list --
+//        assigned, not bare -- this is also the regression case for
+//        ComTerp::next_command_is()'s post-eval cursor (comterp.c):
+//        colon_triple_is_timeobj()'s own @ check runs inside the
+//        assignment's post_eval operand span, where _pfoff alone would
+//        answer about whatever follows the WHOLE assignment, not the
+//        next token within the span ---
+t1=1:8:30
+ok=ok&&(class(t1)=="TimeObj")
+ok=ok&&(print(t1 :str)=="1:8:30")
+print("1 t1=1:8:30 (expect TimeObj 1:8:30): %v %v\n" class(t1) t1)
+
+// --- 2: time(t :hour), time(t :minute), time(t :second) read the three
+//        fields back off a TimeObj, the same shape date()'s :day/:month/
+//        :year already use for DateObj ---
+ok=ok&&(time(t1 :hour)==1 && time(t1 :minute)==8 && time(t1 :second)==30)
+print("2 time(t1 :hour/:minute/:second) (expect 1 8 30): %v %v %v\n" time(t1 :hour) time(t1 :minute) time(t1 :second))
+
+// --- 3: hour is left unbounded -- an elapsed duration past a clock's
+//        24 hours still constructs, only minute/second are clamped to
+//        a clock face ---
+t3=25:30:0
+ok=ok&&(class(t3)=="TimeObj" && time(t3 :hour)==25)
+print("3 t3=25:30:0 elapsed hour>24 (expect TimeObj 25): %v %v\n" class(t3) time(t3 :hour))
+
+// --- 4: minute or second outside 0..59 doesn't recognize -- falls
+//        through to the ordinary flattened colon list per the guiding
+//        rule (colonlist.comt's own header): a colon operator that
+//        doesn't recognize its literal just returns a list ---
+t4=1:70:30
+ok=ok&&(class(t4)==nil && size(t4)==3 && t4@0==1 && t4@1==70 && t4@2==30)
+print("4 t4=1:70:30 (bad minute, expect plain list 1:70:30): %v %v\n" class(t4) t4)
+
+// --- 5: landing on @ still builds a cap-slice, never a TimeObj, even
+//        when the three numbers happen to look like a valid clock time
+//        -- next_command_is(`at) excludes this before recognition ever
+//        checks bounds (colon_triple_is_timeobj, listfunc.c) ---
+buf5="a123456789 more padding to be long enough"
+s5=buf5@1:8:30
+ok=ok&&(s5=="1234567" && size(s5)==7)
+print("5 buf5@1:8:30, in-bounds-looking cap-slice stays a slice (expect 1234567): %v\n" s5)
+
+// --- 6: a chain that keeps extending past three elements unwinds a
+//        premature TimeObj back into a list and keeps flattening --
+//        1,8,30 alone would be a TimeObj (test 1), but a fourth element
+//        means it wasn't finished after all ---
+t6=1:8:30:99
+ok=ok&&(class(t6)==nil && size(t6)==4)
+ok=ok&&(t6@0==1 && t6@1==8 && t6@2==30 && t6@3==99)
+print("6 t6=1:8:30:99, unwound back to a list (expect nil 1:8:30:99): %v %v\n" class(t6) t6)
+
+// --- 7: assign-then-use can't be helped -- x becomes a TimeObj (its
+//        own three elements are in-bounds), so buf@x no longer sees a
+//        plain coloned list to slice with, and reads nil.  Accepted,
+//        documented limitation (doc/SLICES.md), not a bug: only a
+//        str@lo:hi(:cap) written directly in the same expression is
+//        protected, the same way the mid-chain unwind above only
+//        protects a chain built in one expression ---
+buf7="a123456789 more padding to be long enough"
+x7=1:8:30
+ok=ok&&(class(x7)=="TimeObj")
+y7=buf7@x7
+ok=ok&&(y7==nil)
+print("7 x7=1:8:30 then buf7@x7 (expect TimeObj nil): %v %v\n" class(x7) y7)
+
+print("timeobj: %v\n" ok)
+ok
