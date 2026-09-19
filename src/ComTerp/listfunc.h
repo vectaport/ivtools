@@ -134,13 +134,16 @@ public:
 // (symval()) or match it directly against another symbol (e.g. `Dec).
 // Anything else (a literal, a parenthesized expression, ...) evaluates
 // normally, same as any other operator's operand.
+// A chain that reaches exactly three elements and isn't about to land on
+// @ or extend through another ':' is checked against hr:min:sec bounds and,
+// if it fits, becomes a TimeObj instead of a plain list.
 class ColonListFunc : public ComFunc {
 public:
     ColonListFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lo hi) -- pair two operands into a coloned list, for the ':' operator; a bare identifier operand is captured as an unevaluated symbol"; }
+      return "val=%s(lo hi) -- pair two operands into a coloned list, for the ':' operator; a bare identifier operand is captured as an unevaluated symbol; a three-element chain matching hr:min:sec bounds becomes a TimeObj"; }
 
     CLASS_SYMID("ColonListFunc");
 };

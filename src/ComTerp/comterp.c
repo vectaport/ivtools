@@ -147,6 +147,8 @@ void ComTerp::init() {
 
     _pfoff = 0;
     _pfnum = 0;
+    _pe_active = false;
+    _pe_cursor = 0;
     _quitflag = false;
     _returnflag = false;
 

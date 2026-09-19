@@ -67,6 +67,24 @@ DateObj::~DateObj() {
 
 /*****************************************************************************/
 
+int TimeObj::_symid = -1;
+
+TimeObj::TimeObj(int hour, int minute, int second)
+  : _hour(hour), _minute(minute), _second(second) {
+}
+
+TimeObj::~TimeObj() {
+}
+
+void TimeObj::printOn(ostream& out) const {
+  /* unpadded: a leading-zero two-digit literal like "08" fails to
+     re-parse (ERR_BADOCT -- 8 and 9 aren't octal digits), so zero-padding
+     minute/second would break round-tripping back through the scanner */
+  out << _hour << ":" << _minute << ":" << _second;
+}
+
+/*****************************************************************************/
+
 DateFunc::DateFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

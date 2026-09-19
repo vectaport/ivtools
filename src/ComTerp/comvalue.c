@@ -404,6 +404,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ((AttributeList*)svp->obj_val())->serialize(out, true);
 	  else if (svp->class_symid() == DateObj::class_symid()) {
 	    ((DateObj*)svp->obj_val())->date()->printOn(out);
+	  } else if (svp->class_symid() == TimeObj::class_symid()) {
+	    ((TimeObj*)svp->obj_val())->printOn(out);
 	  } else
             out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
 	  break;
@@ -553,6 +555,11 @@ boolean ComValue::is_socketobj() {
 boolean ComValue::is_dateobj() {
   ComValue tv = *this;
   return tv.is_object(DateObj::class_symid());
+}
+
+boolean ComValue::is_timeobj() {
+  ComValue tv = *this;
+  return tv.is_object(TimeObj::class_symid());
 }
 
 ComValue ComValue::append_str(ComValue& addend, boolean headroom) {

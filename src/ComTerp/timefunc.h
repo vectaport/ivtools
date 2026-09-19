@@ -47,6 +47,26 @@ class DateObj {
   CLASS_SYMID("DateObj");
 };
 
+//: hr:min:sec, recognized by the ':' operator -- minute and second bounded
+// to a clock face, hour left unbounded so an elapsed duration (25:00:00)
+// still constructs.  Plain storage, no epoch or date attached.
+class TimeObj {
+ public:
+  TimeObj(int hour, int minute, int second);
+  virtual ~TimeObj();
+
+  int hour() const {return _hour;}
+  int minute() const {return _minute;}
+  int second() const {return _second;}
+
+  void printOn(ostream& out) const;
+
+ protected:
+  int _hour, _minute, _second;
+
+  CLASS_SYMID("TimeObj");
+};
+
 //: date makes date from days since 1/1/1901 or string.
 class DateFunc : public ComFunc {
 public:
