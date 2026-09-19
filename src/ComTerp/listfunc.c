@@ -209,10 +209,8 @@ void ListAtFunc::execute() {
           (!have_cap || capval.type()==ComValue::IntType)) {
         int lo = loval.int_val();
         int hi = hival.int_val();
-        /* slicing a slice bounds against listv's own window -- its own
-           granted extra room included, so re-slicing a capped slice can
-           still reach into the room it was given; the offset composes
-           onto it, staying off the parent */
+        /* bounds against listv's own window, granted room included, so
+           re-slicing a capped slice can still reach into that room */
         int base = listv.sliced() ? listv.sliceoff() : 0;
         int cap = listv.sliced() ? listv.slicelen()+listv.slicecap() : symbol_len(listv.string_val());
         int room = 0;
@@ -230,7 +228,12 @@ void ListAtFunc::execute() {
           retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
           retval.sliced(1);
-          if (have_cap) retval.slicecap(room);
+          if (have_cap)
+            retval.slicecap(room);
+          else if (listv.sliced() && listv.slicecapset())
+            /* an ordinary re-slice inherits the parent's own remaining
+               room, so append() can't forget the boundary and reach past it */
+            retval.slicecap(cap-hi);
         }
       }
     }

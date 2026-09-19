@@ -392,5 +392,20 @@ append(left33 "XY")
 ok=ok&&(right33=="XYorld")
 print("33 append(left33 \"XY\") in place lands in right33's own window too (expect \" world\" XYorld): %v %v\n" " world" right33)
 
+// --- 34: an ordinary (2-element) re-slice of a capped slice inherits
+//        its parent's remaining room, not just its length -- without
+//        this, append() past the re-slice would fall back to the whole
+//        backing and overwrite bytes the original cap meant to protect ---
+str34="hello world"
+cap34=str34@0:3:8
+reslice34=cap34@0:6
+sl34=append(reslice34 "Z")
+ok=ok&&(sl34=="hello Z" && str34=="hello Zorld")
+sl34b=append(sl34 "Y")
+ok=ok&&(sl34b=="hello ZY" && str34=="hello ZYrld")
+sl34c=append(sl34b "OVER")
+ok=ok&&(sl34c=="hello ZYOVER" && str34=="hello ZYrld")
+print("34 re-slice of cap34 inherits room to its cap, then reallocates past it (expect hello ZYOVER, str34 hello ZYrld): %v %v\n" sl34c str34)
+
 print("colonslice: %v\n" ok)
 ok

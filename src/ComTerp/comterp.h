@@ -438,12 +438,11 @@ public:
     // return pointer to buffer of postfix comvals
 
     boolean next_command_is(int funcid);
-    // true if the postfix token right after the currently executing
-    // command's own is a call to funcid -- i.e. what the currently
-    // executing command's return value is about to feed into. Available to
-    // any ordinary command, post_eval or not, the same way stack_top()'s
-    // lhs_assign() peek already lets global()/local() see a pending
-    // assignment before it fires.
+    // true during ordinary postfix execution if the token after the
+    // currently executing command is a call to funcid -- i.e. what its
+    // return value is about to feed into. Not reliable while a post_eval
+    // command recursively evaluates its operands (see stack_arg_post_eval()
+    // and post_eval_expr()): that walk resets what pfoff() sees as "next".
 
 protected:
     void incr_stack();
