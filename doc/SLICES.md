@@ -512,6 +512,22 @@ defeat the entire point of a slice; `colonslice.comt` test 33 pins the
 behavior as intentional rather than leaving it to be rediscovered as a
 surprise.
 
+Needing more than 64K of *enforced* room doesn't need a wider field —
+`append_str()`'s uncapped fallback already grants a slice the entire
+remaining length of its original backing symbol, not just whatever
+window an intermediate re-slice narrowed it to (confirmed live: slicing
+a 100000-byte buffer down to a 2-byte window and appending to that
+window still reports `strcap()` 100000 afterward). So a soft cap larger
+than 16 bits fits doesn't need `slicecap()` at all: allocate one big
+backing sized for the true ceiling (`string(200000)`, say, or a slice
+of one already that size), take an ordinary uncapped slice of a slice
+at its front for the working view, and let `append()`'s existing
+automatic behavior use the *whole* big backing as available room — the
+tradeoff is that nothing in the runtime stops an append before the
+real ceiling on its own; the script has to self-police wherever its own
+intended soft boundary is short of that, the same way any manually
+capacity-managed buffer would in Go or C.
+
 ### `ComTerp::next_command_is()`: a general forward-peek
 
 Deciding whether a `lo:hi:cap` chain even means "for `@`" — as opposed
