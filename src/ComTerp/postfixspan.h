@@ -25,6 +25,7 @@
 #define _postfixspan_h
 
 #include <ComUtil/comterp.h>
+#include <ComTerp/comvalue.h>
 
 // PostfixSpanWalk: a single forward (left-to-right) pass over an already
 // detached, forward-ordered postfix_token buffer -- the kind
@@ -52,6 +53,17 @@ public:
     ~PostfixSpanWalk();
 
     void step(postfix_token* toks, int i);
+    // PROTOTYPE: same algorithm, read live off a ComValue buffer (_pfcomvals)
+    // instead of a detached postfix_token copy -- currently a hand-mirrored
+    // duplicate of step() above pending consolidation once proven out.
+    void step(ComValue* vals, int i);
+
+    void seed(Span span) { push(span, 0); }
+    // prime the walk with a span already known by other means (e.g. a
+    // command's own just-pushed result), so step() can be called starting
+    // partway through a buffer instead of from token 0 -- lets a caller
+    // ask "what consumes this span next" without re-walking everything
+    // before it.
 
     int consumed_count() const { return _consumed_count; }
     Span consumed(int k) const { return _consumed[k]; }
