@@ -437,16 +437,6 @@ public:
     ComValue* pfcomvals() { return _pfcomvals; }
     // return pointer to buffer of postfix comvals
 
-    boolean next_command_is(int funcid);
-    // true if the token after the currently executing command is a call
-    // to funcid -- i.e. what its return value is about to feed into.
-    // Reliable during ordinary postfix execution and within a post_eval
-    // operand span (the RHS of =, &&, if, while, func, ...):
-    // post_eval_expr() maintains its own cursor (_pe_active/_pe_cursor)
-    // for this to read there instead of _pfoff, which the main walk has
-    // already skipped past the whole span by the time a nested command
-    // inside it runs.
-
 protected:
     void incr_stack();
     void incr_stack(int n);
@@ -477,8 +467,6 @@ protected:
     char* _errbuf; // buffer used for rendering error messages
     char* _errbuf2; // ancillary buffer for rendering error messages
     int _pfoff; // current offset in _pfbuf
-    boolean _pe_active; // true while post_eval_expr() is walking an operand span
-    int _pe_cursor; // that span's own analog of _pfoff, valid only while _pe_active
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset; // flag that gets set after call to ::reset_stack()
     boolean _defaults_added; // flag for base set of commands added

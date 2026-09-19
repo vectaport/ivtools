@@ -59,20 +59,14 @@ print("4 :raw is a no-op today (expect 0 3): %s %s\n" at(r 0 :raw) at(r 1 :raw))
 //        style "stay nested on purpose" escape hatch exists for ':'
 //        the way it does for ',' -- unlike a {1,2} brace literal, a
 //        coloned() list only ever comes from ':' itself, so there's
-//        no input shape that would ever want to resist flattening.
-//        Out-of-bounds values (minute 200) here, not 1:2:3 -- a
-//        three-element chain within hr:min:sec bounds is TimeObj
-//        territory now (timeobj.comt), not a plain list. ---
-t=100:200:300
+//        no input shape that would ever want to resist flattening. ---
+t=1:2:3
 ok=ok&&(size(t)==3)
-ok=ok&&(t@0==100 && t@1==200 && t@2==300)
-print("5 chained ':' flattens, 100:200:300 (expect 100:200:300): %v\n" t)
+ok=ok&&(t@0==1 && t@1==2 && t@2==3)
+print("5 chained ':' flattens, 1:2:3 (expect 1:2:3): %v\n" t)
 
 // --- 5b: flattening keeps going past 3 -- confirms it's genuine
-//        N-ary append, not a special-cased 2-then-3 fold.  1:2:3:4 here
-//        (unlike test 5) is fine even though 1:2:3 alone would be a
-//        TimeObj: a fourth element unwinds it back into a list and
-//        keeps flattening (timeobj.comt covers the unwind directly) ---
+//        N-ary append, not a special-cased 2-then-3 fold ---
 t5b=1:2:3:4
 ok=ok&&(size(t5b)==4)
 ok=ok&&(t5b@0==1 && t5b@1==2 && t5b@2==3 && t5b@3==4)

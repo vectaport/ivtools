@@ -30,7 +30,6 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
-#include <ComTerp/timefunc.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
@@ -497,65 +496,6 @@ int ColonListFunc::_symid = -1;
 ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-/* hr:min:sec -> TimeObj, once a colon chain reaches exactly three elements
-   -- unless it's about to land on @ (a slice descriptor), checked via
-   next_command_is() so @ doesn't need to know anything about ':'.  A
-   chain that keeps extending past three (1:2:3:4) is handled the other
-   way around: colon_unwind_timeobj() below turns a TimeObj back into its
-   three elements if it shows up as a later ':''s left operand, so a
-   premature three-element recognition costs nothing -- next_command_is()
-   can't see past the literal that would sit between this call and a
-   following ':' in postfix, so catching "still chaining" going forward
-   isn't possible, only undoing it going backward is.  Any element that
-   isn't a plain int, or falls outside a clock's bounds (minute/second to
-   0..59; hour left unbounded for elapsed time), falls through to the
-   ordinary flattened colon list per the guiding rule: a colon operator
-   that doesn't recognize its literal just returns a list. */
-static boolean colon_triple_is_timeobj(ComTerp* comterp, AttributeValueList* avl,
-                                        ComValue& retval) {
-  static int at_symid = symbol_add("at");
-  if (comterp->next_command_is(at_symid))
-    return false;
-
-  ComValue hrv(*avl->Get(0));
-  ComValue mnv(*avl->Get(1));
-  ComValue scv(*avl->Get(2));
-  hrv = comterp->lookup_symval(hrv);
-  mnv = comterp->lookup_symval(mnv);
-  scv = comterp->lookup_symval(scv);
-  if (hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
-      scv.type()!=ComValue::IntType)
-    return false;
-
-  int hr = hrv.int_val();
-  int mn = mnv.int_val();
-  int sc = scv.int_val();
-  if (hr<0 || mn<0 || mn>59 || sc<0 || sc>59)
-    return false;
-
-  TimeObj* timeobj = new TimeObj(hr, mn, sc);
-  retval = ComValue(TimeObj::class_symid(), (void*)timeobj);
-  return true;
-}
-
-/* the other half of colon_triple_is_timeobj()'s tradeoff: a TimeObj
-   arriving as a later ':''s left operand means the chain wasn't done at
-   three elements after all -- rebuild the plain coloned list from it
-   (freeing the TimeObj, whose only reference this was) so flattening
-   continues exactly as if recognition had never fired */
-static AttributeValueList* colon_unwind_timeobj(ComValue& lo) {
-  TimeObj* timeobj = (TimeObj*)lo.obj_val();
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue hrv(timeobj->hour());
-  ComValue mnv(timeobj->minute());
-  ComValue scv(timeobj->second());
-  avl->Append(new AttributeValue(hrv));
-  avl->Append(new AttributeValue(mnv));
-  avl->Append(new AttributeValue(scv));
-  delete timeobj;
-  return avl;
-}
-
 void ColonListFunc::execute() {
   /* symbol=true: eager like any other operator,
      but a bare identifier arrives as its own symbol, not looked up */
@@ -567,23 +507,7 @@ void ColonListFunc::execute() {
   if (lo.is_array() && lo.coloned() && !lo.array_val()->nested_insert()) {
     AttributeValueList* avl = lo.array_val();
     avl->Append(new AttributeValue(hi));
-    if (avl->Number()==3) {
-      ComValue timeval(ComValue::nullval());
-      if (colon_triple_is_timeobj(comterp(), avl, timeval)) {
-        push_stack(timeval);
-        return;
-      }
-    }
     push_stack(lo);
-  } else if (lo.is_timeobj()) {
-    /* a TimeObj extended by another ':' wasn't a finished literal after
-       all -- unwind and keep flattening, always landing above three
-       elements here so recognition can't re-fire on the same call */
-    AttributeValueList* avl = colon_unwind_timeobj(lo);
-    avl->Append(new AttributeValue(hi));
-    ComValue retval(avl);
-    retval.coloned(1);
-    push_stack(retval);
   } else {
     AttributeValueList* avl = new AttributeValueList();
     avl->Append(new AttributeValue(lo));
