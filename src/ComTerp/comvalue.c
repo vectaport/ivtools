@@ -565,7 +565,9 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
   const char* s1 = raw1 + base1;
   int end1 = base1 + len1;
   boolean growable = is_only_string();
-  int cap1 = growable ? symbol_len(symbol_val()) : 0;
+  /* an explicit slicecap() bounds growth tighter than the backing's own
+     remaining room -- refusing to grow past it is the point of asking for one */
+  int cap1 = growable ? (sliced() && slicecapset() ? end1+slicecap() : symbol_len(symbol_val())) : 0;
 
   boolean addend_is_char = !addend.is_string();
   const char* s2 = nil;
@@ -595,6 +597,9 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
     result.sliceoff(base1);
     result.slicelen(len1+len2);
     result.sliced(1);
+    /* slicecap() is room beyond slicelen(); growing in place eats into
+       that same room, against the same fixed absolute limit */
+    if (sliced() && slicecapset()) result.slicecap(slicecap()-len2);
   } else {
     if (len1 > INT_MAX - len2) return ComValue::nullval();
     int newlen = len1+len2;
@@ -620,6 +625,9 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
       result.string_ref() = newid;
       result.ref_as_needed();
       result.sliceoff(0);
+      /* an inherited slicecap() described room in the old backing --
+         a fresh one has no neighbor left there to protect */
+      result.sliceCapClear();
       result.slicelen(newlen);
       result.sliced(1);
     }

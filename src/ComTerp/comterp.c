@@ -1871,6 +1871,7 @@ void ComTerp::add_defaults() {
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
     add_command("colonlist", new ColonListFunc(this));
+    add_command("next_command_is", new NextCommandIsFunc(this), nil, nil, true /* hidden: test-only, see NextCommandIsFunc's docstring */);
     add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));
@@ -2003,6 +2004,15 @@ void ComTerp::set_attributes(AttributeList* alist) {
 }
 
 AttributeList* ComTerp::get_attributes() { return _alist;}
+
+boolean ComTerp::next_command_is(int funcid) {
+  int off = pfoff();
+  if (off<0 || (unsigned)off>=pfnum() || !pfcomvals()) return false;
+  ComValue& nx = pfcomvals()[off];
+  if (!nx.is_type(ComValue::CommandType)) return false;
+  ComFunc* nf = (ComFunc*)nx.obj_val();
+  return nf && nf->funcid()==funcid;
+}
 
 
 int ComTerp::runfile(const char* filename, boolean popen_flag) {

@@ -3018,6 +3018,28 @@ not `{{1,2},3}`. A bare identifier operand is captured as its own
 symbol, never looked up — `Dec:25` is fine even if `Dec` was never
 assigned anything.
 
+**`str@lo:hi:cap`** is Go's full slice expression — a third element
+bounds how far `append()` may grow the result in place before
+reallocating, tighter than the backing's own remaining room:
+
+```
+s="hello world"
+sl=s@0:5:8        // "hello", with 3 bytes of extra growable room (up to index 8)
+sl=append(sl "XX")  // "helloXX" -- still in place, 1 byte of room left
+sl=append(sl "Y!")  // "helloXXY!" -- past the room, reallocates instead
+```
+
+`cap` is measured the same way Go measures it — from the same origin
+as `lo`/`hi`, not "bytes past `hi`" — and must be at least `hi` and no
+more than the backing actually has; asking for more than either
+refuses (`nil`), rather than silently granting less room than asked.
+`cap==hi` (explicitly zero room) is legal and distinct from omitting a
+cap entirely, which falls back to the ordinary uncapped rule instead.
+Re-slicing a capped slice can still reach into its own granted room,
+not just its visible window. The sharp edge from the plain `@lo:hi`
+case above applies here too — an in-place append lands in the shared
+backing, visible to any other slice still windowed over those bytes.
+
 See `doc/SLICES.md` for the fuller design story — the aliasing model,
 the growth/append mechanics, and the gaps not yet closed.
 

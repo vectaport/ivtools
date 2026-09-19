@@ -79,13 +79,16 @@ public:
 // al -- al@n=val therefore can never write through to al (falls through
 // to AssignFunc's generic non-writable-lvalue warning, no special-casing
 // needed).  attrname()/attrval() (dotfunc.c) accept this shape directly.
+// str@lo:hi:cap (Go's full slice expression) also bounds how far the
+// result may grow via append() before reallocating -- see slicecap()
+// (comvalue.h).
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lst|attrlst|str n :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item"; }
+      return "val=%s(lst|attrlst|str n :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item; str@lo:hi:cap also bounds append()'s in-place growth"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
@@ -140,6 +143,28 @@ public:
       return "val=%s(lo hi) -- pair two operands into a coloned list, for the ':' operator; a bare identifier operand is captured as an unevaluated symbol"; }
 
     CLASS_SYMID("ColonListFunc");
+};
+
+//: TEST-ONLY: expose ComTerp::next_command_is() to a .comt script
+// bool=next_command_is(sym) -- true if the postfix token right after this
+// call is itself a call to the command named sym.
+//
+// General-purpose peek, available to any ordinary command the same way
+// stack_top()'s lhs_assign() peek already lets global()/local() see a
+// pending assignment before it fires -- this is what lets a chained ':'
+// (lo:hi:cap landing on @, a Go-style full slice expression) tell "I'm
+// about to feed @" from "I'm not" without @ needing to know anything
+// about ':'.  It only sees the very next token, not an arbitrary distance
+// ahead -- true for lo:hi:cap because a colon chain's closing ':' always
+// sits immediately before its consumer in postfix, not true in general
+// for some other command buried inside a larger expression.
+class NextCommandIsFunc : public ComFunc {
+public:
+    NextCommandIsFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "bool=%s(sym) -- TEST-ONLY: true if the postfix token right after this call is a call to the command named sym"; }
 };
 
 

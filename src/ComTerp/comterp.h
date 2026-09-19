@@ -437,6 +437,13 @@ public:
     ComValue* pfcomvals() { return _pfcomvals; }
     // return pointer to buffer of postfix comvals
 
+    boolean next_command_is(int funcid);
+    // true during ordinary postfix execution if the token after the
+    // currently executing command is a call to funcid -- i.e. what its
+    // return value is about to feed into. Not reliable while a post_eval
+    // command recursively evaluates its operands (see stack_arg_post_eval()
+    // and post_eval_expr()): that walk resets what pfoff() sees as "next".
+
 protected:
     void incr_stack();
     void incr_stack(int n);
