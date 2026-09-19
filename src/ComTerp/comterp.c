@@ -1893,7 +1893,6 @@ void ComTerp::add_defaults() {
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
     add_command("colonlist", new ColonListFunc(this));
-    add_command("next_command_is", new NextCommandIsFunc(this), nil, nil, true /* hidden: test-only, see NextCommandIsFunc's docstring */);
     add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));

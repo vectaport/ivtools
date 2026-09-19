@@ -598,23 +598,6 @@ void ColonListFunc::execute() {
 
 /*****************************************************************************/
 
-NextCommandIsFunc::NextCommandIsFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void NextCommandIsFunc::execute() {
-  /* a backquoted command name (e.g. `at) arrives as CommandType, not
-     SymbolType -- same distinction global()/local()/exists() already
-     make for a name that collides with a registered command */
-  ComValue symv(stack_arg(0, true));
-  reset_stack();
-  int target = symv.is_symbol() ? symv.symbol_val()
-    : symv.is_command() ? symv.command_symid() : -1;
-  boolean found = target>=0 && comterp()->next_command_is(target);
-  push_stack(found ? ComValue::trueval() : ComValue::falseval());
-}
-
-/*****************************************************************************/
-
 ListIndexFunc::ListIndexFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

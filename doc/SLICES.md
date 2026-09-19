@@ -538,15 +538,17 @@ consume the chain's result, not just what the chain itself contains.
 that: by the time a command's `execute()` runs, `pfoff()` already
 points at the next postfix token, so checking whether it's a
 `CommandType` call to `funcid` is a few lines, no new bookkeeping.
-General purpose, available to any ordinary command the same way
-`stack_top()`'s `lhs_assign()` peek already lets `global()`/`local()`
-see a pending assignment before it fires — not specific to `:` or `@`.
-`next_command_is()` (`listfunc.{h,c}`, hidden from `help()`) exposes it
-to a `.comt` script directly, TEST-ONLY, since `colonlist.comt`'s own
-use of the mechanism doesn't yet change any observable output (today,
-landing on `@` and not landing on `@` build the identical plain list —
-there's no competing 3-element reading yet for the "not `@`" branch to
-choose instead), so the mechanism needed its own direct proof.
+General purpose, available to any ordinary command's `execute()` the
+same way `stack_top()`'s `lhs_assign()` peek already lets
+`global()`/`local()` see a pending assignment before it fires — not
+specific to `:` or `@`. C++-only, deliberately: a `.comt`-visible
+wrapper would have to occupy its own postfix slot to call it, which
+would perturb the very "what comes right after me" position it's
+answering about — the wrapper's own presence, not the caller it's
+standing in for, becomes what `pfoff()` reports as "next". Validated
+directly against `ColonListFunc`'s real usage instead (`timeobj.comt`
+test 5, `colonslice.comt`), where the method runs from its actual call
+site with nothing inserted around it.
 
 It only ever sees the *very next* postfix token, not an arbitrary
 distance ahead — reliable for a colon chain's closing `:` because it

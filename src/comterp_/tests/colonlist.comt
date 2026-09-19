@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonlist.comt -- ':' as a generic pairing operator (#423)
 //
-// funcs: colonlist at size next_command_is
+// funcs: colonlist at size
 //
 // #428 put ':' in the default operator table (priority 78, above '@'s 77);
 // this test is the runtime half -- colonlist is now a real registered
@@ -160,31 +160,6 @@ print("11 x11 unmutated after (x11):3 (expect size 2, 1:2): %s %v\n" size(x11) x
 e12=list(:colon)
 ok=ok&&(size(e12)==0)
 print("12 list(:colon) is empty (expect 0): %s\n" size(e12))
-
-// --- 13/14: next_command_is(sym) -- TEST-ONLY, exposes the same
-//        forward-peek (ComTerp::pfoff()/pfcomvals()) a colon chain's
-//        closing ':' can use to tell "I'm about to feed @" from "I'm
-//        not", without @ needing to know anything about ':'.  General
-//        purpose -- any ordinary command can call it, not just
-//        colonlist.  Proven here directly rather than only inferred
-//        from cap-slice tests working (colonslice.comt tests 26+).
-//
-//        Both checks below are bare, un-assigned statements on purpose:
-//        assign (and &&, and every other post_eval command) evaluates
-//        its own operands via a separate, recursive sub-evaluation
-//        (stack_arg_post_eval()) rather than the ordinary postfix walk,
-//        which resets what pfoff() sees as "next" partway through --
-//        confirmed live, wrapping either check in ok=ok&&(...) or even
-//        a plain r=... assignment breaks the true case (it starts
-//        reading "and"/"assign" as next instead of the real target).
-//        That's not a hole in the real use case, though: a colon
-//        chain's closing ':' and the @ that consumes it are ordinary,
-//        non-post_eval constructs evaluated via the normal walk, so
-//        they never hit this interference -- only assigning the *test
-//        harness's own boolean* to ok does.  Not folded into ok
-//        because of that; the printed output is the assertion here. ---
-print("13 next_command_is(`print) landing directly on print (expect true): %v\n" next_command_is(`print))
-print("14 next_command_is(`negate) checked while landing on print instead (expect false): %v\n\n" next_command_is(`negate))
 
 print("colonlist: %v\n" ok)
 ok

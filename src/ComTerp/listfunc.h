@@ -148,28 +148,6 @@ public:
     CLASS_SYMID("ColonListFunc");
 };
 
-//: TEST-ONLY: expose ComTerp::next_command_is() to a .comt script
-// bool=next_command_is(sym) -- true if the postfix token right after this
-// call is itself a call to the command named sym.
-//
-// General-purpose peek, available to any ordinary command the same way
-// stack_top()'s lhs_assign() peek already lets global()/local() see a
-// pending assignment before it fires -- this is what lets a chained ':'
-// (lo:hi:cap landing on @, a Go-style full slice expression) tell "I'm
-// about to feed @" from "I'm not" without @ needing to know anything
-// about ':'.  It only sees the very next token, not an arbitrary distance
-// ahead -- true for lo:hi:cap because a colon chain's closing ':' always
-// sits immediately before its consumer in postfix, not true in general
-// for some other command buried inside a larger expression.
-class NextCommandIsFunc : public ComFunc {
-public:
-    NextCommandIsFunc(ComTerp*);
-
-    virtual void execute();
-    virtual const char* docstring() {
-      return "bool=%s(sym) -- TEST-ONLY: true if the postfix token right after this call is a call to the command named sym"; }
-};
-
 //: list index command for ComTerp.
 // val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 class ListIndexFunc : public ComFunc {
