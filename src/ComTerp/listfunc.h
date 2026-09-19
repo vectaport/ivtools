@@ -170,26 +170,6 @@ public:
       return "bool=%s(sym) -- TEST-ONLY: true if the postfix token right after this call is a call to the command named sym"; }
 };
 
-//: PROTOTYPE/TEST-ONLY: find this call's own eager parent by walking
-// _pfcomvals forward with PostfixSpanWalk, seeded at this call's own
-// postfix position, until some later command's arity reaches back and
-// consumes it -- skipping whole sibling subtrees (of whatever arity) in
-// between, rather than checking only the very next token the way
-// next_command_is() does. Answers `sym=next_parent()` -- what consumes
-// my result -- or nil if nothing does (I'm the top of my statement).
-// Restricted to the purely-eager case for now: self-location here is
-// just pfoff(), valid only when this call isn't itself running inside
-// some other post_eval command's own operand span.
-class NextParentFunc : public ComFunc {
-public:
-    NextParentFunc(ComTerp*);
-
-    virtual void execute();
-    virtual const char* docstring() {
-      return "sym=%s() -- PROTOTYPE/TEST-ONLY: the command that consumes this call's own result, found by an arity-aware forward walk, or nil if none (top of statement)"; }
-};
-
-
 //: list index command for ComTerp.
 // val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 class ListIndexFunc : public ComFunc {

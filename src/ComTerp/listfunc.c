@@ -31,7 +31,6 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/timefunc.h>
-#include <ComTerp/postfixspan.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
@@ -612,56 +611,6 @@ void NextCommandIsFunc::execute() {
     : symv.is_command() ? symv.command_symid() : -1;
   boolean found = target>=0 && comterp()->next_command_is(target);
   push_stack(found ? ComValue::trueval() : ComValue::falseval());
-}
-
-/*****************************************************************************/
-
-NextParentFunc::NextParentFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void NextParentFunc::execute() {
-  reset_stack();
-  /* pfoff() already points one past my own token by the time execute()
-     runs (same relationship next_command_is() relies on); my own index
-     is what it was pointing past */
-  int my_idx = comterp()->pfoff() - 1;
-  ComValue* buf = comterp()->pfcomvals();
-  int bufsiz = comterp()->pfnum();
-
-  PostfixSpanWalk walk;
-  walk.seed(PostfixSpanWalk::Span{my_idx, 1});
-
-  int parent_idx = -1;
-  for (int i = comterp()->pfoff(); i < bufsiz && parent_idx < 0; i++) {
-    /* only a command or keyword token can consume anything -- a leaf
-       step's consumed() is stale leftover from whatever last popped,
-       not "nothing happened here" */
-    boolean is_marker = buf[i].is_type(ComValue::CommandType) ||
-                         buf[i].is_type(ComValue::KeywordType);
-    walk.step(buf, i);
-    if (is_marker) {
-      for (int k = 0; k < walk.consumed_count(); k++) {
-        if (walk.consumed(k).start == my_idx) {
-          parent_idx = i;
-          break;
-        }
-      }
-    }
-  }
-
-  if (parent_idx < 0) {
-    push_stack(ComValue::nullval());
-    return;
-  }
-  ComValue& parent = buf[parent_idx];
-  if (parent.is_type(ComValue::CommandType)) {
-    ComValue retval(parent.command_symid(), ComValue::SymbolType);
-    push_stack(retval);
-  } else {
-    static int keyword_sym = symbol_add("KEYWORD");
-    ComValue retval(keyword_sym, ComValue::SymbolType);
-    push_stack(retval);
-  }
 }
 
 /*****************************************************************************/

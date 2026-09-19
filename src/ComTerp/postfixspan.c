@@ -244,3 +244,23 @@ void PostfixSpanWalk::step(ComValue* vals, int i) {
     /* Leaf: a literal value (int, string, etc) -- just itself, no operands */
     push(Span{i, 1}, 0);
 }
+
+int find_next_eager_parent(ComValue* buf, int bufsiz, int start, int seed_idx) {
+    PostfixSpanWalk walk;
+    walk.seed(PostfixSpanWalk::Span{seed_idx, 1});
+
+    for (int i = start; i < bufsiz; i++) {
+        /* only a command or keyword token can consume anything -- a leaf
+           step's consumed() is stale leftover from whatever last popped,
+           not "nothing happened here" */
+        boolean is_marker = buf[i].is_type(ComValue::CommandType) ||
+                             buf[i].is_type(ComValue::KeywordType);
+        walk.step(buf, i);
+        if (is_marker) {
+            for (int k = 0; k < walk.consumed_count(); k++) {
+                if (walk.consumed(k).start == seed_idx) return i;
+            }
+        }
+    }
+    return -1;
+}

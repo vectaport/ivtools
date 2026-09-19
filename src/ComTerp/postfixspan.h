@@ -53,9 +53,9 @@ public:
     ~PostfixSpanWalk();
 
     void step(postfix_token* toks, int i);
-    // PROTOTYPE: same algorithm, read live off a ComValue buffer (_pfcomvals)
-    // instead of a detached postfix_token copy -- currently a hand-mirrored
-    // duplicate of step() above pending consolidation once proven out.
+    // Same algorithm as step(postfix_token*, int) above, read live off a
+    // ComValue buffer (_pfcomvals) instead of a detached postfix_token copy
+    // -- a hand-mirrored duplicate pending consolidation.
     void step(ComValue* vals, int i);
 
     void seed(Span span) { push(span, 0); }
@@ -86,5 +86,16 @@ protected:
     int _consumed_count;
     int _consumed_capacity;
 };
+
+// find_next_eager_parent: the command or keyword marker that consumes the
+// span at seed_idx, found by walking buf forward from start (inclusive) with
+// a PostfixSpanWalk seeded at seed_idx -- skipping whole sibling subtrees
+// along the way rather than checking only the next token.  Returns that
+// token's index, or -1 if nothing in [start, bufsiz) consumes it (seed_idx
+// is the top of its statement).  Restricted to the purely-eager case: the
+// caller's own seed_idx must be valid, which pfoff()-1 is only when the
+// caller isn't itself running inside another post-eval command's own
+// operand span.
+int find_next_eager_parent(ComValue* buf, int bufsiz, int start, int seed_idx);
 
 #endif /* !defined(_postfixspan_h) */
