@@ -392,13 +392,14 @@ default-case fallback always did for a mismatch.
 `ColonListFunc` (`listfunc.c`) is registered as the `:` operator,
 priority 78 (`optable.c`, above `@`'s 77 so `str@lo:hi` groups the
 range before `at()` consumes it). What it builds is deliberately
-generic — a plain `coloned()`-tagged 2-element `AttributeValueList`,
+generic — a plain `coloned()`-tagged `AttributeValueList`,
 arity-disambiguated rather than type-disambiguated: two elements reads
-as a range/slice, a future three-element use (`hr:min:sec`) would read
-as a `TimeObj`. Nothing about `:` itself knows it's sometimes used for
+as a range/slice, three (see "A third element: `lo:hi:cap`" below)
+as a capped slice on `@`, a future `hr:min:sec` elsewhere as a
+`TimeObj`. Nothing about `:` itself knows it's sometimes used for
 slicing; `ListAtFunc`'s `@` is the one specific consumer that
-recognizes a `coloned()` 2-element index and knows to build a slice
-from it (`listfunc.c`, the `is_only_string() && nv.coloned()` branch).
+recognizes a `coloned()` list and knows to build a slice from it
+(`listfunc.c`, the `is_only_string() && nv.coloned()` branch).
 
 A bare identifier operand is captured as its own **unresolved symbol**,
 never looked up (`stack_arg(0, true)` / `stack_arg(1, true)` — the
@@ -473,6 +474,76 @@ Genuinely indistinguishable at the scanner level from real
 rather than guessed at. `colonlist(lo hi)` (a plain command call,
 reaching `stack_arg(i, true)` the same unresolved way) is the working
 substitute for that one spacing.
+
+### A third element: `lo:hi:cap`, Go's full slice expression
+
+`str@lo:hi:cap` bounds how far `append()` may grow the result in place
+before reallocating — `hi` still ends the visible window, but growth
+may continue up to `cap` (measured from the same origin as `lo`/`hi`,
+matching Go) before a fresh backing is allocated. Chained `:` already
+flattens (above), so `lo:hi:cap` reaches `@` as one ordinary 3-element
+`coloned()` list — no new parse shape, just a longer one of the same
+kind `@` already reads.
+
+The cap is stored in `slicecap()`, packed into `_ext3` alongside
+`coloned()`/`sliced()` (`comvalue.h`) — 16 bits (0–65535, an
+intentionally small ceiling; a slice needing more room than that isn't
+a candidate for this local cap and should be built from two ordinary
+index slices instead), room *beyond* `slicelen()`, not an absolute
+position. A separate `slicecapset()` flag bit distinguishes "no cap
+requested" from "cap explicitly requested, and it happens to be zero"
+(`cap==hi`, a legitimate, deliberately-empty-room request Go allows
+too) — both read `slicecap()==0`, so the value alone can't tell them
+apart; `append_str()` (`comvalue.c`) only consults `slicecap()` when
+`slicecapset()` is true, otherwise falling back to today's "capacity is
+whatever room the backing has left" rule unchanged. Re-slicing a capped
+slice bounds against its own `slicelen()+slicecap()`, not just
+`slicelen()`, so the granted room travels with the slice rather than
+evaporating the moment it's re-sliced. A fresh backing from
+reallocation clears the inherited cap (`sliceCapClear()`) — the old cap
+protected a specific neighbor in the old backing, and a fresh
+allocation has none to protect.
+
+This is Go's own well-known sharp edge, kept deliberately (see #396's
+own design note): an in-place append within the granted room writes
+through to the shared backing, visible to any other slice with a
+window over the same bytes. A copy-always policy would be safe but
+defeat the entire point of a slice; `colonslice.comt` test 33 pins the
+behavior as intentional rather than leaving it to be rediscovered as a
+surprise.
+
+### `ComTerp::next_command_is()`: a general forward-peek
+
+Deciding whether a `lo:hi:cap` chain even means "for `@`" — as opposed
+to some other future 3-element reading — needs to know what's about to
+consume the chain's result, not just what the chain itself contains.
+`ComTerp::next_command_is(funcid)` (`comterp.h`/`.c`) answers exactly
+that: by the time a command's `execute()` runs, `pfoff()` already
+points at the next postfix token, so checking whether it's a
+`CommandType` call to `funcid` is a few lines, no new bookkeeping.
+General purpose, available to any ordinary command the same way
+`stack_top()`'s `lhs_assign()` peek already lets `global()`/`local()`
+see a pending assignment before it fires — not specific to `:` or `@`.
+`next_command_is()` (`listfunc.{h,c}`, hidden from `help()`) exposes it
+to a `.comt` script directly, TEST-ONLY, since `colonlist.comt`'s own
+use of the mechanism doesn't yet change any observable output (today,
+landing on `@` and not landing on `@` build the identical plain list —
+there's no competing 3-element reading yet for the "not `@`" branch to
+choose instead), so the mechanism needed its own direct proof.
+
+It only ever sees the *very next* postfix token, not an arbitrary
+distance ahead — reliable for a colon chain's closing `:` because it
+always sits immediately before its consumer in postfix, not a general
+"will this reach `@` eventually" oracle for an arbitrary expression.
+It's also only reliable at the ordinary (non-`post_eval`) postfix walk
+a colon chain and `@` naturally run in — evaluating it as the operand
+of a `post_eval` command (`=`, `&&`, ...) breaks the peek, since those
+evaluate their own operands via a separate, recursive sub-evaluation
+(`stack_arg_post_eval()`) that resets what `pfoff()` sees as "next"
+partway through. Confirmed live (`colonlist.comt` tests 13/14's own
+comment) — not a problem for the real use case, which never runs
+inside a `post_eval` sub-evaluation, but the reason those two tests are
+bare, un-assigned statements rather than folded into `ok`.
 
 ## 8. `symadd()`: symbols stay idempotent, strings don't anymore
 

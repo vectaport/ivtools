@@ -54,6 +54,10 @@ class ComTerp;
 #define COMVALUE_LOCAL_FLAG      0x0400 // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
 #define COMVALUE_COLONED_FLAG    0x0800 // set by ColonListFunc -- an ArrayType built by ':', not ','
 #define COMVALUE_SLICED_FLAG     0x1000 // set on a StringType sliced from another string -- sliceoff()/slicelen() hold the window, narg()/nkey() read 0
+#define COMVALUE_SLICECAP_SHIFT  13
+#define COMVALUE_SLICECAP_BITS   16 // room for growth via append() before reallocating, 0-65535 bytes beyond slicelen() -- bits 13-28
+#define COMVALUE_SLICECAP_MASK   (((1<<COMVALUE_SLICECAP_BITS)-1)<<COMVALUE_SLICECAP_SHIFT)
+#define COMVALUE_SLICECAP_SET_FLAG 0x20000000 // bit 29 -- an explicit slicecap() was requested; distinguishes a deliberate zero-room cap from none requested, where slicecap() alone would read 0 either way. Bits 30-31 stay free.
 
 class ComValue : public AttributeValue {
 public:
@@ -171,6 +175,24 @@ public:
     // length of a slice's window into its symid string; valid only when sliced().
     void slicelen(int len) { _ext2 = len; }
     // set a slice's window length.
+    int slicecapset() const { return (_ext3 & COMVALUE_SLICECAP_SET_FLAG) != 0; }
+    // true if an explicit slicecap() was requested (str@lo:hi:cap) -- a
+    // deliberate zero-room cap (cap==hi) still reads slicecap()==0, so
+    // this is the only way to tell "none requested" from "requested, and
+    // it happens to be zero".
+    int slicecap() const { return (_ext3 & COMVALUE_SLICECAP_MASK) >> COMVALUE_SLICECAP_SHIFT; }
+    // room, in bytes beyond slicelen(), a sliced() string may grow into via
+    // append() before reallocating -- valid only when sliced() &&
+    // slicecapset(). Set only by a 3-element colonlist landing on @
+    // (lo:hi:cap, Go's full slice expression). A 16-bit field -- a slice
+    // needing more room than that isn't a candidate for this local cap,
+    // and should be built from two ordinary index slices instead.
+    void slicecap(int room) { _ext3 = (_ext3 & ~COMVALUE_SLICECAP_MASK) | ((room<<COMVALUE_SLICECAP_SHIFT) & COMVALUE_SLICECAP_MASK) | COMVALUE_SLICECAP_SET_FLAG; }
+    // set a slice's extra growable room (must fit in 16 bits) and mark it explicit.
+    void sliceCapClear() { _ext3 &= ~(COMVALUE_SLICECAP_MASK|COMVALUE_SLICECAP_SET_FLAG); }
+    // clear any explicit cap -- e.g. once append() reallocates to a fresh
+    // backing, where the old cap (a limit against the old backing's
+    // neighbor) no longer means anything.
     int blocksz() const { return 0; }
     // chunk size of a slice, in bytes -- always 0, an ordinary byte-granular
     // slice.  The storage it once had went to sliced() and the flag bits

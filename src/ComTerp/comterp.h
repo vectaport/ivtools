@@ -437,6 +437,14 @@ public:
     ComValue* pfcomvals() { return _pfcomvals; }
     // return pointer to buffer of postfix comvals
 
+    boolean next_command_is(int funcid);
+    // true if the postfix token right after the currently executing
+    // command's own is a call to funcid -- i.e. what the currently
+    // executing command's return value is about to feed into. Available to
+    // any ordinary command, post_eval or not, the same way stack_top()'s
+    // lhs_assign() peek already lets global()/local() see a pending
+    // assignment before it fires.
+
 protected:
     void incr_stack();
     void incr_stack(int n);

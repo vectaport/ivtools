@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print eq split string strcap + index gt lt ge le isslice islist char
+// funcs: colonlist at size print eq split string strcap + index gt lt ge le isslice islist char append
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -304,6 +304,93 @@ ok=ok&&(size(sl25)==10)
 ok=ok&&(print(sl25 :str)=="hi")
 ok=ok&&(sl25=="hi")
 print("25 an embedded NUL ends cstr()'s text there, not slicelen() (expect 10 hi true): %v %s %v\n" size(sl25) print(sl25 :str) (sl25=="hi"))
+
+// --- 26: str@lo:hi:cap -- Go's full slice expression -- bounds append()'s
+//        in-place growth to cap bytes past hi, not just whatever room
+//        the backing happens to have left (slicecap(), comvalue.h).
+//        colonlist's own chained ':' already builds the flat 3-element
+//        list this reads (colonlist.comt tests 5/5b); this is the first
+//        real consumer of a 3-element coloned() list, next to @'s
+//        existing 2-element lo:hi slice handling. ---
+str26="hello world"
+sl26=str26@0:5:8
+ok=ok&&(sl26=="hello")
+ok=ok&&(size(sl26)==5)
+print("26 str26@0:5:8 (expect hello 5): %v %v\n" sl26 size(sl26))
+
+// --- 27: append() within the granted room grows in place, same as an
+//        uncapped slice would, up to the cap instead of the backing's
+//        own end ---
+sl27=append(sl26 "XX")
+ok=ok&&(sl27=="helloXX")
+print("27 append(sl26 \"XX\") 2 of 3 bytes of room used (expect helloXX): %v\n" sl27)
+
+// --- 28: append() past the granted room reallocates instead of writing
+//        into whatever followed str26 in its backing -- the entire
+//        point of asking for a cap ---
+sl28=append(sl27 "ZZZZZZ")
+ok=ok&&(sl28=="helloXXZZZZZZ")
+print("28 append(sl27 \"ZZZZZZ\") past the 3-byte room, reallocates (expect helloXXZZZZZZ): %v\n" sl28)
+
+// --- 29: cap<hi is not a valid capacity (can't cap a slice below its
+//        own length) -- refuses, same nil-on-invalid-bounds convention
+//        as an ordinary lo:hi slice with hi<lo ---
+sl29=str26@0:5:2
+ok=ok&&(sl29==nil)
+print("29 str26@0:5:2, cap<hi refuses (expect nil): %v\n" sl29)
+
+// --- 30: cap beyond the physical backing is refused outright, not
+//        silently clamped -- a clamped cap would silently grant less
+//        room than asked, the opposite of what a script requested ---
+sl30=str26@0:5:999
+ok=ok&&(sl30==nil)
+print("30 str26@0:5:999, cap past the backing's own end refuses (expect nil): %v\n" sl30)
+
+// --- 31: cap==hi is a legitimate, deliberate zero-room cap (Go allows
+//        this too) -- distinct from no cap requested at all, which
+//        instead falls back to the backing's own remaining room
+//        (slicecapset(), comvalue.h) -- append() past it reallocates
+//        immediately, on the very first byte.  A fresh backing (not
+//        str26 -- already mutated in place by test 27) isolates this
+//        from that history; append()'s own bare-variable write-back
+//        (#396) means sl31 itself reads the grown result afterward too,
+//        by design, whichever way it grew -- so only the returned value
+//        is asserted, not "sl31 stayed the same". ---
+str31="zero room"
+sl31=str31@0:4:4
+ok=ok&&(sl31=="zero")
+sl31b=append(sl31 "!")
+ok=ok&&(sl31b=="zero!")
+print("31 str31@0:4:4 zero room; append() reallocates immediately (expect zero zero!): %v %v\n" sl31 sl31b)
+
+// --- 32: re-slicing a capped slice can still reach into its own
+//        granted room (the room travels with the slice, not just the
+//        original backing symbol); re-slicing past that slice's own
+//        cap still refuses, even though the physical backing has more.
+//        A fresh backing (not str26) again, so this reads the original
+//        bytes, not test 27's in-place-appended ones. ---
+str32="hello world"
+cap32=str32@0:3:8
+ok=ok&&(cap32=="hel")
+reslice32=cap32@0:6
+ok=ok&&(reslice32=="hello ")
+toofar32=cap32@0:9
+ok=ok&&(toofar32==nil)
+print("32 cap32@0:6 reaches cap32's own room (expect hello ); cap32@0:9 past it refuses (expect nil): %v %v\n" reslice32 toofar32)
+
+// --- 33: Go's sharp edge, deliberately kept (#396's own design note) --
+//        an in-place append() within cap writes through to the shared
+//        backing, visible to any other slice with a window over the
+//        same bytes -- not a bug, the tradeoff that makes a local cap
+//        worth having at all (a copy-always policy would be safe but
+//        defeat slices entirely) ---
+str33="hello world"
+left33=str33@0:5:8
+right33=str33@5:11
+ok=ok&&(right33==" world")
+append(left33 "XY")
+ok=ok&&(right33=="XYorld")
+print("33 append(left33 \"XY\") in place lands in right33's own window too (expect \" world\" XYorld): %v %v\n" " world" right33)
 
 print("colonslice: %v\n" ok)
 ok

@@ -187,24 +187,42 @@ void ListAtFunc::execute() {
   (void)rawflag;
 
   /* str@lo:hi builds a slice sharing str's symid via sliceoff/slicelen;
-     hi is exclusive, Go-style; slicing a plain list falls through to nil */
+     hi is exclusive, Go-style; str@lo:hi:cap (Go's full slice expression)
+     also bounds how far append() may grow it in place before reallocating;
+     slicing a plain list falls through to nil */
   if (listv.is_only_string() && nv.is_type(ComValue::ArrayType) && nv.coloned()) {
     AttributeValueList* range = nv.array_val();
     boolean forwrite = comterp()->stack_top(nkeys()+1).lhs_assign();
     ComValue retval(ComValue::nullval());
-    if (!forwrite && range && range->Number()==2) {
+    boolean have_cap = range && range->Number()==3;
+    if (!forwrite && range && (range->Number()==2 || have_cap)) {
       ComValue loval(*range->Get(0));
       ComValue hival(*range->Get(1));
       loval = comterp()->lookup_symval(loval);
       hival = comterp()->lookup_symval(hival);
-      if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType) {
+      ComValue capval;
+      if (have_cap) {
+        capval = *range->Get(2);
+        capval = comterp()->lookup_symval(capval);
+      }
+      if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType &&
+          (!have_cap || capval.type()==ComValue::IntType)) {
         int lo = loval.int_val();
         int hi = hival.int_val();
-        /* slicing a slice bounds against listv's own window;
-           the offset composes onto it, staying off the parent */
+        /* slicing a slice bounds against listv's own window -- its own
+           granted extra room included, so re-slicing a capped slice can
+           still reach into the room it was given; the offset composes
+           onto it, staying off the parent */
         int base = listv.sliced() ? listv.sliceoff() : 0;
-        int cap = listv.sliced() ? listv.slicelen() : symbol_len(listv.string_val());
-        if (lo>=0 && hi>=lo && hi<=cap) {
+        int cap = listv.sliced() ? listv.slicelen()+listv.slicecap() : symbol_len(listv.string_val());
+        int room = 0;
+        boolean cap_ok = true;
+        if (have_cap) {
+          int mx = capval.int_val();
+          cap_ok = mx>=hi && mx<=cap && (mx-hi)<=0xffff;
+          room = cap_ok ? mx-hi : 0;
+        }
+        if (lo>=0 && hi>=lo && hi<=cap && cap_ok) {
           retval = ComValue(listv.string_val(), ComValue::StringType);
           /* this ctor doesn't ref, unlike (int, ValueType);
              ref_as_needed() stops listv's dtor unrefing the symid */
@@ -212,6 +230,7 @@ void ListAtFunc::execute() {
           retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
           retval.sliced(1);
+          if (have_cap) retval.slicecap(room);
         }
       }
     }
@@ -496,6 +515,23 @@ void ColonListFunc::execute() {
     if (lo.is_array())
       lo.array_val()->nested_insert(false);
   }
+}
+
+/*****************************************************************************/
+
+NextCommandIsFunc::NextCommandIsFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void NextCommandIsFunc::execute() {
+  /* a backquoted command name (e.g. `at) arrives as CommandType, not
+     SymbolType -- same distinction global()/local()/exists() already
+     make for a name that collides with a registered command */
+  ComValue symv(stack_arg(0, true));
+  reset_stack();
+  int target = symv.is_symbol() ? symv.symbol_val()
+    : symv.is_command() ? symv.command_symid() : -1;
+  boolean found = target>=0 && comterp()->next_command_is(target);
+  push_stack(found ? ComValue::trueval() : ComValue::falseval());
 }
 
 /*****************************************************************************/
