@@ -891,9 +891,19 @@ updown4B_test=func(
 
   /* --- build topology --- */
   print("updown4B: wiring topology\n" :err);
+  /* ds1 initiates all three links, so each drawlink() leaves it mid-handshake
+     on one outbound connection while the next is opened -- wait for each hop
+     to register on ds1 before starting the next, rather than firing all three
+     back to back (see the ring test's chaining comment for the same race). */
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(sid(:table))")<2 && cnt<50 usleep(200000);cnt++);
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
+  cnt=0;
+  while(remote(sock1 "size(sid(:table))")<3 && cnt<50 usleep(200000);cnt++);
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds4_port :str));
+  cnt=0;
+  while(remote(sock1 "size(sid(:table))")<4 && cnt<50 usleep(200000);cnt++);
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
