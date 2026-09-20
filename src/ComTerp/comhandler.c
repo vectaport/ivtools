@@ -42,6 +42,10 @@ using namespace std;
 
 int ComterpHandler::_logger_mode = 0;
 
+/* backstop against a peer that never sends a newline: without this, a
+   connection could grow _pending_line without bound across dispatches */
+static const size_t MAX_PENDING_LINE = BUFSIZ*BUFSIZ;
+
 /*****************************************************************************/
 
 // Default constructor.
@@ -171,7 +175,14 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       status = read(fd, &ch, 1);
       if (status == 1) {
         if (ch == '\n') saw_newline = true;
-        else _pending_line.push_back(ch);
+        else {
+          _pending_line.push_back(ch);
+          if (_pending_line.size() > MAX_PENDING_LINE) {
+            fprintf(stderr, "ComterpHandler::handle_input: line exceeded %zu bytes with no newline -- closing connection\n", MAX_PENDING_LINE);
+            _pending_line.clear();
+            return -1;
+          }
+        }
       }
       bytesavail=0;
       ioctl(fd, FIONREAD, &bytesavail);

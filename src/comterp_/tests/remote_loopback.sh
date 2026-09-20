@@ -10,7 +10,7 @@
 # This is the network-protocol half of what the drawserv/drawmo suite covers,
 # minus the GUI/X coupling that makes drawmo CI-hostile, so it runs headless on a
 # hosted CI runner.  Exit 0 on success, 1 on failure.  Needs comterp built WITH
-# ACE, plus lsof and nc, on PATH.
+# ACE, plus lsof, nc, and python3, on PATH.
 port=${1:-20015}
 srvlog=$(mktemp)
 comterp server "$port" </dev/null >"$srvlog" 2>&1 &
@@ -35,7 +35,37 @@ fi
 out=$( (printf '111+222\n'; sleep 1) | nc -w 2 localhost "$port" 2>&1)
 echo "remote_loopback: 111+222 over TCP returned -> [$(printf '%s' "$out" | tr -d '\r\n')]"
 case "$out" in
-  *333*) echo "remote_loopback: OK (server evaluated the expression over the wire)"; exit 0 ;;
+  *333*) echo "remote_loopback: OK (server evaluated the expression over the wire)" ;;
   *)     echo "remote_loopback: FAIL (expected 333 in the reply)"
+         echo "--- server log ---"; cat "$srvlog"; exit 1 ;;
+esac
+
+# same idea, but the command arrives as two separate writes with a pause
+# between them, forcing two separate reactor dispatches on the server --
+# regression coverage for ComterpHandler::handle_input() dropping a partial
+# line between dispatches instead of carrying it forward. nc's own stdin
+# buffering can coalesce two piped writes back into one packet regardless of
+# the sleep between them, which would pass this check without ever exercising
+# the split -- a raw socket with explicit sendall() calls is what actually
+# guarantees two separate writes reach the server as two separate reads.
+out2=$(python3 - "$port" <<'PYEOF'
+import socket, sys, time
+port = int(sys.argv[1])
+s = socket.create_connection(("localhost", port), timeout=5)
+s.sendall(b"444+5")
+time.sleep(0.5)
+s.sendall(b"55\n")
+s.settimeout(2)
+try:
+    data = s.recv(4096)
+except Exception:
+    data = b""
+sys.stdout.write(data.decode(errors="replace"))
+PYEOF
+)
+echo "remote_loopback: 444+555 split across two writes over TCP returned -> [$(printf '%s' "$out2" | tr -d '\r\n')]"
+case "$out2" in
+  *999*) echo "remote_loopback: OK (split-delivery command reassembled correctly)"; exit 0 ;;
+  *)     echo "remote_loopback: FAIL (expected 999 in the reply -- split-delivery command was not reassembled)"
          echo "--- server log ---"; cat "$srvlog"; exit 1 ;;
 esac
