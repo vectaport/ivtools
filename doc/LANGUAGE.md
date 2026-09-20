@@ -3045,6 +3045,37 @@ any other slice still windowed over those bytes.
 See `doc/SLICES.md` for the fuller design story — the aliasing model,
 the growth/append mechanics, and the gaps not yet closed.
 
+### `time()` and `TimeObj`
+
+`:` itself never recognizes a time literal — a three-element chain
+stays a plain list no matter what its numbers look like. `time()` is
+where `hr:min:sec` is read, the same way `@` is where `lo:hi(:cap)` is
+read: given a plain colon list, it checks minute and second fit a
+clock face (`0..59`; hour is left unbounded, so an elapsed duration
+past 24 hours still works) and returns a `TimeObj`:
+
+```
+t=time(1:8:30)
+class(t)          // "TimeObj"
+t                  // 1:8:30 -- prints the same shape it was written in
+time(t :hour)      // 1
+time(t :minute)    // 8
+time(t :second)    // 30
+```
+
+A list that doesn't fit warns at the `time()` call itself and returns
+`nil` — an explicit ask gets a loud, localized answer instead of a
+silent fallback:
+
+```
+time(1:70:30)     // nil, with a warning -- 70 isn't a valid minute
+time(1:2)         // nil, with a warning -- not three elements
+```
+
+Without `time()`, a colon chain is never a `TimeObj`: `x=1:8:30` alone
+stays a plain 3-element list, and `@` never sees a `TimeObj` either,
+since `time()` is the only thing that ever builds one.
+
 ## Symbols
 
 A symbol is an interned string — a unique integer id associated with a

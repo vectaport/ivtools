@@ -400,9 +400,10 @@ it's sometimes used for slicing, or for a time literal; `ListAtFunc`'s
 knows to build a (possibly capped) slice from it (`listfunc.c`, the
 `is_only_string() && nv.coloned()` branch) — two elements as a
 range/slice, three as a capped slice (see "A third element:
-`lo:hi:cap`" below). A three-element chain elsewhere stays a plain
-list; nothing currently reads it as `hr:min:sec` (see `TimeObj`,
-`timefunc.h`/`.c`).
+`lo:hi:cap`" below). `time()` is the other consumer that reads a
+three-element chain, as `hr:min:sec` (see `TimeObj`, `timefunc.h`/`.c`,
+and "`time()` vets a colon list into a `TimeObj`" below) — an explicit
+ask, like `@`, not something `:` itself decides.
 
 A bare identifier operand is captured as its own **unresolved symbol**,
 never looked up (`stack_arg(0, true)` / `stack_arg(1, true)` — the
@@ -530,6 +531,34 @@ tradeoff is that nothing in the runtime stops an append before the
 real ceiling on its own; the script has to self-police wherever its own
 intended soft boundary is short of that, the same way any manually
 capacity-managed buffer would in Go or C.
+
+### `time()` vets a colon list into a `TimeObj`
+
+`:` never inspects what it builds — a three-element chain is exactly as
+generic as a two-element one. `time()` (`timefunc.c`) is where an
+`hr:min:sec` reading is decided, the same way `@` is where a
+`lo:hi(:cap)` reading is decided: given a plain `coloned()` list,
+`colonlist_to_timeobj()` checks it's exactly three plain integers, hour
+non-negative and minute/second `0..59` (hour itself unbounded, so an
+elapsed duration past 24 hours still constructs), and returns a
+`TimeObj` if it fits. A bare identifier element is resolved
+(`ComTerp::lookup_symval()`) before the check, so `time(h:m:s)` works
+whether `h`/`m`/`s` are already-bound variables.
+
+Because `time()` is an explicit ask — unlike `:` itself, which has to
+stay silent since a three-element chain might not be a time literal at
+all — a list that doesn't fit warns loudly at this exact call site
+(wrong element count, a non-integer element, or a field out of range)
+and returns `nil`, rather than falling back to the plain list the way
+an unrecognized colon literal does everywhere else. `t=time(1:8:30)`
+then reads back with `time(t :hour)`/`:minute`/`:second`, the same
+shape `date()` already uses for `DateObj`'s `:day`/`:month`/`:year`.
+
+A colon chain that never passes through `time()` is never a `TimeObj`,
+no matter how its three numbers look — `x=1:8:30` alone stays a plain
+list — and `@` never receives one either, since `time()` is the only
+site that ever constructs one and nothing feeds its result back into
+`@`.
 
 ## 8. `symadd()`: symbols stay idempotent, strings don't anymore
 

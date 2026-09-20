@@ -22,6 +22,7 @@
  */
 
 #include <ComTerp/timefunc.h>
+#include <Attribute/attrlist.h>
 #include <Time/Date.h>
 #include <sstream>
 #include <time.h>
@@ -158,6 +159,53 @@ void DateFunc::execute() {
 
 /*****************************************************************************/
 
+/* time()'s vetting of a plain hr:min:sec colon list into a TimeObj -- an
+   explicit ask, unlike ':' itself, so a bad literal warns at this exact
+   call site instead of silently falling back to the list it arrived as.
+   Minute and second are bounded to a clock face; hour is left unbounded
+   so an elapsed duration (25:00:00) still constructs. */
+static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
+  if (avl->Number() != 3) {
+    std::cout << "WARNING:  time() needs a 3-element hr:min:sec list, got "
+              << avl->Number() << " element(s) -- line " << linenum << "\n";
+    return nil;
+  }
+
+  ComValue hrv(*avl->Get(0));
+  ComValue mnv(*avl->Get(1));
+  ComValue scv(*avl->Get(2));
+  hrv = comterp->lookup_symval(hrv);
+  mnv = comterp->lookup_symval(mnv);
+  scv = comterp->lookup_symval(scv);
+  if (hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
+      scv.type()!=ComValue::IntType) {
+    std::cout << "WARNING:  time(): hr:min:sec must be plain integers -- line "
+              << linenum << "\n";
+    return nil;
+  }
+
+  int hr = hrv.int_val();
+  int mn = mnv.int_val();
+  int sc = scv.int_val();
+  if (hr<0) {
+    std::cout << "WARNING:  time(): hour " << hr << " is negative -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  if (mn<0 || mn>59) {
+    std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  if (sc<0 || sc>59) {
+    std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+              << linenum << "\n";
+    return nil;
+  }
+
+  return new TimeObj(hr, mn, sc);
+}
+
 TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
@@ -182,6 +230,18 @@ void TimeFunc::execute() {
                    || monov.is_true() || rawv.is_true();
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
+
+  /* an un-vetted colon list (from ':' itself, which never inspects what
+     it builds) becomes the TimeObj it looks like, or a loud warning at
+     this exact call site if it doesn't -- ':' stays generic either way */
+  if (timev.is_array() && timev.coloned()) {
+    TimeObj* built = colonlist_to_timeobj(comterp(), timev.array_val(), linenum);
+    if (!built) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    timev = ComValue(TimeObj::class_symid(), (void*)built);
+  }
 
   if (timev.is_timeobj()) {
     TimeObj* timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());

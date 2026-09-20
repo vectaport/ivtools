@@ -90,7 +90,10 @@ public:
 //: time returns the current time as a plain number -- wall clock by
 // default, or a monotonic reading with :mono -- or, given a TimeObj,
 // reads a field off it (:hour/:minute/:second), same shape as date()'s
-// :day/:month/:year over a DateObj.
+// :day/:month/:year over a DateObj. Given a plain hr:min:sec colon list
+// instead, vets it into a TimeObj (colonlist_to_timeobj()) -- ':' itself
+// never does this, so time() is the explicit ask that can warn loudly
+// at this call site on a bad literal rather than falling back silently.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
 // exceed a 32-bit int -- so every unit is returned as a long, and seconds
 // too rather than changing type with the keyword.
@@ -100,7 +103,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "long|int = %s([timeobj] :hour :minute :second :raw :mono :ms :us :ns) -- current time as a number, seconds by default, or a field off a TimeObj argument; the bare call with no argument is reserved for TimeObj"; }
+      return "long|int|TimeObj = %s([timeobj|hr:min:sec] :hour :minute :second :raw :mono :ms :us :ns) -- current time as a number, seconds by default; a TimeObj argument reads a field back, an hr:min:sec colon list is vetted into a TimeObj; the bare call with no argument is reserved for a future dual-clock TimeObj reading"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hour      hour of a TimeObj argument",
