@@ -27,6 +27,7 @@
 #include <fstream.h>
 using namespace std;
 #include <vector>
+#include <unistd.h>
 
 #include <ComTerp/comhandler.h>
 #include <ComUtil/comutil.h>
@@ -164,7 +165,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     // TEMPORARY diagnostic for the updown4B/4C hang investigation -- see
     // matching depth/dispatch logging in ACE-lite/reactor.c.  Remove once
     // the hang is root-caused.
-    fprintf(stderr, "[handle_input] enter fd=%d pending=%zu\n", (int)fd, _pending_line.size());
+    fprintf(stderr, "[handle_input] pid=%d enter fd=%d pending=%zu\n", (int)getpid(), (int)fd, _pending_line.size());
 
     _wrfd = fd;
     if (!_wrfptr) _wrfptr = fdopen(dup(fd), "w");

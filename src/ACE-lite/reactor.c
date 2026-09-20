@@ -244,7 +244,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value& max_wait_time) {
 
 int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     acelite_reactor_depth++;
-    fprintf(stderr, "[reactor] enter depth=%d\n", acelite_reactor_depth);
+    fprintf(stderr, "[reactor] pid=%d enter depth=%d\n", (int)getpid(), acelite_reactor_depth);
     fd_set rset, wset, eset;
     FD_ZERO(&rset);
     FD_ZERO(&wset);
@@ -306,7 +306,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
         ? ::select(maxfd + 1, &rset, &wset, &eset, tvp)
         : 0;
     if (nready < 0) {
-        fprintf(stderr, "[reactor] exit depth=%d (EINTR)\n", acelite_reactor_depth);
+        fprintf(stderr, "[reactor] pid=%d exit depth=%d (EINTR)\n", (int)getpid(), acelite_reactor_depth);
         acelite_reactor_depth--;
         return -1;  // EINTR etc.; caller loops again
     }
@@ -339,7 +339,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (retiring.count(rfds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.find(rfds[i]);
             if (it == read_.end()) continue;  // removed mid-dispatch
-            fprintf(stderr, "[reactor] depth=%d dispatch READ fd=%d\n", acelite_reactor_depth, (int)rfds[i]);
+            fprintf(stderr, "[reactor] pid=%d depth=%d dispatch READ fd=%d\n", (int)getpid(), acelite_reactor_depth, (int)rfds[i]);
             int rc = it->second->handle_input(rfds[i]);
             dispatched++;
             if (rc < 0) retiring.insert(rfds[i]);
@@ -368,7 +368,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     }
 
     dispatched += expire_timers();
-    fprintf(stderr, "[reactor] exit depth=%d dispatched=%d\n", acelite_reactor_depth, dispatched);
+    fprintf(stderr, "[reactor] pid=%d exit depth=%d dispatched=%d\n", (int)getpid(), acelite_reactor_depth, dispatched);
     acelite_reactor_depth--;
     return dispatched;
 }
