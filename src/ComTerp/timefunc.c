@@ -231,9 +231,8 @@ void TimeFunc::execute() {
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
-  /* an un-vetted colon list (from ':' itself, which never inspects what
-     it builds) becomes the TimeObj it looks like, or a loud warning at
-     this exact call site if it doesn't -- ':' stays generic either way */
+  /* ':' never inspects what it builds -- this is the explicit site that
+     vets a colon-list argument into a TimeObj */
   boolean built_here = false;
   if (timev.is_array() && timev.coloned()) {
     TimeObj* built = colonlist_to_timeobj(comterp(), timev.array_val(), linenum);
@@ -247,9 +246,7 @@ void TimeFunc::execute() {
 
   if (timev.is_timeobj()) {
     TimeObj* timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
-    /* a TimeObj built fresh from this call's own colon-list argument has
-       no other owner -- free it once its scalar field (not the object
-       itself) has been read out, the only case nothing else keeps it */
+    /* built_here: no other owner, so free after reading a scalar field */
     if (hourv.is_true()) {
       ComValue retval(timeobj->hour());
       push_stack(retval);
