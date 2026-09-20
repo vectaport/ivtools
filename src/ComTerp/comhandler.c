@@ -161,29 +161,42 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     if (!_wrfptr) _wrfptr = fdopen(dup(fd), "w");
     // if (!_rdfptr) _rdfptr = fdopen(fd, "r");
 
-    vector<char> inv;
     char ch;
 
     ch = '\0';
     int status=1;
     int bytesavail=1;
-    while (ch != '\n' && status>0 && bytesavail) {
+    boolean saw_newline = false;
+    while (!saw_newline && status>0 && bytesavail) {
       status = read(fd, &ch, 1);
-      if (status == 1 && ch != '\n') inv.push_back(ch);
+      if (status == 1) {
+        if (ch == '\n') saw_newline = true;
+        else _pending_line.push_back(ch);
+      }
       bytesavail=0;
       ioctl(fd, FIONREAD, &bytesavail);
     }
-    inv.push_back('\0');
-      
+
     boolean input_good = status > 0;
 
-    char* inbuf = &inv[0];
-    if (!comterp_ || !input_good)
+    if (!comterp_ || !input_good) {
+      _pending_line.clear();
       return -1;
-    else if (!inbuf ) {
-	return -1;
     }
-    else if ( !*inbuf) {
+
+    if (!saw_newline) {
+      /* line still incomplete -- bytes stay in _pending_line and the
+         reactor is freed to service other handles until the rest of
+         the line arrives on a later dispatch */
+      return 0;
+    }
+
+    vector<char> inv;
+    inv.swap(_pending_line);
+    inv.push_back('\0');
+
+    char* inbuf = &inv[0];
+    if (!*inbuf) {
 	return 0;
     }
 

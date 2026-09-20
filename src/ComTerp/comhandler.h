@@ -37,6 +37,7 @@
 #define __USE_GNU
 #endif
 #include <signal.h>
+#include <vector>
 #include <ace/Acceptor.h>
 #include <ace/Reactor.h>
 #include <ace/Singleton.h>
@@ -161,6 +162,12 @@ protected:
 
   int _alt_fd;
   // alternate fd (or portnum) to use when logging command lines
+
+  std::vector<char> _pending_line;
+  // bytes read so far for a line still incomplete when the reactor
+  // last returned control; carried across handle_input() calls so a
+  // command split across TCP deliveries is reassembled intact instead
+  // of being parsed as separate fragments
 };
 
 //: Specialize a ComterpAcceptor.
