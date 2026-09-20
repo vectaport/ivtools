@@ -435,10 +435,8 @@ int bs_ident = 0;
 	       token_state = TOK_HEX;
 	       ADVANCE_CHAR;
 	       }
-	    /* a colon-list element's leading zero is a plain decimal
-	       digit, not an octal prefix -- 20:08:43 needs three
-	       ordinary ints, the same way any other colon-pair operand
-	       reads as itself rather than a guess at what it might mean */
+	    /* after ':', a leading zero is a plain decimal digit, not an
+	       octal prefix -- 20:08:43 needs three ordinary ints */
 	    else if( _lexscan_last_toktype == TOK_OPERATOR &&
 	             _lexscan_last_tokend > 0 &&
 	             buffer[_lexscan_last_tokend-1] == ':' ) {

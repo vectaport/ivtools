@@ -226,15 +226,11 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               // a real ":key" always has whitespace before it, or opens a
-               // fresh arg list where no left operand could exist to pair
-               // with -- anything else glued directly onto ':' (0:raw,
-               // Dec:25, f():key) is a colon-pair.
-               // An opening delimiter is read off the buffer character
-               // itself, not prev_toktype: lexscan() only ever hands back
-               // the generic TOK_OPERATOR for one, since scanner()'s own
-               // LPAREN/LBRACKET/LBRACE relabeling below never reaches
-               // _lexscan_last_toktype.
+               // a real ":key" needs whitespace before it, or an opening
+               // delimiter with no possible left operand -- anything else
+               // glued onto ':' (0:raw, Dec:25, f():key) is a colon-pair.
+               // The opening delimiter is read off the buffer character,
+               // since lexscan() never relabels it past TOK_OPERATOR here.
                if( isident( buffer[*bufptr] ) &&
                    ( prev_tokend != *tokstart ||
                      ( prev_tokend > 0 &&
