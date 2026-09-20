@@ -226,11 +226,21 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               // TOK_IDENTIFIER only, deliberately: what a glued
-               // number or delimiter means (0:raw, f():key) stays undecided
+               // a real ":key" always has whitespace before it, or
+               // opens a fresh arg list where no left operand could
+               // exist to pair with -- anything else glued directly
+               // onto ':' (0:raw, Dec:25, f():key) is a colon-pair.
+               // lexscan() only ever hands back the generic
+               // TOK_OPERATOR for a delimiter (scanner()'s own
+               // LPAREN/LBRACKET/LBRACE relabeling below never
+               // reaches _lexscan_last_toktype), so an opening
+               // delimiter is read off the buffer character itself.
                if( isident( buffer[*bufptr] ) &&
-                   !( prev_tokend == *tokstart &&
-                      prev_toktype == TOK_IDENTIFIER ))
+                   ( prev_tokend != *tokstart ||
+                     ( prev_tokend > 0 &&
+                       ( buffer[prev_tokend-1] == '(' ||
+                         buffer[prev_tokend-1] == '[' ||
+                         buffer[prev_tokend-1] == '{' ))))
                   search_state = LOOK_KEYWORD;
                else
                   search_state = LOOK_DONE;
