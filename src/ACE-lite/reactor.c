@@ -13,6 +13,16 @@
  * snapshot the ready set, re-verify each handler is still registered before
  * invoking it, and defer removals -- mirroring the null-checked tables the base
  * InterViews Dispatcher uses for the same reason.
+ *
+ * Registration isn't the only thing a nested call can invalidate: dispatching
+ * one fd from the snapshot can itself trigger a nested handle_events() that
+ * services a *different* fd still waiting later in the same snapshot,
+ * consuming its data.  The outer loop doesn't see that happen, so it must
+ * re-verify each fd is still actually ready immediately before its own
+ * dispatch (acelite_still_ready()) rather than trusting the batch snapshot --
+ * otherwise it hands a drained fd to handle_input()/handle_output(), which
+ * blocks waiting for data a nested call already read.  A fd skipped this way
+ * stays registered and is dispatched correctly on the reactor's next pass.
  */
 
 #include <ACE-lite/Reactor.h>
@@ -225,6 +235,19 @@ int ACE_Reactor::expire_timers() {
 // the hang is root-caused.
 static int acelite_reactor_depth = 0;
 
+// See the reentrancy note at the top of this file: is fd still actually
+// ready right now?  which selects the fd_set slot: 0=read, 1=write, 2=except.
+static bool acelite_still_ready(ACE_HANDLE fd, int which) {
+    fd_set check;
+    FD_ZERO(&check);
+    FD_SET(fd, &check);
+    timeval nowait = {0, 0};
+    fd_set* r = (which == 0) ? &check : 0;
+    fd_set* w = (which == 1) ? &check : 0;
+    fd_set* e = (which == 2) ? &check : 0;
+    return ::select(fd + 1, r, w, e, &nowait) > 0;
+}
+
 int ACE_Reactor::handle_events() { return handle_events((ACE_Time_Value*)0); }
 
 int ACE_Reactor::handle_events(ACE_Time_Value& max_wait_time) {
@@ -339,6 +362,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (retiring.count(rfds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.find(rfds[i]);
             if (it == read_.end()) continue;  // removed mid-dispatch
+            if (!acelite_still_ready(rfds[i], 0)) continue;  // drained by a nested pass
             fprintf(stderr, "[reactor] pid=%d depth=%d dispatch READ fd=%d\n", (int)getpid(), acelite_reactor_depth, (int)rfds[i]);
             int rc = it->second->handle_input(rfds[i]);
             dispatched++;
@@ -348,6 +372,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (retiring.count(wfds[i])) continue;  // already retiring from read
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = write_.find(wfds[i]);
             if (it == write_.end()) continue;
+            if (!acelite_still_ready(wfds[i], 1)) continue;  // drained by a nested pass
             int rc = it->second->handle_output(wfds[i]);
             dispatched++;
             if (rc < 0) retiring.insert(wfds[i]);
@@ -356,6 +381,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (retiring.count(efds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = except_.find(efds[i]);
             if (it == except_.end()) continue;
+            if (!acelite_still_ready(efds[i], 2)) continue;  // drained by a nested pass
             int rc = it->second->handle_exception(efds[i]);
             dispatched++;
             if (rc < 0) retiring.insert(efds[i]);
