@@ -3076,6 +3076,15 @@ Without `time()`, a colon chain is never a `TimeObj`: `x=1:8:30` alone
 stays a plain 3-element list, and `@` never sees a `TimeObj` either,
 since `time()` is the only thing that ever builds one.
 
+`print()` (and any other channel that serializes a `TimeObj`, such as
+sending it to a remote `comterp`) is subject to the same rule: a
+`TimeObj` prints as the bare colon list it holds, not as `time(...)`.
+So whatever receives it over the wire gets a plain colon list back and
+has to already know to call `time()` on it to get a `TimeObj` again --
+the same way a printed symbol comes back bare and needs `` ` `` added
+back explicitly if quoting was intended. The type is not carried in
+the serialized form; only the reader's own knowledge recovers it.
+
 ## Symbols
 
 A symbol is an interned string — a unique integer id associated with a
