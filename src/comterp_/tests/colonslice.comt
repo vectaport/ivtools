@@ -12,17 +12,12 @@
 // exclusive, Go-style -- length is hi-lo, and hi==cap is in bounds (an
 // empty slice at the far end, same as Go's s[len(s):len(s)]).
 //
-// Only literal-bound ranges are covered here (s@0:3, not s@lo:hi) -- a bare
-// identifier as the ':' operator's own right-hand operand is always
-// tokenized as a keyword lexeme by the lexer (":hi" reads as a stray
-// keyword, "Unexpected keyword" from the parser) regardless of spacing,
-// the same underlying scanner ambiguity #423 already flagged for a
-// leading colon ("Dec:25"), just showing up on the trailing side too.
-// colonlist(lo hi) -- a plain command call, not the ':' lexeme -- sidesteps
-// it and still captures lo/hi unevaluated the same way (see colonlist.comt
-// test 6/7), so s@colonlist(lo hi) works today for variable bounds; that's
-// left as a documented workaround here rather than a test, since fixing
-// the lexer itself is out of scope for this file.
+// Variable bounds work too, s@lo:hi as well as s@0:3 -- ':' captures a
+// bare-identifier operand as its own unresolved symbol (colonlist.comt
+// test 6/7), and ListAtFunc's slice branch resolves lo/hi back to their
+// bound values via lookup_symval() before checking they're both ints
+// (see test 35), so nothing about slicing itself cares whether a bound
+// came from a literal or a variable.
 //
 // Known gaps, not yet attempted: :set/:ins/:del through a slice (listfunc.c
 // falls back to nil for any coloned index in an lhs_assign context); slicing
@@ -406,6 +401,18 @@ ok=ok&&(sl34b=="hello ZY" && str34=="hello ZYrld")
 sl34c=append(sl34b "OVER")
 ok=ok&&(sl34c=="hello ZYOVER" && str34=="hello ZYrld")
 print("34 re-slice of cap34 inherits room to its cap, then reallocates past it (expect hello ZYOVER, str34 hello ZYrld): %v %v\n" sl34c str34)
+
+// --- 35: variable bounds, both sides -- s@0:hi (a literal lo, bound hi)
+//        and s@lo:hi (both bound) read the same window as the literal
+//        form would, since ':' captures each bare identifier as a
+//        symbol and the slice branch resolves it via lookup_symval()
+//        before bounds-checking ---
+str35="hello world"
+lo35=1
+hi35=5
+ok=ok&&(str35@0:hi35=="hello")
+ok=ok&&(str35@lo35:hi35=="ello")
+print("35 str35@0:hi35, str35@lo35:hi35 (expect hello, ello): %v %v\n" str35@0:hi35 str35@lo35:hi35)
 
 print("colonslice: %v\n" ok)
 ok

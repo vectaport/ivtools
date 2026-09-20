@@ -435,6 +435,14 @@ int bs_ident = 0;
 	       token_state = TOK_HEX;
 	       ADVANCE_CHAR;
 	       }
+	    /* after ':', a leading zero is a plain decimal digit, not an
+	       octal prefix -- 20:08:43 needs three ordinary ints */
+	    else if( _lexscan_last_toktype == TOK_OPERATOR &&
+	             _lexscan_last_tokend > 0 &&
+	             buffer[_lexscan_last_tokend-1] == ':' ) {
+	       token_state = TOK_DFINT;
+	       TOKEN_ADD( CURR_CHAR );
+	       }
 	    else
 	       token_state = TOK_OCT;
 	    }
