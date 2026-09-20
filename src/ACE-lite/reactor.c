@@ -17,6 +17,7 @@
 
 #include <ACE-lite/Reactor.h>
 
+#include <stdio.h>
 #include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -217,6 +218,13 @@ int ACE_Reactor::expire_timers() {
 
 /* ------------------------------------------------------------ event loop */
 
+// TEMPORARY diagnostic for the updown4B/4C hang investigation -- tracks
+// handle_events() nesting depth and logs each read dispatch, to check
+// whether a stale pre-dispatch snapshot re-invokes handle_input() on an fd
+// whose data a nested handle_events() call already consumed.  Remove once
+// the hang is root-caused.
+static int acelite_reactor_depth = 0;
+
 int ACE_Reactor::handle_events() { return handle_events((ACE_Time_Value*)0); }
 
 int ACE_Reactor::handle_events(ACE_Time_Value& max_wait_time) {
@@ -235,6 +243,8 @@ int ACE_Reactor::handle_events(ACE_Time_Value& max_wait_time) {
 }
 
 int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
+    acelite_reactor_depth++;
+    fprintf(stderr, "[reactor] enter depth=%d\n", acelite_reactor_depth);
     fd_set rset, wset, eset;
     FD_ZERO(&rset);
     FD_ZERO(&wset);
@@ -296,6 +306,8 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
         ? ::select(maxfd + 1, &rset, &wset, &eset, tvp)
         : 0;
     if (nready < 0) {
+        fprintf(stderr, "[reactor] exit depth=%d (EINTR)\n", acelite_reactor_depth);
+        acelite_reactor_depth--;
         return -1;  // EINTR etc.; caller loops again
     }
 
@@ -327,6 +339,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (retiring.count(rfds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.find(rfds[i]);
             if (it == read_.end()) continue;  // removed mid-dispatch
+            fprintf(stderr, "[reactor] depth=%d dispatch READ fd=%d\n", acelite_reactor_depth, (int)rfds[i]);
             int rc = it->second->handle_input(rfds[i]);
             dispatched++;
             if (rc < 0) retiring.insert(rfds[i]);
@@ -355,5 +368,7 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     }
 
     dispatched += expire_timers();
+    fprintf(stderr, "[reactor] exit depth=%d dispatched=%d\n", acelite_reactor_depth, dispatched);
+    acelite_reactor_depth--;
     return dispatched;
 }

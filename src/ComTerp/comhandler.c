@@ -161,6 +161,11 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
+    // TEMPORARY diagnostic for the updown4B/4C hang investigation -- see
+    // matching depth/dispatch logging in ACE-lite/reactor.c.  Remove once
+    // the hang is root-caused.
+    fprintf(stderr, "[handle_input] enter fd=%d pending=%zu\n", (int)fd, _pending_line.size());
+
     _wrfd = fd;
     if (!_wrfptr) _wrfptr = fdopen(dup(fd), "w");
     // if (!_rdfptr) _rdfptr = fdopen(fd, "r");
