@@ -3035,13 +3035,46 @@ more than the backing actually has; asking for more than either
 refuses (`nil`), rather than silently granting less room than asked.
 `cap==hi` (explicitly zero room) is legal and distinct from omitting a
 cap entirely, which falls back to the ordinary uncapped rule instead.
-Re-slicing a capped slice can still reach into its own granted room,
-not just its visible window. The sharp edge from the plain `@lo:hi`
-case above applies here too — an in-place append lands in the shared
-backing, visible to any other slice still windowed over those bytes.
+Re-slicing a capped slice — with or without repeating `:cap` — inherits
+its parent's own remaining room, not just its visible window, so the
+boundary travels with the slice rather than evaporating the moment it's
+re-sliced. The sharp edge from the plain `@lo:hi` case above applies
+here too — an in-place append lands in the shared backing, visible to
+any other slice still windowed over those bytes.
 
 See `doc/SLICES.md` for the fuller design story — the aliasing model,
 the growth/append mechanics, and the gaps not yet closed.
+
+### `time()` and `TimeObj`
+
+`:` itself never recognizes a time literal — a three-element chain
+stays a plain list no matter what its numbers look like. `time()` is
+where `hr:min:sec` is read, the same way `@` is where `lo:hi(:cap)` is
+read: given a plain colon list, it checks minute and second fit a
+clock face (`0..59`; hour is left unbounded, so an elapsed duration
+past 24 hours still works) and returns a `TimeObj`:
+
+```
+t=time(1:8:30)
+class(t)          // "TimeObj"
+t                  // 1:8:30 -- prints the same shape it was written in
+time(t :hour)      // 1
+time(t :minute)    // 8
+time(t :second)    // 30
+```
+
+A list that doesn't fit warns at the `time()` call itself and returns
+`nil` — an explicit ask gets a loud, localized answer instead of a
+silent fallback:
+
+```
+time(1:70:30)     // nil, with a warning -- 70 isn't a valid minute
+time(1:2)         // nil, with a warning -- not three elements
+```
+
+Without `time()`, a colon chain is never a `TimeObj`: `x=1:8:30` alone
+stays a plain 3-element list, and `@` never sees a `TimeObj` either,
+since `time()` is the only thing that ever builds one.
 
 ## Symbols
 

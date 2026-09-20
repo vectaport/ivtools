@@ -47,6 +47,26 @@ class DateObj {
   CLASS_SYMID("DateObj");
 };
 
+//: An hour/minute/second value -- minute and second bounded to a clock
+// face, hour left unbounded so an elapsed duration (25:00:00) still
+// constructs.  Plain storage, no epoch or date attached.
+class TimeObj {
+ public:
+  TimeObj(int hour, int minute, int second);
+  virtual ~TimeObj();
+
+  int hour() const {return _hour;}
+  int minute() const {return _minute;}
+  int second() const {return _second;}
+
+  void printOn(ostream& out) const;
+
+ protected:
+  int _hour, _minute, _second;
+
+  CLASS_SYMID("TimeObj");
+};
+
 //: date makes date from days since 1/1/1901 or string.
 class DateFunc : public ComFunc {
 public:
@@ -68,7 +88,12 @@ public:
 };
 
 //: time returns the current time as a plain number -- wall clock by
-// default, or a monotonic reading with :mono.
+// default, or a monotonic reading with :mono -- or, given a TimeObj,
+// reads a field off it (:hour/:minute/:second), same shape as date()'s
+// :day/:month/:year over a DateObj. Given a plain hr:min:sec colon list
+// instead, vets it into a TimeObj (colonlist_to_timeobj()) -- ':' itself
+// never does this, so time() is the explicit ask that can warn loudly
+// at this call site on a bad literal rather than falling back silently.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
 // exceed a 32-bit int -- so every unit is returned as a long, and seconds
 // too rather than changing type with the keyword.
@@ -78,9 +103,12 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "long = %s(:raw :mono :ms :us :ns) -- current time as a number, seconds by default; the bare call is reserved for TimeObj"; }
+      return "long|int|TimeObj = %s([timeobj|hr:min:sec] :hour :minute :second :raw :mono :ms :us :ns) -- current time as a number, seconds by default; a TimeObj argument reads a field back, an hr:min:sec colon list is vetted into a TimeObj; the bare call with no argument is reserved for a future dual-clock TimeObj reading"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
+	":hour      hour of a TimeObj argument",
+	":minute    minute of a TimeObj argument",
+	":second    second of a TimeObj argument",
 	":raw       seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  The default clock, and",
 	"           what a unit keyword on its own implies",

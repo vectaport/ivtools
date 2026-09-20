@@ -22,6 +22,7 @@
  */
 
 #include <ComTerp/timefunc.h>
+#include <Attribute/attrlist.h>
 #include <Time/Date.h>
 #include <sstream>
 #include <time.h>
@@ -63,6 +64,24 @@ DateObj::DateObj() {
 
 DateObj::~DateObj() {
   delete _date;
+}
+
+/*****************************************************************************/
+
+int TimeObj::_symid = -1;
+
+TimeObj::TimeObj(int hour, int minute, int second)
+  : _hour(hour), _minute(minute), _second(second) {
+}
+
+TimeObj::~TimeObj() {
+}
+
+void TimeObj::printOn(ostream& out) const {
+  /* unpadded: a leading-zero two-digit literal like "08" fails to
+     re-parse (ERR_BADOCT -- 8 and 9 aren't octal digits), so zero-padding
+     minute/second would break round-tripping back through the scanner */
+  out << _hour << ":" << _minute << ":" << _second;
 }
 
 /*****************************************************************************/
@@ -140,9 +159,63 @@ void DateFunc::execute() {
 
 /*****************************************************************************/
 
+/* time()'s vetting of a plain hr:min:sec colon list into a TimeObj -- an
+   explicit ask, unlike ':' itself, so a bad literal warns at this exact
+   call site instead of silently falling back to the list it arrived as.
+   Minute and second are bounded to a clock face; hour is left unbounded
+   so an elapsed duration (25:00:00) still constructs. */
+static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
+  if (avl->Number() != 3) {
+    std::cout << "WARNING:  time() needs a 3-element hr:min:sec list, got "
+              << avl->Number() << " element(s) -- line " << linenum << "\n";
+    return nil;
+  }
+
+  ComValue hrv(*avl->Get(0));
+  ComValue mnv(*avl->Get(1));
+  ComValue scv(*avl->Get(2));
+  hrv = comterp->lookup_symval(hrv);
+  mnv = comterp->lookup_symval(mnv);
+  scv = comterp->lookup_symval(scv);
+  if (hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
+      scv.type()!=ComValue::IntType) {
+    std::cout << "WARNING:  time(): hr:min:sec must be plain integers -- line "
+              << linenum << "\n";
+    return nil;
+  }
+
+  int hr = hrv.int_val();
+  int mn = mnv.int_val();
+  int sc = scv.int_val();
+  if (hr<0) {
+    std::cout << "WARNING:  time(): hour " << hr << " is negative -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  if (mn<0 || mn>59) {
+    std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  if (sc<0 || sc>59) {
+    std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+              << linenum << "\n";
+    return nil;
+  }
+
+  return new TimeObj(hr, mn, sc);
+}
+
 TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
+  ComValue timev(stack_arg(0));
+  static int hour_sym = symbol_add("hour");
+  static int minute_sym = symbol_add("minute");
+  static int second_sym = symbol_add("second");
+  ComValue hourv(stack_key(hour_sym));
+  ComValue minutev(stack_key(minute_sym));
+  ComValue secondv(stack_key(second_sym));
   static int ms_sym = symbol_add("ms");
   static int us_sym = symbol_add("us");
   static int ns_sym = symbol_add("ns");
@@ -157,6 +230,39 @@ void TimeFunc::execute() {
                    || monov.is_true() || rawv.is_true();
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
+
+  /* ':' never inspects what it builds -- this is the explicit site that
+     vets a colon-list argument into a TimeObj */
+  boolean built_here = false;
+  if (timev.is_array() && timev.coloned()) {
+    TimeObj* built = colonlist_to_timeobj(comterp(), timev.array_val(), linenum);
+    if (!built) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    timev = ComValue(TimeObj::class_symid(), (void*)built);
+    built_here = true;
+  }
+
+  if (timev.is_timeobj()) {
+    TimeObj* timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
+    /* built_here: no other owner, so free after reading a scalar field */
+    if (hourv.is_true()) {
+      ComValue retval(timeobj->hour());
+      push_stack(retval);
+      if (built_here) delete timeobj;
+    } else if (minutev.is_true()) {
+      ComValue retval(timeobj->minute());
+      push_stack(retval);
+      if (built_here) delete timeobj;
+    } else if (secondv.is_true()) {
+      ComValue retval(timeobj->second());
+      push_stack(retval);
+      if (built_here) delete timeobj;
+    } else
+      push_stack(timev);
+    return;
+  }
 
   /* the bare call is reserved for a future TimeObj return;
      answering a plain number now would entrench the wrong type */

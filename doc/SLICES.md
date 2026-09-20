@@ -392,14 +392,18 @@ default-case fallback always did for a mismatch.
 `ColonListFunc` (`listfunc.c`) is registered as the `:` operator,
 priority 78 (`optable.c`, above `@`'s 77 so `str@lo:hi` groups the
 range before `at()` consumes it). What it builds is deliberately
-generic — a plain `coloned()`-tagged `AttributeValueList`,
-arity-disambiguated rather than type-disambiguated: two elements reads
-as a range/slice, three (see "A third element: `lo:hi:cap`" below)
-as a capped slice on `@`, a future `hr:min:sec` elsewhere as a
-`TimeObj`. Nothing about `:` itself knows it's sometimes used for
-slicing; `ListAtFunc`'s `@` is the one specific consumer that
-recognizes a `coloned()` list and knows to build a slice from it
-(`listfunc.c`, the `is_only_string() && nv.coloned()` branch).
+generic — a plain `coloned()`-tagged `AttributeValueList`, and stays
+that way regardless of element count or value: `:` never inspects what
+it's building, only pairs and flattens. Nothing about `:` itself knows
+it's sometimes used for slicing, or for a time literal; `ListAtFunc`'s
+`@` is the one specific consumer that recognizes a `coloned()` list and
+knows to build a (possibly capped) slice from it (`listfunc.c`, the
+`is_only_string() && nv.coloned()` branch) — two elements as a
+range/slice, three as a capped slice (see "A third element:
+`lo:hi:cap`" below). `time()` is the other consumer that reads a
+three-element chain, as `hr:min:sec` (see `TimeObj`, `timefunc.h`/`.c`,
+and "`time()` vets a colon list into a `TimeObj`" below) — an explicit
+ask, like `@`, not something `:` itself decides.
 
 A bare identifier operand is captured as its own **unresolved symbol**,
 never looked up (`stack_arg(0, true)` / `stack_arg(1, true)` — the
@@ -528,38 +532,33 @@ real ceiling on its own; the script has to self-police wherever its own
 intended soft boundary is short of that, the same way any manually
 capacity-managed buffer would in Go or C.
 
-### `ComTerp::next_command_is()`: a general forward-peek
+### `time()` vets a colon list into a `TimeObj`
 
-Deciding whether a `lo:hi:cap` chain even means "for `@`" — as opposed
-to some other future 3-element reading — needs to know what's about to
-consume the chain's result, not just what the chain itself contains.
-`ComTerp::next_command_is(funcid)` (`comterp.h`/`.c`) answers exactly
-that: by the time a command's `execute()` runs, `pfoff()` already
-points at the next postfix token, so checking whether it's a
-`CommandType` call to `funcid` is a few lines, no new bookkeeping.
-General purpose, available to any ordinary command the same way
-`stack_top()`'s `lhs_assign()` peek already lets `global()`/`local()`
-see a pending assignment before it fires — not specific to `:` or `@`.
-`next_command_is()` (`listfunc.{h,c}`, hidden from `help()`) exposes it
-to a `.comt` script directly, TEST-ONLY, since `colonlist.comt`'s own
-use of the mechanism doesn't yet change any observable output (today,
-landing on `@` and not landing on `@` build the identical plain list —
-there's no competing 3-element reading yet for the "not `@`" branch to
-choose instead), so the mechanism needed its own direct proof.
+`:` never inspects what it builds — a three-element chain is exactly as
+generic as a two-element one. `time()` (`timefunc.c`) is where an
+`hr:min:sec` reading is decided, the same way `@` is where a
+`lo:hi(:cap)` reading is decided: given a plain `coloned()` list,
+`colonlist_to_timeobj()` checks it's exactly three plain integers, hour
+non-negative and minute/second `0..59` (hour itself unbounded, so an
+elapsed duration past 24 hours still constructs), and returns a
+`TimeObj` if it fits. A bare identifier element is resolved
+(`ComTerp::lookup_symval()`) before the check, so `time(h:m:s)` works
+whether `h`/`m`/`s` are already-bound variables.
 
-It only ever sees the *very next* postfix token, not an arbitrary
-distance ahead — reliable for a colon chain's closing `:` because it
-always sits immediately before its consumer in postfix, not a general
-"will this reach `@` eventually" oracle for an arbitrary expression.
-It's also only reliable at the ordinary (non-`post_eval`) postfix walk
-a colon chain and `@` naturally run in — evaluating it as the operand
-of a `post_eval` command (`=`, `&&`, ...) breaks the peek, since those
-evaluate their own operands via a separate, recursive sub-evaluation
-(`stack_arg_post_eval()`) that resets what `pfoff()` sees as "next"
-partway through. Confirmed live (`colonlist.comt` tests 13/14's own
-comment) — not a problem for the real use case, which never runs
-inside a `post_eval` sub-evaluation, but the reason those two tests are
-bare, un-assigned statements rather than folded into `ok`.
+Because `time()` is an explicit ask — unlike `:` itself, which has to
+stay silent since a three-element chain might not be a time literal at
+all — a list that doesn't fit warns loudly at this exact call site
+(wrong element count, a non-integer element, or a field out of range)
+and returns `nil`, rather than falling back to the plain list the way
+an unrecognized colon literal does everywhere else. `t=time(1:8:30)`
+then reads back with `time(t :hour)`/`:minute`/`:second`, the same
+shape `date()` already uses for `DateObj`'s `:day`/`:month`/`:year`.
+
+A colon chain that never passes through `time()` is never a `TimeObj`,
+no matter how its three numbers look — `x=1:8:30` alone stays a plain
+list — and `@` never receives one either, since `time()` is the only
+site that ever constructs one and nothing feeds its result back into
+`@`.
 
 ## 8. `symadd()`: symbols stay idempotent, strings don't anymore
 

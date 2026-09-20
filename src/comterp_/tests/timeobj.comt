@@ -1,0 +1,71 @@
+// src/comterp_/tests/timeobj.comt -- time() vets a colon list into a TimeObj
+
+// funcs: colonlist time class print size at
+
+// ':' itself never recognizes an hr:min:sec chain -- it always stays a
+// plain coloned() list (colonlist.comt). time() is the one explicit
+// place that vets such a list into a TimeObj: minute and second bounded
+// to a clock face, hour left unbounded so an elapsed duration
+// (25:00:00) still constructs. A list that doesn't fit -- wrong shape,
+// non-integer elements, or an out-of-range field -- warns at this exact
+// call site (time() was an explicit ask) and returns nil, rather than
+// falling back silently the way an unrecognized colon literal would.
+
+ok=true
+
+// --- 1: hr:min:sec within bounds becomes a TimeObj, not a plain list --
+//        time(t1 :hour/:minute/:second) reads the three fields back,
+//        the same shape date()'s :day/:month/:year already use for
+//        DateObj ---
+t1=time(1:8:30)
+ok=ok&&(class(t1)=="TimeObj")
+ok=ok&&(print(t1 :str)=="1:8:30")
+ok=ok&&(time(t1 :hour)==1 && time(t1 :minute)==8 && time(t1 :second)==30)
+print("1 t1=time(1:8:30) (expect TimeObj 1:8:30 1 8 30): %v %v %v %v %v\n" class(t1) t1 time(t1 :hour) time(t1 :minute) time(t1 :second))
+
+// --- 2: hour is left unbounded -- an elapsed duration past a clock's
+//        24 hours still constructs, only minute/second are clamped to
+//        a clock face ---
+t2=time(25:30:0)
+ok=ok&&(class(t2)=="TimeObj" && time(t2 :hour)==25)
+print("2 t2=time(25:30:0) elapsed hour>24 (expect TimeObj 25): %v %v\n" class(t2) time(t2 :hour))
+
+// --- 3: minute out of 0..59 doesn't recognize -- warns and returns nil,
+//        an explicit ask (time()) getting a loud, localized answer
+//        rather than the silent list-fallback ':' itself would give ---
+t3=time(1:70:30)
+ok=ok&&(t3==nil)
+print("3 time(1:70:30) bad minute (expect nil): %v\n" t3)
+
+// --- 4: wrong shape (not exactly 3 elements) also warns and returns
+//        nil, same as an out-of-range field ---
+t4=time(1:2)
+ok=ok&&(t4==nil)
+print("4 time(1:2) wrong shape (expect nil): %v\n" t4)
+
+// --- 5: a colon-captured bare identifier is resolved (not left as a
+//        symbol) before the bounds check, same lookup_symval() ':'
+//        itself never needed for this since it stays generic ---
+h5=1
+m5=8
+s5=30
+t5=time(h5:m5:s5)
+ok=ok&&(class(t5)=="TimeObj" && time(t5 :hour)==1)
+print("5 time(h5:m5:s5) with bound vars (expect TimeObj 1): %v %v\n" class(t5) time(t5 :hour))
+
+// --- 6: without time(), a colon chain is never a TimeObj -- ':' itself
+//        stays generic no matter how the three elements look ---
+x6=1:8:30
+sz6=size(x6)
+ok=ok&&(class(x6)==nil && sz6==3)
+print("6 x6=1:8:30 with no time() wrapper (expect nil 3): %v %v\n" class(x6) sz6)
+
+// --- 7: landing on @ still builds a cap-slice, never a TimeObj, since
+//        ':' never inspects what it's building either way ---
+buf7="a123456789 more padding to be long enough"
+s7=buf7@1:8:30
+ok=ok&&(s7=="1234567" && size(s7)==7)
+print("7 buf7@1:8:30, in-bounds-looking cap-slice stays a slice (expect 1234567): %v\n" s7)
+
+print("timeobj: %v\n" ok)
+ok

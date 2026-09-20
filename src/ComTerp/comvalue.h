@@ -279,6 +279,8 @@ public:
     // return true if ObjectType of SocketObj
     boolean is_dateobj();
     // return true if ObjectType of DateObj
+    boolean is_timeobj();
+    // return true if ObjectType of TimeObj
 
     ComValue append_str(ComValue& addend, boolean headroom);
     // shared growth logic behind both '+' and append(): appends addend (a
