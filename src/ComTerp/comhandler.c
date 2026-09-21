@@ -27,6 +27,7 @@
 #include <fstream.h>
 using namespace std;
 #include <vector>
+#include <unistd.h>
 
 #include <ComTerp/comhandler.h>
 #include <ComUtil/comutil.h>
