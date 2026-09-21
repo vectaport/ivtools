@@ -4,9 +4,11 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair sel parsetest optabletest gsexim gsbrushA
-#          gsbrushB
+#          updown4C ring ringpair ringpair10 sel parsetest optabletest
+#          gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
+#   ringpair10 is not part of "all" (it's ringpair at 20 nodes instead of
+#   10, so it costs real wall-clock) -- request it explicitly with --tests
 #
 
 /* command line help */
@@ -24,6 +26,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("                          four, to the second level\n");
     print("      ring                a ring cannot be formed\n");
     print("      ringpair            two long chains closed at both ends at once\n");
+    print("      ringpair10          ringpair at 20 nodes; not part of \"all\"\n");
     print("      sel                 an answer that has to cross a relay\n");
     print("      parsetest optabletest\n");
     print("                          parser and operator table\n");
@@ -180,6 +183,13 @@ if(tests_flag :then
         print("ringpair: pass\n" :err)
       :else
         print("ringpair: FAIL\n" :err);
+        ok=false));
+    if(t==`ringpair10 :then
+      print("running ringpair10 test\n" :err);
+      if(ringpair10_test(:dummy 0) :then
+        print("ringpair10: pass\n" :err)
+      :else
+        print("ringpair10: FAIL\n" :err);
         ok=false));
     if(t==`parsetest || t==`all :then
       print("running parsetest\n" :err);
