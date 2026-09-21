@@ -387,6 +387,29 @@ static TimeObj* year_led_instant(int yr, int mon, int day, int hour) {
   return new TimeObj(raw, 0);
 }
 
+/* a year-led 5-field instant (y:Mon:d:h:m, no seconds or TZ field): read as
+   a local wall-clock time via mktime() rather than UTC, since there is no
+   TZ field to say otherwise -- unlike the shorter year-led forms above,
+   which always land at tzoff 0.  A second localtime_r() on the resulting
+   epoch time captures the authoritative tm_gmtoff for that date, the same
+   construct-then-read pattern :raw N's valued form uses. */
+static TimeObj* year_led_local_instant(int yr, int mon, int day, int hour, int minute) {
+  struct tm tmval = {0};
+  tmval.tm_year = yr - 1900;
+  tmval.tm_mon = mon - 1;
+  tmval.tm_mday = day;
+  tmval.tm_hour = hour;
+  tmval.tm_min = minute;
+  tmval.tm_sec = 0;
+  tmval.tm_isdst = -1;
+  struct timespec raw;
+  raw.tv_sec = mktime(&tmval);
+  raw.tv_nsec = 0;
+  struct tm tzcheck;
+  localtime_r(&raw.tv_sec, &tzcheck);
+  return new TimeObj(raw, tzcheck.tm_gmtoff);
+}
+
 /* time()'s vetting of a colon list into a TimeObj -- an explicit ask,
    unlike ':' itself, so a bad literal warns at this exact call site
    instead of silently falling back to the list it arrived as.  A 2-, 3-
@@ -397,9 +420,11 @@ static TimeObj* year_led_instant(int yr, int mon, int day, int hour) {
    epoch date makes it a dateless TimeObj when hour is under 24; at or
    past 24 it reads back folded onto the following calendar day, the same
    as any other TimeObj's single gmtime_r-based breakdown would.  A
-   5-element list is always years:days:hr:min:sec, a duration -- a
-   year-led 5-element instant is not supported.  A 7-to-10-element list is
-   a full y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp -- the inverse of what
+   5-element list auto-detects the same way: a plausible leading year
+   reads as the local-time instant YEAR:MON:day:hr:min
+   (year_led_local_instant()), anything else as the duration
+   years:days:hr:min:sec.  A 7-to-10-element list is a full
+   y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp -- the inverse of what
    printOn() emits, down to the trailing numeric HHMM offset (unary-plus-
    or unary-minus-prefixed, printOn() always emitting one or the
    other). */
@@ -584,9 +609,54 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
   if (n == 5) {
     ComValue v0(resolve_elem(comterp, avl, 0));
-    /* a year-led 5th field is out of scope -- falls through to the
-       catch-all below rather than reading as a partial instant */
-    if (!(v0.type()==ComValue::IntType && is_plausible_year(v0.long_val()))) {
+
+    if (v0.type()==ComValue::IntType && is_plausible_year(v0.long_val())) {
+      int yr = v0.int_val();
+      ComValue monv(*avl->Get(1));
+      int mon;
+      if (!parse_month(monv, mon, linenum)) return nil;
+
+      ComValue dayv(resolve_elem(comterp, avl, 2));
+      if (dayv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int day = dayv.int_val();
+      if (day<1 || day>31) {
+        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+
+      ComValue hrv(resolve_elem(comterp, avl, 3));
+      if (hrv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): hour must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int hour = hrv.int_val();
+      if (hour<0 || hour>23) {
+        std::cout << "WARNING:  time(): hour " << hour << " out of range (0..23) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+
+      ComValue mnv0(resolve_elem(comterp, avl, 4));
+      if (mnv0.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): minute must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int minute = mnv0.int_val();
+      if (minute<0 || minute>59) {
+        std::cout << "WARNING:  time(): minute " << minute << " out of range (0..59) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+
+      return year_led_local_instant(yr, mon, day, hour, minute);
+    } else {
       ComValue daysv(resolve_elem(comterp, avl, 1));
       ComValue hrv(resolve_elem(comterp, avl, 2));
       ComValue mnv(resolve_elem(comterp, avl, 3));
@@ -640,8 +710,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
   if (n < 7 || n > 10) {
     std::cout << "WARNING:  time() needs a 2-to-5-element instant or duration list "
-                 "(a year-led 5-element instant is not supported) or a "
-                 "7-to-10-element y:Mon:d:h:m:s[:ms:us:ns]:TZ list, got "
+                 "or a 7-to-10-element y:Mon:d:h:m:s[:ms:us:ns]:TZ list, got "
               << n << " element(s) -- line " << linenum << "\n";
     return nil;
   }
@@ -820,14 +889,9 @@ void TimeFunc::execute() {
   ComValue nsv(stack_key(ns_sym));
   ComValue monov(stack_key(mono_sym));
   ComValue rawv(stack_key(raw_sym));
-  ComValue& deltaref = stack_key(delta_sym);
-  /* stack_key() returns its dflt argument, by reference, for a bare
-     keyword -- comparing addresses against the trueval() singleton it
-     defaults to is how "present but bare" is told from "present with an
-     explicit true", which a value comparison alone can't do since both
-     read as boolean true. */
-  boolean delta_bare = &deltaref == &ComValue::trueval();
-  ComValue deltav(deltaref);
+  ComValue deltav(stack_key(delta_sym));
+  boolean delta_has_value = false;
+  boolean delta_present = stack_key_present(delta_sym, &delta_has_value);
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
@@ -844,8 +908,10 @@ void TimeFunc::execute() {
   boolean mono_present = !monov.is_null();
   boolean raw_valued = rawv.is_num();
   boolean mono_valued = monov.is_num();
-  boolean delta_present = !deltav.is_null();
-  boolean delta_valued = delta_present && !delta_bare;
+  /* stack_key_present() tells bare from valued directly -- the keyword's
+     own keynarg_val(), not a comparison against stack_key()'s dflt -- so
+     delta_present/delta_valued need no address-comparison trick. */
+  boolean delta_valued = delta_present && delta_has_value;
 
   TimeObj* timeobj = nil;
   boolean owns = false;

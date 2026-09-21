@@ -16,10 +16,10 @@
 // wrong shape, non-integer elements, an unrecognized month name, or an
 // out-of-range field -- warns at this exact call site (time() was an
 // explicit ask) and returns nil, rather than falling back silently the
-// way an unrecognized colon literal would. A 2-, 3- or 4-element list is
-// polymorphic (a year-led instant vs. a duration) and a 5-element list
-// is always a duration -- covered in time.comt, not here; this file
-// stays to the plain hr:min:sec and full-form calendar-instant shapes.
+// way an unrecognized colon literal would. A 2-, 3-, 4- or 5-element list
+// is polymorphic (a year-led instant vs. a duration) -- covered in
+// time.comt, not here; this file stays to the plain hr:min:sec and
+// full-form calendar-instant shapes.
 
 ok=true
 
@@ -136,11 +136,14 @@ d13b=date(t13)
 ok=ok&&(date(d13b :daymo)==date(d13 :daymo) && date(d13b :month)==date(d13 :month) && date(d13b :year)==date(d13 :year))
 print("13 time(date()) noon, date() of that lands back on today (expect TimeObj 12 0 0, true): %v %v %v %v %v\n" class(t13) time(t13 :hr) time(t13 :min) time(t13 :sec) (date(d13b :daymo)==date(d13 :daymo)))
 
-// --- 14: a full-form list of the wrong length warns and returns nil,
-//         same as a wrong-length hr:min:sec list ---
+// --- 14: a year-led 5-element list (y:Mon:d:h:m, no seconds or TZ field)
+//         reads as a local wall-clock instant, not a truncated full-form
+//         list -- a genuinely wrong-length list (test 4 above) still warns
+//         and returns nil ---
 t14=time(2026:Sep:20:13:18)
-ok=ok&&(t14==nil)
-print("14 time(2026:Sep:20:13:18) wrong-length full-form list (expect nil): %v\n" t14)
+ok=ok&&(class(t14)=="TimeObj")
+ok=ok&&(time(t14 :yr)==2026 && time(t14 :mo)==9 && time(t14 :day)==20 && time(t14 :hr)==13 && time(t14 :min)==18)
+print("14 time(2026:Sep:20:13:18) year-led 5-field local instant (expect TimeObj 2026 9 20 13 18): %v %v %v %v %v %v\n" class(t14) time(t14 :yr) time(t14 :mo) time(t14 :day) time(t14 :hr) time(t14 :min))
 
 // --- 15: an unrecognized month name warns and returns nil rather than
 //         guessing ---

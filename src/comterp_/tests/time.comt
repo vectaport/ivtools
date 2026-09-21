@@ -357,8 +357,9 @@ ok=ok&&(time(t40 :delta)==true)
 ok=ok&&(print(t40 :str)=="3:14:30:0")
 print("40 time(3:14:30:0) 4-field days:hr:min:sec duration (expect delta true, print \"3:14:30:0\"): %v %v\n" time(t40 :delta) print(t40 :str))
 
-// --- 41: a 5-element list is always years:days:hr:min:sec, a duration
-// -- 3 years plus 366 days carries into the synthetic 4th (366-day)
+// --- 41: a 5-element list with an implausible leading value (year-range
+// check fails) is years:days:hr:min:sec, a duration -- 3 years plus 366
+// days carries into the synthetic 4th (366-day)
 // year exactly, landing on 4 completed years and 0 remaining days.
 // Confirmed two ways: the printed years: group, and re-parsing that
 // same printed string back through time() to compare :raw ---
@@ -402,6 +403,45 @@ print("43 time(t :delta true/false) builds a non-mutating override (expect true 
 // and reads false -- a fresh capture is never a duration ---
 ok=ok&&(time(:delta)==false)
 print("44 time(:delta) bare with no positional arg (expect false): %v\n" time(:delta))
+
+// --- 45: a year-led 5-element list (y:Mon:d:h:m, no seconds or TZ field)
+// reads as a local wall-clock instant -- calendar fields read back
+// exactly, and round-tripping through :raw/:ns reconstructs the same
+// printed form, which checks the captured tzoff without needing to know
+// this machine's local UTC offset in advance ---
+t45=time(2000:Apr:4:15:30)
+ok=ok&&(time(t45 :yr)==2000)
+ok=ok&&(time(t45 :mo)==4)
+ok=ok&&(time(t45 :day)==4)
+ok=ok&&(time(t45 :hr)==15)
+ok=ok&&(time(t45 :min)==30)
+ns45=time(t45 :raw :ns)
+rt45=time(:raw ns45)
+eq45=(print(rt45 :str)==print(t45 :str))
+ok=ok&&eq45
+print("45 time(2000:Apr:4:15:30) year-led 5-field local instant (expect yr/mo/day/hr/min 2000 4 4 15 30, round-trip true): %v %v %v %v %v %v\n" time(t45 :yr) time(t45 :mo) time(t45 :day) time(t45 :hr) time(t45 :min) eq45)
+
+// --- 46: :delta bare vs. valued, all six cases stack_key_present()
+// distinguishes -- bare inspects (no positional: false; non-duration
+// positional: false; duration positional: true); a value overrides,
+// building a fresh capture to override when there is no positional arg ---
+c46a=time(:delta)
+t46b=time()
+c46b=time(t46b :delta)
+t46c=time(25:30:0)
+c46c=time(t46c :delta)
+t46d=time()
+c46d=time(time(t46d :delta true) :delta)
+t46e=time()
+c46e=time(time(t46e :delta false) :delta)
+c46f=time(time(:delta true) :delta)
+ok=ok&&(c46a==false)
+ok=ok&&(c46b==false)
+ok=ok&&(c46c==true)
+ok=ok&&(c46d==true)
+ok=ok&&(c46e==false)
+ok=ok&&(c46f==true)
+print("46 time(:delta) bare/valued, all six cases (expect false false true true false true): %v %v %v %v %v %v\n" c46a c46b c46c c46d c46e c46f)
 
 print("time: %v\n" ok)
 ok

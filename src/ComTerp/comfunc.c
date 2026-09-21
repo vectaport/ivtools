@@ -395,6 +395,26 @@ ComValue ComFunc::stack_key_post_eval
 }
 
 boolean ComFunc::stack_key_present(int id, boolean* has_value) {
+  if (post_eval())
+    return stack_key_present_post(id, has_value);
+
+  if (has_value) *has_value = false;
+
+  /* same operand-stack walk as the eager half of stack_key(), reading
+     presence/bareness off each keyword's own keynarg_val() rather than
+     resolving and returning its value. */
+  int count = nargs() + nkeys() - npops();
+  for (int i=0; i<count; i++) {
+    ComValue& keyref = comterp()->stack_top(-i);
+    if (keyref.type() == ComValue::KeywordType && keyref.symbol_val() == id) {
+      if (has_value) *has_value = !(i+1==count || keyref.keynarg_val() == 0);
+      return true;
+    }
+  }
+  return false;
+}
+
+boolean ComFunc::stack_key_present_post(int id, boolean* has_value) {
   if (has_value) *has_value = false;
 
   /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the

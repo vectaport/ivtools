@@ -465,10 +465,12 @@ Print a usage summary of all the invocation modes above and exit.
  -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|
- days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ]
+ days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|
+ y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ]
  :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false]
  :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj
- at noon, parses a 2-to-10-field colon list as an instant or duration
+ at noon, parses a 2-to-10-field colon list as an instant or duration, a
+ year-led 5-field list as local time
 
  :hr        hour of a TimeObj
  :min       minute of a TimeObj
