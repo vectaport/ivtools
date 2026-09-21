@@ -898,12 +898,48 @@ updown4B_test=func(
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
   cnt=0;
   while(remote(sock1 "size(sid(:table))")<2 && cnt<50 usleep(200000);cnt++);
+  nsid=remote(sock1 "size(sid(:table))");
+  if(nsid<2 :then
+    print("updown4B: FAIL timed out waiting for ds1<->ds2 link to settle (ds1 knows %v of 4 sessions)\n" nsid :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 usleep(200000));
+    return(false));
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
   cnt=0;
   while(remote(sock1 "size(sid(:table))")<3 && cnt<50 usleep(200000);cnt++);
+  nsid=remote(sock1 "size(sid(:table))");
+  if(nsid<3 :then
+    print("updown4B: FAIL timed out waiting for ds1<->ds3 link to settle (ds1 knows %v of 4 sessions)\n" nsid :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 usleep(200000));
+    return(false));
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds4_port :str));
   cnt=0;
   while(remote(sock1 "size(sid(:table))")<4 && cnt<50 usleep(200000);cnt++);
+  nsid=remote(sock1 "size(sid(:table))");
+  if(nsid<4 :then
+    print("updown4B: FAIL timed out waiting for ds1<->ds4 link to settle (ds1 knows %v of 4 sessions)\n" nsid :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 usleep(200000));
+    return(false));
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
