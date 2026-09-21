@@ -457,19 +457,69 @@ void DrawServ::sessionid_register(DrawLink* link) {
 }
 
 // handle request to register session id
-void DrawServ::sessionid_register_handle
-(DrawLink* link, uuid_t sid, int pid, 
- const char* username, const char* hostname, int hostid) 
+DrawLink* DrawServ::sessionid_register_handle
+(DrawLink* link, uuid_t sid, int pid,
+ const char* username, const char* hostname, int hostid)
 {
-  if (link != NULL) {
-    SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
-    SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
-    sidtable->insert(uuid_key(sid), session_id);
+  if (link == NULL) return nil;
 
-    /* propagate */
-    sessionid_register_propagate(link, sid, pid, username,
-				 hostname, hostid);
+  /* a sid already on record via a different link means that link is a
+     second path to a peer this node already knows -- report one of the
+     two back to the caller as redundant, rather than re-inserting and
+     re-propagating it, which would send the pair of links the same
+     registration back and forth without end. */
+  SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
+  void* ptr = nil;
+  sidtable->find(ptr, uuid_key(sid));
+  SessionId* known = (SessionId*)ptr;
+  if (known) {
+    DrawLink* via = known->drawlink();
+    if (via == link) return nil;   // already recorded via this same link
+    if (via == nil) {
+      /* our own session id, echoed back to us. By itself that's just
+	 propagation reaching around a non-redundant path and back to its
+	 source -- expected, not a cycle. It only means link is redundant
+	 when link's own peer is one we already reach some other way,
+	 exactly like any other sid; find that other link, if any, and
+	 settle it the same way as below. */
+      DrawLink* dup = nil;
+      Iterator it;
+      _linklist->First(it);
+      while (!_linklist->Done(it)) {
+	DrawLink* other = _linklist->GetDrawLink(it);
+	if (other != link && other->same_peer(link)) { dup = other; break; }
+	_linklist->Next(it);
+      }
+      if (!dup) return nil;
+      if (uuid_compare(link->linkid(), dup->linkid()) < 0) {
+	repoint_sids(dup, link);
+	return dup;
+      }
+      return link;
+    }
+
+    /* Both links lead to the same peer; which one is redundant can't go
+       by arrival order, since the two nodes on either end of either link
+       race this same decision independently and could each see a
+       different link arrive first. Compare linkid's instead: a link's
+       initiator generates its linkid once and the far end copies it
+       unchanged onto its own object, so every node comparing this pair
+       of links is comparing the identical pair of uuid's and reaches the
+       same answer regardless of arrival order. */
+    if (uuid_compare(link->linkid(), via->linkid()) < 0) {
+      repoint_sids(via, link);   // link survives; move its sid's onto it
+      return via;
+    }
+    return link;
   }
+
+  SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
+  sidtable->insert(uuid_key(sid), session_id);
+
+  /* propagate */
+  sessionid_register_propagate(link, sid, pid, username,
+			       hostname, hostid);
+  return nil;
 }
 
 // propagate request to register session id
@@ -889,9 +939,20 @@ void DrawServ::remove_sids(DrawLink* link) {
     DrawLink* testlink = sid->drawlink();
     int altid = it.cur_key();
     it.next();
-    if (testlink==link) 
-      if (!table->find_and_remove(vsid, altid)) 
+    if (testlink==link)
+      if (!table->find_and_remove(vsid, altid))
 	fprintf(stderr, "unable to remove SessionId's associated with DrawLink\n");
+  }
+}
+
+void DrawServ::repoint_sids(DrawLink* from, DrawLink* to) {
+  SessionIdTable* table = sessionidtable();
+  SessionIdTable_Iterator it(*table);
+  while(it.more()) {
+    SessionId* sid = (SessionId*)it.cur_value();
+    if (sid->drawlink() == from)
+      sid->drawlink(to);
+    it.next();
   }
 }
 

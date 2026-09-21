@@ -122,10 +122,12 @@ public:
   void sessionid_register(DrawLink* link);
   // register all sessionid's used by this DrawServ with remote DrawServ
   
-  void sessionid_register_handle(DrawLink* link, uuid_t sid,
-				 int pid, const char* user, 
+  DrawLink* sessionid_register_handle(DrawLink* link, uuid_t sid,
+				 int pid, const char* user,
 				 const char* host, int hostid);
-  // handle request to register unique session id
+  // register a session id learned from link; returns nil, or the link
+  // itself when that sid is already recorded via a different link, so the
+  // caller can reject this one as redundant
   
   void sessionid_register_propagate(DrawLink* link, uuid_t sid, int pid, 
 				    const char* user, const char *host, int hostid);
@@ -142,6 +144,9 @@ public:
 
   void remove_sids(DrawLink*);
   // remove all SessionId's associated with this DrawLink
+
+  void repoint_sids(DrawLink* from, DrawLink* to);
+  // move every SessionId recorded via 'from' onto 'to'
 
   void grid_message(GraphicId* grid);
   // generate graphic id selection message

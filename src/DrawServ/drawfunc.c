@@ -338,12 +338,28 @@ void SessionIdFunc::execute() {
 
     uuid_t sid;
     uuid_parse(sidv.string_ptr(), sid);
-    
-    ((DrawServ*)unidraw)->sessionid_register_handle
-      (link, sid, pidv.int_val(), 
-       userv.string_ptr(), hostv.string_ptr(), 
+
+    DrawLink* redundant = ((DrawServ*)unidraw)->sessionid_register_handle
+      (link, sid, pidv.int_val(),
+       userv.string_ptr(), hostv.string_ptr(),
        hostidv.int_val());
-    
+
+    if (redundant) {
+      char detail[BUFSIZ];
+      snprintf(detail, BUFSIZ, "%s:%d", redundant->hostname() ? redundant->hostname() : "", redundant->portnum());
+      redundant->report("Redundant connection rejected via session propagation", detail);
+      /* only quit the current session if it's this same connection going
+	 down; the redundant link losing the tie-break can be a different,
+	 unrelated one, and closing it doesn't affect this one. */
+      boolean closing_self = (redundant == link);
+      ((DrawServ*)unidraw)->linkdown(redundant);
+      if (closing_self) {
+        push_stack(ComValue::nullval());
+        comterp()->quit();
+      }
+      return;
+    }
+
   } else {
     if (tablev.is_true()) {
       static int key_row_sym    = symbol_add("key");
