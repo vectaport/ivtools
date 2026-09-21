@@ -122,13 +122,13 @@ public:
   void sessionid_register(DrawLink* link);
   // register all sessionid's used by this DrawServ with remote DrawServ
   
-  DrawLink* sessionid_register_handle(DrawLink* link, uuid_t sid,
+  void sessionid_register_handle(DrawLink* link, uuid_t sid,
 				 int pid, const char* user,
 				 const char* host, int hostid);
-  // register a session id learned from link; returns nil, or the link
-  // itself when that sid is already recorded via a different link, so the
-  // caller can reject this one as redundant
-  
+  // register a session id learned from link, or, when that sid is
+  // already recorded via a different link, bench whichever of the two
+  // links loses the tie-break
+
   void sessionid_register_propagate(DrawLink* link, uuid_t sid, int pid, 
 				    const char* user, const char *host, int hostid);
   // propagate a newly registered session id to all other DrawLink's
@@ -145,8 +145,14 @@ public:
   void remove_sids(DrawLink*);
   // remove all SessionId's associated with this DrawLink
 
-  void repoint_sids(DrawLink* from, DrawLink* to);
-  // move every SessionId recorded via 'from' onto 'to'
+  void bench(DrawLink* link);
+  // set a link aside as a redundant path: keep it open and in the link
+  // list, but stop routing broadcast traffic across it, and tell the
+  // peer at its other end to do likewise
+
+  boolean sole_active_link(DrawLink* link);
+  // whether link is the only remaining non-benched link, so benching it
+  // (locally, or on a peer's say-so) would cut this node off entirely
 
   void grid_message(GraphicId* grid);
   // generate graphic id selection message

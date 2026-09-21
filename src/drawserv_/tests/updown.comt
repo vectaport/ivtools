@@ -1350,15 +1350,24 @@ ringpair_launch_chain=func(
 
   (:ok true :ports ports :socks socks));
 
+/* count of sock's own drawlink(:table) rows not benched (state!=redundant) */
+active_link_count=func(
+  sock=arg(0);
+  tbl=remote(sock "drawlink(:table)");
+  n=0;
+  for(i=0 i<size(tbl) i++ if(at(tbl i).state!=3 :then n=n+1));
+  n)
+
 /* ringpair test -- two long chains closed into a pair by linking both ends
    at once.  Each closing drawlink() starts a session-id propagation wave
    across the whole chain it lands on; firing both concurrently lets the two
    waves cross while both links are still forming, which is when a cycle the
    settled-state cycletest() alone cannot see becomes possible -- see the
-   design note on this in issue #575.  A correct network refuses one of the
-   two closing links (dedup-on-insert can let either survive; this asserts
-   only on the resulting invariants), leaving 2*chainlen-1 edges total and
-   every node holding all 2*chainlen session ids. */
+   design note on this in issue #575.  A correct network benches one of the
+   two closing links rather than closing it (dedup-on-insert can let either
+   survive; this asserts only on the resulting invariants): every node keeps
+   all 2*chainlen physical links, exactly 2*chainlen-1 of them active
+   network-wide, and every node holding all 2*chainlen session ids. */
 ringpair_test=func(
 
   chainlen=5;
@@ -1383,13 +1392,21 @@ ringpair_test=func(
   usleep(10000000);
 
   total=2*chainlen;
+  links=0;
+  for(i=0 i<chainlen i++ links=links+remote(at(asocks i) "size(drawlink(:table))"));
+  for(i=0 i<chainlen i++ links=links+remote(at(bsocks i) "size(drawlink(:table))"));
+  links=links/2;
+  print("ringpair: physical links = %v (want %d)\n" links total :err);
+  linksok=(links==total);
+  if(!linksok :then print("ringpair: FAIL a link was closed instead of benched\n" :err));
+
   edges=0;
-  for(i=0 i<chainlen i++ edges=edges+remote(at(asocks i) "size(drawlink(:table))"));
-  for(i=0 i<chainlen i++ edges=edges+remote(at(bsocks i) "size(drawlink(:table))"));
+  for(i=0 i<chainlen i++ edges=edges+active_link_count(at(asocks i)));
+  for(i=0 i<chainlen i++ edges=edges+active_link_count(at(bsocks i)));
   edges=edges/2;
-  print("ringpair: total edges = %v (want %d)\n" edges total-1 :err);
+  print("ringpair: active edges = %v (want %d)\n" edges total-1 :err);
   edgesok=(edges==total-1);
-  if(!edgesok :then print("ringpair: FAIL edge count wrong -- a ring formed or a link was lost\n" :err));
+  if(!edgesok :then print("ringpair: FAIL active edge count wrong -- a ring is still active, or more than one link got benched\n" :err));
 
   connok=true;
   for(i=0 i<chainlen i++
@@ -1400,7 +1417,7 @@ ringpair_test=func(
     if(n!=total :then connok=false;print("ringpair: FAIL B%d knows %v of %d sessions\n" i n total :err)));
   if(connok :then print("ringpair: all %d nodes fully connected, no ring\n" total :err));
 
-  ok=edgesok && connok;
+  ok=linksok && edgesok && connok;
 
   /* --- tear down all 2*chainlen nodes --- */
   for(i=0 i<chainlen i++ remote(at(asocks i) "exit" :nowait);close(at(asocks i)));

@@ -217,15 +217,19 @@ void DrawLinkFunc::execute() {
       long oldsec, oldusec;
       ((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
       
-      while (link->state() != DrawLink::two_way && elapsed < max_wait_usec) {
+      /* a completing handshake settles at two_way, or, when the far end
+	 finds it redundant, straight at redundant -- either is a normal
+	 outcome of dialing, not a failure to wait out. */
+      while (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant
+	     && elapsed < max_wait_usec) {
         ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
         ((OverlayUnidraw*)unidraw)->Run();
         elapsed += slice_usec;
       }
-      
+
       ((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
-      
-      if (link->state() != DrawLink::two_way) {
+
+      if (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant) {
         fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
         ((DrawServ*)unidraw)->linkdown(link);
         push_stack(ComValue::nullval());
@@ -253,7 +257,21 @@ void DrawLinkFunc::execute() {
       }
     }
   }
-  
+
+  /* peer telling us to bench our own end of an already-open link */
+  else if (statev.int_val()==DrawLink::redundant) {
+    DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
+    if (handler) {
+      if (link==NULL) link = (DrawLink*)handler->drawlink();
+      /* the peer decided this from its own side, without knowing what
+	 else we've since benched; never take our own last active link
+	 down on its say-so -- keep it active from here regardless of
+	 what the peer now thinks. */
+      if (link != NULL && !((DrawServ*)unidraw)->sole_active_link(link))
+	link->state(DrawLink::redundant);
+    }
+  }
+
   /* dump DrawLink table to stderr, or return as list of attrlists */
   else if(nargs()==0) {
     if (tablev.is_true()) {
@@ -339,26 +357,10 @@ void SessionIdFunc::execute() {
     uuid_t sid;
     uuid_parse(sidv.string_ptr(), sid);
 
-    DrawLink* redundant = ((DrawServ*)unidraw)->sessionid_register_handle
+    ((DrawServ*)unidraw)->sessionid_register_handle
       (link, sid, pidv.int_val(),
        userv.string_ptr(), hostv.string_ptr(),
        hostidv.int_val());
-
-    if (redundant) {
-      char detail[BUFSIZ];
-      snprintf(detail, BUFSIZ, "%s:%d", redundant->hostname() ? redundant->hostname() : "", redundant->portnum());
-      redundant->report("Redundant connection rejected via session propagation", detail);
-      /* only quit the current session if it's this same connection going
-	 down; the redundant link losing the tie-break can be a different,
-	 unrelated one, and closing it doesn't affect this one. */
-      boolean closing_self = (redundant == link);
-      ((DrawServ*)unidraw)->linkdown(redundant);
-      if (closing_self) {
-        push_stack(ComValue::nullval());
-        comterp()->quit();
-      }
-      return;
-    }
 
   } else {
     if (tablev.is_true()) {
