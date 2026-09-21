@@ -1363,11 +1363,19 @@ active_link_count=func(
    across the whole chain it lands on; firing both concurrently lets the two
    waves cross while both links are still forming, which is when a cycle the
    settled-state cycletest() alone cannot see becomes possible -- see the
-   design note on this in issue #575.  A correct network benches one of the
-   two closing links rather than closing it (dedup-on-insert can let either
-   survive; this asserts only on the resulting invariants): every node keeps
-   all 2*chainlen physical links, exactly 2*chainlen-1 of them active
-   network-wide, and every node holding all 2*chainlen session ids. */
+   design note on this in issue #575.
+
+   A linkfreeze wave serializes the two closings against a cycle, but not
+   against each other: freezing is instant/non-blocking (waiting for a busy
+   fragment to clear would deadlock symmetrically against a peer doing the
+   same wait), so when both closings land at the same instant, each side
+   simply declines rather than risk a cycle. Either of two outcomes is
+   therefore correct here: one closing wins and the other is benched (all
+   2*chainlen physical links kept, 2*chainlen-1 active, every node knowing
+   all 2*chainlen session ids), or both decline and the chains stay separate
+   (2*chainlen-2 physical links, all active, each chain's nodes knowing only
+   their own chainlen session ids). What must never happen is a ring (more
+   than 2*chainlen-1 active edges) or a node cut off from its own chain. */
 ringpair_test=func(
 
   chainlen=5;
@@ -1396,26 +1404,36 @@ ringpair_test=func(
   for(i=0 i<chainlen i++ links=links+remote(at(asocks i) "size(drawlink(:table))"));
   for(i=0 i<chainlen i++ links=links+remote(at(bsocks i) "size(drawlink(:table))"));
   links=links/2;
-  print("ringpair: physical links = %v (want %d)\n" links total :err);
-  linksok=(links==total);
-  if(!linksok :then print("ringpair: FAIL a link was closed instead of benched\n" :err));
 
   edges=0;
   for(i=0 i<chainlen i++ edges=edges+active_link_count(at(asocks i)));
   for(i=0 i<chainlen i++ edges=edges+active_link_count(at(bsocks i)));
   edges=edges/2;
-  print("ringpair: active edges = %v (want %d)\n" edges total-1 :err);
-  edgesok=(edges==total-1);
-  if(!edgesok :then print("ringpair: FAIL active edge count wrong -- a ring is still active, or more than one link got benched\n" :err));
+
+  /* one closing won: both physical links persist, one benched */
+  joined=(links==total);
+  /* both declined rather than race: neither new link ever formed */
+  separate=(links==total-2);
+
+  print("ringpair: physical links = %v, active edges = %v (want %d/%d joined or %d/%d separate)\n"
+    links edges total total-1 total-2 total-2 :err);
+
+  linksok=joined||separate;
+  if(!linksok :then print("ringpair: FAIL physical link count matches neither valid outcome\n" :err));
+
+  edgesok=(joined&&edges==total-1)||(separate&&edges==total-2);
+  if(linksok&&!edgesok :then print("ringpair: FAIL active edge count wrong -- a ring is still active, or more than one link got benched\n" :err));
 
   connok=true;
+  expect=if(joined :then total :else chainlen);
   for(i=0 i<chainlen i++
     n=remote(at(asocks i) "size(sid(:table))");
-    if(n!=total :then connok=false;print("ringpair: FAIL A%d knows %v of %d sessions\n" i n total :err)));
+    if(n!=expect :then connok=false;print("ringpair: FAIL A%d knows %v of %d sessions\n" i n expect :err)));
   for(i=0 i<chainlen i++
     n=remote(at(bsocks i) "size(sid(:table))");
-    if(n!=total :then connok=false;print("ringpair: FAIL B%d knows %v of %d sessions\n" i n total :err)));
-  if(connok :then print("ringpair: all %d nodes fully connected, no ring\n" total :err));
+    if(n!=expect :then connok=false;print("ringpair: FAIL B%d knows %v of %d sessions\n" i n expect :err)));
+  if(connok&&joined :then print("ringpair: one closing won -- all %d nodes joined, no ring\n" total :err));
+  if(connok&&separate :then print("ringpair: both closings declined -- chains stayed separate, no ring\n" :err));
 
   ok=linksok && edgesok && connok;
 

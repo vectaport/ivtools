@@ -157,15 +157,36 @@ void DrawLinkFunc::execute() {
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
 
-    /* every cycletest below reads this node's own local fragment, so no
-       other link formation may be changing it concurrently -- freeze it
-       for the duration of the decision and release before returning */
+    u_short statenum = statev.ushort_val();
+
+    /* the one_way cycletest and the dial-and-wait below read and act on
+       this node's own local fragment, so no other link formation may be
+       changing it concurrently -- freeze it for the duration and release
+       before returning. The two_way leg (statenum==two_way) needs no
+       freeze of its own: when it resolves a link this node is itself
+       still dialing (the only case where it acts on anything), it runs
+       nested inside that dial's own still-active wait loop below, reached
+       via the Run() pumped there, so it is already covered by that outer
+       hold -- freezing again here would be this node contending with
+       itself. */
+    boolean did_freeze = false;
     uuid_t freeze_qid;
-    boolean froze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
-    if (!froze) {
-      fprintf(stderr, "drawlink: could not freeze local fragment, try again\n");
-      push_stack(ComValue::nullval());
-      return;
+    if (statenum != DrawLink::two_way) {
+      did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+      if (!did_freeze) {
+	/* already busy with a freeze of our own -- decline outright rather
+	   than wait: waiting here could deadlock symmetrically against a
+	   peer doing the same wait for the same reason. No linkup happens
+	   this round, cycle or not; the caller can simply try again once
+	   whatever this end now holds has cleared. */
+	if (statenum == DrawLink::one_way) {
+	  fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+	  fflush(comterp()->handler()->wrfptr());
+	  comterp()->quit();
+	}
+	push_stack(ComValue::nullval());
+	return;
+      }
     }
 
     /* cast off this link if it is a duplicate or cycle */
@@ -176,7 +197,7 @@ void DrawLinkFunc::execute() {
 	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
       fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
-      ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+      if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
       comterp()->quit();
       return;
     }
@@ -184,8 +205,7 @@ void DrawLinkFunc::execute() {
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
-    u_short statenum = statev.ushort_val();
-    
+
     uuid_t linkid; uuid_clear(linkid);
     if (linkidv.is_string()) {
 	uuid_parse(linkidv.string_ptr(),linkid);
@@ -234,7 +254,7 @@ void DrawLinkFunc::execute() {
 	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
 	cyclink->report("Redundant connection rejected", buffer);
 	((DrawServ*)unidraw)->linkdown(cyclink);
-	((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+	if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
 	comterp()->quit();
 	push_stack(ComValue::nullval());
 	return;
@@ -268,13 +288,13 @@ void DrawLinkFunc::execute() {
       if (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant) {
         fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
         ((DrawServ*)unidraw)->linkdown(link);
-        ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+        if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
         push_stack(ComValue::nullval());
 	Resource::unref(link); // unreference here because Run calls are done
         return;
       }
     }
-    ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+    if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
     Resource::unref(link); // unreference here because Run calls are done
   }
 

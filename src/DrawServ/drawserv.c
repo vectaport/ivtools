@@ -1062,7 +1062,14 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, uuid_t qid) {
 }
 
 boolean DrawServ::freeze_fragment(uuid_t qid_out) {
-  if (_freeze_active) return false; // already mid-freeze; caller retries later
+  // a hold already active here belongs to some other freeze -- waiting it
+  // out would risk a deadlock symmetric with a peer doing the same (each
+  // side blocked on the other's release, when each release depends on the
+  // other side answering first). Decline on the spot instead: if this
+  // node is already frozen for something else, no linkup happens this
+  // round, whether or not it would have been a cycle -- the caller can
+  // simply try again once whatever holds the freeze now has cleared.
+  if (_freeze_active) return false;
 
   uuid_generate(qid_out);
   freeze_request_handle(nil, qid_out);
