@@ -279,8 +279,10 @@ void DateFunc::execute() {
     fresh = true;
   } else if (datev.is_timeobj()) {
     TimeObj* timeobj = (TimeObj*)datev.geta(TimeObj::class_symid());
-    /* the epoch date is TimeObj's "no date info" sentinel -- see TimeObj */
-    if (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1) {
+    /* no date info: a duration has no calendar date at all, and the
+       epoch date is the sentinel for a dateless instant -- see TimeObj */
+    if (timeobj->delta() ||
+        (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1)) {
       push_stack(ComValue::nullval());
       return;
     }
@@ -339,6 +341,19 @@ void DateFunc::execute() {
    year only within this range, distinguishing YEAR:MON:... from a
    same-shaped duration. */
 static boolean is_plausible_year(long v) { return v >= 1677 && v <= 2262; }
+
+/* real proleptic-Gregorian leap-year rule, for validating a calendar day
+   against its actual month/year -- distinct from days_to_years()'s
+   synthetic 4-year duration cycle below, which this never touches. */
+static boolean is_leap_year(int yr) {
+  return (yr%4==0 && yr%100!=0) || yr%400==0;
+}
+
+static int days_in_month(int mon, int yr) {
+  static const int days[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  if (mon==2 && is_leap_year(yr)) return 29;
+  return days[mon-1];
+}
 
 /* accepts a bare month-name symbol (looked up via Date::numberOfMonth())
    or a plain 1-12 integer; warns and returns false on anything else. */
@@ -490,6 +505,11 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
                   << linenum << "\n";
         return nil;
       }
+      if (day > days_in_month(mon, yr)) {
+        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
+                  << linenum << "\n";
+        return nil;
+      }
       return year_led_instant(yr, mon, day, -1);
     }
 
@@ -548,6 +568,11 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
       int day = dayv.int_val();
       if (day<1 || day>31) {
         std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (day > days_in_month(mon, yr)) {
+        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -627,6 +652,11 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
       int day = dayv.int_val();
       if (day<1 || day>31) {
         std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (day > days_in_month(mon, yr)) {
+        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -747,6 +777,11 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int day = elems[2].int_val();
   if (day<1 || day>31) {
     std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  if (day > days_in_month(mon, yr)) {
+    std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
               << linenum << "\n";
     return nil;
   }
@@ -904,11 +939,8 @@ void TimeFunc::execute() {
   // ms+us+ns, :us implies ms+us, :ms is ms alone.
   int fracgroups = nsv.is_true() ? 3 : usv.is_true() ? 2 : msv.is_true() ? 1 : 0;
 
-  /* stack_key()'s own dflt/nil split tells bare from valued: a bare :raw or
-     :mono returns the BooleanType dflt untouched, a missing one returns nil,
-     and only an explicit value comes back as a number -- so is_num() is the
-     construct/reset ask and is_null() is "not given at all", with a bare
-     flag being neither. */
+  /* stack_key()'s dflt/nil split separates bare (:raw alone), valued
+     (:raw N), and absent -- is_num() means valued, is_null() means absent. */
   boolean raw_present = !rawv.is_null();
   boolean mono_present = !monov.is_null();
   boolean raw_valued = rawv.is_num();
@@ -953,12 +985,8 @@ void TimeFunc::execute() {
   }
 
   if (raw_valued || mono_valued) {
-    /* :raw/:mono given an explicit value constructs a new TimeObj (or
-       resets that field on a positional one) instead of dumping -- raw and
-       mono are independent fields here: a reset :raw invalidates any
-       paired mono reading (it no longer describes the same live capture,
-       so it is zeroed rather than carried over), while a reset :mono
-       leaves raw/tzoff exactly as they were. */
+    /* :raw/:mono given a value rebuilds the TimeObj: mono zeroes on a raw
+       reset (no longer the same live capture) but survives a mono-only reset. */
     struct timespec raw;
     long tzoff;
     if (raw_valued) {
@@ -987,6 +1015,12 @@ void TimeFunc::execute() {
 
     TimeObj* result = new TimeObj(raw, tzoff);
     result->mono(mono);
+    /* :raw/:mono reset the clock reading, not the kind -- a duration
+       resetting its :raw stays a duration, at whatever precision it had. */
+    if (timeobj) {
+      result->delta(timeobj->delta());
+      result->precision(timeobj->precision());
+    }
     if (owns) delete timeobj;
     ComValue retval(TimeObj::class_symid(), (void*)result);
     push_stack(retval);
@@ -1036,10 +1070,11 @@ void TimeFunc::execute() {
       push_stack(retval);
       if (owns) delete timeobj;
     } else if (yearv.is_true() || monthv.is_true() || dayv.is_true()) {
-      /* the epoch date is TimeObj's "no date info" sentinel -- see
-         printOn() -- so a dateless TimeObj answers nil here rather than
-         its epoch-sentinel calendar fields, the same as date(t) does */
-      if (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1) {
+      /* no date info: a duration has no calendar date at all, and the
+         epoch date is the sentinel for a dateless instant -- see
+         printOn() -- so both answer nil here, the same as date(t) does */
+      if (timeobj->delta() ||
+          (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1)) {
         push_stack(ComValue::nullval());
       } else if (yearv.is_true()) {
         ComValue retval(timeobj->year());
@@ -1078,8 +1113,11 @@ void TimeFunc::execute() {
       push_stack(retval);
     } else if (fracgroups > 0) {
       /* a caller-supplied TimeObj is never mutated in place -- a display
-         precision request returns a fresh TimeObj at the same instant */
+         precision request returns a fresh TimeObj at the same instant,
+         carrying over its kind and monotonic reading unchanged */
       TimeObj* copy = new TimeObj(timeobj->raw(), timeobj->tzoff());
+      copy->delta(timeobj->delta());
+      copy->mono(timeobj->mono());
       copy->precision(fracgroups);
       ComValue retval(TimeObj::class_symid(), (void*)copy);
       push_stack(retval);

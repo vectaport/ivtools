@@ -1,6 +1,6 @@
 // src/comterp_/tests/time.comt -- time(), the clock primitives
 //
-// funcs: time int srand help index class
+// funcs: time date int srand help index class
 //
 // Two clocks, because neither does the other's job:
 //
@@ -504,6 +504,59 @@ t55=time(25:30:0)
 ok=ok&&(time(t55 :delta)==true)
 ok=ok&&(print(t55 :str)=="1:1:30:0")
 print("55 time(25:30:0) duration untouched (expect delta true, print \"1:1:30:0\"): %v %v\n" time(t55 :delta) print(t55 :str))
+
+// --- 56: date() on a duration has no calendar date -- a raw-seconds
+// elapsed count, not an epoch-anchored instant ---
+d56=date(time(25:30:0))
+ok=ok&&(d56==nil)
+print("56 date(time(25:30:0)) duration has no date (expect nil): %v\n" d56)
+
+// --- 57: time(t :yr/:mo/:day) on a duration likewise answer nil, not
+// the nonsense calendar reading breakdown() gives its raw seconds ---
+t57=time(25:30:0)
+y57=time(t57 :yr)
+m57=time(t57 :mo)
+dy57=time(t57 :day)
+ok=ok&&(y57==nil && m57==nil && dy57==nil)
+print("57 time(time(25:30:0) :yr/:mo/:day) duration has no date (expect nil nil nil): %v %v %v\n" y57 m57 dy57)
+
+// --- 58: Feb 2023 isn't a leap year -- day 31 doesn't exist, rejected
+// rather than silently normalized into March ---
+t58=time(2023:Feb:31)
+ok=ok&&(t58==nil)
+print("58 time(2023:Feb:31) impossible day (expect nil): %v\n" t58)
+
+// --- 59: 2024 IS a leap year -- Feb 29 exists and succeeds ---
+t59=time(2024:Feb:29)
+ok=ok&&(t59!=nil)
+ok=ok&&(time(t59 :yr)==2024 && time(t59 :mo)==2 && time(t59 :day)==29)
+print("59 time(2024:Feb:29) leap-year day (expect non-nil, yr/mo/day 2024 2 29): %v %v %v %v\n" (t59!=nil) time(t59 :yr) time(t59 :mo) time(t59 :day))
+
+// --- 60: even in a leap year, Feb tops out at 29 -- day 30 rejected ---
+t60=time(2024:Feb:30)
+ok=ok&&(t60==nil)
+print("60 time(2024:Feb:30) impossible day even in leap year (expect nil): %v\n" t60)
+
+// --- 61: April has 30 days -- day 31 rejected ---
+t61=time(2000:Apr:31)
+ok=ok&&(t61==nil)
+print("61 time(2000:Apr:31) impossible day (expect nil): %v\n" t61)
+
+// --- 62: :raw given a value resets the clock reading, not the kind --
+// a duration's :raw reset stays a duration ---
+t62=time(25:30:0)
+t62b=time(t62 :raw 100000000000)
+ok=ok&&(time(t62b :delta)==true)
+print("62 time(time(25:30:0) :raw 100000000000 :delta) raw-reset keeps delta (expect true): %v\n" time(t62b :delta))
+
+// --- 63: a bare :ms/:us/:ns precision request on a caller-supplied
+// TimeObj returns a fresh copy that keeps its kind and mono reading ---
+t63=time(25:30:0)
+t63m=time(t63 :mono 5000000000)
+t63p=time(t63m :ms)
+ok=ok&&(time(t63p :delta)==true)
+ok=ok&&(time(t63p :mono :ns)==5000000000)
+print("63 time(time(25:30:0) :ms) precision copy keeps delta/mono (expect true 5000000000): %v %v\n" time(t63p :delta) time(t63p :mono :ns))
 
 print("time: %v\n" ok)
 ok
