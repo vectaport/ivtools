@@ -141,12 +141,20 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :raw :mono :ms :us :ns) -- current instant as a TimeObj by default; a TimeObj argument reads a field back or sets its display precision, a DateObj argument becomes noon UTC that date, a colon list is vetted into a TimeObj; :raw/:mono dump the clock as a plain integer"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- current instant as a TimeObj by default; a TimeObj argument reads a field back or sets its display precision, a DateObj argument becomes noon UTC that date, a colon list is vetted into a TimeObj; :raw/:mono dump the clock as a plain integer"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj/DateObj argument, or of a fresh capture with none",
 	":min       minute of a TimeObj/DateObj argument, or of a fresh capture with none",
 	":sec       second of a TimeObj/DateObj argument, or of a fresh capture with none",
+	":yr        calendar year of a TimeObj/DateObj argument, or of a fresh capture with",
+	"           none; nil if the TimeObj carries no date (the epoch-date sentinel)",
+	":mo        calendar month (1-12) of a TimeObj/DateObj argument, or of a fresh",
+	"           capture with none; nil if the TimeObj carries no date",
+	":day       calendar day of month of a TimeObj/DateObj argument, or of a fresh",
+	"           capture with none; nil if the TimeObj carries no date",
+	":zn        UTC zone offset of a TimeObj/DateObj argument, or of a fresh capture",
+	"           with none, as a signed +/-HHMM integer (e.g. -700, 200)",
 	":raw       seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  The default clock, and",
 	"           what a unit keyword on its own implies for the integer dump",

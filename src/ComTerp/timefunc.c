@@ -488,6 +488,14 @@ void TimeFunc::execute() {
   ComValue hourv(stack_key(hour_sym));
   ComValue minutev(stack_key(minute_sym));
   ComValue secondv(stack_key(second_sym));
+  static int year_sym = symbol_add("yr");
+  static int month_sym = symbol_add("mo");
+  static int day_sym = symbol_add("day");
+  static int zone_sym = symbol_add("zn");
+  ComValue yearv(stack_key(year_sym));
+  ComValue monthv(stack_key(month_sym));
+  ComValue dayv(stack_key(day_sym));
+  ComValue zonev(stack_key(zone_sym));
   static int ms_sym = symbol_add("ms");
   static int us_sym = symbol_add("us");
   static int ns_sym = symbol_add("ns");
@@ -561,6 +569,35 @@ void TimeFunc::execute() {
       if (owns) delete timeobj;
     } else if (secondv.is_true()) {
       ComValue retval(timeobj->second());
+      push_stack(retval);
+      if (owns) delete timeobj;
+    } else if (yearv.is_true() || monthv.is_true() || dayv.is_true()) {
+      /* the epoch date is TimeObj's "no date info" sentinel -- see
+         printOn() -- so a dateless TimeObj answers nil here rather than
+         its epoch-sentinel calendar fields, the same as date(t) does */
+      if (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1) {
+        push_stack(ComValue::nullval());
+      } else if (yearv.is_true()) {
+        ComValue retval(timeobj->year());
+        push_stack(retval);
+      } else if (monthv.is_true()) {
+        ComValue retval(timeobj->month());
+        push_stack(retval);
+      } else {
+        ComValue retval(timeobj->day());
+        push_stack(retval);
+      }
+      if (owns) delete timeobj;
+    } else if (zonev.is_true()) {
+      /* the same signed +/-HHMM shape printOn() uses for the TZ field,
+         as a number rather than zero-padded text */
+      long off = timeobj->tzoff();
+      long aoff = off<0 ? -off : off;
+      int tzh = (int)(aoff/3600);
+      int tzm = (int)((aoff%3600)/60);
+      int magnitude = tzh*100+tzm;
+      int result = off<0 ? -magnitude : magnitude;
+      ComValue retval(result);
       push_stack(retval);
       if (owns) delete timeobj;
     } else if (owns) {

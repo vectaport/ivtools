@@ -465,14 +465,16 @@ Print a usage summary of all the invocation modes above and exit.
  -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ]
- :hr :min :sec :raw :mono :ms :us :ns) -- current instant as a
+ :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- current instant as a
  TimeObj by default. A TimeObj argument reads a field back with
- :hr/:min/:sec, or returns a copy at the same instant with a new
+ :hr/:min/:sec/:yr/:mo/:day/:zn, or returns a copy at the same instant with a new
  display precision via :ms/:us/:ns; a DateObj argument becomes noon UTC that
  date; a colon list -- hr:min:sec, or the full y:Mon:d:h:m:s[:ms:us:ns]:TZ
  printed form -- is vetted into a TimeObj, warning and returning nil if it
- doesn't fit. With no positional argument, :hr/:min/:sec read that
- field off a fresh capture instead
+ doesn't fit. With no positional argument, :hr/:min/:sec/:yr/:mo/:day/:zn read
+ that field off a fresh capture instead. :yr/:mo/:day are nil on a dateless
+ TimeObj (the epoch-date sentinel); :zn is the UTC offset as a signed +/-HHMM
+ integer, always well-defined
 
  :raw and :mono dump the clock as a plain integer instead of a TimeObj:
  :raw is seconds since the epoch, an actual date comparable with date() and
