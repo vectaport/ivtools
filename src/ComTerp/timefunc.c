@@ -185,16 +185,15 @@ void TimeObj::printOn(ostream& out) const {
   }
 
   if (dated) {
-    /* no leading '+' -- the language has no unary plus, so a "+HHMM"
-       token would fail to re-parse; a negative offset still reads back
-       fine through unary minus, so only that sign is ever printed */
+    /* always signed and zero-padded to 4 digits (-0700, +0200) --
+       the sign re-parses through unary minus/plus */
     long off = _tzoff;
     long aoff = off < 0 ? -off : off;
     int tzh = (int)(aoff / 3600);
     int tzm = (int)((aoff % 3600) / 60);
-    out << ":";
-    if (off < 0) out << "-";
-    out << (tzh*100 + tzm);
+    char fill = out.fill('0');
+    out << ":" << (off < 0 ? "-" : "+") << std::setw(4) << (tzh*100 + tzm);
+    out.fill(fill);
   }
 }
 
@@ -292,7 +291,8 @@ void DateFunc::execute() {
    as any other TimeObj's single gmtime_r-based breakdown would.  A
    7-to-10-element list is a full y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp --
    the inverse of what printOn() emits, down to the trailing numeric HHMM
-   offset (unsigned or '-'-prefixed; the language has no unary plus). */
+   offset (unary-plus- or unary-minus-prefixed, printOn() always emitting
+   one or the other). */
 static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
   int n = avl->Number();
 

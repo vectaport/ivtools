@@ -77,8 +77,18 @@ public:
     MinusFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return " and the unary prefix minus"; }
+};
+
+//: + (unary prefix plus) operator.
+class PlusFunc : public NumFunc {
+public:
+    PlusFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return " and the unary prefix plus"; }
 };
 
 //: * (multiply) operator.

@@ -1,6 +1,6 @@
 // src/comterp_/tests/timeobj.comt -- time() vets a colon list into a TimeObj
 
-// funcs: colonlist time date class print size at split index
+// funcs: colonlist time date class print size at split index eval
 
 // ':' itself never recognizes an hr:min:sec chain -- it always stays a
 // plain coloned() list (colonlist.comt). time() is the one explicit
@@ -82,28 +82,27 @@ print("7 buf7@1:8:30, in-bounds-looking cap-slice stays a slice (expect 1234567)
 t8=time(2026:Sep:20:13:18:2:700)
 ok=ok&&(class(t8)=="TimeObj")
 p8=print(t8 :str)
-ok=ok&&(p8=="2026:Sep:20:13:18:2:700")
+ok=ok&&(p8=="2026:Sep:20:13:18:2:+0700")
 t8b=time(2026:Sep:20:13:18:2:700)
 p8b=print(t8b :str)
 rt8=(p8==p8b)
 ok=ok&&rt8
-print("8 t8=time(2026:Sep:20:13:18:2:700) (expect 2026:Sep:20:13:18:2:700, round-trips): %v %v\n" p8 rt8)
+print("8 t8=time(2026:Sep:20:13:18:2:700) (expect 2026:Sep:20:13:18:2:+0700, round-trips): %v %v\n" p8 rt8)
 
-// --- 9: a negative TZ field round-trips the same way, via the unary
-//        minus the language actually supports (there is no unary plus,
-//        so a positive offset never prints a leading '+' -- test 8) ---
+// --- 9: a negative TZ field round-trips the same way, via unary minus,
+//        and prints zero-padded to 4 digits like the positive case ---
 t9=time(2026:Jan:5:0:30:15:-800)
 p9=print(t9 :str)
-ok=ok&&(p9=="2026:Jan:5:0:30:15:-800")
-print("9 t9=time(2026:Jan:5:0:30:15:-800) negative TZ (expect 2026:Jan:5:0:30:15:-800): %v\n" p9)
+ok=ok&&(p9=="2026:Jan:5:0:30:15:-0800")
+print("9 t9=time(2026:Jan:5:0:30:15:-800) negative TZ (expect 2026:Jan:5:0:30:15:-0800): %v\n" p9)
 
 // --- 10: :ms/:us/:ns fractional groups are zero-padded 000-999 groups,
 //         cumulative, and can be supplied directly in the full-form
 //         literal -- ms=8 prints as "008", not bare "8" ---
 t10=time(2026:Sep:20:13:18:2:8:0:0:700)
 p10=print(t10 :str)
-ok=ok&&(p10=="2026:Sep:20:13:18:2:008:000:000:700")
-print("10 time(2026:Sep:20:13:18:2:8:0:0:700) (expect 2026:Sep:20:13:18:2:008:000:000:700): %v\n" p10)
+ok=ok&&(p10=="2026:Sep:20:13:18:2:008:000:000:+0700")
+print("10 time(2026:Sep:20:13:18:2:8:0:0:700) (expect 2026:Sep:20:13:18:2:008:000:000:+0700): %v\n" p10)
 
 // --- 11: date(t) on an hr:min:sec-only TimeObj is nil -- the epoch date
 //         (1970-01-01 UTC) is the "no date info" sentinel, never a
@@ -143,6 +142,32 @@ print("14 time(2026:Sep:20:13:18) wrong-length full-form list (expect nil): %v\n
 t15=time(2026:Zzz:20:13:18:2:0)
 ok=ok&&(t15==nil)
 print("15 time(2026:Zzz:...) unrecognized month name (expect nil): %v\n" t15)
+
+// --- 16: unary plus is a real operator, symmetric with unary minus --
+//        +5 evaluates to 5, not a parse error ---
+ok=ok&&(+5==5)
+print("16 +5==5 (expect true): %v\n" (+5==5))
+
+// --- 17: printOn()'s printed TZ field re-parses through time() back to
+//        the same field, for a positive offset -- the printed form uses
+//        unary plus, which the scanner reads as an ordinary decimal
+//        literal (not an octal one) even with the leading zero ---
+t17=time(2026:Sep:20:13:18:2:700)
+p17=print(t17 :str)
+eval("t17b=time("+p17+")")
+p17b=print(t17b :str)
+rt17=(p17==p17b)
+ok=ok&&rt17
+print("17 print(t17):str reparsed through time() (expect %v, true): %v %v\n" p17 p17b rt17)
+
+// --- 18: same round-trip for a negative offset, via unary minus ---
+t18=time(2026:Jan:5:0:30:15:-800)
+p18=print(t18 :str)
+eval("t18b=time("+p18+")")
+p18b=print(t18b :str)
+rt18=(p18==p18b)
+ok=ok&&rt18
+print("18 print(t18):str reparsed through time() (expect %v, true): %v %v\n" p18 p18b rt18)
 
 print("timeobj: %v\n" ok)
 ok

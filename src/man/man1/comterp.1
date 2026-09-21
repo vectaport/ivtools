@@ -118,6 +118,7 @@ Print a usage summary of all the invocation modes above and exit.
     ++         incr           110         R-to-L      unary-prefix
     ++         incr_after     110         R-to-L      unary-postfix
     -          minus          110         R-to-L      unary-prefix
+    +          plus           110         R-to-L      unary-prefix
     --         decr           110         R-to-L      unary-prefix
     --         decr_after     110         R-to-L      unary-postfix
     $$         stream         100         R-to-L      unary-prefix
@@ -482,8 +483,8 @@ Print a usage summary of all the invocation modes above and exit.
  fractional-second groups the returned TimeObj prints (1/2/3)
 
  A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, TZ a
- numeric UTC offset (HHMM, unsigned or '-'-prefixed); year/month/day drop
- when they are the epoch sentinel, leaving bare hour:minute:second
+ signed, zero-padded numeric UTC offset (+HHMM or -HHMM); year/month/day
+ drop when they are the epoch sentinel, leaving bare hour:minute:second
 
  [cnt]=beep(:count) -- beep or alert sound
 

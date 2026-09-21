@@ -106,6 +106,7 @@ struct _opr_tbl_default_entry {
   {"++",         "incr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr_after",         110,        TRUE,       OPTYPE_UNARY_POSTFIX },
   {"-",          "minus",              110,        TRUE,       OPTYPE_UNARY_PREFIX },
+  {"+",          "plus",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"--",         "decr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"--",         "decr_after",         110,        TRUE,       OPTYPE_UNARY_POSTFIX },
   {"$$",         "stream",             100,         TRUE,       OPTYPE_UNARY_PREFIX },

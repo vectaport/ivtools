@@ -447,6 +447,55 @@ void MinusFunc::execute() {
     push_stack(result);
 }
 
+PlusFunc::PlusFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void PlusFunc::execute() {
+    ComValue operand1 = stack_arg(0);
+    ComValue result(operand1);
+
+    if (operand1.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    switch (result.type()) {
+    case ComValue::CharType:
+	result.char_ref() = operand1.char_val();
+	break;
+    case ComValue::UCharType:
+	result.uchar_ref() = operand1.uchar_val();
+	break;
+    case ComValue::ShortType:
+	result.short_ref() = operand1.short_val();
+	break;
+    case ComValue::UShortType:
+	result.ushort_ref() = operand1.ushort_val();
+	break;
+    case ComValue::IntType:
+	result.int_ref() = operand1.int_val();
+	break;
+    case ComValue::UIntType:
+	result.uint_ref() = operand1.uint_val();
+	break;
+    case ComValue::LongType:
+	result.long_ref() = operand1.long_val();
+	break;
+    case ComValue::ULongType:
+	result.ulong_ref() = operand1.ulong_val();
+	break;
+    case ComValue::FloatType:
+	result.float_ref() = operand1.float_val();
+	break;
+    case ComValue::DoubleType:
+	result.double_ref() = operand1.double_val();
+	break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
 MpyFunc::MpyFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 

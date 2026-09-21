@@ -501,6 +501,7 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 110      | `--`     | decr_after    | RtoL  | UNARY POSTFIX   |
 | 110      | `--`     | decr          | RtoL  | UNARY PREFIX    |
 | 110      | `-`      | minus         | RtoL  | UNARY PREFIX    |
+| 110      | `+`      | plus          | RtoL  | UNARY PREFIX    |
 | 110      | `++`     | incr_after    | RtoL  | UNARY POSTFIX   |
 | 110      | `++`     | incr          | RtoL  | UNARY PREFIX    |
 | 110      | `!`      | negate        | RtoL  | UNARY PREFIX    |
