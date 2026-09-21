@@ -465,13 +465,13 @@ Print a usage summary of all the invocation modes above and exit.
  -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ]
- :hour :minute :second :raw :mono :ms :us :ns) -- current instant as a
+ :hr :min :sec :raw :mono :ms :us :ns) -- current instant as a
  TimeObj by default. A TimeObj argument reads a field back with
- :hour/:minute/:second, or returns a copy at the same instant with a new
+ :hr/:min/:sec, or returns a copy at the same instant with a new
  display precision via :ms/:us/:ns; a DateObj argument becomes noon UTC that
  date; a colon list -- hr:min:sec, or the full y:Mon:d:h:m:s[:ms:us:ns]:TZ
  printed form -- is vetted into a TimeObj, warning and returning nil if it
- doesn't fit. With no positional argument, :hour/:minute/:second read that
+ doesn't fit. With no positional argument, :hr/:min/:sec read that
  field off a fresh capture instead
 
  :raw and :mono dump the clock as a plain integer instead of a TimeObj:

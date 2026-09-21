@@ -122,14 +122,14 @@ public:
 
 //: time returns the current instant as a TimeObj by default, or an
 // integer clock dump with :raw/:mono. Given a TimeObj, reads a field off
-// it (:hour/:minute/:second) or sets its printed fractional precision
+// it (:hr/:min/:sec) or sets its printed fractional precision
 // (:ms/:us/:ns); given a DateObj, returns noon UTC that date -- the
 // inverse of date()'s TimeObj-to-DateObj conversion. Given a plain
 // hr:min:sec or full y:Mon:d:h:m:s[:ms:us:ns]:TZ colon list instead,
 // vets it into a TimeObj (colonlist_to_timeobj()) -- ':' itself never
 // does this, so time() is the explicit ask that can warn loudly at this
 // call site on a bad literal rather than falling back silently. With no
-// positional argument, :hour/:minute/:second read that field off a fresh
+// positional argument, :hr/:min/:sec read that field off a fresh
 // capture, the same precedent date()'s own field keywords use over
 // today's date when no positional DateObj is given.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
@@ -141,12 +141,12 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hour :minute :second :raw :mono :ms :us :ns) -- current instant as a TimeObj by default; a TimeObj argument reads a field back or sets its display precision, a DateObj argument becomes noon UTC that date, a colon list is vetted into a TimeObj; :raw/:mono dump the clock as a plain integer"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :raw :mono :ms :us :ns) -- current instant as a TimeObj by default; a TimeObj argument reads a field back or sets its display precision, a DateObj argument becomes noon UTC that date, a colon list is vetted into a TimeObj; :raw/:mono dump the clock as a plain integer"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":hour      hour of a TimeObj/DateObj argument, or of a fresh capture with none",
-	":minute    minute of a TimeObj/DateObj argument, or of a fresh capture with none",
-	":second    second of a TimeObj/DateObj argument, or of a fresh capture with none",
+	":hr        hour of a TimeObj/DateObj argument, or of a fresh capture with none",
+	":min       minute of a TimeObj/DateObj argument, or of a fresh capture with none",
+	":sec       second of a TimeObj/DateObj argument, or of a fresh capture with none",
 	":raw       seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  The default clock, and",
 	"           what a unit keyword on its own implies for the integer dump",

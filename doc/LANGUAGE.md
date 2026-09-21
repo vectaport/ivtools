@@ -3059,9 +3059,9 @@ past 24 hours still works) and returns a `TimeObj`:
 t=time(1:8:30)
 class(t)          // "TimeObj"
 t                  // 1:8:30 -- prints the same shape it was written in
-time(t :hour)      // 1
-time(t :minute)    // 8
-time(t :second)    // 30
+time(t :hr)        // 1
+time(t :min)       // 8
+time(t :sec)       // 30
 ```
 
 A list that doesn't fit warns at the `time()` call itself and returns

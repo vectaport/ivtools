@@ -135,17 +135,17 @@ ok=ok&&(c2==c0+2)
 ok=ok&&(c3==c0+3)
 print("14 time(:ms/:us/:ns) alone adds 1/2/3 fractional groups to print(t :str) (expect true): %v\n" (c1==c0+1&&c2==c0+2&&c3==c0+3))
 
-// --- 15: with no positional TimeObj argument, :hour/:minute/:second read
+// --- 15: with no positional TimeObj argument, :hr/:min/:sec read
 // that field of a fresh capture -- the same "operate on a fresh default"
 // precedent date()'s own field keywords use over today's date with no
 // positional DateObj given ---
-hb=time(:hour)
-mb=time(:minute)
-sb=time(:second)
+hb=time(:hr)
+mb=time(:min)
+sb=time(:sec)
 ok=ok&&(type(hb)=="IntType" && hb>=0 && hb<24)
 ok=ok&&(type(mb)=="IntType" && mb>=0 && mb<60)
 ok=ok&&(type(sb)=="IntType" && sb>=0 && sb<60)
-print("15 time(:hour/:minute/:second) with no positional arg (expect IntType hour/min/sec of a fresh capture): %v %v %v\n" hb mb sb)
+print("15 time(:hr/:min/:sec) with no positional arg (expect IntType hour/min/sec of a fresh capture): %v %v %v\n" hb mb sb)
 
 print("time: %v\n" ok)
 ok

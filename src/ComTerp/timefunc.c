@@ -466,9 +466,9 @@ TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
   ComValue timev(stack_arg(0));
-  static int hour_sym = symbol_add("hour");
-  static int minute_sym = symbol_add("minute");
-  static int second_sym = symbol_add("second");
+  static int hour_sym = symbol_add("hr");
+  static int minute_sym = symbol_add("min");
+  static int second_sym = symbol_add("sec");
   ComValue hourv(stack_key(hour_sym));
   ComValue minutev(stack_key(minute_sym));
   ComValue secondv(stack_key(second_sym));
