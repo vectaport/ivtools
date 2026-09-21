@@ -1,6 +1,6 @@
 // src/comterp_/tests/time.comt -- time(), the clock primitives
 //
-// funcs: time int srand help index
+// funcs: time int srand help index class
 //
 // Two clocks, because neither does the other's job:
 //
@@ -11,8 +11,10 @@
 //                Meaningless as a date; the right clock for measuring how long
 //                something took, since a correction cannot corrupt an interval.
 //
-// A unit keyword on its own implies :raw.  The bare call is reserved for a
-// TimeObj return and answers nil until that exists -- see #75 and #141.
+// A unit keyword combined with :raw/:mono scales that clock's integer dump.
+// Alone -- no :raw, no :mono -- :ms/:us/:ns instead set how many fractional-
+// second groups a returned TimeObj prints, and the bare call (no argument,
+// no keyword at all) captures now and returns that TimeObj directly.
 //
 // A clock cannot be asserted against a fixed value, so everything here is
 // either a relationship between the units that holds whatever the clock reads,
@@ -54,19 +56,20 @@ ok=ok&&((time(:mono :ns)/1000000000-time(:mono))<2)
 print("5 time(:mono :ns)/1000000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ns)/1000000000-time(:mono))<2))
 
 // --- 6: the units are ordered by magnitude.  This is what fails if a keyword
-// is wired to the wrong scale ---
-ok=ok&&(time(:ms)>time(:raw))
-ok=ok&&(time(:us)>time(:ms))
-ok=ok&&(time(:ns)>time(:us))
-print("6 ns > us > ms > sec (expect true): %v\n" (time(:ms)>time(:raw)&&time(:us)>time(:ms)&&time(:ns)>time(:us)))
+// is wired to the wrong scale.  Explicit :raw throughout -- a unit keyword
+// with neither :raw nor :mono means something else entirely (test 14) ---
+ok=ok&&(time(:raw :ms)>time(:raw))
+ok=ok&&(time(:raw :us)>time(:raw :ms))
+ok=ok&&(time(:raw :ns)>time(:raw :us))
+print("6 ns > us > ms > sec (expect true): %v\n" (time(:raw :ms)>time(:raw)&&time(:raw :us)>time(:raw :ms)&&time(:raw :ns)>time(:raw :us)))
 
 // --- 7: two successive wall-clock reads are both usable.  Deliberately NOT
 // asserting that the second is later: :raw follows an NTP correction, and a
 // correction between these two lines can legitimately move it backwards.
 // Asserting monotonicity here would contradict the property the clock was
 // chosen for, and would fail the suite for a clock behaving correctly ---
-a=time(:us)
-b=time(:us)
+a=time(:raw :us)
+b=time(:raw :us)
 ok=ok&&(a/1000000>1690000000)
 ok=ok&&(b/1000000>1690000000)
 print("7 two successive :raw reads are both plausible (expect true): %v\n" (a/1000000>1690000000&&b/1000000>1690000000))
@@ -88,15 +91,16 @@ print("9 :mono has no epoch and is not a date (expect true): %v\n" (time(:mono)<
 // seconds, so that any correction a running clock might take passes while a
 // wrong scale factor -- which would be off by a thousandfold, not by hours --
 // still fails ---
-ok=ok&&((time(:ms)/1000-time(:raw))<3600)
-ok=ok&&((time(:us)/1000000-time(:raw))<3600)
-print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:ms)/1000-time(:raw))<3600&&(time(:us)/1000000-time(:raw))<3600))
+ok=ok&&((time(:raw :ms)/1000-time(:raw))<3600)
+ok=ok&&((time(:raw :us)/1000000-time(:raw))<3600)
+print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:raw :ms)/1000-time(:raw))<3600&&(time(:raw :us)/1000000-time(:raw))<3600))
 
-// --- 11: the bare call is reserved for TimeObj and answers nil until then,
-// rather than entrenching a plain number that would later have to change ---
+// --- 11: the bare call captures now and returns a real TimeObj, not the
+// epoch integer -- that's what time(:raw) is for ---
 bare=time()
-ok=ok&&(bare==nil)
-print("11 bare time() is reserved and answers nil (expect nil): %v\n" bare)
+ok=ok&&(bare!=nil)
+ok=ok&&(class(bare)=="TimeObj")
+print("11 bare time() (expect non-nil TimeObj): %v %v\n" class(bare) bare)
 
 // --- 12: the motivating use -- a per-run seed with finer granularity than
 // date(), which only changes daily ---
@@ -112,6 +116,36 @@ ok=ok&&(index(h "time(" :substr)!=nil)
 ok=ok&&(index(h ":mono" :substr)!=nil)
 ok=ok&&(index(h ":raw" :substr)!=nil)
 print("13 help(time) documents the command and both clocks (expect true): %v\n" (index(h ":mono" :substr)!=nil&&index(h ":raw" :substr)!=nil))
+
+// --- 14: :ms/:us/:ns alone (no :raw, no :mono) mean something entirely
+// different from combined with :raw -- they set how many fractional-second
+// groups the returned TimeObj prints, cumulative.  print(:str) makes the
+// group count checkable: each extra group adds exactly one more ':' ---
+p0=print(time() :str)
+p1=print(time(:ms) :str)
+p2=print(time(:us) :str)
+p3=print(time(:ns) :str)
+c0=size(split(p0 :tokstr ':'))
+c1=size(split(p1 :tokstr ':'))
+c2=size(split(p2 :tokstr ':'))
+c3=size(split(p3 :tokstr ':'))
+ok=ok&&(class(time(:ms))=="TimeObj")
+ok=ok&&(c1==c0+1)
+ok=ok&&(c2==c0+2)
+ok=ok&&(c3==c0+3)
+print("14 time(:ms/:us/:ns) alone adds 1/2/3 fractional groups to print(t :str) (expect true): %v\n" (c1==c0+1&&c2==c0+2&&c3==c0+3))
+
+// --- 15: with no positional TimeObj argument, :hour/:minute/:second read
+// that field of a fresh capture -- the same "operate on a fresh default"
+// precedent date()'s own field keywords use over today's date with no
+// positional DateObj given ---
+hb=time(:hour)
+mb=time(:minute)
+sb=time(:second)
+ok=ok&&(type(hb)=="IntType" && hb>=0 && hb<24)
+ok=ok&&(type(mb)=="IntType" && mb>=0 && mb<60)
+ok=ok&&(type(sb)=="IntType" && sb>=0 && sb<60)
+print("15 time(:hour/:minute/:second) with no positional arg (expect IntType hour/min/sec of a fresh capture): %v %v %v\n" hb mb sb)
 
 print("time: %v\n" ok)
 ok
