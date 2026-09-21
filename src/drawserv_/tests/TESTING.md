@@ -146,6 +146,28 @@ assertion is `size(sidtable)==1`.
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
 
+### ringpair
+
+**What:** Build two independent chains of `chainlen` (5) drawservs each,
+then link the two ends of the pair -- A's tail to B's head, and B's tail to
+A's head -- at once, so the session-id propagation waves the two closing
+links start can cross each other while both links are still forming.
+
+**Checks:**
+- both chains build cleanly, with `ring_test`'s per-hop settle-poll
+- after the pair is closed and settles, the total edge count across all
+  `2*chainlen` nodes is `2*chainlen-1` (one of the two closing links was
+  refused as redundant)
+- every node's `sid(:table)` holds all `2*chainlen` sessions (one connected
+  network, not two islands left by a missed refusal)
+
+**Purpose:** `cycletest()` only sees a cycle already present in the local
+session-id table at handshake time. A cycle formed by two propagation waves
+crossing after both links already exist is a case ordinary link-at-a-time
+testing (`ring`) cannot reach, however many chain hops it uses, because
+`ring` closes its loop with a single link against an already-settled
+network. See issue #575.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is
