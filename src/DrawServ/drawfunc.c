@@ -178,6 +178,8 @@ void DrawLinkFunc::execute() {
 	   peer doing the same wait for the same reason. No linkup happens
 	   this round, cycle or not; the caller can simply try again once
 	   whatever this end now holds has cleared. */
+	fprintf(stderr, "drawlink: declined %s:%d -- a fragment freeze is already held here, try again shortly\n",
+		hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
 	if (statenum == DrawLink::one_way) {
 	  fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
 	  fflush(comterp()->handler()->wrfptr());

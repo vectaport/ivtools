@@ -71,6 +71,8 @@
 #include <unistd.h>
 #include <iostream>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
@@ -199,7 +201,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
 	((DrawServHandler*)comterp->handler())->drawlink(curlink);
 	curlink->comhandler((DrawServHandler*)comterp->handler());
       }
-      fprintf(stderr, "link up with %s(%s) via port %d\n", 
+      fprintf(stderr, "link up with %s(%s) via port %d\n",
 	      curlink->hostname(), curlink->althostname(), portnum);
       // fprintf(stderr, "link id %.8s\n", curlink->linkid_str());
 
@@ -304,7 +306,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	    OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
 	    
 	    original = add_grid(comp, grid, sid);
-	    
+
 	    if (comp && (original || linklist()->Number()>1)) {
 	      Creator* creator = unidraw->GetCatalog()->GetCreator();
 	      OverlayScript* scripter = (OverlayScript*)
@@ -405,6 +407,34 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   }
 }
 
+/* write len bytes to fd, retrying past a short write or a transient
+   EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's
+   socket is nonblocking (DrawLink::open()), so a completely healthy send
+   can still hit EAGAIN whenever the kernel's socket send buffer is
+   momentarily full; stdio's fputs/fclose have no way to report or retry
+   that once called, so this writes the fd directly instead. Bounded by
+   max_wait_usec so a peer that stops reading entirely doesn't hang here. */
+static boolean write_full(int fd, const char* buf, size_t len) {
+  size_t sent = 0;
+  static const int max_wait_usec = 2000000;
+  int waited = 0;
+  while (sent < len) {
+    ssize_t n = write(fd, buf+sent, len-sent);
+    if (n > 0) {
+      sent += n;
+    } else if (n < 0 && errno == EINTR) {
+      continue;
+    } else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+      if (waited >= max_wait_usec) return false;
+      usleep(5000);
+      waited += 5000;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
 void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
@@ -417,30 +447,28 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
       int fd = link->handle();
       if (fd>=0) {
 	link->log_outgoing_command(cmdstring);
-	FILE* fp=fdopen(dup(fd), "w");
-	fputs(cmdstring, fp);
-	fputs("\n", fp);
-	fclose(fp);
+	if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
+	  fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
+		  link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
 	link->ackhandler()->start_timer();
       }
     }
     _linklist->Next(i);
   }
-  
+
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
-  
+
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
       link->log_outgoing_command(cmdstring);
-      FILE* fp=fdopen(dup(fd), "w");
-      fputs(cmdstring, fp);
-      fputs("\n", fp);
-      fclose(fp);
+      if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
+	fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
+		link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
       link->ackhandler()->start_timer();
     }
   }
