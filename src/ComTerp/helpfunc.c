@@ -250,6 +250,7 @@ void HelpFunc::execute() {
 	      if (value) {
 		ComFunc* comfunc = (ComFunc*)value->obj_val();
 		if (postevalflag.is_true() && !comfunc->post_eval()) continue;
+		if (comfunc->hidden()) continue;
 		if (first) 
 		  first = false;
 		else
