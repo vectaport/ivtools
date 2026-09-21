@@ -16,7 +16,10 @@
 // wrong shape, non-integer elements, an unrecognized month name, or an
 // out-of-range field -- warns at this exact call site (time() was an
 // explicit ask) and returns nil, rather than falling back silently the
-// way an unrecognized colon literal would.
+// way an unrecognized colon literal would. A 2-, 3- or 4-element list is
+// polymorphic (a year-led instant vs. a duration) and a 5-element list
+// is always a duration -- covered in time.comt, not here; this file
+// stays to the plain hr:min:sec and full-form calendar-instant shapes.
 
 ok=true
 
@@ -46,11 +49,13 @@ t3=time(1:70:30)
 ok=ok&&(t3==nil)
 print("3 time(1:70:30) bad minute (expect nil): %v\n" t3)
 
-// --- 4: wrong shape (not exactly 3 elements) also warns and returns
-//        nil, same as an out-of-range field ---
-t4=time(1:2)
+// --- 4: a shape outside 2-to-5 or 7-to-10 elements also warns and
+//        returns nil, same as an out-of-range field -- 2-to-5-element
+//        lists are now polymorphic (time.comt), so this uses a 6-element
+//        list, which stays unconditionally invalid ---
+t4=time(1:2:3:4:5:6)
 ok=ok&&(t4==nil)
-print("4 time(1:2) wrong shape (expect nil): %v\n" t4)
+print("4 time(1:2:3:4:5:6) wrong shape (expect nil): %v\n" t4)
 
 // --- 5: a colon-captured bare identifier is resolved (not left as a
 //        symbol) before the bounds check, same lookup_symval() ':'

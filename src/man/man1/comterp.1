@@ -464,10 +464,11 @@ Print a usage summary of all the invocation modes above and exit.
  breakdown lands on the epoch date, 1970-01-01 UTC, the "dateless" sentinel
  -- see time() below)
 
- timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ]
- :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :ms :us :ns) --
- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon
- separated list for time formats
+ timeobj|long = time([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|
+ days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ]
+ :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false]
+ :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj
+ at noon, parses a 2-to-10-field colon list as an instant or duration
 
  :hr        hour of a TimeObj
  :min       minute of a TimeObj
@@ -485,13 +486,18 @@ Print a usage summary of all the invocation modes above and exit.
             something took -- it cannot step backwards.  Given a value,
             constructs or resets that field from nanoseconds since
             boot, the same way :raw does.
+ :delta [true|false] whether a TimeObj is a duration, not a calendar
+            instant.  Bare inspects it; given a value, builds a new
+            TimeObj with that flag set rather than mutating this one.
  :ms        millisecond precision
  :us        microsecond precision
  :ns        nanosecond precision
 
  A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, TZ a
  signed, zero-padded numeric UTC offset (+HHMM or -HHMM); year/month/day
- drop when they are the epoch sentinel, leaving bare hour:minute:second
+ drop when they are the epoch sentinel, leaving bare hour:minute:second.
+ A duration (:delta true) instead prints [[[years:]days:]hr:]min:sec,
+ with no month or TZ.
 
  [cnt]=beep(:count) -- beep or alert sound
 

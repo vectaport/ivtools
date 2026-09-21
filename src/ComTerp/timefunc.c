@@ -82,6 +82,7 @@ TimeObj::TimeObj(int hour, int minute, int second) {
   _mono.tv_nsec = 0;
   _tzoff = 0;
   _precision = 0;
+  _delta = false;
 }
 
 TimeObj::TimeObj(const struct timespec& raw, long tzoff) {
@@ -90,6 +91,7 @@ TimeObj::TimeObj(const struct timespec& raw, long tzoff) {
   _mono.tv_nsec = 0;
   _tzoff = tzoff;
   _precision = 0;
+  _delta = false;
 }
 
 TimeObj::TimeObj() {
@@ -99,6 +101,7 @@ TimeObj::TimeObj() {
   localtime_r(&_raw.tv_sec, &tmval);
   _tzoff = tmval.tm_gmtoff;
   _precision = 0;
+  _delta = false;
 }
 
 TimeObj::~TimeObj() {
@@ -149,7 +152,56 @@ int TimeObj::day() const {
   return tmval.tm_mday;
 }
 
+/* the 4th year of the cycle is a 366-day year, the rest 365 -- a fixed
+   synthetic calendar, not the real proleptic-Gregorian leap rule, since a
+   duration's years/days breakdown isn't anchored to any actual date. */
+static int cycle_year_days(int year_index_1based) {
+  return (year_index_1based % 4 == 0) ? 366 : 365;
+}
+
+/* decomposes total_days into completed synthetic years and the remaining
+   days -- the inverse of years_to_days(). */
+static void days_to_years(long total_days, long& years, long& days) {
+  long y = 0;
+  long remaining = total_days;
+  while (remaining >= cycle_year_days((int)(y+1))) {
+    remaining -= cycle_year_days((int)(y+1));
+    y++;
+  }
+  years = y;
+  days = remaining;
+}
+
+/* total days spanned by 'years' completed synthetic years -- the inverse
+   of days_to_years(). */
+static long years_to_days(long years) {
+  long total = 0;
+  for (long y=1; y<=years; y++) total += cycle_year_days((int)y);
+  return total;
+}
+
 void TimeObj::printOn(ostream& out) const {
+  if (_delta) {
+    /* a duration isn't anchored to any calendar instant, so its days/years
+       come from a synthetic 4-year cycle rather than gmtime_r(). */
+    long total = (long)_raw.tv_sec;
+    long sec = total % 60; total /= 60;
+    long min = total % 60; total /= 60;
+    long hr = total % 24; total /= 24;
+    long years, days;
+    days_to_years(total, years, days);
+
+    boolean show_years = years != 0;
+    boolean show_days = show_years || days != 0;
+    boolean show_hr = show_days || hr != 0;
+
+    if (show_years) out << years << ":";
+    if (show_days) out << days << ":";
+    if (show_hr) out << hr << ":";
+    out << min << ":" << sec;
+    return;
+  }
+
   struct tm tmval;
   breakdown(tmval);
   int yr = tmval.tm_year + 1900;
@@ -281,22 +333,140 @@ void DateFunc::execute() {
 
 /*****************************************************************************/
 
+/* the range representable by a signed 64-bit nanosecond count since the
+   epoch -- the leading field of a short colon list reads as a calendar
+   year only within this range, distinguishing YEAR:MON:... from a
+   same-shaped duration. */
+static boolean is_plausible_year(long v) { return v >= 1677 && v <= 2262; }
+
+/* accepts a bare month-name symbol (looked up via Date::numberOfMonth())
+   or a plain 1-12 integer; warns and returns false on anything else. */
+static boolean parse_month(ComValue& v, int& mon, int linenum) {
+  if (v.type()==ComValue::SymbolType) {
+    mon = Date::numberOfMonth(symbol_pntr((int)v.symbol_val()));
+    if (mon==0) {
+      std::cout << "WARNING:  time(): unrecognized month name -- line "
+                << linenum << "\n";
+      return false;
+    }
+  } else if (v.type()==ComValue::IntType) {
+    mon = v.int_val();
+    if (mon<1 || mon>12) {
+      std::cout << "WARNING:  time(): month " << mon << " out of range (1..12) -- line "
+                << linenum << "\n";
+      return false;
+    }
+  } else {
+    std::cout << "WARNING:  time(): month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
+              << linenum << "\n";
+    return false;
+  }
+  return true;
+}
+
+/* the i'th colon-list element, resolved as a variable reference the same
+   way every non-month field of a colon list is -- lookup_symval() needs
+   an lvalue, so the raw element is named first. */
+static ComValue resolve_elem(ComTerp* comterp, AttributeValueList* avl, int i) {
+  ComValue v(*avl->Get(i));
+  return comterp->lookup_symval(v);
+}
+
+/* a year-led short colon list's instant: noon UTC when hour<0, else the
+   given hour with minute/second zero -- tzoff is always 0, the same as
+   time()'s DateObj-to-TimeObj noon conversion. */
+static TimeObj* year_led_instant(int yr, int mon, int day, int hour) {
+  struct tm tmval = {0};
+  tmval.tm_year = yr - 1900;
+  tmval.tm_mon = mon - 1;
+  tmval.tm_mday = day;
+  tmval.tm_hour = hour>=0 ? hour : 12;
+  struct timespec raw;
+  raw.tv_sec = timegm(&tmval);
+  raw.tv_nsec = 0;
+  return new TimeObj(raw, 0);
+}
+
 /* time()'s vetting of a colon list into a TimeObj -- an explicit ask,
    unlike ':' itself, so a bad literal warns at this exact call site
-   instead of silently falling back to the list it arrived as.  A plain
-   3-element list is hr:min:sec: minute and second bounded to a clock
-   face, hour only checked non-negative at construction.  Landing on the
+   instead of silently falling back to the list it arrived as.  A 2-, 3-
+   or 4-element list auto-detects instant vs. duration from its first
+   element: a plausible year (is_plausible_year()) reads as
+   YEAR:MON[:day[:hr]], anything else as min:sec, hr:min:sec or
+   days:hr:min:sec, a duration (delta() true).  Landing hr:min:sec on the
    epoch date makes it a dateless TimeObj when hour is under 24; at or
    past 24 it reads back folded onto the following calendar day, the same
    as any other TimeObj's single gmtime_r-based breakdown would.  A
-   7-to-10-element list is a full y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp --
-   the inverse of what printOn() emits, down to the trailing numeric HHMM
-   offset (unary-plus- or unary-minus-prefixed, printOn() always emitting
-   one or the other). */
+   5-element list is always years:days:hr:min:sec, a duration -- a
+   year-led 5-element instant is not supported.  A 7-to-10-element list is
+   a full y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp -- the inverse of what
+   printOn() emits, down to the trailing numeric HHMM offset (unary-plus-
+   or unary-minus-prefixed, printOn() always emitting one or the
+   other). */
 static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
   int n = avl->Number();
 
+  if (n == 2) {
+    ComValue v0(resolve_elem(comterp, avl, 0));
+
+    if (v0.type()==ComValue::IntType && is_plausible_year(v0.long_val())) {
+      int yr = v0.int_val();
+      ComValue monv(*avl->Get(1));
+      int mon;
+      if (!parse_month(monv, mon, linenum)) return nil;
+      return year_led_instant(yr, mon, 1, -1);
+    }
+
+    ComValue v1(resolve_elem(comterp, avl, 1));
+    if (v0.type()!=ComValue::IntType || v1.type()!=ComValue::IntType) {
+      std::cout << "WARNING:  time(): min:sec must be plain integers -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    long mn = v0.long_val();
+    long sc = v1.long_val();
+    if (mn<0) {
+      std::cout << "WARNING:  time(): minute " << mn << " is negative -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    if (sc<0 || sc>59) {
+      std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    struct timespec raw;
+    raw.tv_sec = mn*60 + sc;
+    raw.tv_nsec = 0;
+    TimeObj* t = new TimeObj(raw, 0);
+    t->delta(true);
+    return t;
+  }
+
   if (n == 3) {
+    ComValue v0(resolve_elem(comterp, avl, 0));
+
+    if (v0.type()==ComValue::IntType && is_plausible_year(v0.long_val())) {
+      int yr = v0.int_val();
+      ComValue monv(*avl->Get(1));
+      int mon;
+      if (!parse_month(monv, mon, linenum)) return nil;
+
+      ComValue dayv(resolve_elem(comterp, avl, 2));
+      if (dayv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int day = dayv.int_val();
+      if (day<1 || day>31) {
+        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      return year_led_instant(yr, mon, day, -1);
+    }
+
     ComValue hrv(*avl->Get(0));
     ComValue mnv(*avl->Get(1));
     ComValue scv(*avl->Get(2));
@@ -329,11 +499,148 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
       return nil;
     }
 
-    return new TimeObj(hr, mn, sc);
+    TimeObj* t = new TimeObj(hr, mn, sc);
+    t->delta(true);
+    return t;
+  }
+
+  if (n == 4) {
+    ComValue v0(resolve_elem(comterp, avl, 0));
+
+    if (v0.type()==ComValue::IntType && is_plausible_year(v0.long_val())) {
+      int yr = v0.int_val();
+      ComValue monv(*avl->Get(1));
+      int mon;
+      if (!parse_month(monv, mon, linenum)) return nil;
+
+      ComValue dayv(resolve_elem(comterp, avl, 2));
+      if (dayv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int day = dayv.int_val();
+      if (day<1 || day>31) {
+        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+
+      ComValue hrv(resolve_elem(comterp, avl, 3));
+      if (hrv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): hour must be a plain integer -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      int hour = hrv.int_val();
+      if (hour<0 || hour>23) {
+        std::cout << "WARNING:  time(): hour " << hour << " out of range (0..23) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      return year_led_instant(yr, mon, day, hour);
+    }
+
+    ComValue hrv(resolve_elem(comterp, avl, 1));
+    ComValue mnv(resolve_elem(comterp, avl, 2));
+    ComValue scv(resolve_elem(comterp, avl, 3));
+    if (v0.type()!=ComValue::IntType || hrv.type()!=ComValue::IntType ||
+        mnv.type()!=ComValue::IntType || scv.type()!=ComValue::IntType) {
+      std::cout << "WARNING:  time(): days:hr:min:sec must be plain integers -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    long days = v0.long_val();
+    int hr = hrv.int_val();
+    int mn = mnv.int_val();
+    int sc = scv.int_val();
+    if (days<0) {
+      std::cout << "WARNING:  time(): days " << days << " is negative -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    if (hr<0 || hr>23) {
+      std::cout << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    if (mn<0 || mn>59) {
+      std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    if (sc<0 || sc>59) {
+      std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    struct timespec raw;
+    raw.tv_sec = ((days*24 + hr)*60 + mn)*60 + sc;
+    raw.tv_nsec = 0;
+    TimeObj* t = new TimeObj(raw, 0);
+    t->delta(true);
+    return t;
+  }
+
+  if (n == 5) {
+    ComValue v0(resolve_elem(comterp, avl, 0));
+    /* a year-led 5th field is out of scope -- falls through to the
+       catch-all below rather than reading as a partial instant */
+    if (!(v0.type()==ComValue::IntType && is_plausible_year(v0.long_val()))) {
+      ComValue daysv(resolve_elem(comterp, avl, 1));
+      ComValue hrv(resolve_elem(comterp, avl, 2));
+      ComValue mnv(resolve_elem(comterp, avl, 3));
+      ComValue scv(resolve_elem(comterp, avl, 4));
+      if (v0.type()!=ComValue::IntType || daysv.type()!=ComValue::IntType ||
+          hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
+          scv.type()!=ComValue::IntType) {
+        std::cout << "WARNING:  time(): yrs:days:hr:min:sec must be plain integers -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      long years = v0.long_val();
+      int days = daysv.int_val();
+      int hr = hrv.int_val();
+      int mn = mnv.int_val();
+      int sc = scv.int_val();
+      if (years<0) {
+        std::cout << "WARNING:  time(): years " << years << " is negative -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (days<0 || days>366) {
+        std::cout << "WARNING:  time(): days " << days << " out of range (0..366) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (hr<0 || hr>23) {
+        std::cout << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (mn<0 || mn>59) {
+        std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      if (sc<0 || sc>59) {
+        std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+                  << linenum << "\n";
+        return nil;
+      }
+      long total_days = years_to_days(years) + days;
+      struct timespec raw;
+      raw.tv_sec = ((total_days*24 + hr)*60 + mn)*60 + sc;
+      raw.tv_nsec = 0;
+      TimeObj* t = new TimeObj(raw, 0);
+      t->delta(true);
+      return t;
+    }
   }
 
   if (n < 7 || n > 10) {
-    std::cout << "WARNING:  time() needs a 3-element hr:min:sec list or a "
+    std::cout << "WARNING:  time() needs a 2-to-5-element instant or duration list "
+                 "(a year-led 5-element instant is not supported) or a "
                  "7-to-10-element y:Mon:d:h:m:s[:ms:us:ns]:TZ list, got "
               << n << " element(s) -- line " << linenum << "\n";
     return nil;
@@ -358,25 +665,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int yr = elems[0].int_val();
 
   int mon;
-  if (elems[1].type()==ComValue::SymbolType) {
-    mon = Date::numberOfMonth(symbol_pntr((int)elems[1].symbol_val()));
-    if (mon==0) {
-      std::cout << "WARNING:  time(): unrecognized month name -- line "
-                << linenum << "\n";
-      return nil;
-    }
-  } else if (elems[1].type()==ComValue::IntType) {
-    mon = elems[1].int_val();
-    if (mon<1 || mon>12) {
-      std::cout << "WARNING:  time(): month " << mon << " out of range (1..12) -- line "
-                << linenum << "\n";
-      return nil;
-    }
-  } else {
-    std::cout << "WARNING:  time(): month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
-              << linenum << "\n";
-    return nil;
-  }
+  if (!parse_month(elems[1], mon, linenum)) return nil;
 
   if (elems[2].type()!=ComValue::IntType) {
     std::cout << "WARNING:  time(): day must be a plain integer -- line "
@@ -525,11 +814,20 @@ void TimeFunc::execute() {
   static int ns_sym = symbol_add("ns");
   static int mono_sym = symbol_add("mono");
   static int raw_sym = symbol_add("raw");
+  static int delta_sym = symbol_add("delta");
   ComValue msv(stack_key(ms_sym));
   ComValue usv(stack_key(us_sym));
   ComValue nsv(stack_key(ns_sym));
   ComValue monov(stack_key(mono_sym));
   ComValue rawv(stack_key(raw_sym));
+  ComValue& deltaref = stack_key(delta_sym);
+  /* stack_key() returns its dflt argument, by reference, for a bare
+     keyword -- comparing addresses against the trueval() singleton it
+     defaults to is how "present but bare" is told from "present with an
+     explicit true", which a value comparison alone can't do since both
+     read as boolean true. */
+  boolean delta_bare = &deltaref == &ComValue::trueval();
+  ComValue deltav(deltaref);
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
@@ -546,6 +844,8 @@ void TimeFunc::execute() {
   boolean mono_present = !monov.is_null();
   boolean raw_valued = rawv.is_num();
   boolean mono_valued = monov.is_num();
+  boolean delta_present = !deltav.is_null();
+  boolean delta_valued = delta_present && !delta_bare;
 
   TimeObj* timeobj = nil;
   boolean owns = false;
@@ -625,6 +925,27 @@ void TimeFunc::execute() {
     return;
   }
 
+  if (delta_valued) {
+    /* :delta given a value builds a new TimeObj with that flag set,
+       rather than mutating a caller-supplied one -- the same
+       non-mutation precedent as :raw/:mono given a value.  With no
+       positional TimeObj at all, a fresh capture is the base to override
+       rather than the zero epoch :raw/:mono's own valued form starts
+       from, since a bare capture is otherwise never a duration. */
+    if (!timeobj) {
+      timeobj = new TimeObj();
+      owns = true;
+    }
+    TimeObj* result = new TimeObj(timeobj->raw(), timeobj->tzoff());
+    result->mono(timeobj->mono());
+    result->precision(timeobj->precision());
+    result->delta(deltav.is_true());
+    if (owns) delete timeobj;
+    ComValue retval(TimeObj::class_symid(), (void*)result);
+    push_stack(retval);
+    return;
+  }
+
   if (timeobj) {
     /* owns: no other holder, so free after reading a scalar field, or
        after building a display-precision copy below */
@@ -673,6 +994,10 @@ void TimeFunc::execute() {
       int magnitude = tzh*100+tzm;
       int result = off<0 ? -magnitude : magnitude;
       ComValue retval(result);
+      push_stack(retval);
+      if (owns) delete timeobj;
+    } else if (deltav.is_true()) {
+      ComValue retval(timeobj->delta() ? ComValue::trueval() : ComValue::falseval());
       push_stack(retval);
       if (owns) delete timeobj;
     } else if (owns) {

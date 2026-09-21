@@ -311,5 +311,97 @@ t33=time(2026:13:20:13:18:2:700)
 ok=ok&&(t33==nil)
 print("33 time(2026:13:...) month 13 out of range (expect nil): %v\n" t33)
 
+// --- 34: the motivating bug -- a year-led 3-element list reads as
+// YEAR:MON:day, not hr:min:sec, and round-trips through :yr/:mo/:day ---
+t34=time(2000:Apr:4)
+ok=ok&&(t34!=nil)
+ok=ok&&(time(t34 :yr)==2000 && time(t34 :mo)==4 && time(t34 :day)==4)
+print("34 time(2000:Apr:4) (expect non-nil, yr/mo/day 2000 4 4): %v %v %v %v\n" (t34!=nil) time(t34 :yr) time(t34 :mo) time(t34 :day))
+
+// --- 35: a numeric month matches the month-name spelling for the same
+// 3-element year-led form, compared by nanosecond reading ---
+t35a=time(2000:Apr:4)
+t35b=time(2000:4:4)
+ok=ok&&(time(t35a :raw :ns)==time(t35b :raw :ns))
+print("35 time(2000:4:4) matches time(2000:Apr:4) (expect true): %v\n" (time(t35a :raw :ns)==time(t35b :raw :ns)))
+
+// --- 36: a 2-element year-led list is YEAR:MON, day defaulting to 1 ---
+t36=time(2000:Apr)
+ok=ok&&(time(t36 :yr)==2000 && time(t36 :mo)==4 && time(t36 :day)==1)
+print("36 time(2000:Apr) 2-field instant, day defaults to 1 (expect 2000 4 1): %v %v %v\n" time(t36 :yr) time(t36 :mo) time(t36 :day))
+
+// --- 37: a 4-element year-led list is YEAR:MON:day:hr ---
+t37=time(2000:Apr:4:15)
+ok=ok&&(time(t37 :yr)==2000 && time(t37 :mo)==4 && time(t37 :day)==4 && time(t37 :hr)==15)
+print("37 time(2000:Apr:4:15) 4-field instant (expect 2000 4 4 15): %v %v %v %v\n" time(t37 :yr) time(t37 :mo) time(t37 :day) time(t37 :hr))
+
+// --- 38: a 3-element list with an implausible leading year is a
+// duration (delta() true), not an hr:min:sec instant -- it prints with
+// a days component instead of folding hour 25 onto the next day ---
+t38=time(25:30:0)
+ok=ok&&(time(t38 :delta)==true)
+ok=ok&&(print(t38 :str)=="1:1:30:0")
+print("38 time(25:30:0) is now a duration (expect delta true, print \"1:1:30:0\"): %v %v\n" time(t38 :delta) print(t38 :str))
+
+// --- 39: a 2-element list with an implausible leading value is min:sec,
+// a duration -- 90 minutes prints with an hr component ---
+t39=time(90:0)
+ok=ok&&(time(t39 :delta)==true)
+ok=ok&&(print(t39 :str)=="1:30:0")
+print("39 time(90:0) 2-field min:sec duration (expect delta true, print \"1:30:0\"): %v %v\n" time(t39 :delta) print(t39 :str))
+
+// --- 40: a 4-element list with an implausible leading value is
+// days:hr:min:sec, a duration ---
+t40=time(3:14:30:0)
+ok=ok&&(time(t40 :delta)==true)
+ok=ok&&(print(t40 :str)=="3:14:30:0")
+print("40 time(3:14:30:0) 4-field days:hr:min:sec duration (expect delta true, print \"3:14:30:0\"): %v %v\n" time(t40 :delta) print(t40 :str))
+
+// --- 41: a 5-element list is always years:days:hr:min:sec, a duration
+// -- 3 years plus 366 days carries into the synthetic 4th (366-day)
+// year exactly, landing on 4 completed years and 0 remaining days.
+// Confirmed two ways: the printed years: group, and re-parsing that
+// same printed string back through time() to compare :raw ---
+t41=time(3:366:5:6:7)
+d41=time(t41 :delta)
+ok=ok&&(d41==true)
+p41=print(t41 :str)
+ok=ok&&(p41=="4:0:5:6:7")
+t41b=time(4:0:5:6:7)
+rt41=(time(t41 :raw)==time(t41b :raw))
+ok=ok&&(rt41==true)
+print("41 time(3:366:5:6:7) crosses into the synthetic 4th (366-day) year (expect delta true, print \"4:0:5:6:7\", round-trip true): %v %v %v\n" d41 p41 rt41)
+
+// --- 42: time(t :delta), bare, inspects -- false on an ordinary
+// calendar instant, true on a duration ---
+i42=time()
+d42=time(90:0)
+ok=ok&&(time(i42 :delta)==false)
+ok=ok&&(time(d42 :delta)==true)
+print("42 time(t :delta) on an instant vs. a duration (expect false true): %v %v\n" time(i42 :delta) time(d42 :delta))
+
+// --- 43: time(t :delta true)/time(t :delta false), valued, build a
+// distinct TimeObj with that flag set rather than mutating t -- checked
+// both directions (instant->duration, duration->instant) with t itself
+// read back unchanged afterward ---
+base43=time()
+ok0=time(base43 :delta)
+o43=time(base43 :delta true)
+ok=ok&&(ok0==false)
+ok=ok&&(time(o43 :delta)==true)
+ok=ok&&(time(base43 :delta)==false)
+d43=time(90:0)
+p43before=time(d43 :delta)
+o43b=time(d43 :delta false)
+ok=ok&&(p43before==true)
+ok=ok&&(time(o43b :delta)==false)
+ok=ok&&(time(d43 :delta)==true)
+print("43 time(t :delta true/false) builds a non-mutating override (expect true x6): %v %v %v %v %v %v\n" (ok0==false) (time(o43 :delta)==true) (time(base43 :delta)==false) (p43before==true) (time(o43b :delta)==false) (time(d43 :delta)==true))
+
+// --- 44: time(:delta), bare with no positional argument, captures now
+// and reads false -- a fresh capture is never a duration ---
+ok=ok&&(time(:delta)==false)
+print("44 time(:delta) bare with no positional arg (expect false): %v\n" time(:delta))
+
 print("time: %v\n" ok)
 ok
