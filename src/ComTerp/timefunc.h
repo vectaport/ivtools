@@ -106,13 +106,14 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "dateobj|int = %s([num|str|dateobj|timeobj] :day :month :year :daymo) -- create date from days since 1/1/1901, a string, or a TimeObj's date"; }
+      return "dateobj|int = %s([num|str|dateobj|timeobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901, a string, or a TimeObj's date"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":day       return day of year in dateobj",
 	":month     return month of year in dateobj",
 	":year      return year in dateobj",
 	":daymo     return day of month in dateobj",
+	":weekday   return name of weekday in dateobj",
 	nil
       };
       return keys;

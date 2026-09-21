@@ -457,11 +457,33 @@ Print a usage summary of all the invocation modes above and exit.
 
  num=xnor(a b) -- bitwise XNOR (negated XOR)
 
- dateobj|int = date([num|str|dateobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
+ dateobj|int = date([num|str|dateobj|timeobj] :day :month :year :daymo
+ :weekday) -- create date from days since 1/1/1901, a string, or a TimeObj's
+ calendar date; nil when the TimeObj has no date info (its calendar
+ breakdown lands on the epoch date, 1970-01-01 UTC, the "dateless" sentinel
+ -- see time() below)
 
- long = time(:raw :mono :ms :us :ns) -- current time as a number, seconds by default;
- :raw is the epoch reading and :mono a monotonic one with no epoch, safe for
- measuring elapsed time; the bare call is reserved for a TimeObj return
+ timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ]
+ :hour :minute :second :raw :mono :ms :us :ns) -- current instant as a
+ TimeObj by default. A TimeObj argument reads a field back with
+ :hour/:minute/:second, or returns a copy at the same instant with a new
+ display precision via :ms/:us/:ns; a DateObj argument becomes noon UTC that
+ date; a colon list -- hr:min:sec, or the full y:Mon:d:h:m:s[:ms:us:ns]:TZ
+ printed form -- is vetted into a TimeObj, warning and returning nil if it
+ doesn't fit. With no positional argument, :hour/:minute/:second read that
+ field off a fresh capture instead
+
+ :raw and :mono dump the clock as a plain integer instead of a TimeObj:
+ :raw is seconds since the epoch, an actual date comparable with date() and
+ with another machine; :mono is a monotonic reading with no epoch, safe for
+ measuring elapsed time since it cannot step backwards. Combined with
+ :raw/:mono, :ms/:us/:ns scale that integer dump to milliseconds,
+ microseconds, or nanoseconds; alone, they instead set how many
+ fractional-second groups the returned TimeObj prints (1/2/3)
+
+ A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, TZ a
+ numeric UTC offset (HHMM, unsigned or '-'-prefixed); year/month/day drop
+ when they are the epoch sentinel, leaving bare hour:minute:second
 
  [cnt]=beep(:count) -- beep or alert sound
 
