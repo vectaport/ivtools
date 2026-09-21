@@ -94,26 +94,25 @@ void DrawLinkFunc::execute() {
   if (timerkeyv.is_known()) timerv = timerkeyv;
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
-  static int qid_sym = symbol_add("qid");
-  ComValue qidv(stack_key(qid_sym));
-  static int freeze_sym = symbol_add("freeze");
-  ComValue freezev(stack_key(freeze_sym));
-  static int freezeack_sym = symbol_add("freezeack");
-  ComValue freezeackv(stack_key(freezeack_sym));
-  static int freezerelease_sym = symbol_add("freezerelease");
-  ComValue freezereleasev(stack_key(freezerelease_sym));
+  static int frzid_sym = symbol_add("frzid");
+  ComValue frzidv(stack_key(frzid_sym));
+  static int req_sym = symbol_add("req");
+  ComValue reqv(stack_key(req_sym));
+  static int ack_sym = symbol_add("ack");
+  ComValue ackv(stack_key(ack_sym));
+  static int thaw_sym = symbol_add("thaw");
+  ComValue thawv(stack_key(thaw_sym));
   reset_stack();
 
   /* freeze-wave protocol message, arriving on the link this was read from */
-  if (qidv.is_string() &&
-      (freezev.is_true() || freezeackv.is_true() || freezereleasev.is_true())) {
+  if (frzidv.is_string() &&
+      (reqv.is_true() || ackv.is_true() || thawv.is_true())) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
     DrawLink* fromlink = handler ? (DrawLink*)handler->drawlink() : nil;
-    uuid_t qid;
-    uuid_parse(qidv.string_ptr(), qid);
+    freezeid_t qid = (freezeid_t)strtoul(frzidv.string_ptr(), nil, 16);
     DrawServ* drawserv = (DrawServ*)unidraw;
-    if (freezev.is_true()) drawserv->freeze_request_handle(fromlink, qid);
-    else if (freezeackv.is_true()) drawserv->freeze_ack_handle(fromlink, qid);
+    if (reqv.is_true()) drawserv->freeze_request_handle(fromlink, qid);
+    else if (ackv.is_true()) drawserv->freeze_ack_handle(fromlink, qid);
     else drawserv->freeze_release_handle(fromlink, qid);
     push_stack(ComValue::nullval());
     return;
@@ -170,7 +169,7 @@ void DrawLinkFunc::execute() {
        hold -- freezing again here would be this node contending with
        itself. */
     boolean did_freeze = false;
-    uuid_t freeze_qid;
+    freezeid_t freeze_qid;
     if (statenum != DrawLink::two_way) {
       did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
       if (!did_freeze) {

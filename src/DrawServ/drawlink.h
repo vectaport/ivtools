@@ -45,11 +45,15 @@ class ACE_INET_Addr;
 class ACE_SOCK_Stream;
 class ACE_SOCK_Stream;
 #include <stdio.h>
+#include <stdint.h>
 #include <uuid/uuid.h>   /* declares uuid_t / uuid_copy; pulled in transitively on macOS, not on Linux */
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
 typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 #endif
+
+typedef uint32_t freezeid_t;
+// id of a linkfreeze hold; see DrawServ::freeze_fragment()
 
 //: object to encapsulate 2-way link with remote drawserv
 class DrawLink : public Observable, public Resource {
@@ -150,7 +154,7 @@ public:
     void log_incoming_command(const char* cmd);
     // log an incoming command with timestamp
 
-    void pending_freeze(uuid_t qid) { uuid_copy(_freeze_qid, qid); _has_freeze = true; }
+    void pending_freeze(freezeid_t qid) { _freeze_qid = qid; _has_freeze = true; }
     // record a fragment freeze this link's accepting side is still
     // holding, to be released once this link actually reaches two_way
     // (or is torn down before it does)
@@ -158,7 +162,7 @@ public:
     boolean has_pending_freeze() { return _has_freeze; }
     // whether pending_freeze() was called and not yet cleared
 
-    uuid_t& pending_freeze_qid() { return _freeze_qid; }
+    freezeid_t pending_freeze_qid() { return _freeze_qid; }
     // the id set by pending_freeze()
 
     void clear_pending_freeze() { _has_freeze = false; }
@@ -186,7 +190,7 @@ protected:
     DrawServHandler* _comhandler;
     AckBackHandler* _ackhandler;
 
-    uuid_t _freeze_qid;
+    freezeid_t _freeze_qid;
     boolean _has_freeze;
 
     static const char* _state_strings[];

@@ -40,6 +40,11 @@ typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 // utility function for grabbing key from uuid_t.
 extern uint32_t uuid_key(const uuid_t u);
 
+typedef uint32_t freezeid_t;
+// id of a linkfreeze hold: the wire protocol only needs enough entropy to
+// tell apart the handful of freezes ever concurrently in flight, not a
+// full uuid_t
+
 #include <OS/table.h>
 declareTable(GraphicIdTable,uint32_t,void*)
 declareTable(SessionIdTable,uint32_t,void*)
@@ -154,29 +159,29 @@ public:
   // whether link is the only remaining non-benched link, so benching it
   // (locally, or on a peer's say-so) would cut this node off entirely
 
-  boolean freeze_fragment(uuid_t qid_out);
+  boolean freeze_fragment(freezeid_t& qid_out);
   // originate a fragment freeze: flood a freshly generated request across
   // every two_way link and block, pumping the reactor, until every
   // neighbor has echoed an ack or the attempt times out; on success
   // qid_out identifies the hold, to release later via unfreeze_fragment()
 
-  void unfreeze_fragment(uuid_t qid);
+  void unfreeze_fragment(freezeid_t qid);
   // release a fragment freeze this node originated, flooding the release
   // to the same links the request went to
 
-  void freeze_request_handle(DrawLink* fromlink, uuid_t qid);
+  void freeze_request_handle(DrawLink* fromlink, freezeid_t qid);
   // handle a freeze request, whether self-originated (fromlink==nil) or
   // relayed from a peer: relay it to every other two_way link and echo an
   // ack once every relay target has echoed back; a request for a qid
   // other than one already held here is dropped rather than queued, so
   // its sender simply times out and can retry once the hold is released
 
-  void freeze_ack_handle(DrawLink* fromlink, uuid_t qid);
+  void freeze_ack_handle(DrawLink* fromlink, freezeid_t qid);
   // record an echoed ack for the freeze this node is currently relaying
   // or originating; once every relay target has acked, echo onward (or,
   // for the originator, unblock the waiting freeze_fragment() call)
 
-  void freeze_release_handle(DrawLink* fromlink, uuid_t qid);
+  void freeze_release_handle(DrawLink* fromlink, freezeid_t qid);
   // relay a freeze release to the same links its request went to and
   // clear the local hold
 
@@ -259,7 +264,7 @@ protected:
   boolean _freeze_active;
   // whether this node currently holds a fragment freeze, as originator
   // or as a relay
-  uuid_t _freeze_qid;
+  freezeid_t _freeze_qid;
   // id of the freeze held in _freeze_active
   DrawLink* _freeze_parent;
   // link the held freeze's request arrived from; nil when self-originated

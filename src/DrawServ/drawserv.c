@@ -117,7 +117,7 @@ void DrawServ::Init() {
   _compidtable = new CompIdTable(1024);
 
   _freeze_active = false;
-  uuid_clear(_freeze_qid);
+  _freeze_qid = 0;
   _freeze_parent = nil;
   _freeze_sent_to = nil;
   _freeze_acks_pending = 0;
@@ -980,7 +980,7 @@ boolean DrawServ::sole_active_link(DrawLink* link) {
 
 void DrawServ::freeze_clear() {
   _freeze_active = false;
-  uuid_clear(_freeze_qid);
+  _freeze_qid = 0;
   _freeze_parent = nil;
   delete _freeze_sent_to;
   _freeze_sent_to = nil;
@@ -988,22 +988,20 @@ void DrawServ::freeze_clear() {
   _freeze_done = false;
 }
 
-void DrawServ::freeze_request_handle(DrawLink* fromlink, uuid_t qid) {
+void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
   // a request for a different qid than the one already held here can't be
   // serviced until that hold is released -- drop it rather than queue it,
   // so its sender times out and retries once this hold clears
   if (_freeze_active) return;
 
   _freeze_active = true;
-  uuid_copy(_freeze_qid, qid);
+  _freeze_qid = qid;
   _freeze_parent = fromlink;
   _freeze_done = false;
   _freeze_sent_to = new DrawLinkList;
 
-  uuid_string_t qidstr;
-  uuid_unparse(qid, qidstr);
   char buf[BUFSIZ];
-  snprintf(buf, BUFSIZ, "drawlink(:qid \"%s\" :freeze true)", qidstr);
+  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
 
   Iterator it;
   _linklist->First(it);
@@ -1021,7 +1019,7 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, uuid_t qid) {
   _freeze_acks_pending = _freeze_sent_to->Number();
   if (_freeze_acks_pending == 0) {
     if (_freeze_parent != nil) {
-      snprintf(buf, BUFSIZ, "drawlink(:qid \"%s\" :freezeack true)", qidstr);
+      snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", qid);
       SendCmdString(_freeze_parent, buf);
     } else {
       _freeze_done = true;
@@ -1029,31 +1027,27 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, uuid_t qid) {
   }
 }
 
-void DrawServ::freeze_ack_handle(DrawLink* fromlink, uuid_t qid) {
-  if (!_freeze_active || uuid_compare(_freeze_qid, qid) != 0) return; // stale or mismatched
+void DrawServ::freeze_ack_handle(DrawLink* fromlink, freezeid_t qid) {
+  if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
   if (_freeze_acks_pending > 0) _freeze_acks_pending--;
   if (_freeze_acks_pending > 0) return;
 
   if (_freeze_parent != nil) {
-    uuid_string_t qidstr;
-    uuid_unparse(_freeze_qid, qidstr);
     char buf[BUFSIZ];
-    snprintf(buf, BUFSIZ, "drawlink(:qid \"%s\" :freezeack true)", qidstr);
+    snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", _freeze_qid);
     SendCmdString(_freeze_parent, buf);
   } else {
     _freeze_done = true; // originator: unblocks freeze_fragment()'s wait loop
   }
 }
 
-void DrawServ::freeze_release_handle(DrawLink* fromlink, uuid_t qid) {
-  if (!_freeze_active || uuid_compare(_freeze_qid, qid) != 0) return; // stale or mismatched
+void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
+  if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
   if (fromlink != nil && fromlink != _freeze_parent) return; // release only ever arrives from the parent direction
 
   if (_freeze_sent_to) {
-    uuid_string_t qidstr;
-    uuid_unparse(qid, qidstr);
     char buf[BUFSIZ];
-    snprintf(buf, BUFSIZ, "drawlink(:qid \"%s\" :freezerelease true)", qidstr);
+    snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :thaw)", qid);
     Iterator it;
     _freeze_sent_to->First(it);
     while (!_freeze_sent_to->Done(it)) {
@@ -1065,7 +1059,7 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, uuid_t qid) {
   freeze_clear();
 }
 
-boolean DrawServ::freeze_fragment(uuid_t qid_out) {
+boolean DrawServ::freeze_fragment(freezeid_t& qid_out) {
   // a hold already active here belongs to some other freeze -- waiting it
   // out would risk a deadlock symmetric with a peer doing the same (each
   // side blocked on the other's release, when each release depends on the
@@ -1075,7 +1069,9 @@ boolean DrawServ::freeze_fragment(uuid_t qid_out) {
   // simply try again once whatever holds the freeze now has cleared.
   if (_freeze_active) return false;
 
-  uuid_generate(qid_out);
+  uuid_t tmp;
+  uuid_generate(tmp);
+  qid_out = (tmp[0]<<24) | (tmp[1]<<16) | (tmp[2]<<8) | tmp[3];
   freeze_request_handle(nil, qid_out);
   if (_freeze_done) return true; // no established links to flood to: trivially frozen
 
@@ -1099,8 +1095,8 @@ boolean DrawServ::freeze_fragment(uuid_t qid_out) {
   return true;
 }
 
-void DrawServ::unfreeze_fragment(uuid_t qid) {
-  if (_freeze_active && uuid_compare(_freeze_qid, qid) == 0)
+void DrawServ::unfreeze_fragment(freezeid_t qid) {
+  if (_freeze_active && _freeze_qid == qid)
     freeze_release_handle(nil, qid);
 }
 

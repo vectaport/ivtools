@@ -71,7 +71,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _comhandler = nil;
   _ackhandler = nil;
 
-  uuid_clear(_freeze_qid);
+  _freeze_qid = 0;
   _has_freeze = false;
 }
 
