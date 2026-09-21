@@ -94,7 +94,30 @@ void DrawLinkFunc::execute() {
   if (timerkeyv.is_known()) timerv = timerkeyv;
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
+  static int qid_sym = symbol_add("qid");
+  ComValue qidv(stack_key(qid_sym));
+  static int freeze_sym = symbol_add("freeze");
+  ComValue freezev(stack_key(freeze_sym));
+  static int freezeack_sym = symbol_add("freezeack");
+  ComValue freezeackv(stack_key(freezeack_sym));
+  static int freezerelease_sym = symbol_add("freezerelease");
+  ComValue freezereleasev(stack_key(freezerelease_sym));
   reset_stack();
+
+  /* freeze-wave protocol message, arriving on the link this was read from */
+  if (qidv.is_string() &&
+      (freezev.is_true() || freezeackv.is_true() || freezereleasev.is_true())) {
+    DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
+    DrawLink* fromlink = handler ? (DrawLink*)handler->drawlink() : nil;
+    uuid_t qid;
+    uuid_parse(qidv.string_ptr(), qid);
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (freezev.is_true()) drawserv->freeze_request_handle(fromlink, qid);
+    else if (freezeackv.is_true()) drawserv->freeze_ack_handle(fromlink, qid);
+    else drawserv->freeze_release_handle(fromlink, qid);
+    push_stack(ComValue::nullval());
+    return;
+  }
 
   DrawLink* link = nil;
 
@@ -133,19 +156,31 @@ void DrawLinkFunc::execute() {
 
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
-    
+
+    /* every cycletest below reads this node's own local fragment, so no
+       other link formation may be changing it concurrently -- freeze it
+       for the duration of the decision and release before returning */
+    uuid_t freeze_qid;
+    boolean froze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+    if (!froze) {
+      fprintf(stderr, "drawlink: could not freeze local fragment, try again\n");
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     /* cast off this link if it is a duplicate or cycle */
     uuid_t sid;
     uuid_parse(sidv.string_ptr(), sid);
-    if (statev.int_val()==DrawLink::one_way && 
+    if (statev.int_val()==DrawLink::one_way &&
 	((DrawServ*)unidraw)->cycletest
 	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
       fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
+      ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
       comterp()->quit();
       return;
     }
-    
+
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
@@ -199,6 +234,7 @@ void DrawLinkFunc::execute() {
 	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
 	cyclink->report("Redundant connection rejected", buffer);
 	((DrawServ*)unidraw)->linkdown(cyclink);
+	((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
 	comterp()->quit();
 	push_stack(ComValue::nullval());
 	return;
@@ -232,14 +268,16 @@ void DrawLinkFunc::execute() {
       if (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant) {
         fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
         ((DrawServ*)unidraw)->linkdown(link);
+        ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
         push_stack(ComValue::nullval());
 	Resource::unref(link); // unreference here because Run calls are done
         return;
       }
     }
+    ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
     Resource::unref(link); // unreference here because Run calls are done
-  } 
-  
+  }
+
   /* set state to complete linkup */
   if (statev.int_val()==DrawLink::two_way) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;

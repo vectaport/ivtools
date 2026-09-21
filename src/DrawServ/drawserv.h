@@ -154,6 +154,32 @@ public:
   // whether link is the only remaining non-benched link, so benching it
   // (locally, or on a peer's say-so) would cut this node off entirely
 
+  boolean freeze_fragment(uuid_t qid_out);
+  // originate a fragment freeze: flood a freshly generated request across
+  // every two_way link and block, pumping the reactor, until every
+  // neighbor has echoed an ack or the attempt times out; on success
+  // qid_out identifies the hold, to release later via unfreeze_fragment()
+
+  void unfreeze_fragment(uuid_t qid);
+  // release a fragment freeze this node originated, flooding the release
+  // to the same links the request went to
+
+  void freeze_request_handle(DrawLink* fromlink, uuid_t qid);
+  // handle a freeze request, whether self-originated (fromlink==nil) or
+  // relayed from a peer: relay it to every other two_way link and echo an
+  // ack once every relay target has echoed back; a request for a qid
+  // other than one already held here is dropped rather than queued, so
+  // its sender simply times out and can retry once the hold is released
+
+  void freeze_ack_handle(DrawLink* fromlink, uuid_t qid);
+  // record an echoed ack for the freeze this node is currently relaying
+  // or originating; once every relay target has acked, echo onward (or,
+  // for the originator, unblock the waiting freeze_fragment() call)
+
+  void freeze_release_handle(DrawLink* fromlink, uuid_t qid);
+  // relay a freeze release to the same links its request went to and
+  // clear the local hold
+
   void grid_message(GraphicId* grid);
   // generate graphic id selection message
 
@@ -229,7 +255,26 @@ protected:
   
   int _comdraw_port;
   // port used for comdraw command interpreter
-  
+
+  boolean _freeze_active;
+  // whether this node currently holds a fragment freeze, as originator
+  // or as a relay
+  uuid_t _freeze_qid;
+  // id of the freeze held in _freeze_active
+  DrawLink* _freeze_parent;
+  // link the held freeze's request arrived from; nil when self-originated
+  DrawLinkList* _freeze_sent_to;
+  // links the held freeze's request was relayed to, reused to fan out
+  // its eventual release
+  int _freeze_acks_pending;
+  // entries of _freeze_sent_to not yet acked back
+  boolean _freeze_done;
+  // for the originator: whether every relay target has acked, unblocking
+  // the freeze_fragment() wait loop
+
+  void freeze_clear();
+  // drop the local hold unconditionally, without flooding a release
+
 };
 
 #endif
