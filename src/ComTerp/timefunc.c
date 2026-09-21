@@ -907,6 +907,11 @@ static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, 
     return nil;
   }
   int yr = yrv.int_val();
+  if (yr<0 || yr>USHRT_MAX) {
+    std::cout << "WARNING:  date(): year " << yr << " out of range (0.."
+              << USHRT_MAX << ") -- line " << linenum << "\n";
+    return nil;
+  }
 
   ComValue monv(*avl->Get(1));
   int mon;

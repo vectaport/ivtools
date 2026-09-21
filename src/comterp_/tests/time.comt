@@ -620,5 +620,11 @@ d72=date(2026:Sep:21:14)
 ok=ok&&(d72==nil)
 print("72 date(2026:Sep:21:14) wrong field count (expect nil): %v\n" d72)
 
+// --- 73: a year past Date's unsigned-short storage range is rejected
+// rather than silently narrowed into a different year ---
+d73=date(70000:Jan:1)
+ok=ok&&(d73==nil)
+print("73 date(70000:Jan:1) year out of Date's storage range (expect nil): %v\n" d73)
+
 print("time: %v\n" ok)
 ok
