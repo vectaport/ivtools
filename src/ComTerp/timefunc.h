@@ -150,7 +150,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw [long] :mono [long] :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj",
@@ -159,7 +159,7 @@ public:
 	":yr        year of a TimeObj; nil if dateless",
 	":mo        month of a TimeObj; nil if dateless",
 	":day       day of a TimeObj; nil if dateless",
-	":zn        UTC offset of a TimeObj, as a signed +/-HHMM integer",
+	":tz        UTC offset of a TimeObj, as a signed +/-HHMM integer",
 	":raw [long] seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  Given a value, constructs",
 	"           or resets that field from nanoseconds since the epoch",

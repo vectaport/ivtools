@@ -176,27 +176,27 @@ ok=ok&&((time(:raw)-time(t :raw))<3600)
 print("18 time(t :raw) is close to a fresh time(:raw) (expect true): %v\n" ((time(:raw)-time(t :raw))<3600))
 
 // --- 19: a full y:Mon:d:h:m:s:TZ colon-list literal round-trips through
-// :yr/:mo/:day/:zn -- each pulls the same calendar field printOn() shows,
-// :zn the same signed +/-HHMM shape as the printed TZ field, as a number ---
+// :yr/:mo/:day/:tz -- each pulls the same calendar field printOn() shows,
+// :tz the same signed +/-HHMM shape as the printed TZ field, as a number ---
 t19=time(2026:Sep:20:13:18:2:700)
 ok=ok&&(time(t19 :yr)==2026)
 ok=ok&&(time(t19 :mo)==9)
 ok=ok&&(time(t19 :day)==20)
-ok=ok&&(time(t19 :zn)==700)
-print("19 time(t19 :yr/:mo/:day/:zn) on a full colon-list literal (expect 2026 9 20 700): %v %v %v %v\n" time(t19 :yr) time(t19 :mo) time(t19 :day) time(t19 :zn))
+ok=ok&&(time(t19 :tz)==700)
+print("19 time(t19 :yr/:mo/:day/:tz) on a full colon-list literal (expect 2026 9 20 700): %v %v %v %v\n" time(t19 :yr) time(t19 :mo) time(t19 :day) time(t19 :tz))
 
-// --- 20: with no positional TimeObj argument, :yr/:mo/:day/:zn read that
+// --- 20: with no positional TimeObj argument, :yr/:mo/:day/:tz read that
 // field of a fresh capture -- the same "operate on a fresh default"
 // precedent :hr/:min/:sec use in test 15 ---
 yb=time(:yr)
 mob=time(:mo)
 dayb=time(:day)
-znb=time(:zn)
+znb=time(:tz)
 ok=ok&&(type(yb)=="IntType" && yb>=2024)
 ok=ok&&(type(mob)=="IntType" && mob>=1 && mob<=12)
 ok=ok&&(type(dayb)=="IntType" && dayb>=1 && dayb<=31)
 ok=ok&&(type(znb)=="IntType" && znb>-1400 && znb<1400)
-print("20 time(:yr/:mo/:day/:zn) with no positional arg (expect IntType year/month/day/zone of a fresh capture): %v %v %v %v\n" yb mob dayb znb)
+print("20 time(:yr/:mo/:day/:tz) with no positional arg (expect IntType year/month/day/zone of a fresh capture): %v %v %v %v\n" yb mob dayb znb)
 
 // --- 21: an hr:min:sec-only TimeObj carries no date -- it lands on the
 // epoch-date sentinel (see printOn()) -- so :yr/:mo/:day answer nil on it,
@@ -207,15 +207,15 @@ ok=ok&&(time(d21 :mo)==nil)
 ok=ok&&(time(d21 :day)==nil)
 print("21 time(d21 :yr/:mo/:day) on a dateless h:m:s-only TimeObj (expect nil nil nil): %v %v %v\n" time(d21 :yr) time(d21 :mo) time(d21 :day))
 
-// --- 22: :zn is the signed +/-HHMM zone offset, positive and negative,
+// --- 22: :tz is the signed +/-HHMM zone offset, positive and negative,
 // matching the sign and magnitude of the TZ field the literal was built
 // with (this already round-trips through print()/reparse, see timeobj.comt
 // tests 8-9) ---
 tzp=time(2026:Sep:20:13:18:2:200)
 tzn=time(2026:Jan:5:0:30:15:-700)
-ok=ok&&(time(tzp :zn)==200)
-ok=ok&&(time(tzn :zn)==-700)
-print("22 time(t :zn) positive and negative UTC offset (expect 200 -700): %v %v\n" time(tzp :zn) time(tzn :zn))
+ok=ok&&(time(tzp :tz)==200)
+ok=ok&&(time(tzn :tz)==-700)
+print("22 time(t :tz) positive and negative UTC offset (expect 200 -700): %v %v\n" time(tzp :tz) time(tzn :tz))
 
 // --- 23: time(:raw N) with an explicit value constructs a TimeObj (not
 // a LongType dump) from N nanoseconds since the epoch -- its own :raw :ns

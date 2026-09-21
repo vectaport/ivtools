@@ -506,7 +506,7 @@ void TimeFunc::execute() {
   static int year_sym = symbol_add("yr");
   static int month_sym = symbol_add("mo");
   static int day_sym = symbol_add("day");
-  static int zone_sym = symbol_add("zn");
+  static int zone_sym = symbol_add("tz");
   ComValue yearv(stack_key(year_sym));
   ComValue monthv(stack_key(month_sym));
   ComValue dayv(stack_key(day_sym));
