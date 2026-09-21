@@ -290,5 +290,26 @@ t30b=time(:mono n30)
 ok=ok&&(time(t30b :mono :ns)==n30)
 print("30 time(:mono time(t :mono :ns)) round-trips to the same nanosecond reading (expect true): %v\n" (time(t30b :mono :ns)==n30))
 
+// --- 31: a numeric month (1-12) is accepted alongside a bare month-name
+// symbol in the y:Mon:d:h:m:s:TZ literal -- the same colon-list built
+// with 9 instead of Sep produces an identical TimeObj, compared by both
+// its printed form and its raw nanosecond reading ---
+t31sym=time(2026:Sep:20:13:18:2:700)
+t31num=time(2026:9:20:13:18:2:700)
+ok=ok&&(print(t31sym :str)==print(t31num :str))
+ok=ok&&(time(t31sym :raw :ns)==time(t31num :raw :ns))
+print("31 time(2026:9:...) numeric month matches time(2026:Sep:...) (expect true true): %v %v\n" (print(t31sym :str)==print(t31num :str)) (time(t31sym :raw :ns)==time(t31num :raw :ns)))
+
+// --- 32: a numeric month of 0 is out of range (1..12) -- warns and
+// returns nil, the same as an unrecognized month name does ---
+t32=time(2026:0:20:13:18:2:700)
+ok=ok&&(t32==nil)
+print("32 time(2026:0:...) month 0 out of range (expect nil): %v\n" t32)
+
+// --- 33: a numeric month of 13 is likewise out of range ---
+t33=time(2026:13:20:13:18:2:700)
+ok=ok&&(t33==nil)
+print("33 time(2026:13:...) month 13 out of range (expect nil): %v\n" t33)
+
 print("time: %v\n" ok)
 ok

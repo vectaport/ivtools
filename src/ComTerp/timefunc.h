@@ -134,7 +134,7 @@ public:
 // TimeObj, reads a field off it (:hr/:min/:sec) or sets its printed
 // fractional precision (:ms/:us/:ns); given a DateObj, returns noon UTC
 // that date -- the inverse of date()'s TimeObj-to-DateObj conversion.
-// Given a plain hr:min:sec or full y:Mon:d:h:m:s[:ms:us:ns]:TZ colon
+// Given a plain hr:min:sec or full y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ colon
 // list instead, vets it into a TimeObj (colonlist_to_timeobj()) -- ':'
 // itself never does this, so time() is the explicit ask that can warn
 // loudly at this call site on a bad literal rather than falling back
@@ -150,7 +150,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj",

@@ -357,14 +357,23 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   }
   int yr = elems[0].int_val();
 
-  if (elems[1].type()!=ComValue::SymbolType) {
-    std::cout << "WARNING:  time(): month must be a bare month name (e.g. Sep) -- line "
-              << linenum << "\n";
-    return nil;
-  }
-  int mon = Date::numberOfMonth(symbol_pntr((int)elems[1].symbol_val()));
-  if (mon==0) {
-    std::cout << "WARNING:  time(): unrecognized month name -- line "
+  int mon;
+  if (elems[1].type()==ComValue::SymbolType) {
+    mon = Date::numberOfMonth(symbol_pntr((int)elems[1].symbol_val()));
+    if (mon==0) {
+      std::cout << "WARNING:  time(): unrecognized month name -- line "
+                << linenum << "\n";
+      return nil;
+    }
+  } else if (elems[1].type()==ComValue::IntType) {
+    mon = elems[1].int_val();
+    if (mon<1 || mon>12) {
+      std::cout << "WARNING:  time(): month " << mon << " out of range (1..12) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+  } else {
+    std::cout << "WARNING:  time(): month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
               << linenum << "\n";
     return nil;
   }
