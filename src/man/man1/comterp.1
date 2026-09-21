@@ -465,24 +465,33 @@ Print a usage summary of all the invocation modes above and exit.
  -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ]
- :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- current instant as a
- TimeObj by default. A TimeObj argument reads a field back with
- :hr/:min/:sec/:yr/:mo/:day/:zn, or returns a copy at the same instant with a new
- display precision via :ms/:us/:ns; a DateObj argument becomes noon UTC that
- date; a colon list -- hr:min:sec, or the full y:Mon:d:h:m:s[:ms:us:ns]:TZ
- printed form -- is vetted into a TimeObj, warning and returning nil if it
- doesn't fit. With no positional argument, :hr/:min/:sec/:yr/:mo/:day/:zn read
- that field off a fresh capture instead. :yr/:mo/:day are nil on a dateless
- TimeObj (the epoch-date sentinel); :zn is the UTC offset as a signed +/-HHMM
- integer, always well-defined
+ :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- returns or inspects
+ a TimeObj, lands a DateObj at noon, parses a colon separated list for time
+ formats
 
- :raw and :mono dump the clock as a plain integer instead of a TimeObj:
- :raw is seconds since the epoch, an actual date comparable with date() and
- with another machine; :mono is a monotonic reading with no epoch, safe for
- measuring elapsed time since it cannot step backwards. Combined with
- :raw/:mono, :ms/:us/:ns scale that integer dump to milliseconds,
- microseconds, or nanoseconds; alone, they instead set how many
- fractional-second groups the returned TimeObj prints (1/2/3)
+ :hr        hour of a TimeObj/DateObj argument, or of a fresh capture with none
+ :min       minute of a TimeObj/DateObj argument, or of a fresh capture with none
+ :sec       second of a TimeObj/DateObj argument, or of a fresh capture with none
+ :yr        calendar year of a TimeObj/DateObj argument, or of a fresh capture with
+            none; nil if the TimeObj carries no date (the epoch-date sentinel)
+ :mo        calendar month (1-12) of a TimeObj/DateObj argument, or of a fresh
+            capture with none; nil if the TimeObj carries no date
+ :day       calendar day of month of a TimeObj/DateObj argument, or of a fresh
+            capture with none; nil if the TimeObj carries no date
+ :zn        UTC zone offset of a TimeObj/DateObj argument, or of a fresh capture
+            with none, as a signed +/-HHMM integer (e.g. -700, 200)
+ :raw       seconds since the epoch: an actual date, comparable with
+            date() and with another machine.  The default clock, and
+            what a unit keyword on its own implies for the integer dump
+ :mono      a monotonic reading instead: no epoch, so not a date and
+            not comparable with one, but safe for measuring how long
+            something took -- it cannot step backwards
+ :ms        with :raw/:mono, milliseconds rather than seconds; otherwise
+            the returned TimeObj prints one fractional-second group
+ :us        with :raw/:mono, microseconds rather than seconds; otherwise
+            the returned TimeObj prints two fractional-second groups
+ :ns        with :raw/:mono, nanoseconds rather than seconds, at the
+            clock's real resolution; otherwise three fractional-second groups
 
  A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, TZ a
  signed, zero-padded numeric UTC offset (+HHMM or -HHMM); year/month/day
