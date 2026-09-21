@@ -558,5 +558,40 @@ ok=ok&&(time(t63p :delta)==true)
 ok=ok&&(time(t63p :mono :ns)==5000000000)
 print("63 time(time(25:30:0) :ms) precision copy keeps delta/mono (expect true 5000000000): %v %v\n" time(t63p :delta) time(t63p :mono :ns))
 
+// --- 64: date() takes the same year-led colon list time() does, not
+// just the day-led dd-mmm-yy string Date's own parser expects ---
+d64=date(2026:Sep:21)
+ok=ok&&(date(d64 :daymo)==21 && date(d64 :month)==9 && date(d64 :year)==2026)
+print("64 date(2026:Sep:21) (expect daymo/month/year 21 9 2026): %v %v %v\n" date(d64 :daymo) date(d64 :month) date(d64 :year))
+
+// --- 65: month also takes a plain 1-12 number, same as time() ---
+d65=date(2026:9:21)
+ok=ok&&(date(d65 :daymo)==21 && date(d65 :month)==9 && date(d65 :year)==2026)
+print("65 date(2026:9:21) numeric month (expect daymo/month/year 21 9 2026): %v %v %v\n" date(d65 :daymo) date(d65 :month) date(d65 :year))
+
+// --- 66: an impossible day is rejected through the same day-in-month/
+// leap-year check time()'s colon-list vetting uses, not silently
+// normalized into the next month ---
+d66=date(2026:Feb:30)
+ok=ok&&(d66==nil)
+print("66 date(2026:Feb:30) impossible day (expect nil): %v\n" d66)
+
+// --- 67: a leap-year Feb 29 is accepted ---
+d67=date(2024:Feb:29)
+ok=ok&&(date(d67 :daymo)==29 && date(d67 :month)==2 && date(d67 :year)==2024)
+print("67 date(2024:Feb:29) leap-year day (expect daymo/month/year 29 2 2024): %v %v %v\n" date(d67 :daymo) date(d67 :month) date(d67 :year))
+
+// --- 68: a 2-field YEAR:MON list defaults to the first of the month,
+// the same day-1 default year_led_instant() uses for time() ---
+d68=date(2026:Sep)
+ok=ok&&(date(d68 :daymo)==1 && date(d68 :month)==9 && date(d68 :year)==2026)
+print("68 date(2026:Sep) day defaults to 1 (expect daymo/month/year 1 9 2026): %v %v %v\n" date(d68 :daymo) date(d68 :month) date(d68 :year))
+
+// --- 69: a non-year-led colon list reads as a duration, which has no
+// calendar date -- date() answers nil rather than misreading it ---
+d69=date(25:30:0)
+ok=ok&&(d69==nil)
+print("69 date(25:30:0) duration has no date (expect nil): %v\n" d69)
+
 print("time: %v\n" ok)
 ok

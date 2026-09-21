@@ -252,6 +252,10 @@ void TimeObj::printOn(ostream& out) const {
 
 /*****************************************************************************/
 
+/* defined below, alongside time()'s own colon-list vetting; date() reuses
+   it verbatim so both commands accept the same year-led shape */
+static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, int linenum);
+
 DateFunc::DateFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -271,6 +275,8 @@ void DateFunc::execute() {
 
   DateObj* dateobj = NULL;
   boolean fresh = false;
+  TimeObj* timeobj = NULL;
+  boolean owns_timeobj = false;
   if (datev.is_num()) {
     dateobj = new DateObj(datev.long_val());
     fresh = true;
@@ -278,20 +284,36 @@ void DateFunc::execute() {
     dateobj = new DateObj(datev.string_ptr());
     fresh = true;
   } else if (datev.is_timeobj()) {
-    TimeObj* timeobj = (TimeObj*)datev.geta(TimeObj::class_symid());
+    timeobj = (TimeObj*)datev.geta(TimeObj::class_symid());
+  } else if (datev.is_array() && datev.coloned()) {
+    /* the same year-led colon list time() vets a colon list into, so
+       date() takes 2026:Sep:21 directly rather than requiring the
+       day-led dd-mmm-yy string Date's own stream parser expects */
+    int linenum = funcstate() ? funcstate()->linenum() : 0;
+    timeobj = colonlist_to_timeobj(comterp(), datev.array_val(), linenum);
+    if (!timeobj) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    owns_timeobj = true;
+  } else if (datev.is_null()) {
+    dateobj = new DateObj();
+  } else {
+    dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+  }
+
+  if (timeobj) {
     /* no date info: a duration has no calendar date at all, and the
        epoch date is the sentinel for a dateless instant -- see TimeObj */
     if (timeobj->delta() ||
         (timeobj->year()==1970 && timeobj->month()==1 && timeobj->day()==1)) {
+      if (owns_timeobj) delete timeobj;
       push_stack(ComValue::nullval());
       return;
     }
     dateobj = new DateObj(timeobj->day(), Date::nameOfMonth(timeobj->month()), timeobj->year());
     fresh = true;
-  } else if (datev.is_null()) {
-    dateobj = new DateObj();
-  } else {
-    dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+    if (owns_timeobj) delete timeobj;
   }
 
   if (dayv.is_true()) {
