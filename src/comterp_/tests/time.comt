@@ -1,6 +1,6 @@
 // src/comterp_/tests/time.comt -- time(), the clock primitives
 //
-// funcs: time int srand help index
+// funcs: time date int srand help index class
 //
 // Two clocks, because neither does the other's job:
 //
@@ -11,8 +11,10 @@
 //                Meaningless as a date; the right clock for measuring how long
 //                something took, since a correction cannot corrupt an interval.
 //
-// A unit keyword on its own implies :raw.  The bare call is reserved for a
-// TimeObj return and answers nil until that exists -- see #75 and #141.
+// A unit keyword combined with :raw/:mono scales that clock's integer dump.
+// Alone -- no :raw, no :mono -- :ms/:us/:ns instead set how many fractional-
+// second groups a returned TimeObj prints, and the bare call (no argument,
+// no keyword at all) captures now and returns that TimeObj directly.
 //
 // A clock cannot be asserted against a fixed value, so everything here is
 // either a relationship between the units that holds whatever the clock reads,
@@ -54,19 +56,20 @@ ok=ok&&((time(:mono :ns)/1000000000-time(:mono))<2)
 print("5 time(:mono :ns)/1000000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ns)/1000000000-time(:mono))<2))
 
 // --- 6: the units are ordered by magnitude.  This is what fails if a keyword
-// is wired to the wrong scale ---
-ok=ok&&(time(:ms)>time(:raw))
-ok=ok&&(time(:us)>time(:ms))
-ok=ok&&(time(:ns)>time(:us))
-print("6 ns > us > ms > sec (expect true): %v\n" (time(:ms)>time(:raw)&&time(:us)>time(:ms)&&time(:ns)>time(:us)))
+// is wired to the wrong scale.  Explicit :raw throughout -- a unit keyword
+// with neither :raw nor :mono means something else entirely (test 14) ---
+ok=ok&&(time(:raw :ms)>time(:raw))
+ok=ok&&(time(:raw :us)>time(:raw :ms))
+ok=ok&&(time(:raw :ns)>time(:raw :us))
+print("6 ns > us > ms > sec (expect true): %v\n" (time(:raw :ms)>time(:raw)&&time(:raw :us)>time(:raw :ms)&&time(:raw :ns)>time(:raw :us)))
 
 // --- 7: two successive wall-clock reads are both usable.  Deliberately NOT
 // asserting that the second is later: :raw follows an NTP correction, and a
 // correction between these two lines can legitimately move it backwards.
 // Asserting monotonicity here would contradict the property the clock was
 // chosen for, and would fail the suite for a clock behaving correctly ---
-a=time(:us)
-b=time(:us)
+a=time(:raw :us)
+b=time(:raw :us)
 ok=ok&&(a/1000000>1690000000)
 ok=ok&&(b/1000000>1690000000)
 print("7 two successive :raw reads are both plausible (expect true): %v\n" (a/1000000>1690000000&&b/1000000>1690000000))
@@ -88,15 +91,16 @@ print("9 :mono has no epoch and is not a date (expect true): %v\n" (time(:mono)<
 // seconds, so that any correction a running clock might take passes while a
 // wrong scale factor -- which would be off by a thousandfold, not by hours --
 // still fails ---
-ok=ok&&((time(:ms)/1000-time(:raw))<3600)
-ok=ok&&((time(:us)/1000000-time(:raw))<3600)
-print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:ms)/1000-time(:raw))<3600&&(time(:us)/1000000-time(:raw))<3600))
+ok=ok&&((time(:raw :ms)/1000-time(:raw))<3600)
+ok=ok&&((time(:raw :us)/1000000-time(:raw))<3600)
+print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:raw :ms)/1000-time(:raw))<3600&&(time(:raw :us)/1000000-time(:raw))<3600))
 
-// --- 11: the bare call is reserved for TimeObj and answers nil until then,
-// rather than entrenching a plain number that would later have to change ---
+// --- 11: the bare call captures now and returns a real TimeObj, not the
+// epoch integer -- that's what time(:raw) is for ---
 bare=time()
-ok=ok&&(bare==nil)
-print("11 bare time() is reserved and answers nil (expect nil): %v\n" bare)
+ok=ok&&(bare!=nil)
+ok=ok&&(class(bare)=="TimeObj")
+print("11 bare time() (expect non-nil TimeObj): %v %v\n" class(bare) bare)
 
 // --- 12: the motivating use -- a per-run seed with finer granularity than
 // date(), which only changes daily ---
@@ -112,6 +116,447 @@ ok=ok&&(index(h "time(" :substr)!=nil)
 ok=ok&&(index(h ":mono" :substr)!=nil)
 ok=ok&&(index(h ":raw" :substr)!=nil)
 print("13 help(time) documents the command and both clocks (expect true): %v\n" (index(h ":mono" :substr)!=nil&&index(h ":raw" :substr)!=nil))
+
+// --- 14: :ms/:us/:ns alone (no :raw, no :mono) mean something entirely
+// different from combined with :raw -- they set how many fractional-second
+// groups the returned TimeObj prints, cumulative.  print(:str) makes the
+// group count checkable: each extra group adds exactly one more ':' ---
+p0=print(time() :str)
+p1=print(time(:ms) :str)
+p2=print(time(:us) :str)
+p3=print(time(:ns) :str)
+c0=size(split(p0 :tokstr ':'))
+c1=size(split(p1 :tokstr ':'))
+c2=size(split(p2 :tokstr ':'))
+c3=size(split(p3 :tokstr ':'))
+ok=ok&&(class(time(:ms))=="TimeObj")
+ok=ok&&(c1==c0+1)
+ok=ok&&(c2==c0+2)
+ok=ok&&(c3==c0+3)
+print("14 time(:ms/:us/:ns) alone adds 1/2/3 fractional groups to print(t :str) (expect true): %v\n" (c1==c0+1&&c2==c0+2&&c3==c0+3))
+
+// --- 15: with no positional TimeObj argument, :hr/:min/:sec read
+// that field of a fresh capture -- the same "operate on a fresh default"
+// precedent date()'s own field keywords use over today's date with no
+// positional DateObj given ---
+hb=time(:hr)
+mb=time(:min)
+sb=time(:sec)
+ok=ok&&(type(hb)=="IntType" && hb>=0 && hb<24)
+ok=ok&&(type(mb)=="IntType" && mb>=0 && mb<60)
+ok=ok&&(type(sb)=="IntType" && sb>=0 && sb<60)
+print("15 time(:hr/:min/:sec) with no positional arg (expect IntType hour/min/sec of a fresh capture): %v %v %v\n" hb mb sb)
+
+// --- 16: :raw/:mono combined with a positional TimeObj extract that
+// object's own raw/mono reading, the same LongType a bare time(:raw)/
+// time(:mono) returns -- not the TimeObj itself.  Two reads of the same
+// object must agree exactly, since both pull from the one captured
+// timespec rather than sampling the clock again ---
+t=time()
+tr1=time(t :raw)
+tr2=time(t :raw)
+tm1=time(t :mono)
+tm2=time(t :mono)
+ok=ok&&(type(tr1)=="LongType")
+ok=ok&&(type(tm1)=="LongType")
+ok=ok&&(tr1==tr2)
+ok=ok&&(tm1==tm2)
+print("16 time(t :raw)/time(t :mono) on a positional TimeObj (expect LongType, stable across reads): %v %v %v %v\n" type(tr1) type(tm1) (tr1==tr2) (tm1==tm2))
+
+// --- 17: :ns combines with :raw on a positional TimeObj the same way it
+// does on a bare capture -- the nanosecond dump divides back down to the
+// whole-second dump exactly, both pulled from the one captured timespec ---
+ok=ok&&(time(t :raw :ns)/1000000000==time(t :raw))
+print("17 time(t :raw :ns) scales down to time(t :raw) (expect true): %v\n" (time(t :raw :ns)/1000000000==time(t :raw)))
+
+// --- 18: time(t :raw) tracks a fresh time(:raw) read to within a wide
+// window -- confirms it is reading t's own captured instant, not today's
+// clock, while tolerating however long the test has been running ---
+ok=ok&&((time(:raw)-time(t :raw))<3600)
+print("18 time(t :raw) is close to a fresh time(:raw) (expect true): %v\n" ((time(:raw)-time(t :raw))<3600))
+
+// --- 19: a full y:Mon:d:h:m:s:TZ colon-list literal round-trips through
+// :yr/:mo/:day/:tz -- each pulls the same calendar field printOn() shows,
+// :tz the same signed +/-HHMM shape as the printed TZ field, as a number ---
+t19=time(2026:Sep:20:13:18:2:700)
+ok=ok&&(time(t19 :yr)==2026)
+ok=ok&&(time(t19 :mo)==9)
+ok=ok&&(time(t19 :day)==20)
+ok=ok&&(time(t19 :tz)==700)
+print("19 time(t19 :yr/:mo/:day/:tz) on a full colon-list literal (expect 2026 9 20 700): %v %v %v %v\n" time(t19 :yr) time(t19 :mo) time(t19 :day) time(t19 :tz))
+
+// --- 20: with no positional TimeObj argument, :yr/:mo/:day/:tz read that
+// field of a fresh capture -- the same "operate on a fresh default"
+// precedent :hr/:min/:sec use in test 15 ---
+yb=time(:yr)
+mob=time(:mo)
+dayb=time(:day)
+znb=time(:tz)
+ok=ok&&(type(yb)=="IntType" && yb>=2024)
+ok=ok&&(type(mob)=="IntType" && mob>=1 && mob<=12)
+ok=ok&&(type(dayb)=="IntType" && dayb>=1 && dayb<=31)
+ok=ok&&(type(znb)=="IntType" && znb>-1400 && znb<1400)
+print("20 time(:yr/:mo/:day/:tz) with no positional arg (expect IntType year/month/day/zone of a fresh capture): %v %v %v %v\n" yb mob dayb znb)
+
+// --- 21: an hr:min:sec-only TimeObj carries no date -- it lands on the
+// epoch-date sentinel (see printOn()) -- so :yr/:mo/:day answer nil on it,
+// the same as date(t) does for the identical TimeObj ---
+d21=time(1:8:30)
+ok=ok&&(time(d21 :yr)==nil)
+ok=ok&&(time(d21 :mo)==nil)
+ok=ok&&(time(d21 :day)==nil)
+print("21 time(d21 :yr/:mo/:day) on a dateless h:m:s-only TimeObj (expect nil nil nil): %v %v %v\n" time(d21 :yr) time(d21 :mo) time(d21 :day))
+
+// --- 22: :tz is the signed +/-HHMM zone offset, positive and negative,
+// matching the sign and magnitude of the TZ field the literal was built
+// with (this already round-trips through print()/reparse, see timeobj.comt
+// tests 8-9) ---
+tzp=time(2026:Sep:20:13:18:2:200)
+tzn=time(2026:Jan:5:24:30:15:-700)
+ok=ok&&(time(tzp :tz)==200)
+ok=ok&&(time(tzn :tz)==-700)
+print("22 time(t :tz) positive and negative UTC offset (expect 200 -700): %v %v\n" time(tzp :tz) time(tzn :tz))
+
+// --- 23: time(:raw N) with an explicit value constructs a TimeObj (not
+// a LongType dump) from N nanoseconds since the epoch -- its own :raw :ns
+// reads back exactly N ---
+n23=1735689600123456789
+c23=time(:raw n23)
+ok=ok&&(class(c23)=="TimeObj")
+ok=ok&&(time(c23 :raw :ns)==n23)
+print("23 time(:raw N) constructs a TimeObj from nanoseconds N whose time(that :raw :ns) reads back N (expect TimeObj true): %v %v\n" class(c23) (time(c23 :raw :ns)==n23))
+
+// --- 24: time(t :raw N) returns a distinct object -- t's own :raw is
+// unchanged after the call, proving non-mutation -- and the result's
+// :raw :ns reads back N nanoseconds ---
+t24=time()
+t24raw0=time(t24 :raw)
+n24=1735689600987654321
+c24=time(t24 :raw n24)
+ok=ok&&(class(c24)=="TimeObj")
+ok=ok&&(c24!=t24)
+ok=ok&&(time(t24 :raw)==t24raw0)
+ok=ok&&(time(c24 :raw :ns)==n24)
+print("24 time(t :raw N) returns a distinct non-mutated TimeObj reading back N nanoseconds (expect true true true): %v %v %v\n" (c24!=t24) (time(t24 :raw)==t24raw0) (time(c24 :raw :ns)==n24))
+
+// --- 25: same two shapes for :mono -- time(:mono N) constructs from N
+// nanoseconds since boot, and time(t :mono N) resets without mutating t ---
+n25=555123456789
+c25=time(:mono n25)
+ok=ok&&(class(c25)=="TimeObj")
+ok=ok&&(time(c25 :mono :ns)==n25)
+print("25 time(:mono N) constructs a TimeObj from nanoseconds N whose time(that :mono :ns) reads back N (expect TimeObj true): %v %v\n" class(c25) (time(c25 :mono :ns)==n25))
+
+t26=time()
+t26mono0=time(t26 :mono)
+n26=999888777666
+c26=time(t26 :mono n26)
+ok=ok&&(class(c26)=="TimeObj")
+ok=ok&&(c26!=t26)
+ok=ok&&(time(t26 :mono)==t26mono0)
+ok=ok&&(time(c26 :mono :ns)==n26)
+print("26 time(t :mono N) returns a distinct non-mutated TimeObj reading back N nanoseconds (expect true true true): %v %v %v\n" (c26!=t26) (time(t26 :mono)==t26mono0) (time(c26 :mono :ns)==n26))
+
+// --- 27: time(:mono N) alone has no calendar meaning -- raw/tzoff stay
+// at their zeroed default, landing on the epoch-date sentinel, so :yr
+// reads nil the same as any other dateless TimeObj ---
+c27=time(:mono 777)
+ok=ok&&(time(c27 :yr)==nil)
+print("27 time(:mono N) alone is dateless -- time(that :yr) (expect nil): %v\n" time(c27 :yr))
+
+// --- 28: the bare-flag dump is unchanged by adding value support --
+// time(:raw)/time(t :raw) with no value still dump a LongType, not a
+// TimeObj -- the regression guard for the bare-vs-valued distinction ---
+t28=time()
+ok=ok&&(type(time(:raw))=="LongType")
+ok=ok&&(type(time(t28 :raw))=="LongType")
+ok=ok&&(type(time(:mono))=="LongType")
+ok=ok&&(type(time(t28 :mono))=="LongType")
+print("28 time(:raw)/time(t :raw)/time(:mono)/time(t :mono) bare still dump LongType (expect LongType x4): %v %v %v %v\n" type(time(:raw)) type(time(t28 :raw)) type(time(:mono)) type(time(t28 :mono)))
+
+// --- 29: time(:raw N) and time(t :raw :ns) are exact inverses -- rebuilding
+// a TimeObj from a captured instant's own raw nanosecond count reproduces
+// that same nanosecond reading ---
+t29=time()
+n29=time(t29 :raw :ns)
+t29b=time(:raw n29)
+ok=ok&&(time(t29b :raw :ns)==n29)
+print("29 time(:raw time(t :raw :ns)) round-trips to the same nanosecond reading (expect true): %v\n" (time(t29b :raw :ns)==n29))
+
+// --- 30: same round trip for :mono, nanoseconds since boot ---
+t30=time()
+n30=time(t30 :mono :ns)
+t30b=time(:mono n30)
+ok=ok&&(time(t30b :mono :ns)==n30)
+print("30 time(:mono time(t :mono :ns)) round-trips to the same nanosecond reading (expect true): %v\n" (time(t30b :mono :ns)==n30))
+
+// --- 31: a numeric month (1-12) is accepted alongside a bare month-name
+// symbol in the y:Mon:d:h:m:s:TZ literal -- the same colon-list built
+// with 9 instead of Sep produces an identical TimeObj, compared by both
+// its printed form and its raw nanosecond reading ---
+t31sym=time(2026:Sep:20:13:18:2:700)
+t31num=time(2026:9:20:13:18:2:700)
+ok=ok&&(print(t31sym :str)==print(t31num :str))
+ok=ok&&(time(t31sym :raw :ns)==time(t31num :raw :ns))
+print("31 time(2026:9:...) numeric month matches time(2026:Sep:...) (expect true true): %v %v\n" (print(t31sym :str)==print(t31num :str)) (time(t31sym :raw :ns)==time(t31num :raw :ns)))
+
+// --- 32: a numeric month of 0 is out of range (1..12) -- warns and
+// returns nil, the same as an unrecognized month name does ---
+t32=time(2026:0:20:13:18:2:700)
+ok=ok&&(t32==nil)
+print("32 time(2026:0:...) month 0 out of range (expect nil): %v\n" t32)
+
+// --- 33: a numeric month of 13 is likewise out of range ---
+t33=time(2026:13:20:13:18:2:700)
+ok=ok&&(t33==nil)
+print("33 time(2026:13:...) month 13 out of range (expect nil): %v\n" t33)
+
+// --- 34: the motivating bug -- a year-led 3-element list reads as
+// YEAR:MON:day, not hr:min:sec, and round-trips through :yr/:mo/:day ---
+t34=time(2000:Apr:4)
+ok=ok&&(t34!=nil)
+ok=ok&&(time(t34 :yr)==2000 && time(t34 :mo)==4 && time(t34 :day)==4)
+print("34 time(2000:Apr:4) (expect non-nil, yr/mo/day 2000 4 4): %v %v %v %v\n" (t34!=nil) time(t34 :yr) time(t34 :mo) time(t34 :day))
+
+// --- 35: a numeric month matches the month-name spelling for the same
+// 3-element year-led form, compared by nanosecond reading ---
+t35a=time(2000:Apr:4)
+t35b=time(2000:4:4)
+ok=ok&&(time(t35a :raw :ns)==time(t35b :raw :ns))
+print("35 time(2000:4:4) matches time(2000:Apr:4) (expect true): %v\n" (time(t35a :raw :ns)==time(t35b :raw :ns)))
+
+// --- 36: a 2-element year-led list is YEAR:MON, day defaulting to 1 ---
+t36=time(2000:Apr)
+ok=ok&&(time(t36 :yr)==2000 && time(t36 :mo)==4 && time(t36 :day)==1)
+print("36 time(2000:Apr) 2-field instant, day defaults to 1 (expect 2000 4 1): %v %v %v\n" time(t36 :yr) time(t36 :mo) time(t36 :day))
+
+// --- 37: a 4-element year-led list is YEAR:MON:day:hr ---
+t37=time(2000:Apr:4:15)
+ok=ok&&(time(t37 :yr)==2000 && time(t37 :mo)==4 && time(t37 :day)==4 && time(t37 :hr)==15)
+print("37 time(2000:Apr:4:15) 4-field instant (expect 2000 4 4 15): %v %v %v %v\n" time(t37 :yr) time(t37 :mo) time(t37 :day) time(t37 :hr))
+
+// --- 38: a 3-element list with an implausible leading year is a
+// duration (delta() true), not an hr:min:sec instant -- it prints with
+// a days component instead of folding hour 25 onto the next day ---
+t38=time(25:30:0)
+ok=ok&&(time(t38 :delta)==true)
+ok=ok&&(print(t38 :str)=="1:1:30:0")
+print("38 time(25:30:0) is now a duration (expect delta true, print \"1:1:30:0\"): %v %v\n" time(t38 :delta) print(t38 :str))
+
+// --- 39: a 2-element list with an implausible leading value is min:sec,
+// a duration -- 90 minutes prints with an hr component ---
+t39=time(90:0)
+ok=ok&&(time(t39 :delta)==true)
+ok=ok&&(print(t39 :str)=="1:30:0")
+print("39 time(90:0) 2-field min:sec duration (expect delta true, print \"1:30:0\"): %v %v\n" time(t39 :delta) print(t39 :str))
+
+// --- 40: a 4-element list with an implausible leading value is
+// days:hr:min:sec, a duration ---
+t40=time(3:14:30:0)
+ok=ok&&(time(t40 :delta)==true)
+ok=ok&&(print(t40 :str)=="3:14:30:0")
+print("40 time(3:14:30:0) 4-field days:hr:min:sec duration (expect delta true, print \"3:14:30:0\"): %v %v\n" time(t40 :delta) print(t40 :str))
+
+// --- 41: a 5-element list with an implausible leading value (year-range
+// check fails) is years:days:hr:min:sec, a duration -- 3 years plus 366
+// days carries into the synthetic 4th (366-day)
+// year exactly, landing on 4 completed years and 0 remaining days.
+// Confirmed two ways: the printed years: group, and re-parsing that
+// same printed string back through time() to compare :raw ---
+t41=time(3:366:5:6:7)
+d41=time(t41 :delta)
+ok=ok&&(d41==true)
+p41=print(t41 :str)
+ok=ok&&(p41=="4:0:5:6:7")
+t41b=time(4:0:5:6:7)
+rt41=(time(t41 :raw)==time(t41b :raw))
+ok=ok&&(rt41==true)
+print("41 time(3:366:5:6:7) crosses into the synthetic 4th (366-day) year (expect delta true, print \"4:0:5:6:7\", round-trip true): %v %v %v\n" d41 p41 rt41)
+
+// --- 42: time(t :delta), bare, inspects -- false on an ordinary
+// calendar instant, true on a duration ---
+i42=time()
+d42=time(90:0)
+ok=ok&&(time(i42 :delta)==false)
+ok=ok&&(time(d42 :delta)==true)
+print("42 time(t :delta) on an instant vs. a duration (expect false true): %v %v\n" time(i42 :delta) time(d42 :delta))
+
+// --- 43: time(t :delta true)/time(t :delta false), valued, build a
+// distinct TimeObj with that flag set rather than mutating t -- checked
+// both directions (instant->duration, duration->instant) with t itself
+// read back unchanged afterward ---
+base43=time()
+ok0=time(base43 :delta)
+o43=time(base43 :delta true)
+ok=ok&&(ok0==false)
+ok=ok&&(time(o43 :delta)==true)
+ok=ok&&(time(base43 :delta)==false)
+d43=time(90:0)
+p43before=time(d43 :delta)
+o43b=time(d43 :delta false)
+ok=ok&&(p43before==true)
+ok=ok&&(time(o43b :delta)==false)
+ok=ok&&(time(d43 :delta)==true)
+print("43 time(t :delta true/false) builds a non-mutating override (expect true x6): %v %v %v %v %v %v\n" (ok0==false) (time(o43 :delta)==true) (time(base43 :delta)==false) (p43before==true) (time(o43b :delta)==false) (time(d43 :delta)==true))
+
+// --- 44: time(:delta), bare with no positional argument, captures now
+// and reads false -- a fresh capture is never a duration ---
+ok=ok&&(time(:delta)==false)
+print("44 time(:delta) bare with no positional arg (expect false): %v\n" time(:delta))
+
+// --- 45: a year-led 5-element list (y:Mon:d:h:m, no seconds or TZ field)
+// reads as a local wall-clock instant -- calendar fields read back
+// exactly, and round-tripping through :raw/:ns reconstructs the same
+// printed form, which checks the captured tzoff without needing to know
+// this machine's local UTC offset in advance ---
+t45=time(2000:Apr:4:15:30)
+ok=ok&&(time(t45 :yr)==2000)
+ok=ok&&(time(t45 :mo)==4)
+ok=ok&&(time(t45 :day)==4)
+ok=ok&&(time(t45 :hr)==15)
+ok=ok&&(time(t45 :min)==30)
+ns45=time(t45 :raw :ns)
+rt45=time(:raw ns45)
+eq45=(print(rt45 :str)==print(t45 :str))
+ok=ok&&eq45
+print("45 time(2000:Apr:4:15:30) year-led 5-field local instant (expect yr/mo/day/hr/min 2000 4 4 15 30, round-trip true): %v %v %v %v %v %v\n" time(t45 :yr) time(t45 :mo) time(t45 :day) time(t45 :hr) time(t45 :min) eq45)
+
+// --- 46: :delta bare vs. valued, all six cases stack_key_present()
+// distinguishes -- bare inspects (no positional: false; non-duration
+// positional: false; duration positional: true); a value overrides,
+// building a fresh capture to override when there is no positional arg ---
+c46a=time(:delta)
+t46b=time()
+c46b=time(t46b :delta)
+t46c=time(25:30:0)
+c46c=time(t46c :delta)
+t46d=time()
+c46d=time(time(t46d :delta true) :delta)
+t46e=time()
+c46e=time(time(t46e :delta false) :delta)
+c46f=time(time(:delta true) :delta)
+ok=ok&&(c46a==false)
+ok=ok&&(c46b==false)
+ok=ok&&(c46c==true)
+ok=ok&&(c46d==true)
+ok=ok&&(c46e==false)
+ok=ok&&(c46f==true)
+print("46 time(:delta) bare/valued, all six cases (expect false false true true false true): %v %v %v %v %v %v\n" c46a c46b c46c c46d c46e c46f)
+
+// --- 47: hour is 1-24 in the instant/calendar world -- the reported case,
+// time(2007:Dec:26:24:32) (5-field year-led local instant), now succeeds
+// where hour 24 used to be out of range, and reads back as 24 through
+// :hr -- a relabeling of the same calendar day, not a next-day rollover,
+// so :yr/:mo/:day are unchanged ---
+t47=time(2007:Dec:26:24:32)
+ok=ok&&(t47!=nil)
+ok=ok&&(time(t47 :hr)==24)
+ok=ok&&(time(t47 :yr)==2007 && time(t47 :mo)==12 && time(t47 :day)==26)
+print("47 time(2007:Dec:26:24:32) hour 24 (expect non-nil, hr 24, yr/mo/day 2007 12 26): %v %v %v %v %v\n" (t47!=nil) time(t47 :hr) time(t47 :yr) time(t47 :mo) time(t47 :day))
+
+// --- 48: hour 0 is now out of range in the 1-24 instant world -- warns
+// and returns nil, the same as any other out-of-range field ---
+t48=time(2007:Dec:26:0:32)
+ok=ok&&(t48==nil)
+print("48 time(2007:Dec:26:0:32) hour 0 now out of range (expect nil): %v\n" t48)
+
+// --- 49: hour 25 is still rejected on the high end ---
+t49=time(2007:Dec:26:25:32)
+ok=ok&&(t49==nil)
+print("49 time(2007:Dec:26:25:32) hour 25 out of range (expect nil): %v\n" t49)
+
+// --- 50: same 1-24 acceptance for the 4-field YEAR:MON:day:hr form ---
+t50=time(2007:Dec:26:24)
+ok=ok&&(t50!=nil)
+ok=ok&&(time(t50 :hr)==24)
+print("50 time(2007:Dec:26:24) 4-field instant hour 24 (expect non-nil, hr 24): %v %v\n" (t50!=nil) time(t50 :hr))
+
+// --- 51: and 0-rejection for the same 4-field form ---
+t51=time(2007:Dec:26:0)
+ok=ok&&(t51==nil)
+print("51 time(2007:Dec:26:0) 4-field instant hour 0 out of range (expect nil): %v\n" t51)
+
+// --- 52: same 1-24 acceptance for the full 7-field y:Mon:d:h:m:s:TZ form ---
+t52=time(2007:Dec:26:24:32:0:0)
+ok=ok&&(t52!=nil)
+ok=ok&&(time(t52 :hr)==24)
+print("52 time(2007:Dec:26:24:32:0:0) full-form hour 24 (expect non-nil, hr 24): %v %v\n" (t52!=nil) time(t52 :hr))
+
+// --- 53: and 0-rejection for the same full-form shape ---
+t53=time(2007:Dec:26:0:32:0:0)
+ok=ok&&(t53==nil)
+print("53 time(2007:Dec:26:0:32:0:0) full-form hour 0 out of range (expect nil): %v\n" t53)
+
+// --- 54: printOn() itself displays 24, not just :hr -- checked on the
+// printed string directly.  t50 (the 4-field YEAR:MON:day:hr form) is
+// used rather than t47, since year_led_instant() always lands at tzoff 0
+// deterministically, unlike the 5-field local-time form's machine-
+// dependent zone ---
+p54=print(t50 :str)
+ok=ok&&(p54=="2007:Dec:26:24:0:0:+0000")
+print("54 print(time(2007:Dec:26:24) :str) (expect 2007:Dec:26:24:0:0:+0000): %v\n" p54)
+
+// --- 55: sanity check that duration hour is untouched by the 1-24
+// relabeling -- time(25:30:0) is still a duration (test 38), still
+// prints "1:1:30:0", hour 1 there a genuine 0-23 reading unrelated to
+// this change ---
+t55=time(25:30:0)
+ok=ok&&(time(t55 :delta)==true)
+ok=ok&&(print(t55 :str)=="1:1:30:0")
+print("55 time(25:30:0) duration untouched (expect delta true, print \"1:1:30:0\"): %v %v\n" time(t55 :delta) print(t55 :str))
+
+// --- 56: date() on a duration has no calendar date -- a raw-seconds
+// elapsed count, not an epoch-anchored instant ---
+d56=date(time(25:30:0))
+ok=ok&&(d56==nil)
+print("56 date(time(25:30:0)) duration has no date (expect nil): %v\n" d56)
+
+// --- 57: time(t :yr/:mo/:day) on a duration likewise answer nil, not
+// the nonsense calendar reading breakdown() gives its raw seconds ---
+t57=time(25:30:0)
+y57=time(t57 :yr)
+m57=time(t57 :mo)
+dy57=time(t57 :day)
+ok=ok&&(y57==nil && m57==nil && dy57==nil)
+print("57 time(time(25:30:0) :yr/:mo/:day) duration has no date (expect nil nil nil): %v %v %v\n" y57 m57 dy57)
+
+// --- 58: Feb 2023 isn't a leap year -- day 31 doesn't exist, rejected
+// rather than silently normalized into March ---
+t58=time(2023:Feb:31)
+ok=ok&&(t58==nil)
+print("58 time(2023:Feb:31) impossible day (expect nil): %v\n" t58)
+
+// --- 59: 2024 IS a leap year -- Feb 29 exists and succeeds ---
+t59=time(2024:Feb:29)
+ok=ok&&(t59!=nil)
+ok=ok&&(time(t59 :yr)==2024 && time(t59 :mo)==2 && time(t59 :day)==29)
+print("59 time(2024:Feb:29) leap-year day (expect non-nil, yr/mo/day 2024 2 29): %v %v %v %v\n" (t59!=nil) time(t59 :yr) time(t59 :mo) time(t59 :day))
+
+// --- 60: even in a leap year, Feb tops out at 29 -- day 30 rejected ---
+t60=time(2024:Feb:30)
+ok=ok&&(t60==nil)
+print("60 time(2024:Feb:30) impossible day even in leap year (expect nil): %v\n" t60)
+
+// --- 61: April has 30 days -- day 31 rejected ---
+t61=time(2000:Apr:31)
+ok=ok&&(t61==nil)
+print("61 time(2000:Apr:31) impossible day (expect nil): %v\n" t61)
+
+// --- 62: :raw given a value resets the clock reading, not the kind --
+// a duration's :raw reset stays a duration ---
+t62=time(25:30:0)
+t62b=time(t62 :raw 100000000000)
+ok=ok&&(time(t62b :delta)==true)
+print("62 time(time(25:30:0) :raw 100000000000 :delta) raw-reset keeps delta (expect true): %v\n" time(t62b :delta))
+
+// --- 63: a bare :ms/:us/:ns precision request on a caller-supplied
+// TimeObj returns a fresh copy that keeps its kind and mono reading ---
+t63=time(25:30:0)
+t63m=time(t63 :mono 5000000000)
+t63p=time(t63m :ms)
+ok=ok&&(time(t63p :delta)==true)
+ok=ok&&(time(t63p :mono :ns)==5000000000)
+print("63 time(time(25:30:0) :ms) precision copy keeps delta/mono (expect true 5000000000): %v %v\n" time(t63p :delta) time(t63p :mono :ns))
 
 print("time: %v\n" ok)
 ok

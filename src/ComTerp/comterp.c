@@ -1807,6 +1807,9 @@ void ComTerp::add_defaults() {
     add_command("add", new AddFunc(this));
     add_command("sub", new SubFunc(this));
     add_command("minus", new MinusFunc(this));
+    PlusFunc* plusfunc = new PlusFunc(this);
+    plusfunc->opr_hidden(true);
+    add_command("plus", plusfunc);
     add_command("mpy", new MpyFunc(this));
     add_command("div", new DivFunc(this));
     add_command("mod", new ModFunc(this), NULL, "mod (%) is the mod operator");
