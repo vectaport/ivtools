@@ -141,7 +141,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- current instant as a TimeObj by default; a TimeObj argument reads a field back or sets its display precision, a DateObj argument becomes noon UTC that date, a colon list is vetted into a TimeObj; :raw/:mono dump the clock as a plain integer"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- returns or inspects a TimeObj"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj/DateObj argument, or of a fresh capture with none",
