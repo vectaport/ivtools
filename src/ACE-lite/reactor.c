@@ -15,14 +15,14 @@
  * InterViews Dispatcher uses for the same reason.
  *
  * Registration isn't the only thing a nested call can invalidate: dispatching
- * one fd from the snapshot can itself trigger a nested handle_events() that
- * services a *different* fd still waiting later in the same snapshot,
- * consuming its data.  The outer loop doesn't see that happen, so it must
- * re-verify each fd is still actually ready immediately before its own
- * dispatch (acelite_still_ready()) rather than trusting the batch snapshot --
- * otherwise it hands a drained fd to handle_input()/handle_output(), which
- * blocks waiting for data a nested call already read.  A fd skipped this way
- * stays registered and is dispatched correctly on the reactor's next pass.
+ * one fd from the snapshot can itself recurse into handle_events() and
+ * service a *different* fd still waiting later in the same snapshot,
+ * consuming its data before the outer loop reaches it.  acelite_still_ready()
+ * re-verifies each fd's readiness immediately before its own dispatch, rather
+ * than trusting the batch snapshot, so a fd already drained this way is
+ * skipped instead of handed to handle_input()/handle_output() to block on.
+ * A skipped fd stays registered and dispatches normally on the reactor's
+ * next pass.
  */
 
 #include <ACE-lite/Reactor.h>
