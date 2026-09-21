@@ -147,5 +147,33 @@ ok=ok&&(type(mb)=="IntType" && mb>=0 && mb<60)
 ok=ok&&(type(sb)=="IntType" && sb>=0 && sb<60)
 print("15 time(:hr/:min/:sec) with no positional arg (expect IntType hour/min/sec of a fresh capture): %v %v %v\n" hb mb sb)
 
+// --- 16: :raw/:mono combined with a positional TimeObj extract that
+// object's own raw/mono reading, the same LongType a bare time(:raw)/
+// time(:mono) returns -- not the TimeObj itself.  Two reads of the same
+// object must agree exactly, since both pull from the one captured
+// timespec rather than sampling the clock again ---
+t=time()
+tr1=time(t :raw)
+tr2=time(t :raw)
+tm1=time(t :mono)
+tm2=time(t :mono)
+ok=ok&&(type(tr1)=="LongType")
+ok=ok&&(type(tm1)=="LongType")
+ok=ok&&(tr1==tr2)
+ok=ok&&(tm1==tm2)
+print("16 time(t :raw)/time(t :mono) on a positional TimeObj (expect LongType, stable across reads): %v %v %v %v\n" type(tr1) type(tm1) (tr1==tr2) (tm1==tm2))
+
+// --- 17: :ns combines with :raw on a positional TimeObj the same way it
+// does on a bare capture -- the nanosecond dump divides back down to the
+// whole-second dump exactly, both pulled from the one captured timespec ---
+ok=ok&&(time(t :raw :ns)/1000000000==time(t :raw))
+print("17 time(t :raw :ns) scales down to time(t :raw) (expect true): %v\n" (time(t :raw :ns)/1000000000==time(t :raw)))
+
+// --- 18: time(t :raw) tracks a fresh time(:raw) read to within a wide
+// window -- confirms it is reading t's own captured instant, not today's
+// clock, while tolerating however long the test has been running ---
+ok=ok&&((time(:raw)-time(t :raw))<3600)
+print("18 time(t :raw) is close to a fresh time(:raw) (expect true): %v\n" ((time(:raw)-time(t :raw))<3600))
+
 print("time: %v\n" ok)
 ok

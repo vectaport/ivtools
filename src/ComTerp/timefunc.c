@@ -462,6 +462,22 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   return result;
 }
 
+/* a timespec scaled to the unit :ns/:us/:ms ask for, seconds otherwise --
+   shared by a fresh clock_gettime() capture and a raw/mono reading pulled
+   back out of an existing TimeObj, so both round the same way */
+static long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, boolean ms) {
+  long sec = (long)ts.tv_sec;
+  long nsec = (long)ts.tv_nsec;
+  if (ns)
+    return sec * 1000000000L + nsec;
+  else if (us)
+    return sec * 1000000L + nsec / 1000L;
+  else if (ms)
+    return sec * 1000L + nsec / 1000000L;
+  else
+    return sec;
+}
+
 TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
@@ -529,7 +545,13 @@ void TimeFunc::execute() {
   if (timeobj) {
     /* owns: no other holder, so free after reading a scalar field, or
        after building a display-precision copy below */
-    if (hourv.is_true()) {
+    if (rawv.is_true() || monov.is_true()) {
+      const struct timespec& ts = monov.is_true() ? timeobj->mono() : timeobj->raw();
+      long result = timespec_scaled(ts, nsv.is_true(), usv.is_true(), msv.is_true());
+      ComValue retval(result);
+      push_stack(retval);
+      if (owns) delete timeobj;
+    } else if (hourv.is_true()) {
       ComValue retval(timeobj->hour());
       push_stack(retval);
       if (owns) delete timeobj;
@@ -567,18 +589,7 @@ void TimeFunc::execute() {
   clock_gettime(monov.is_true() ? CLOCK_MONOTONIC : CLOCK_REALTIME, &ts);
   // a single reading (ts) feeds every returned unit, so the keywords
   // can't disagree about which instant they describe.
-  long sec = (long)ts.tv_sec;
-  long nsec = (long)ts.tv_nsec;
-
-  long result;
-  if (nsv.is_true())
-    result = sec * 1000000000L + nsec;
-  else if (usv.is_true())
-    result = sec * 1000000L + nsec / 1000L;
-  else if (msv.is_true())
-    result = sec * 1000L + nsec / 1000000L;
-  else
-    result = sec;
+  long result = timespec_scaled(ts, nsv.is_true(), usv.is_true(), msv.is_true());
 
   ComValue retval(result);
   push_stack(retval);
