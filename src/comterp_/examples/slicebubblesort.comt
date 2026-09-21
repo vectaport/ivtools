@@ -18,13 +18,6 @@
 // characters, it's the same characters, still writable at their original
 // addresses.
 //
-// One lexer gotcha met along the way, the trailing-side twin of the one
-// colonslice.comt already flags: a colon slice's hi bound must be a
-// literal or a parenthesized expression -- s@0:size(s) reads size's own
-// leading "s" as a stray keyword lexeme ("Unexpected keyword"), where
-// s@0:(size(s)) does not, because the parenthesis breaks the ambiguity
-// before the scanner ever gets to guess.
-//
 // Run from the repo root:
 //   comterp run src/comterp_/examples/slicebubblesort.comt
 

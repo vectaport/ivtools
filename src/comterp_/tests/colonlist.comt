@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonlist.comt -- ':' as a generic pairing operator (#423)
 //
-// funcs: colonlist at size
+// funcs: colonlist at size class postfix islist
 //
 // #428 put ':' in the default operator table (priority 78, above '@'s 77);
 // this test is the runtime half -- colonlist is now a real registered
@@ -106,14 +106,13 @@ print("7 y :1 captures y as a symbol even though y is bound to 99 (expect y): %v
 //        (_lexscan_last_tokend/_toktype, _lexscan.c) tracking the
 //        previous token in true document-scan order, since _parser.c's
 //        lookahead makes the scanner's own output params unreliable for
-//        that; and _scanner.c's keyword-merge now skips only when ':'
-//        is glued directly onto a preceding TOK_IDENTIFIER, since real
-//        ":key" usage is never glued to a preceding positional arg with
-//        zero space.  Numbers/closing-delimiters were deliberately left
-//        out of that last check -- at(r 0:raw) (test 4's :raw, just
-//        without the space) needs to keep reading as index 0 + keyword
-//        :raw, not a colon-pair; a number glued to a keyword is real,
-//        established usage, unlike an identifier glued to one. ---
+//        that; and _scanner.c's keyword-merge now only fires when ':'
+//        has real whitespace before it, or opens a fresh arg list with
+//        no possible left operand to pair with (glued directly onto
+//        '(', '[', or '{').  Anything else glued directly onto ':' --
+//        an identifier, a number, a closing delimiter -- builds a
+//        colon-pair instead; see test 13 for the number/delimiter
+//        cases (0:raw, f():key). ---
 lo=2
 hi=5
 v8=lo:hi
@@ -154,6 +153,57 @@ print("11 x11 unmutated after (x11):3 (expect size 2, 1:2): %s %v\n" size(x11) x
 e12=list(:colon)
 ok=ok&&(size(e12)==0)
 print("12 list(:colon) is empty (expect 0): %s\n" size(e12))
+
+// --- 13: a number (or any non-identifier) glued to ':identifier' now
+//        builds a colon-pair too, the same as an identifier glued to
+//        one (test 8) -- only real whitespace before ':', or an
+//        opening delimiter with no possible left operand, can start a
+//        real keyword.  0:raw no longer merges into a keyword lexeme
+//        the way it used to (colonlist.comt's own header once claimed
+//        it as "real, established usage" -- nothing in the tree ever
+//        wrote it that way; every actual call sites this file exercises
+//        space it, "at(r 0 :raw)"). ---
+ok=ok&&(postfix(0:raw)=="0 raw colonlist[2|0|1]")
+ok=ok&&(class(0:raw)==nil && size(0:raw)==2 && islist(0:raw :colon))
+print("13 postfix(0:raw), class/size/islist (expect colonlist, nil 2 true): %v %v %v %v\n" postfix(0:raw) class(0:raw) size(0:raw) islist(0:raw :colon))
+
+// --- 13b: same shape with an identifier on the left, confirming the
+//         merge is gone regardless of what precedes ':' -- a number
+//         (13) or an identifier (13b) both build colon-pairs now ---
+y13b=1
+ok=ok&&(postfix(y13b:Sep)=="y13b Sep colonlist[2|0|1]")
+print("13b postfix(y13b:Sep) (expect colonlist): %v\n" postfix(y13b:Sep))
+
+// --- 14: real ":keyword" usage is unaffected by test 13 -- glued
+//        directly onto an opening delimiter ('(', '[', '{') still
+//        starts a keyword, since there's no possible left operand
+//        there for ':' to pair with.  Both builtins, not a bare
+//        identifier like the rest of this file's tests use, since
+//        run_all.comt runs every script in one process and a
+//        single-letter name could already be bound by an earlier one ---
+ok=ok&&(postfix(time(:raw))==":raw(0) time[0|1|1]")
+ok=ok&&(postfix(list(:colon))==":colon(0) list[0|1|1]*")
+print("14 postfix(time(:raw)), postfix(list(:colon)) (expect real keywords, unaffected): %v | %v\n" postfix(time(:raw)) postfix(list(:colon)))
+
+// --- 15: a colon-list element's leading zero reads as a plain decimal
+//        digit, not an octal prefix -- 20:08:43 needs three ordinary
+//        ints (08 and 09 aren't valid octal digits, so this used to be
+//        "Illegal octal constant" before the colon context was taken
+//        into account) ---
+t15=20:08:43
+ok=ok&&(size(t15)==3 && t15@0==20 && t15@1==8 && t15@2==43)
+print("15 20:08:43, no octal error on 08 (expect 20 8 43): %v %v %v\n" t15@0 t15@1 t15@2)
+
+// --- 16: the same holds through a unary +/- sign directly off a colon
+//        -- a zero-padded HHMM field like :+0700/:-0800 stays plain
+//        decimal (700/-800) rather than parsing its digits as octal ---
+t16=1:+0700
+ok=ok&&(size(t16)==2 && t16@0==1 && t16@1==700)
+print("16 1:+0700, unary plus off ':' stays decimal (expect 1 700): %v %v\n" t16@0 t16@1)
+
+t16b=1:-0800
+ok=ok&&(size(t16b)==2 && t16b@0==1 && t16b@1==-800)
+print("16b 1:-0800, unary minus off ':' stays decimal (expect 1 -800): %v %v\n" t16b@0 t16b@1)
 
 print("colonlist: %v\n" ok)
 ok

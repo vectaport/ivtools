@@ -435,6 +435,20 @@ int bs_ident = 0;
 	       token_state = TOK_HEX;
 	       ADVANCE_CHAR;
 	       }
+	    /* after ':', a leading zero is a plain decimal digit, not an
+	       octal prefix -- 20:08:43 needs three ordinary ints. The same
+	       holds through a unary +/- sign directly off a colon, so a
+	       colon-list TZ field like :+0700 or :-0800 stays decimal too */
+	    else if( _lexscan_last_toktype == TOK_OPERATOR &&
+	             _lexscan_last_tokend > 0 &&
+	             (buffer[_lexscan_last_tokend-1] == ':' ||
+	              ((buffer[_lexscan_last_tokend-1] == '+' ||
+	                buffer[_lexscan_last_tokend-1] == '-') &&
+	               _lexscan_last_tokend > 1 &&
+	               buffer[_lexscan_last_tokend-2] == ':')) ) {
+	       token_state = TOK_DFINT;
+	       TOKEN_ADD( CURR_CHAR );
+	       }
 	    else
 	       token_state = TOK_OCT;
 	    }

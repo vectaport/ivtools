@@ -501,6 +501,7 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 110      | `--`     | decr_after    | RtoL  | UNARY POSTFIX   |
 | 110      | `--`     | decr          | RtoL  | UNARY PREFIX    |
 | 110      | `-`      | minus         | RtoL  | UNARY PREFIX    |
+| 110      | `+`      | plus          | RtoL  | UNARY PREFIX    |
 | 110      | `++`     | incr_after    | RtoL  | UNARY POSTFIX   |
 | 110      | `++`     | incr          | RtoL  | UNARY PREFIX    |
 | 110      | `!`      | negate        | RtoL  | UNARY PREFIX    |
@@ -3058,9 +3059,9 @@ past 24 hours still works) and returns a `TimeObj`:
 t=time(1:8:30)
 class(t)          // "TimeObj"
 t                  // 1:8:30 -- prints the same shape it was written in
-time(t :hour)      // 1
-time(t :minute)    // 8
-time(t :second)    // 30
+time(t :hr)        // 1
+time(t :min)       // 8
+time(t :sec)       // 30
 ```
 
 A list that doesn't fit warns at the `time()` call itself and returns
@@ -3075,6 +3076,15 @@ time(1:2)         // nil, with a warning -- not three elements
 Without `time()`, a colon chain is never a `TimeObj`: `x=1:8:30` alone
 stays a plain 3-element list, and `@` never sees a `TimeObj` either,
 since `time()` is the only thing that ever builds one.
+
+`print()` (and any other channel that serializes a `TimeObj`, such as
+sending it to a remote `comterp`) is subject to the same rule: a
+`TimeObj` prints as the bare colon list it holds, not as `time(...)`.
+So whatever receives it over the wire gets a plain colon list back and
+has to already know to call `time()` on it to get a `TimeObj` again --
+the same way a printed symbol comes back bare and needs `` ` `` added
+back explicitly if quoting was intended. The type is not carried in
+the serialized form; only the reader's own knowledge recovers it.
 
 ## Symbols
 

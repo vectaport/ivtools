@@ -118,6 +118,7 @@ Print a usage summary of all the invocation modes above and exit.
     ++         incr           110         R-to-L      unary-prefix
     ++         incr_after     110         R-to-L      unary-postfix
     -          minus          110         R-to-L      unary-prefix
+    +          plus           110         R-to-L      unary-prefix
     --         decr           110         R-to-L      unary-prefix
     --         decr_after     110         R-to-L      unary-postfix
     $$         stream         100         R-to-L      unary-prefix
@@ -457,11 +458,51 @@ Print a usage summary of all the invocation modes above and exit.
 
  num=xnor(a b) -- bitwise XNOR (negated XOR)
 
- dateobj|int = date([num|str|dateobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
+ dateobj|int = date([num|str|dateobj|timeobj] :day :month :year :daymo
+ :weekday) -- create date from days since 1/1/1901, a string, or a TimeObj's
+ calendar date; nil when the TimeObj has no date info (its calendar
+ breakdown lands on the epoch date, 1970-01-01 UTC, the "dateless" sentinel
+ -- see time() below)
 
- long = time(:raw :mono :ms :us :ns) -- current time as a number, seconds by default;
- :raw is the epoch reading and :mono a monotonic one with no epoch, safe for
- measuring elapsed time; the bare call is reserved for a TimeObj return
+ timeobj|long = time([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|
+ days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|
+ y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ]
+ :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false]
+ :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj
+ at noon, parses a 2-to-10-field colon list as an instant or duration, a
+ year-led 5-field list as local time; hour is 1-24 in instant forms, 0-23
+ in duration forms
+
+ :hr        hour of a TimeObj; 1-24 for an instant (24 spells the 0th hour),
+            0-23 for a duration
+ :min       minute of a TimeObj
+ :sec       second of a TimeObj
+ :yr        year of a TimeObj; nil if dateless
+ :mo        month of a TimeObj; nil if dateless
+ :day       day of a TimeObj; nil if dateless
+ :tz        UTC offset of a TimeObj, as a signed +/-HHMM integer
+ :raw [long] seconds since the epoch: an actual date, comparable with
+            date() and with another machine.  Given a value, constructs
+            or resets that field from nanoseconds since the epoch
+            instead of dumping it.
+ :mono [long] a monotonic reading instead: no epoch, so not a date and
+            not comparable with one, but safe for measuring how long
+            something took -- it cannot step backwards.  Given a value,
+            constructs or resets that field from nanoseconds since
+            boot, the same way :raw does.
+ :delta [true|false] whether a TimeObj is a duration, not a calendar
+            instant.  Bare inspects it; given a value, builds a new
+            TimeObj with that flag set rather than mutating this one.
+ :ms        millisecond precision
+ :us        microsecond precision
+ :ns        nanosecond precision
+
+ A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, hour
+ 1-24 (24 spells the 0th hour), TZ a signed, zero-padded numeric UTC
+ offset (+HHMM or -HHMM); year/month/day drop when they are the epoch
+ sentinel, leaving bare hour:minute:second.
+ A duration (:delta true) instead prints [[[years:]days:]hr:]min:sec,
+ hr 0-23, with no month or TZ.
 
  [cnt]=beep(:count) -- beep or alert sound
 
