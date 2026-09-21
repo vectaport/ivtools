@@ -478,6 +478,21 @@ static long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, b
     return sec;
 }
 
+/* nanoseconds since epoch/boot back to a timespec -- the inverse of
+   timespec_scaled(ts, ns=true, ...).  tv_nsec stays in [0, 999999999]
+   for a negative count too, by borrowing a second into tv_sec rather
+   than letting C++'s truncating % leave tv_nsec negative. */
+static struct timespec nsec_to_timespec(long nsec_since) {
+  struct timespec ts;
+  ts.tv_sec = (time_t)(nsec_since / 1000000000L);
+  ts.tv_nsec = nsec_since % 1000000000L;
+  if (ts.tv_nsec < 0) {
+    ts.tv_nsec += 1000000000L;
+    ts.tv_sec -= 1;
+  }
+  return ts;
+}
+
 TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void TimeFunc::execute() {
@@ -570,8 +585,7 @@ void TimeFunc::execute() {
     struct timespec raw;
     long tzoff;
     if (raw_valued) {
-      raw.tv_sec = (time_t)rawv.long_val();
-      raw.tv_nsec = 0;
+      raw = nsec_to_timespec(rawv.long_val());
       struct tm tmval;
       localtime_r(&raw.tv_sec, &tmval);
       tzoff = tmval.tm_gmtoff;
@@ -586,8 +600,7 @@ void TimeFunc::execute() {
 
     struct timespec mono;
     if (mono_valued) {
-      mono.tv_sec = (time_t)monov.long_val();
-      mono.tv_nsec = 0;
+      mono = nsec_to_timespec(monov.long_val());
     } else if (timeobj && !raw_valued) {
       mono = timeobj->mono();
     } else {

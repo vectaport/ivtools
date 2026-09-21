@@ -478,11 +478,13 @@ Print a usage summary of all the invocation modes above and exit.
  :zn        UTC offset of a TimeObj, as a signed +/-HHMM integer
  :raw [long] seconds since the epoch: an actual date, comparable with
             date() and with another machine.  Given a value, constructs
-            or resets that field on a TimeObj instead of dumping it.
+            or resets that field from nanoseconds since the epoch
+            instead of dumping it.
  :mono [long] a monotonic reading instead: no epoch, so not a date and
             not comparable with one, but safe for measuring how long
             something took -- it cannot step backwards.  Given a value,
-            constructs or resets that field the same way :raw does.
+            constructs or resets that field from nanoseconds since
+            boot, the same way :raw does.
  :ms        millisecond precision
  :us        microsecond precision
  :ns        nanosecond precision

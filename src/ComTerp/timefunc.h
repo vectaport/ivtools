@@ -127,8 +127,10 @@ public:
 
 //: time returns the current instant as a TimeObj by default, or an
 // integer clock dump with :raw/:mono; given a value instead (:raw N,
-// :mono N), :raw/:mono construct a new TimeObj from it, or reset that
-// field on a positional TimeObj rather than dumping it. Given a
+// :mono N), :raw/:mono construct a new TimeObj from N nanoseconds, or
+// reset that field on a positional TimeObj rather than dumping it --
+// the same nanosecond count :raw :ns/:mono :ns dumps, so the two round
+// trip exactly. Given a
 // TimeObj, reads a field off it (:hr/:min/:sec) or sets its printed
 // fractional precision (:ms/:us/:ns); given a DateObj, returns noon UTC
 // that date -- the inverse of date()'s TimeObj-to-DateObj conversion.
@@ -160,11 +162,13 @@ public:
 	":zn        UTC offset of a TimeObj, as a signed +/-HHMM integer",
 	":raw [long] seconds since the epoch: an actual date, comparable with",
 	"           date() and with another machine.  Given a value, constructs",
-	"           or resets that field on a TimeObj instead of dumping it.",
+	"           or resets that field from nanoseconds since the epoch",
+	"           instead of dumping it.",
 	":mono [long] a monotonic reading instead: no epoch, so not a date and",
 	"           not comparable with one, but safe for measuring how long",
 	"           something took -- it cannot step backwards.  Given a value,",
-	"           constructs or resets that field the same way :raw does.",
+	"           constructs or resets that field from nanoseconds since",
+	"           boot, the same way :raw does.",
 	":ms        millisecond precision",
 	":us        microsecond precision",
 	":ns        nanosecond precision",
