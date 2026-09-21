@@ -223,6 +223,10 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
 
 int DrawServ::linkdown(DrawLink* link) {
   if (link && _linklist->Includes(link)) {
+    if (link->has_pending_freeze()) {
+      unfreeze_fragment(link->pending_freeze_qid());
+      link->clear_pending_freeze();
+    }
     Resource::ref(link);  // stops _linklist->Remove from deleting it right away
     _linklist->Remove(link);
     link->close();

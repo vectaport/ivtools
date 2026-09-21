@@ -294,7 +294,20 @@ void DrawLinkFunc::execute() {
         return;
       }
     }
-    if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+    /* the dialing side's own link has now settled (two_way, redundant, or
+       torn down above on timeout), so its hold can go -- but the accepting
+       side's one_way entry has not: it only actually reaches two_way in a
+       later, separate message, so releasing here would thaw this node
+       while that decision is still uncommitted. Carry the hold on the link
+       instead and release it when that later message arrives (or, should
+       this link never get there, when it is eventually torn down --
+       linkdown() releases any pending hold it finds). */
+    if (did_freeze) {
+      if (statenum == DrawLink::new_link || link == nil)
+        ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+      else
+        link->pending_freeze(freeze_qid);
+    }
     Resource::unref(link); // unreference here because Run calls are done
   }
 
@@ -305,7 +318,14 @@ void DrawLinkFunc::execute() {
       if (link==NULL) link  = (DrawLink*)handler->drawlink();
       if (link != NULL) {
 	link->state(DrawLink::two_way);
-	
+
+	/* this link has now actually settled, so any fragment hold its
+	   accepting side carried while awaiting this moment can go */
+	if (link->has_pending_freeze()) {
+	  ((DrawServ*)unidraw)->unfreeze_fragment(link->pending_freeze_qid());
+	  link->clear_pending_freeze();
+	}
+
 	// at this point paste all graphics to new connection
 	DrawServ* drawserv = (DrawServ*)unidraw;
 	    if (hostv.is_string())

@@ -150,6 +150,20 @@ public:
     void log_incoming_command(const char* cmd);
     // log an incoming command with timestamp
 
+    void pending_freeze(uuid_t qid) { uuid_copy(_freeze_qid, qid); _has_freeze = true; }
+    // record a fragment freeze this link's accepting side is still
+    // holding, to be released once this link actually reaches two_way
+    // (or is torn down before it does)
+
+    boolean has_pending_freeze() { return _has_freeze; }
+    // whether pending_freeze() was called and not yet cleared
+
+    uuid_t& pending_freeze_qid() { return _freeze_qid; }
+    // the id set by pending_freeze()
+
+    void clear_pending_freeze() { _has_freeze = false; }
+    // mark the freeze recorded by pending_freeze() as released
+
 protected:
 
     void log_command(const char* cmd, const char* port_prefix);
@@ -171,6 +185,9 @@ protected:
 
     DrawServHandler* _comhandler;
     AckBackHandler* _ackhandler;
+
+    uuid_t _freeze_qid;
+    boolean _has_freeze;
 
     static const char* _state_strings[];
 };
