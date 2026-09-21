@@ -96,10 +96,10 @@ print("8 t8=time(2026:Sep:20:13:18:2:700) (expect 2026:Sep:20:13:18:2:+0700, rou
 
 // --- 9: a negative TZ field round-trips the same way, via unary minus,
 //        and prints zero-padded to 4 digits like the positive case ---
-t9=time(2026:Jan:5:0:30:15:-800)
+t9=time(2026:Jan:5:24:30:15:-800)
 p9=print(t9 :str)
-ok=ok&&(p9=="2026:Jan:5:0:30:15:-0800")
-print("9 t9=time(2026:Jan:5:0:30:15:-800) negative TZ (expect 2026:Jan:5:0:30:15:-0800): %v\n" p9)
+ok=ok&&(p9=="2026:Jan:5:24:30:15:-0800")
+print("9 t9=time(2026:Jan:5:24:30:15:-800) negative TZ (expect 2026:Jan:5:24:30:15:-0800): %v\n" p9)
 
 // --- 10: :ms/:us/:ns fractional groups are zero-padded 000-999 groups,
 //         cumulative, and can be supplied directly in the full-form
@@ -169,7 +169,7 @@ ok=ok&&rt17
 print("17 print(t17):str reparsed through time() (expect %v, true): %v %v\n" p17 p17b rt17)
 
 // --- 18: same round-trip for a negative offset, via unary minus ---
-t18=time(2026:Jan:5:0:30:15:-800)
+t18=time(2026:Jan:5:24:30:15:-800)
 p18=print(t18 :str)
 eval("t18b=time("+p18+")")
 p18b=print(t18b :str)

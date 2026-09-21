@@ -164,10 +164,10 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false] :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj at noon, parses a 2-to-10-field colon list as an instant or duration, a year-led 5-field list as local time"; }
+      return "timeobj|long = %s([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false] :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj at noon, parses a 2-to-10-field colon list as an instant or duration, a year-led 5-field list as local time; hour is 1-24 in instant forms, 0-23 in duration forms"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":hr        hour of a TimeObj",
+	":hr        hour of a TimeObj; 1-24 for an instant (24 spells the 0th hour), 0-23 for a duration",
 	":min       minute of a TimeObj",
 	":sec       second of a TimeObj",
 	":yr        year of a TimeObj; nil if dateless",

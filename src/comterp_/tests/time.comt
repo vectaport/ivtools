@@ -212,7 +212,7 @@ print("21 time(d21 :yr/:mo/:day) on a dateless h:m:s-only TimeObj (expect nil ni
 // with (this already round-trips through print()/reparse, see timeobj.comt
 // tests 8-9) ---
 tzp=time(2026:Sep:20:13:18:2:200)
-tzn=time(2026:Jan:5:0:30:15:-700)
+tzn=time(2026:Jan:5:24:30:15:-700)
 ok=ok&&(time(tzp :tz)==200)
 ok=ok&&(time(tzn :tz)==-700)
 print("22 time(t :tz) positive and negative UTC offset (expect 200 -700): %v %v\n" time(tzp :tz) time(tzn :tz))
@@ -442,6 +442,68 @@ ok=ok&&(c46d==true)
 ok=ok&&(c46e==false)
 ok=ok&&(c46f==true)
 print("46 time(:delta) bare/valued, all six cases (expect false false true true false true): %v %v %v %v %v %v\n" c46a c46b c46c c46d c46e c46f)
+
+// --- 47: hour is 1-24 in the instant/calendar world -- the reported case,
+// time(2007:Dec:26:24:32) (5-field year-led local instant), now succeeds
+// where hour 24 used to be out of range, and reads back as 24 through
+// :hr -- a relabeling of the same calendar day, not a next-day rollover,
+// so :yr/:mo/:day are unchanged ---
+t47=time(2007:Dec:26:24:32)
+ok=ok&&(t47!=nil)
+ok=ok&&(time(t47 :hr)==24)
+ok=ok&&(time(t47 :yr)==2007 && time(t47 :mo)==12 && time(t47 :day)==26)
+print("47 time(2007:Dec:26:24:32) hour 24 (expect non-nil, hr 24, yr/mo/day 2007 12 26): %v %v %v %v %v\n" (t47!=nil) time(t47 :hr) time(t47 :yr) time(t47 :mo) time(t47 :day))
+
+// --- 48: hour 0 is now out of range in the 1-24 instant world -- warns
+// and returns nil, the same as any other out-of-range field ---
+t48=time(2007:Dec:26:0:32)
+ok=ok&&(t48==nil)
+print("48 time(2007:Dec:26:0:32) hour 0 now out of range (expect nil): %v\n" t48)
+
+// --- 49: hour 25 is still rejected on the high end ---
+t49=time(2007:Dec:26:25:32)
+ok=ok&&(t49==nil)
+print("49 time(2007:Dec:26:25:32) hour 25 out of range (expect nil): %v\n" t49)
+
+// --- 50: same 1-24 acceptance for the 4-field YEAR:MON:day:hr form ---
+t50=time(2007:Dec:26:24)
+ok=ok&&(t50!=nil)
+ok=ok&&(time(t50 :hr)==24)
+print("50 time(2007:Dec:26:24) 4-field instant hour 24 (expect non-nil, hr 24): %v %v\n" (t50!=nil) time(t50 :hr))
+
+// --- 51: and 0-rejection for the same 4-field form ---
+t51=time(2007:Dec:26:0)
+ok=ok&&(t51==nil)
+print("51 time(2007:Dec:26:0) 4-field instant hour 0 out of range (expect nil): %v\n" t51)
+
+// --- 52: same 1-24 acceptance for the full 7-field y:Mon:d:h:m:s:TZ form ---
+t52=time(2007:Dec:26:24:32:0:0)
+ok=ok&&(t52!=nil)
+ok=ok&&(time(t52 :hr)==24)
+print("52 time(2007:Dec:26:24:32:0:0) full-form hour 24 (expect non-nil, hr 24): %v %v\n" (t52!=nil) time(t52 :hr))
+
+// --- 53: and 0-rejection for the same full-form shape ---
+t53=time(2007:Dec:26:0:32:0:0)
+ok=ok&&(t53==nil)
+print("53 time(2007:Dec:26:0:32:0:0) full-form hour 0 out of range (expect nil): %v\n" t53)
+
+// --- 54: printOn() itself displays 24, not just :hr -- checked on the
+// printed string directly.  t50 (the 4-field YEAR:MON:day:hr form) is
+// used rather than t47, since year_led_instant() always lands at tzoff 0
+// deterministically, unlike the 5-field local-time form's machine-
+// dependent zone ---
+p54=print(t50 :str)
+ok=ok&&(p54=="2007:Dec:26:24:0:0:+0000")
+print("54 print(time(2007:Dec:26:24) :str) (expect 2007:Dec:26:24:0:0:+0000): %v\n" p54)
+
+// --- 55: sanity check that duration hour is untouched by the 1-24
+// relabeling -- time(25:30:0) is still a duration (test 38), still
+// prints "1:1:30:0", hour 1 there a genuine 0-23 reading unrelated to
+// this change ---
+t55=time(25:30:0)
+ok=ok&&(time(t55 :delta)==true)
+ok=ok&&(print(t55 :str)=="1:1:30:0")
+print("55 time(25:30:0) duration untouched (expect delta true, print \"1:1:30:0\"): %v %v\n" time(t55 :delta) print(t55 :str))
 
 print("time: %v\n" ok)
 ok

@@ -470,9 +470,11 @@ Print a usage summary of all the invocation modes above and exit.
  :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false]
  :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj
  at noon, parses a 2-to-10-field colon list as an instant or duration, a
- year-led 5-field list as local time
+ year-led 5-field list as local time; hour is 1-24 in instant forms, 0-23
+ in duration forms
 
- :hr        hour of a TimeObj
+ :hr        hour of a TimeObj; 1-24 for an instant (24 spells the 0th hour),
+            0-23 for a duration
  :min       minute of a TimeObj
  :sec       second of a TimeObj
  :yr        year of a TimeObj; nil if dateless
@@ -495,11 +497,12 @@ Print a usage summary of all the invocation modes above and exit.
  :us        microsecond precision
  :ns        nanosecond precision
 
- A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, TZ a
- signed, zero-padded numeric UTC offset (+HHMM or -HHMM); year/month/day
- drop when they are the epoch sentinel, leaving bare hour:minute:second.
+ A TimeObj prints as year:Mon:day:hour:minute:second[:ms:us:ns]:TZ, hour
+ 1-24 (24 spells the 0th hour), TZ a signed, zero-padded numeric UTC
+ offset (+HHMM or -HHMM); year/month/day drop when they are the epoch
+ sentinel, leaving bare hour:minute:second.
  A duration (:delta true) instead prints [[[years:]days:]hr:]min:sec,
- with no month or TZ.
+ hr 0-23, with no month or TZ.
 
  [cnt]=beep(:count) -- beep or alert sound
 

@@ -119,7 +119,8 @@ void TimeObj::breakdown(struct tm& tmval) const {
 int TimeObj::hour() const {
   struct tm tmval;
   breakdown(tmval);
-  return tmval.tm_hour;
+  int h = tmval.tm_hour;
+  return (!_delta && h==0) ? 24 : h;
 }
 
 int TimeObj::minute() const {
@@ -222,7 +223,7 @@ void TimeObj::printOn(ostream& out) const {
   /* unpadded: a leading-zero literal like "08" fails to re-parse
      (ERR_BADOCT -- 8 and 9 aren't octal digits), so hour/minute/second
      stay bare ints */
-  out << tmval.tm_hour << ":" << tmval.tm_min << ":" << tmval.tm_sec;
+  out << (tmval.tm_hour==0 ? 24 : tmval.tm_hour) << ":" << tmval.tm_min << ":" << tmval.tm_sec;
 
   if (_precision > 0) {
     long nsec = _raw.tv_nsec;
@@ -558,11 +559,12 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
         return nil;
       }
       int hour = hrv.int_val();
-      if (hour<0 || hour>23) {
-        std::cout << "WARNING:  time(): hour " << hour << " out of range (0..23) -- line "
+      if (hour<1 || hour>24) {
+        std::cout << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
                   << linenum << "\n";
         return nil;
       }
+      if (hour==24) hour=0;
       return year_led_instant(yr, mon, day, hour);
     }
 
@@ -636,11 +638,12 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
         return nil;
       }
       int hour = hrv.int_val();
-      if (hour<0 || hour>23) {
-        std::cout << "WARNING:  time(): hour " << hour << " out of range (0..23) -- line "
+      if (hour<1 || hour>24) {
+        std::cout << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
                   << linenum << "\n";
         return nil;
       }
+      if (hour==24) hour=0;
 
       ComValue mnv0(resolve_elem(comterp, avl, 4));
       if (mnv0.type()!=ComValue::IntType) {
@@ -757,11 +760,12 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int hr = elems[3].int_val();
   int mn = elems[4].int_val();
   int sc = elems[5].int_val();
-  if (hr<0 || hr>23) {
-    std::cout << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
+  if (hr<1 || hr>24) {
+    std::cout << "WARNING:  time(): hour " << hr << " out of range (1..24) -- line "
               << linenum << "\n";
     return nil;
   }
+  if (hr==24) hr=0;
   if (mn<0 || mn>59) {
     std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
               << linenum << "\n";
