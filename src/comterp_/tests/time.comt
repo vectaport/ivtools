@@ -217,5 +217,61 @@ ok=ok&&(time(tzp :zn)==200)
 ok=ok&&(time(tzn :zn)==-700)
 print("22 time(t :zn) positive and negative UTC offset (expect 200 -700): %v %v\n" time(tzp :zn) time(tzn :zn))
 
+// --- 23: time(:raw N) with an explicit value constructs a TimeObj (not
+// a LongType dump) whose own :raw reads back exactly N ---
+n23=1735689600
+c23=time(:raw n23)
+ok=ok&&(class(c23)=="TimeObj")
+ok=ok&&(time(c23 :raw)==n23)
+print("23 time(:raw N) constructs a TimeObj whose time(that :raw) reads back N (expect TimeObj true): %v %v\n" class(c23) (time(c23 :raw)==n23))
+
+// --- 24: time(t :raw N) returns a distinct object -- t's own :raw is
+// unchanged after the call, proving non-mutation -- and the result's
+// :raw reads back N ---
+t24=time()
+t24raw0=time(t24 :raw)
+n24=1735689600
+c24=time(t24 :raw n24)
+ok=ok&&(class(c24)=="TimeObj")
+ok=ok&&(c24!=t24)
+ok=ok&&(time(t24 :raw)==t24raw0)
+ok=ok&&(time(c24 :raw)==n24)
+print("24 time(t :raw N) returns a distinct non-mutated TimeObj reading back N (expect true true true): %v %v %v\n" (c24!=t24) (time(t24 :raw)==t24raw0) (time(c24 :raw)==n24))
+
+// --- 25: same two shapes for :mono -- time(:mono N) constructs, and
+// time(t :mono N) resets without mutating t ---
+n25=555
+c25=time(:mono n25)
+ok=ok&&(class(c25)=="TimeObj")
+ok=ok&&(time(c25 :mono)==n25)
+print("25 time(:mono N) constructs a TimeObj whose time(that :mono) reads back N (expect TimeObj true): %v %v\n" class(c25) (time(c25 :mono)==n25))
+
+t26=time()
+t26mono0=time(t26 :mono)
+n26=999
+c26=time(t26 :mono n26)
+ok=ok&&(class(c26)=="TimeObj")
+ok=ok&&(c26!=t26)
+ok=ok&&(time(t26 :mono)==t26mono0)
+ok=ok&&(time(c26 :mono)==n26)
+print("26 time(t :mono N) returns a distinct non-mutated TimeObj reading back N (expect true true true): %v %v %v\n" (c26!=t26) (time(t26 :mono)==t26mono0) (time(c26 :mono)==n26))
+
+// --- 27: time(:mono N) alone has no calendar meaning -- raw/tzoff stay
+// at their zeroed default, landing on the epoch-date sentinel, so :yr
+// reads nil the same as any other dateless TimeObj ---
+c27=time(:mono 777)
+ok=ok&&(time(c27 :yr)==nil)
+print("27 time(:mono N) alone is dateless -- time(that :yr) (expect nil): %v\n" time(c27 :yr))
+
+// --- 28: the bare-flag dump is unchanged by adding value support --
+// time(:raw)/time(t :raw) with no value still dump a LongType, not a
+// TimeObj -- the regression guard for the bare-vs-valued distinction ---
+t28=time()
+ok=ok&&(type(time(:raw))=="LongType")
+ok=ok&&(type(time(t28 :raw))=="LongType")
+ok=ok&&(type(time(:mono))=="LongType")
+ok=ok&&(type(time(t28 :mono))=="LongType")
+print("28 time(:raw)/time(t :raw)/time(:mono)/time(t :mono) bare still dump LongType (expect LongType x4): %v %v %v %v\n" type(time(:raw)) type(time(t28 :raw)) type(time(:mono)) type(time(t28 :mono)))
+
 print("time: %v\n" ok)
 ok

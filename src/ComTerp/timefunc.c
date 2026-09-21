@@ -513,6 +513,16 @@ void TimeFunc::execute() {
   // ms+us+ns, :us implies ms+us, :ms is ms alone.
   int fracgroups = nsv.is_true() ? 3 : usv.is_true() ? 2 : msv.is_true() ? 1 : 0;
 
+  /* stack_key()'s own dflt/nil split tells bare from valued: a bare :raw or
+     :mono returns the BooleanType dflt untouched, a missing one returns nil,
+     and only an explicit value comes back as a number -- so is_num() is the
+     construct/reset ask and is_null() is "not given at all", with a bare
+     flag being neither. */
+  boolean raw_present = !rawv.is_null();
+  boolean mono_present = !monov.is_null();
+  boolean raw_valued = rawv.is_num();
+  boolean mono_valued = monov.is_num();
+
   TimeObj* timeobj = nil;
   boolean owns = false;
 
@@ -541,13 +551,56 @@ void TimeFunc::execute() {
     owns = true;
   } else if (timev.is_timeobj()) {
     timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
-  } else if (!(rawv.is_true() || monov.is_true())) {
-    /* no positional TimeObj/DateObj/colon-list and no raw/mono integer
-       dump asked -- capture now.  This is the same precedent date()'s own
-       field keywords use over today's date when no positional DateObj is
-       given, extended to time()'s own bare capture. */
+  } else if (!(raw_present || mono_present)) {
+    /* no positional TimeObj/DateObj/colon-list and no raw/mono keyword at
+       all -- capture now.  This is the same precedent date()'s own field
+       keywords use over today's date when no positional DateObj is given,
+       extended to time()'s own bare capture. */
     timeobj = new TimeObj();
     owns = true;
+  }
+
+  if (raw_valued || mono_valued) {
+    /* :raw/:mono given an explicit value constructs a new TimeObj (or
+       resets that field on a positional one) instead of dumping -- raw and
+       mono are independent fields here: a reset :raw invalidates any
+       paired mono reading (it no longer describes the same live capture,
+       so it is zeroed rather than carried over), while a reset :mono
+       leaves raw/tzoff exactly as they were. */
+    struct timespec raw;
+    long tzoff;
+    if (raw_valued) {
+      raw.tv_sec = (time_t)rawv.long_val();
+      raw.tv_nsec = 0;
+      struct tm tmval;
+      localtime_r(&raw.tv_sec, &tmval);
+      tzoff = tmval.tm_gmtoff;
+    } else if (timeobj) {
+      raw = timeobj->raw();
+      tzoff = timeobj->tzoff();
+    } else {
+      raw.tv_sec = 0;
+      raw.tv_nsec = 0;
+      tzoff = 0;
+    }
+
+    struct timespec mono;
+    if (mono_valued) {
+      mono.tv_sec = (time_t)monov.long_val();
+      mono.tv_nsec = 0;
+    } else if (timeobj && !raw_valued) {
+      mono = timeobj->mono();
+    } else {
+      mono.tv_sec = 0;
+      mono.tv_nsec = 0;
+    }
+
+    TimeObj* result = new TimeObj(raw, tzoff);
+    result->mono(mono);
+    if (owns) delete timeobj;
+    ComValue retval(TimeObj::class_symid(), (void*)result);
+    push_stack(retval);
+    return;
   }
 
   if (timeobj) {

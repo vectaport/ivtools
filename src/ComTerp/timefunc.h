@@ -86,6 +86,11 @@ class TimeObj {
 
   void printOn(ostream& out) const;
 
+  // sets the monotonic reading directly -- for time()'s :mono keyword
+  // given an explicit value, constructing or resetting a TimeObj outside
+  // any live clock_gettime() capture.
+  void mono(const struct timespec& m) {_mono = m;}
+
  protected:
   void breakdown(struct tm&) const;
 
@@ -121,17 +126,19 @@ public:
 };
 
 //: time returns the current instant as a TimeObj by default, or an
-// integer clock dump with :raw/:mono. Given a TimeObj, reads a field off
-// it (:hr/:min/:sec) or sets its printed fractional precision
-// (:ms/:us/:ns); given a DateObj, returns noon UTC that date -- the
-// inverse of date()'s TimeObj-to-DateObj conversion. Given a plain
-// hr:min:sec or full y:Mon:d:h:m:s[:ms:us:ns]:TZ colon list instead,
-// vets it into a TimeObj (colonlist_to_timeobj()) -- ':' itself never
-// does this, so time() is the explicit ask that can warn loudly at this
-// call site on a bad literal rather than falling back silently. With no
-// positional argument, :hr/:min/:sec read that field off a fresh
-// capture, the same precedent date()'s own field keywords use over
-// today's date when no positional DateObj is given.
+// integer clock dump with :raw/:mono; given a value instead (:raw N,
+// :mono N), :raw/:mono construct a new TimeObj from it, or reset that
+// field on a positional TimeObj rather than dumping it. Given a
+// TimeObj, reads a field off it (:hr/:min/:sec) or sets its printed
+// fractional precision (:ms/:us/:ns); given a DateObj, returns noon UTC
+// that date -- the inverse of date()'s TimeObj-to-DateObj conversion.
+// Given a plain hr:min:sec or full y:Mon:d:h:m:s[:ms:us:ns]:TZ colon
+// list instead, vets it into a TimeObj (colonlist_to_timeobj()) -- ':'
+// itself never does this, so time() is the explicit ask that can warn
+// loudly at this call site on a bad literal rather than falling back
+// silently. With no positional argument, :hr/:min/:sec read that field
+// off a fresh capture, the same precedent date()'s own field keywords
+// use over today's date when no positional DateObj is given.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
 // exceed a 32-bit int -- so the :raw/:mono integer dump is always a long,
 // seconds included rather than changing type with the keyword.
@@ -141,7 +148,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
+      return "timeobj|long = %s([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :zn :raw [long] :mono [long] :ms :us :ns) -- returns or inspects a TimeObj, lands a DateObj at noon, parses a colon separated list for time formats"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj",
@@ -151,11 +158,13 @@ public:
 	":mo        month of a TimeObj; nil if dateless",
 	":day       day of a TimeObj; nil if dateless",
 	":zn        UTC offset of a TimeObj, as a signed +/-HHMM integer",
-	":raw       seconds since the epoch: an actual date, comparable with",
-	"           date() and with another machine.",
-	":mono      a monotonic reading instead: no epoch, so not a date and",
+	":raw [long] seconds since the epoch: an actual date, comparable with",
+	"           date() and with another machine.  Given a value, constructs",
+	"           or resets that field on a TimeObj instead of dumping it.",
+	":mono [long] a monotonic reading instead: no epoch, so not a date and",
 	"           not comparable with one, but safe for measuring how long",
-	"           something took -- it cannot step backwards",
+	"           something took -- it cannot step backwards.  Given a value,",
+	"           constructs or resets that field the same way :raw does.",
 	":ms        millisecond precision",
 	":us        microsecond precision",
 	":ns        nanosecond precision",

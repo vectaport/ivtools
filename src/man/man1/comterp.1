@@ -465,9 +465,9 @@ Print a usage summary of all the invocation modes above and exit.
  -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|hr:min:sec|y:Mon:d:h:m:s[:ms:us:ns]:TZ]
- :hr :min :sec :yr :mo :day :zn :raw :mono :ms :us :ns) -- returns or inspects
- a TimeObj, lands a DateObj at noon, parses a colon separated list for time
- formats
+ :hr :min :sec :yr :mo :day :zn :raw [long] :mono [long] :ms :us :ns) --
+ returns or inspects a TimeObj, lands a DateObj at noon, parses a colon
+ separated list for time formats
 
  :hr        hour of a TimeObj
  :min       minute of a TimeObj
@@ -476,11 +476,13 @@ Print a usage summary of all the invocation modes above and exit.
  :mo        month of a TimeObj; nil if dateless
  :day       day of a TimeObj; nil if dateless
  :zn        UTC offset of a TimeObj, as a signed +/-HHMM integer
- :raw       seconds since the epoch: an actual date, comparable with
-            date() and with another machine.
- :mono      a monotonic reading instead: no epoch, so not a date and
+ :raw [long] seconds since the epoch: an actual date, comparable with
+            date() and with another machine.  Given a value, constructs
+            or resets that field on a TimeObj instead of dumping it.
+ :mono [long] a monotonic reading instead: no epoch, so not a date and
             not comparable with one, but safe for measuring how long
-            something took -- it cannot step backwards
+            something took -- it cannot step backwards.  Given a value,
+            constructs or resets that field the same way :raw does.
  :ms        millisecond precision
  :us        microsecond precision
  :ns        nanosecond precision
