@@ -889,9 +889,10 @@ void TimeFunc::execute() {
   ComValue nsv(stack_key(ns_sym));
   ComValue monov(stack_key(mono_sym));
   ComValue rawv(stack_key(raw_sym));
-  ComValue deltav(stack_key(delta_sym));
-  boolean delta_has_value = false;
-  boolean delta_present = stack_key_present(delta_sym, &delta_has_value);
+  /* blankval() as dflt is a sentinel no real :delta value can equal --
+     unlike trueval() (indistinguishable from an explicit ":delta true")
+     or nullval() (is_null() is is_unknown(), the same as "absent"). */
+  ComValue deltav(stack_key(delta_sym, false, ComValue::blankval()));
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
@@ -908,10 +909,7 @@ void TimeFunc::execute() {
   boolean mono_present = !monov.is_null();
   boolean raw_valued = rawv.is_num();
   boolean mono_valued = monov.is_num();
-  /* stack_key_present() tells bare from valued directly -- the keyword's
-     own keynarg_val(), not a comparison against stack_key()'s dflt -- so
-     delta_present/delta_valued need no address-comparison trick. */
-  boolean delta_valued = delta_present && delta_has_value;
+  boolean delta_valued = !deltav.is_null() && !deltav.is_blank();
 
   TimeObj* timeobj = nil;
   boolean owns = false;
@@ -1062,7 +1060,7 @@ void TimeFunc::execute() {
       ComValue retval(result);
       push_stack(retval);
       if (owns) delete timeobj;
-    } else if (deltav.is_true()) {
+    } else if (deltav.is_blank()) {
       ComValue retval(timeobj->delta() ? ComValue::trueval() : ComValue::falseval());
       push_stack(retval);
       if (owns) delete timeobj;

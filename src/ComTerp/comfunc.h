@@ -164,13 +164,12 @@ public:
     // retired use_dflt parameter -- see stack_key()'s deleted overload.
 
     boolean stack_key_present(int id, boolean* has_value=nil);
-    // same keyword-run walk as stack_key()/stack_key_post_eval(), dispatched
-    // the same way on post_eval(), but never evaluates or resolves anything:
-    // returns whether keyword 'id' appears at all among this ComFunc's
-    // keywords, and (via 'has_value', if non-nil) whether it carries a value
-    // rather than sitting bare.  For a caller that just wants to know a
-    // keyword was used -- e.g. to tell a bare flag from an explicit value,
-    // or to warn about a deprecated one -- without ever firing (and so
+    // same keyword-run walk as stack_key_post_eval(), but never evaluates
+    // anything: returns whether keyword 'id' appears at all among this
+    // post-evaluating ComFunc's keywords, and (via 'has_value', if
+    // non-nil) whether it carries a value expression rather than sitting
+    // bare.  For a caller that just wants to know a keyword was used --
+    // e.g. to warn about a deprecated one -- without ever firing (and so
     // side-effecting) whatever expression follows it.
 
     AttributeList* stack_keys(boolean symbol = false,
@@ -278,11 +277,6 @@ protected:
 
     ComValue& stack_key_post(int, boolean, ComValue&, boolean) = delete;
     // retired use_dflt parameter -- see stack_key()'s deleted overload.
-
-    boolean stack_key_present_post(int id, boolean* has_value);
-    // stack_key_present()'s post-eval half: same expr-buffer keyword-run
-    // walk as stack_key_post(), off the argoff anchor a post-eval ComFunc's
-    // dispatch pushes, but reading presence/bareness only, never evaluating.
 
     boolean skip_key_on_stack(int& stackptr, int& arglen);
     // skip a keyword going down the stack.
