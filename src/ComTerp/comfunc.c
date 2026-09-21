@@ -44,6 +44,7 @@ ComFunc::ComFunc(ComTerp* comterp) {
     _context = nil;
     _docstring2 = nil;
     _hidden = false;
+    _opr_hidden = false;
 }
 
 void ComFunc::reset_stack() {
