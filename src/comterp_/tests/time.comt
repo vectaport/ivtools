@@ -558,7 +558,7 @@ ok=ok&&(time(t63p :delta)==true)
 ok=ok&&(time(t63p :mono :ns)==5000000000)
 print("63 time(time(25:30:0) :ms) precision copy keeps delta/mono (expect true 5000000000): %v %v\n" time(t63p :delta) time(t63p :mono :ns))
 
-// --- 64: date() takes the same year-led colon list time() does, not
+// --- 64: date() takes a year-led YEAR:MON[:day] colon list directly, not
 // just the day-led dd-mmm-yy string Date's own parser expects ---
 d64=date(2026:Sep:21)
 ok=ok&&(date(d64 :daymo)==21 && date(d64 :month)==9 && date(d64 :year)==2026)
@@ -571,7 +571,8 @@ print("65 date(2026:9:21) numeric month (expect daymo/month/year 21 9 2026): %v 
 
 // --- 66: an impossible day is rejected through the same day-in-month/
 // leap-year check time()'s colon-list vetting uses, not silently
-// normalized into the next month ---
+// normalized into the next month (date() has its own colon-list vetting,
+// colonlist_to_dateobj(), but shares days_in_month()/is_leap_year()) ---
 d66=date(2026:Feb:30)
 ok=ok&&(d66==nil)
 print("66 date(2026:Feb:30) impossible day (expect nil): %v\n" d66)
@@ -581,17 +582,43 @@ d67=date(2024:Feb:29)
 ok=ok&&(date(d67 :daymo)==29 && date(d67 :month)==2 && date(d67 :year)==2024)
 print("67 date(2024:Feb:29) leap-year day (expect daymo/month/year 29 2 2024): %v %v %v\n" date(d67 :daymo) date(d67 :month) date(d67 :year))
 
-// --- 68: a 2-field YEAR:MON list defaults to the first of the month,
-// the same day-1 default year_led_instant() uses for time() ---
+// --- 68: a 2-field YEAR:MON list defaults to the first of the month ---
 d68=date(2026:Sep)
 ok=ok&&(date(d68 :daymo)==1 && date(d68 :month)==9 && date(d68 :year)==2026)
 print("68 date(2026:Sep) day defaults to 1 (expect daymo/month/year 1 9 2026): %v %v %v\n" date(d68 :daymo) date(d68 :month) date(d68 :year))
 
-// --- 69: a non-year-led colon list reads as a duration, which has no
-// calendar date -- date() answers nil rather than misreading it ---
+// --- 69: date()'s colon list is never a duration reading -- a field that
+// can't be a month (30 is out of 1..12 range) is simply rejected, the
+// same as any other invalid date field ---
 d69=date(25:30:0)
 ok=ok&&(d69==nil)
-print("69 date(25:30:0) duration has no date (expect nil): %v\n" d69)
+print("69 date(25:30:0) 30 isn't a valid month (expect nil): %v\n" d69)
+
+// --- 70: an explicit 1970-01-01 is a real date, not the TimeObj epoch
+// sentinel -- date()'s colon-list path builds a DateObj directly, with
+// no TimeObj in between to be mistaken for a dateless one ---
+d70=date(1970:Jan:1)
+ok=ok&&(date(d70 :daymo)==1 && date(d70 :month)==1 && date(d70 :year)==1970)
+print("70 date(1970:Jan:1) epoch date is a real date (expect daymo/month/year 1 1 1970): %v %v %v\n" date(d70 :daymo) date(d70 :month) date(d70 :year))
+
+// --- 71: a year outside time()'s 1677-2262 plausible-year window still
+// round-trips through date() -- no auto-detection ambiguity to bound it
+// against, unlike time()'s colon lists which share a field count with a
+// duration ---
+d71=date(1600:Jan:1)
+ok=ok&&(date(d71 :daymo)==1 && date(d71 :month)==1 && date(d71 :year)==1600)
+p71=print(d71 :str)
+ok=ok&&(p71=="1600:Jan:1")
+eval("d71b=date("+p71+")")
+rt71=(date(d71b :year)==1600)
+ok=ok&&rt71
+print("71 date(1600:Jan:1) outside time()'s year window still round-trips (expect daymo/month/year 1 1 1600, \"1600:Jan:1\", true): %v %v %v %v %v\n" date(d71 :daymo) date(d71 :month) date(d71 :year) p71 rt71)
+
+// --- 72: a 4- or 5-field list isn't accepted -- date() has no time-of-day
+// to hold an hour/minute in, unlike time()'s YEAR:MON:day:hr forms ---
+d72=date(2026:Sep:21:14)
+ok=ok&&(d72==nil)
+print("72 date(2026:Sep:21:14) wrong field count (expect nil): %v\n" d72)
 
 print("time: %v\n" ok)
 ok

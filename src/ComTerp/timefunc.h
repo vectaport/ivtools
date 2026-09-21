@@ -119,7 +119,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "dateobj|int = %s([num|str|dateobj|timeobj|YEAR:MON[:day[:hr[:min]]]] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901, a string, a TimeObj's date, or the same year-led colon list time() accepts"; }
+      return "dateobj|int = %s([num|str|dateobj|timeobj|YEAR:MON[:day]] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901, a string, a TimeObj's date, or a year-led YEAR:MON[:day] colon list"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":day       return day of year in dateobj",

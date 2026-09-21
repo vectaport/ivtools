@@ -403,10 +403,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  else if (svp->class_symid() == AttributeList::class_symid())
 	    ((AttributeList*)svp->obj_val())->serialize(out, true);
 	  else if (svp->class_symid() == DateObj::class_symid()) {
-	    /* the year-led colon list date()/time() both accept as input, not
-	       Date::printOn()'s day-led "dd-mmm-yyyy" -- that form isn't valid
-	       ComTerp syntax and silently misparses back into something else
-	       entirely rather than round-tripping through date() */
+	    /* the year-led colon list date()/time() accept, so this round-trips --
+	       not Date::printOn()'s day-led "dd-mmm-yyyy", which isn't ComTerp syntax */
 	    Date* date = ((DateObj*)svp->obj_val())->date();
 	    out << date->year() << ":";
 	    out.write(Date::nameOfMonth(date->month()), 3);
