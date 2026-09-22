@@ -172,10 +172,33 @@ void DrawLinkFunc::execute() {
     freezeid_t freeze_qid;
     if (statenum != DrawLink::two_way) {
       did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+
+      /* a freeze already held here when WE are the one dialing out is our
+	 own doing, not a peer's -- most often our own accept of some other
+	 inbound link, still pending its own two_way confirmation. Waiting
+	 it out risks no deadlock (there is no peer on the other side of
+	 that wait, just our own event loop settling itself), so pump the
+	 reactor briefly and retry instead of failing the dial outright. An
+	 incoming dial (one_way) is the genuine peer-vs-peer case the
+	 instant-decline design exists for and still declines on the spot. */
+      if (!did_freeze && statenum == DrawLink::new_link) {
+	static const int max_wait_usec = 5000000;  // 5 second overall timeout
+	static const int slice_usec    =    5000;  // 5ms per slice
+	int elapsed = 0;
+
+	long oldsec, oldusec;
+	((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
+	while (!did_freeze && elapsed < max_wait_usec) {
+	  ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
+	  ((OverlayUnidraw*)unidraw)->Run();
+	  elapsed += slice_usec;
+	  did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+	}
+	((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
+      }
+
       if (!did_freeze) {
-	/* already busy with a freeze of our own -- decline outright rather
-	   than wait: waiting here could deadlock symmetrically against a
-	   peer doing the same wait for the same reason. No linkup happens
+	/* still busy after any retry -- decline outright. No linkup happens
 	   this round, cycle or not; the caller can simply try again once
 	   whatever this end now holds has cleared. */
 	fprintf(stderr, "drawlink: declined %s:%d -- a fragment freeze is already held here, try again shortly\n",
