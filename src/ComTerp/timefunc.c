@@ -184,8 +184,13 @@ static long years_to_days(long years) {
 void TimeObj::printOn(ostream& out) const {
   if (_delta) {
     /* a duration isn't anchored to any calendar instant, so its days/years
-       come from a synthetic 4-year cycle rather than gmtime_r(). */
+       come from a synthetic 4-year cycle rather than gmtime_r(). A negative
+       duration decomposes by magnitude (never a per-field negative, which
+       would print "-1:-30" for -90 seconds instead of the one leading sign
+       "-1:30" a reader expects) -- one leading "-" on the whole value. */
     long total = (long)_raw.tv_sec;
+    boolean negative = total < 0;
+    if (negative) total = -total;
     long sec = total % 60; total /= 60;
     long min = total % 60; total /= 60;
     long hr = total % 24; total /= 24;
@@ -196,6 +201,7 @@ void TimeObj::printOn(ostream& out) const {
     boolean show_days = show_years || days != 0;
     boolean show_hr = show_days || hr != 0;
 
+    if (negative) out << "-";
     if (show_years) out << years << ":";
     if (show_days) out << days << ":";
     if (show_hr) out << hr << ":";
@@ -943,8 +949,10 @@ static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, 
 
 /* a timespec scaled to the unit :ns/:us/:ms ask for, seconds otherwise --
    shared by a fresh clock_gettime() capture and a raw/mono reading pulled
-   back out of an existing TimeObj, so both round the same way */
-static long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, boolean ms) {
+   back out of an existing TimeObj, so both round the same way; also the
+   full-nsec-precision reading numfunc.c's DateObj/TimeObj +/- operators
+   use, so it is declared in timefunc.h rather than kept file-local. */
+long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, boolean ms) {
   long sec = (long)ts.tv_sec;
   long nsec = (long)ts.tv_nsec;
   if (ns)
@@ -960,8 +968,9 @@ static long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, b
 /* nanoseconds since epoch/boot back to a timespec -- the inverse of
    timespec_scaled(ts, ns=true, ...).  tv_nsec stays in [0, 999999999]
    for a negative count too, by borrowing a second into tv_sec rather
-   than letting C++'s truncating % leave tv_nsec negative. */
-static struct timespec nsec_to_timespec(long nsec_since) {
+   than letting C++'s truncating % leave tv_nsec negative. Declared in
+   timefunc.h alongside timespec_scaled(), for the same reason. */
+struct timespec nsec_to_timespec(long nsec_since) {
   struct timespec ts;
   ts.tv_sec = (time_t)(nsec_since / 1000000000L);
   ts.tv_nsec = nsec_since % 1000000000L;
