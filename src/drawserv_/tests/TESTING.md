@@ -153,9 +153,7 @@ link the two ends of the pair -- A's tail to B's head, and B's tail to A's
 head -- at once, so the session-id propagation waves the two closing links
 start can cross each other while both links are still forming. `ringpair`
 runs at `chainlen=5` (10 nodes); `ringpair10` reruns the same function at
-`chainlen=10` (20 nodes) for a longer fragment. `ringpair10` is not part of
-`all` -- it roughly doubles the node count and the wall-clock cost, so
-request it explicitly with `--tests ringpair10`.
+`chainlen=10` (20 nodes) for a longer fragment. Both are part of `all`.
 
 **Checks:**
 - both chains build cleanly, with `ring_test`'s per-hop settle-poll
