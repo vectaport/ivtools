@@ -177,5 +177,16 @@ rt18=(p18==p18b)
 ok=ok&&rt18
 print("18 print(t18):str reparsed through time() (expect %v, true): %v %v\n" p18 p18b rt18)
 
+// --- 19: DateObj's printed form is the same year-led colon list
+//         date()/time() accept as input, not Date::printOn()'s day-led
+//         "dd-mmm-yyyy" -- that reparses through date() back to the same
+//         date, where the old form wasn't valid ComTerp syntax at all ---
+d19=date(2026:Sep:21)
+p19=print(d19 :str)
+ok=ok&&(p19=="2026:Sep:21")
+eval("d19b=date("+p19+")")
+ok=ok&&(date(d19b :daymo)==21 && date(d19b :month)==9 && date(d19b :year)==2026)
+print("19 print(date(2026:Sep:21)):str reparsed through date() (expect \"2026:Sep:21\", 21 9 2026): %v %v %v %v\n" p19 date(d19b :daymo) date(d19b :month) date(d19b :year))
+
 print("timeobj: %v\n" ok)
 ok
