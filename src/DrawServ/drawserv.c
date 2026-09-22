@@ -444,12 +444,8 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
 
-  /* snapshot targets into their own list first: write_full() below pumps
-     the reactor, which can reenter linkdown() for any link on _linklist
-     while this broadcast is mid-flight. Appending here refs each target
-     (DrawLinkList::Append()) so it outlives a reentrant teardown, and
-     Includes() against the live _linklist below re-checks one wasn't torn
-     down before touching it again. */
+  /* targets are ref'd via Append(); write_full() pumps the reactor, so
+     Includes() below re-validates each one before it's touched again. */
   DrawLinkList* targets = new DrawLinkList;
   Iterator i;
   _linklist->First(i);
@@ -485,9 +481,8 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (cmdstring==NULL || *cmdstring=='\0') return;
 
   if (link) {
-    /* write_full() below pumps the reactor, which can reenter linkdown()
-       for link itself; ref it here so it outlives that and Includes()
-       below re-checks it before start_timer() touches it again. */
+    /* ref'd since write_full() pumps the reactor; Includes() below
+       re-validates before start_timer() touches link again. */
     Resource::ref(link);
     int fd = link->handle();
     if (fd>=0) {
