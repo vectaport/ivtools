@@ -158,11 +158,9 @@ void DrawLinkFunc::execute() {
 
     u_short statenum = statev.ushort_val();
 
-    /* this link formation's id: given on the wire when we're the one
-       being told to open or finalize a link (one_way, two_way), minted
-       here when we're the one originating a fresh dial (new_link) --
-       either way settled before freezing, so the freeze below can be
-       keyed by it. */
+    /* this link formation's id: from the wire for one_way/two_way,
+       minted here for new_link; settled before the freeze below, which
+       is keyed by it. */
     uuid_t linkid; uuid_clear(linkid);
     if (linkidv.is_string()) {
       uuid_parse(linkidv.string_ptr(),linkid);
@@ -186,11 +184,8 @@ void DrawLinkFunc::execute() {
 	static const int slice_usec    =    5000;  // 5ms per slice
 	int elapsed = 0;
 
-	/* the confirmation this retry is waiting on arrives over a link's
-	   socket, serviced by a handler registered directly on this same
-	   reactor -- so a direct bounded yield reaches it, the same
-	   primitive the update() command wraps (ctrlfunc.c), without
-	   Run()'s heavier GUI/command-queue dispatch. */
+	/* a bounded direct reactor yield reaches the confirmation this
+	   retry waits on -- same primitive update() wraps (ctrlfunc.c). */
 	while (!did_freeze && elapsed < max_wait_usec) {
 	  ACE_Time_Value timeout(0, slice_usec);
 	  ComterpHandler::reactor_singleton()->handle_events(timeout);

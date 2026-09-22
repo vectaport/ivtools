@@ -423,12 +423,8 @@ boolean DrawServ::write_full(int fd, const char* buf, size_t len) {
       continue;
     } else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       if (waited >= max_wait_usec) { ok = false; break; }
-      /* pump the reactor rather than sleeping dead: other links and
-	 timers still need servicing while this one's send buffer is
-	 momentarily full. Same primitive as the ComTerp update() command
-	 (ctrlfunc.c) and LinkSelectFunc::resolve_requests() below -- a
-	 direct bounded reactor yield, not Run()'s heavier GUI/command-queue
-	 dispatch, which this purely socket-level wait has no need of. */
+      /* pumps other links/timers instead of sleeping dead -- same
+	 primitive as update() (ctrlfunc.c) and resolve_requests() below. */
       ACE_Time_Value timeout(0, slice_usec);
       ComterpHandler::reactor_singleton()->handle_events(timeout);
       waited += slice_usec;
