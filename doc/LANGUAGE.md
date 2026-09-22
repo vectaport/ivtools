@@ -3083,6 +3083,11 @@ is `nil`, the same loud-rather-than-silent rule as above. `time()` with
 no positional argument at all is the one case that still captures the
 current instant.
 
+`:msec`/`:usec`/`:nsec` read a `TimeObj`'s three sub-second groups
+individually (each `0..999`), the same decomposition `print()`'s
+`:ms`/`:us`/`:ns` precision groups use — `:ms`/`:us`/`:ns` stay display-
+precision modifiers, unrelated to reading a value back out.
+
 `print()` (and any other channel that serializes a `TimeObj`, such as
 sending it to a remote `comterp`) is subject to the same rule: a
 `TimeObj` prints as the bare colon list it holds, not as `time(...)`.

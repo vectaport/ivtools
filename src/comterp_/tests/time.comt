@@ -649,5 +649,20 @@ t76=time()
 ok=ok&&(t76!=nil)
 print("76 time() with no positional still captures now (expect true): %v\n" (t76!=nil))
 
+// --- 77: :msec/:usec/:nsec read the three sub-second groups individually
+// (0-999 each), the same decomposition print()'s :ms/:us/:ns precision
+// groups use -- n77's last 9 digits, 123456789, split into 123:456:789 ---
+n77=1735689600123456789
+c77=time(:raw n77)
+ok=ok&&(time(c77 :msec)==123 && time(c77 :usec)==456 && time(c77 :nsec)==789)
+print("77 time(t :msec/:usec/:nsec) individual sub-second groups (expect 123 456 789): %v %v %v\n" time(c77 :msec) time(c77 :usec) time(c77 :nsec))
+
+// --- 78: :msec/:usec/:nsec stay distinct from :ms/:us/:ns -- the latter
+// remain print-precision modifiers (a TimeObj with :precision set), not
+// field-retrieval keywords, and don't disturb the field values themselves ---
+c78=time(c77 :ms)
+ok=ok&&(class(c78)=="TimeObj" && time(c78 :msec)==123 && time(c78 :usec)==456 && time(c78 :nsec)==789)
+print("78 :msec/:usec/:nsec don't disturb :ms/:us/:ns as precision modifiers (expect TimeObj true true true): %v %v %v %v\n" class(c78) (time(c78 :msec)==123) (time(c78 :usec)==456) (time(c78 :nsec)==789))
+
 print("time: %v\n" ok)
 ok

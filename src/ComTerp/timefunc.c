@@ -988,6 +988,12 @@ void TimeFunc::execute() {
   ComValue hourv(stack_key(hour_sym));
   ComValue minutev(stack_key(minute_sym));
   ComValue secondv(stack_key(second_sym));
+  static int msec_sym = symbol_add("msec");
+  static int usec_sym = symbol_add("usec");
+  static int nsec_sym = symbol_add("nsec");
+  ComValue msecv(stack_key(msec_sym));
+  ComValue usecv(stack_key(usec_sym));
+  ComValue nsecv(stack_key(nsec_sym));
   static int year_sym = symbol_add("yr");
   static int month_sym = symbol_add("mo");
   static int day_sym = symbol_add("day");
@@ -1152,6 +1158,16 @@ void TimeFunc::execute() {
       if (owns) delete timeobj;
     } else if (secondv.is_true()) {
       ComValue retval(timeobj->second());
+      push_stack(retval);
+      if (owns) delete timeobj;
+    } else if (msecv.is_true() || usecv.is_true() || nsecv.is_true()) {
+      /* the same three sub-second groups printOn() decomposes tv_nsec
+         into, read individually rather than as one cumulative scaled
+         value -- unlike :ms/:us/:ns, which stay print-precision knobs. */
+      long nsec = timeobj->raw().tv_nsec;
+      int result = msecv.is_true() ? (int)(nsec / 1000000) :
+	usecv.is_true() ? (int)((nsec / 1000) % 1000) : (int)(nsec % 1000);
+      ComValue retval(result);
       push_stack(retval);
       if (owns) delete timeobj;
     } else if (yearv.is_true() || monthv.is_true() || dayv.is_true()) {
