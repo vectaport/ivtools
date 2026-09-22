@@ -1033,19 +1033,16 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
   _freeze_done = false;
   _freeze_sent_to = new DrawLinkList;
 
-  char buf[BUFSIZ];
-  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
-
   Iterator it;
   _linklist->First(it);
   while (!_linklist->Done(it)) {
     DrawLink* l = _linklist->GetDrawLink(it);
-    if (l != fromlink && l->state() == DrawLink::two_way) {
+    if (l != fromlink && l->state() == DrawLink::two_way)
       _freeze_sent_to->add_drawlink(l);
-      SendCmdString(l, buf);
-    }
     _linklist->Next(it);
   }
+
+  char buf[BUFSIZ];
 
   // no other established links to relay to: this hold is already
   // complete, so ack back (or, if self-originated, finish) right away
@@ -1057,7 +1054,30 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
     } else {
       _freeze_done = true;
     }
+    return;
   }
+
+  /* a separate ref'd snapshot to send from: SendCmdString()'s write_full()
+     can pump the reactor, and a reentrant linkdown() mutates _freeze_sent_to
+     itself (freeze_link_down()), so this loop can't walk it directly. */
+  DrawLinkList* targets = new DrawLinkList;
+  Iterator si;
+  _freeze_sent_to->First(si);
+  while (!_freeze_sent_to->Done(si)) {
+    targets->Append(_freeze_sent_to->GetDrawLink(si));
+    _freeze_sent_to->Next(si);
+  }
+
+  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
+  Iterator ti;
+  targets->First(ti);
+  while (!targets->Done(ti)) {
+    DrawLink* l = targets->GetDrawLink(ti);
+    if (_freeze_active && _freeze_qid == qid && _freeze_sent_to && _freeze_sent_to->Includes(l))
+      SendCmdString(l, buf);
+    targets->Next(ti);
+  }
+  delete targets;
 }
 
 void DrawServ::freeze_ack_handle(DrawLink* fromlink, freezeid_t qid) {
@@ -1079,17 +1099,32 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
   if (fromlink != nil && fromlink != _freeze_parent) return; // release only ever arrives from the parent direction
 
   if (_freeze_sent_to) {
+    // same ref'd-snapshot need as freeze_request_handle(): a reentrant
+    // linkdown() during a send below can itself re-enter here (if the
+    // dying link is this freeze's parent) and clear this episode first.
+    DrawLinkList* targets = new DrawLinkList;
+    Iterator si;
+    _freeze_sent_to->First(si);
+    while (!_freeze_sent_to->Done(si)) {
+      targets->Append(_freeze_sent_to->GetDrawLink(si));
+      _freeze_sent_to->Next(si);
+    }
+
     char buf[BUFSIZ];
     snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :thaw)", qid);
-    Iterator it;
-    _freeze_sent_to->First(it);
-    while (!_freeze_sent_to->Done(it)) {
-      DrawLink* l = _freeze_sent_to->GetDrawLink(it);
-      if (l->state() == DrawLink::two_way) SendCmdString(l, buf);
-      _freeze_sent_to->Next(it);
+    Iterator ti;
+    targets->First(ti);
+    while (!targets->Done(ti)) {
+      DrawLink* l = targets->GetDrawLink(ti);
+      if (_freeze_active && _freeze_qid == qid && _freeze_sent_to &&
+	  _freeze_sent_to->Includes(l) && l->state() == DrawLink::two_way)
+	SendCmdString(l, buf);
+      targets->Next(ti);
     }
+    delete targets;
   }
-  freeze_clear();
+
+  if (_freeze_active && _freeze_qid == qid) freeze_clear();
 }
 
 boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
