@@ -159,11 +159,14 @@ public:
   // whether link is the only remaining non-benched link, so benching it
   // (locally, or on a peer's say-so) would cut this node off entirely
 
-  boolean freeze_fragment(freezeid_t& qid_out);
-  // originate a fragment freeze: flood a freshly generated request across
+  boolean freeze_fragment(freezeid_t& qid_out, const uuid_t linkid);
+  // originate a fragment freeze for the link formation identified by
+  // linkid: flood a request (its first 4 bytes as the wire id) across
   // every two_way link and block, pumping the reactor, until every
   // neighbor has echoed an ack or the attempt times out; on success
-  // qid_out identifies the hold, to release later via unfreeze_fragment()
+  // qid_out identifies the hold, to release later via unfreeze_fragment().
+  // Deriving the id from linkid rather than generating an unrelated one
+  // ties a freeze's req/ack/thaw log lines to the connection they protect.
 
   void unfreeze_fragment(freezeid_t qid);
   // release a fragment freeze this node originated, flooding the release

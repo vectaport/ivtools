@@ -158,6 +158,18 @@ void DrawLinkFunc::execute() {
 
     u_short statenum = statev.ushort_val();
 
+    /* this link formation's id: given on the wire when we're the one
+       being told to open or finalize a link (one_way, two_way), minted
+       here when we're the one originating a fresh dial (new_link) --
+       either way settled before freezing, so the freeze below can be
+       keyed by it. */
+    uuid_t linkid; uuid_clear(linkid);
+    if (linkidv.is_string()) {
+      uuid_parse(linkidv.string_ptr(),linkid);
+    } else if (statenum == DrawLink::new_link) {
+      uuid_generate(linkid);
+    }
+
     /* the one_way cycletest and the dial-and-wait below read and act on
        this node's own local fragment, so no other link formation may be
        changing it concurrently -- freeze it for the duration and release
@@ -171,7 +183,7 @@ void DrawLinkFunc::execute() {
     boolean did_freeze = false;
     freezeid_t freeze_qid;
     if (statenum != DrawLink::two_way) {
-      did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+      did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
 
       /* a freeze already held here when WE are the one dialing out is our
 	 own doing, not a peer's -- most often our own accept of some other
@@ -192,7 +204,7 @@ void DrawLinkFunc::execute() {
 	  ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
 	  ((OverlayUnidraw*)unidraw)->Run();
 	  elapsed += slice_usec;
-	  did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid);
+	  did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
 	}
 	((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
       }
@@ -230,11 +242,6 @@ void DrawLinkFunc::execute() {
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
 
-    uuid_t linkid; uuid_clear(linkid);
-    if (linkidv.is_string()) {
-	uuid_parse(linkidv.string_ptr(),linkid);
-    }
-	
     /* two_way leg: re-run cycletest() here too, since the far end may
        already know the peer another way that the one_way check misses. */
     if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {

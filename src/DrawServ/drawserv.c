@@ -168,7 +168,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
       ((DrawServHandler*)comterp->handler())->drawlink(link);
       link->comhandler((DrawServHandler*)comterp->handler());
     }
-    if (state == DrawLink::new_link) {
+    if (link_id == NULL) {
       uuid_generate(link->linkid());
     } else {
       uuid_copy(link->linkid(), link_id);
@@ -1087,7 +1087,7 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
   freeze_clear();
 }
 
-boolean DrawServ::freeze_fragment(freezeid_t& qid_out) {
+boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
   // a hold already active here belongs to some other freeze -- waiting it
   // out would risk a deadlock symmetric with a peer doing the same (each
   // side blocked on the other's release, when each release depends on the
@@ -1097,9 +1097,7 @@ boolean DrawServ::freeze_fragment(freezeid_t& qid_out) {
   // simply try again once whatever holds the freeze now has cleared.
   if (_freeze_active) return false;
 
-  uuid_t tmp;
-  uuid_generate(tmp);
-  qid_out = (tmp[0]<<24) | (tmp[1]<<16) | (tmp[2]<<8) | tmp[3];
+  qid_out = (linkid[0]<<24) | (linkid[1]<<16) | (linkid[2]<<8) | linkid[3];
   freeze_request_handle(nil, qid_out);
   if (_freeze_done) return true; // no established links to flood to: trivially frozen
 
