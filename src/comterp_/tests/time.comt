@@ -629,5 +629,25 @@ d73=date(70000:Jan:1)
 ok=ok&&(d73==nil)
 print("73 date(70000:Jan:1) year out of Date's storage range (expect nil): %v\n" d73)
 
+// --- 74: an int isn't one of time()'s recognized positional shapes
+// (DateObj, colon-list, TimeObj) -- it's rejected rather than silently
+// discarded in favor of a fresh capture ---
+t74=time(1)
+ok=ok&&(t74==nil)
+print("74 time(1) unrecognized positional (expect nil): %v\n" t74)
+
+// --- 75: same for a string or a float positional ---
+t75a=time("bogus")
+t75b=time(3.14)
+ok=ok&&(t75a==nil && t75b==nil)
+print("75 time(\"bogus\"), time(3.14) unrecognized positionals (expect nil nil): %v %v\n" t75a t75b)
+
+// --- 76: no positional argument at all still captures now, unaffected
+// by 74/75 -- is_null() (absent) is what still triggers a fresh capture,
+// not "any unrecognized value" ---
+t76=time()
+ok=ok&&(t76!=nil)
+print("76 time() with no positional still captures now (expect true): %v\n" (t76!=nil))
+
 print("time: %v\n" ok)
 ok

@@ -1054,13 +1054,19 @@ void TimeFunc::execute() {
     owns = true;
   } else if (timev.is_timeobj()) {
     timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
-  } else if (!(raw_present || mono_present)) {
+  } else if (timev.is_null() && !(raw_present || mono_present)) {
     /* no positional TimeObj/DateObj/colon-list and no raw/mono keyword at
        all -- capture now.  This is the same precedent date()'s own field
        keywords use over today's date when no positional DateObj is given,
        extended to time()'s own bare capture. */
     timeobj = new TimeObj();
     owns = true;
+  } else if (!timev.is_null() && !(raw_present || mono_present)) {
+    /* a positional argument was given but isn't one of the recognized
+       instant shapes -- report nil rather than silently discarding it
+       and capturing now. */
+    push_stack(ComValue::nullval());
+    return;
   }
 
   if (raw_valued || mono_valued) {

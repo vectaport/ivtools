@@ -3077,6 +3077,12 @@ Without `time()`, a colon chain is never a `TimeObj`: `x=1:8:30` alone
 stays a plain 3-element list, and `@` never sees a `TimeObj` either,
 since `time()` is the only thing that ever builds one.
 
+`time()`'s positional argument only recognizes a `DateObj`, a colon
+list, or an existing `TimeObj`; anything else (`time(1)`, `time("x")`)
+is `nil`, the same loud-rather-than-silent rule as above. `time()` with
+no positional argument at all is the one case that still captures the
+current instant.
+
 `print()` (and any other channel that serializes a `TimeObj`, such as
 sending it to a remote `comterp`) is subject to the same rule: a
 `TimeObj` prints as the bare colon list it holds, not as `time(...)`.
