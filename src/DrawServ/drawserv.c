@@ -229,6 +229,7 @@ int DrawServ::linkdown(DrawLink* link) {
       unfreeze_fragment(link->pending_freeze_qid());
       link->clear_pending_freeze();
     }
+    freeze_link_down(link);
     Resource::ref(link);  // stops _linklist->Remove from deleting it right away
     _linklist->Remove(link);
     link->close();
@@ -407,17 +408,13 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   }
 }
 
-/* write len bytes to fd, retrying past a short write or a transient
-   EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's
-   socket is nonblocking (DrawLink::open()), so a completely healthy send
-   can still hit EAGAIN whenever the kernel's socket send buffer is
-   momentarily full; stdio's fputs/fclose have no way to report or retry
-   that once called, so this writes the fd directly instead. Bounded by
-   max_wait_usec so a peer that stops reading entirely doesn't hang here. */
-static boolean write_full(int fd, const char* buf, size_t len) {
+boolean DrawServ::write_full(int fd, const char* buf, size_t len) {
   size_t sent = 0;
   static const int max_wait_usec = 2000000;
+  static const int slice_usec    =    5000;
   int waited = 0;
+
+  boolean ok = true;
   while (sent < len) {
     ssize_t n = write(fd, buf+sent, len-sent);
     if (n > 0) {
@@ -425,14 +422,22 @@ static boolean write_full(int fd, const char* buf, size_t len) {
     } else if (n < 0 && errno == EINTR) {
       continue;
     } else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-      if (waited >= max_wait_usec) return false;
-      usleep(5000);
-      waited += 5000;
+      if (waited >= max_wait_usec) { ok = false; break; }
+      /* pump the reactor rather than sleeping dead: other links and
+	 timers still need servicing while this one's send buffer is
+	 momentarily full. Same primitive as the ComTerp update() command
+	 (ctrlfunc.c) and LinkSelectFunc::resolve_requests() below -- a
+	 direct bounded reactor yield, not Run()'s heavier GUI/command-queue
+	 dispatch, which this purely socket-level wait has no need of. */
+      ACE_Time_Value timeout(0, slice_usec);
+      ComterpHandler::reactor_singleton()->handle_events(timeout);
+      waited += slice_usec;
     } else {
-      return false;
+      ok = false;
+      break;
     }
   }
-  return true;
+  return ok;
 }
 
 void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
@@ -1124,6 +1129,36 @@ boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
 void DrawServ::unfreeze_fragment(freezeid_t qid) {
   if (_freeze_active && _freeze_qid == qid)
     freeze_release_handle(nil, qid);
+}
+
+void DrawServ::freeze_link_down(DrawLink* link) {
+  if (!_freeze_active) return;
+
+  if (link == _freeze_parent) {
+    /* the direction the held freeze would eventually ack back to, or
+       receive its release from, is gone -- treat it exactly like a
+       release arriving from that direction: thaw whatever children this
+       node has relayed to and drop the hold, rather than leave a stale
+       pointer for a later ack or release to dereference. */
+    freeze_release_handle(link, _freeze_qid);
+    return;
+  }
+
+  if (_freeze_sent_to && _freeze_sent_to->Includes(link)) {
+    /* a relay target this node is still waiting on died before acking --
+       its loss can't block the hold forever, so count it as answered and
+       drop it before a later release flood can reach it. */
+    _freeze_sent_to->Remove(link);
+    if (_freeze_acks_pending > 0) _freeze_acks_pending--;
+    if (_freeze_acks_pending > 0) return;
+    if (_freeze_parent != nil) {
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", _freeze_qid);
+      SendCmdString(_freeze_parent, buf);
+    } else {
+      _freeze_done = true;
+    }
+  }
 }
 
 boolean DrawServ::cycletest(uuid_t sid, const char* host, const char* user, int pid)

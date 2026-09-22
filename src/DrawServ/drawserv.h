@@ -283,6 +283,22 @@ protected:
   void freeze_clear();
   // drop the local hold unconditionally, without flooding a release
 
+  void freeze_link_down(DrawLink* link);
+  // clean up any freeze bookkeeping that names link before it goes away:
+  // if link is the held freeze's parent, release it as if the release had
+  // arrived from that direction; if link is a still-unacked relay target,
+  // count it as acked and drop it, so its loss can never dangle a pointer
+  // or leave the local hold waiting on an ack that will never come
+
+  boolean write_full(int fd, const char* buf, size_t len);
+  // write len bytes to fd, retrying past a short write or a transient
+  // EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's
+  // socket is nonblocking (DrawLink::open()), so a completely healthy
+  // send can still hit EAGAIN whenever the kernel's socket send buffer is
+  // momentarily full; pumps the reactor while it waits so other links and
+  // timers keep being serviced, bounded so a peer that stops reading
+  // entirely doesn't hang the wait forever.
+
 };
 
 #endif

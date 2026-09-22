@@ -170,43 +170,33 @@ void DrawLinkFunc::execute() {
       uuid_generate(linkid);
     }
 
-    /* the one_way cycletest and the dial-and-wait below read and act on
-       this node's own local fragment, so no other link formation may be
-       changing it concurrently -- freeze it for the duration and release
-       before returning. The two_way leg (statenum==two_way) needs no
-       freeze of its own: when it resolves a link this node is itself
-       still dialing (the only case where it acts on anything), it runs
-       nested inside that dial's own still-active wait loop below, reached
-       via the Run() pumped there, so it is already covered by that outer
-       hold -- freezing again here would be this node contending with
-       itself. */
+    /* freeze the local fragment for the duration of the cycle check and
+       dial-and-wait below; see HACKING.md's "Linkfreeze Protocol". The
+       two_way leg needs no freeze of its own -- it runs nested inside its
+       own dial's still-active wait loop, already covered by that hold. */
     boolean did_freeze = false;
     freezeid_t freeze_qid;
     if (statenum != DrawLink::two_way) {
       did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
 
-      /* a freeze already held here when WE are the one dialing out is our
-	 own doing, not a peer's -- most often our own accept of some other
-	 inbound link, still pending its own two_way confirmation. Waiting
-	 it out risks no deadlock (there is no peer on the other side of
-	 that wait, just our own event loop settling itself), so pump the
-	 reactor briefly and retry instead of failing the dial outright. An
-	 incoming dial (one_way) is the genuine peer-vs-peer case the
-	 instant-decline design exists for and still declines on the spot. */
+      /* dialing out against our own already-held freeze retries rather
+	 than declining -- see HACKING.md's "Linkfreeze Protocol". */
       if (!did_freeze && statenum == DrawLink::new_link) {
 	static const int max_wait_usec = 5000000;  // 5 second overall timeout
 	static const int slice_usec    =    5000;  // 5ms per slice
 	int elapsed = 0;
 
-	long oldsec, oldusec;
-	((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
+	/* the confirmation this retry is waiting on arrives over a link's
+	   socket, serviced by a handler registered directly on this same
+	   reactor -- so a direct bounded yield reaches it, the same
+	   primitive the update() command wraps (ctrlfunc.c), without
+	   Run()'s heavier GUI/command-queue dispatch. */
 	while (!did_freeze && elapsed < max_wait_usec) {
-	  ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
-	  ((OverlayUnidraw*)unidraw)->Run();
+	  ACE_Time_Value timeout(0, slice_usec);
+	  ComterpHandler::reactor_singleton()->handle_events(timeout);
 	  elapsed += slice_usec;
 	  did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
 	}
-	((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
       }
 
       if (!did_freeze) {
@@ -325,14 +315,9 @@ void DrawLinkFunc::execute() {
         return;
       }
     }
-    /* the dialing side's own link has now settled (two_way, redundant, or
-       torn down above on timeout), so its hold can go -- but the accepting
-       side's one_way entry has not: it only actually reaches two_way in a
-       later, separate message, so releasing here would thaw this node
-       while that decision is still uncommitted. Carry the hold on the link
-       instead and release it when that later message arrives (or, should
-       this link never get there, when it is eventually torn down --
-       linkdown() releases any pending hold it finds). */
+    /* the dialing side's hold can go now that its own link has settled;
+       the accepting side's is carried on the link and deferred -- see
+       HACKING.md's "Linkfreeze Protocol". */
     if (did_freeze) {
       if (statenum == DrawLink::new_link || link == nil)
         ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);

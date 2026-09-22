@@ -72,6 +72,46 @@ instance evaluates it in its own interpreter — the REPL IS the wire
 protocol.  This means the script must be valid ComTerp and must
 produce the same visual result as the local command.
 
+## Linkfreeze Protocol
+
+Before finalizing a link formation (`DrawLinkFunc::execute()` in
+`drawfunc.c`), a node floods a "freeze" request across its own
+already-established (`two_way`) links and waits for every neighbor to
+echo an ack, proving its local fragment is quiescent, then runs
+`cycletest()` against that now-guaranteed-stable view. Without this, two
+nodes closing links into the same fragment concurrently can each see a
+locally-stale, no-cycle answer and jointly close a cycle that neither
+could see forming alone (issue #575). `DrawServ::freeze_fragment()` /
+`unfreeze_fragment()` / `freeze_request_handle()` / `freeze_ack_handle()`
+/ `freeze_release_handle()` (`drawserv.c`) implement the flood; see their
+header doc comments in `drawserv.h` for the wave/echo mechanics (a
+parallel, breadth-first request flood down an implicit spanning tree,
+with acks climbing back up the same tree).
+
+**Instant/non-blocking against peers.** A node already holding a freeze
+declines an incoming dial (`one_way`) outright rather than waiting for
+its own hold to clear — waiting would risk a symmetric deadlock against a
+peer doing the same wait for the same reason.
+
+**Retry against itself.** The one exception is an outgoing dial
+(`new_link`) finding its own freeze already active: that's virtually
+always its own accept of some other, unrelated inbound link, still
+pending that link's own two_way confirmation — not a peer to deadlock
+against, just this node's own event loop settling itself. So instead of
+declining, it pumps the reactor briefly and retries, bounded, before
+giving up.
+
+**Deferred release on accept.** An accepting node's freeze only actually
+resolves once that link reaches `two_way`, a later, separate message —
+releasing right after cycletest would thaw the node while that decision
+is still uncommitted. The hold is carried on the `DrawLink` itself
+(`pending_freeze()`/`has_pending_freeze()`/`clear_pending_freeze()` in
+`drawlink.h`) and released when that message arrives, or by `linkdown()`
+as a safety net if the link is torn down first (including cleaning up a
+relay's `_freeze_parent`/`_freeze_sent_to` bookkeeping if the link that
+dies was playing one of those roles in a freeze this node is currently a
+party to — `DrawServ::freeze_link_down()`).
+
 ## See Also
 
 - `src/ComTerp/HACKING.md`

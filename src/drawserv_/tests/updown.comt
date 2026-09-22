@@ -1358,27 +1358,12 @@ active_link_count=func(
   for(i=0 i<size(tbl) i++ if(at(tbl i).state!=3 :then n=n+1));
   n)
 
-/* ringpair test -- two long chains closed into a pair by linking both ends
-   at once.  Each closing drawlink() starts a session-id propagation wave
-   across the whole chain it lands on; firing both concurrently lets the two
-   waves cross while both links are still forming, which is when a cycle the
-   settled-state cycletest() alone cannot see becomes possible -- see the
-   design note on this in issue #575.
-
-   A linkfreeze wave serializes the two closings against a cycle, but not
-   against each other: freezing is instant/non-blocking (waiting for a busy
-   fragment to clear would deadlock symmetrically against a peer doing the
-   same wait), so when both closings land at the same instant, each side
-   simply declines rather than risk a cycle. Either of two outcomes is
-   therefore correct here: one closing wins and the other is benched (all
-   2*chainlen physical links kept, 2*chainlen-1 active, every node knowing
-   all 2*chainlen session ids), or both decline and the chains stay separate
-   (2*chainlen-2 physical links, all active, each chain's nodes knowing only
-   their own chainlen session ids). What must never happen is a ring (more
-   than 2*chainlen-1 active edges) or a node cut off from its own chain.
-
-   chainlen defaults to 5 (10 nodes total) if not passed as a keyword;
-   ringpair10_test below reruns the same body at chainlen=10. */
+/* ringpair test -- closes two long chains into a pair at both ends at once,
+   so the two closing links' session-id propagation waves can cross while
+   both are still forming; see TESTING.md's "ringpair, ringpair10" section
+   for the race and its two accepted outcomes (issue #575). chainlen
+   defaults to 5 (10 nodes total) if not passed as a keyword; ringpair10_test
+   below reruns the same body at chainlen=10. */
 ringpair_test=func(
 
   if(chainlen==nil :then chainlen=5);
