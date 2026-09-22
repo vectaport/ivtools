@@ -120,6 +120,7 @@ void DrawServ::Init() {
 
   _freeze_active = false;
   _freeze_qid = 0;
+  _freeze_generation = 0;
   _freeze_parent = nil;
   _freeze_sent_to = nil;
   _freeze_acks_pending = 0;
@@ -1029,23 +1030,21 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
 
   _freeze_active = true;
   _freeze_qid = qid;
+  unsigned long my_generation = ++_freeze_generation;
   _freeze_parent = fromlink;
   _freeze_done = false;
   _freeze_sent_to = new DrawLinkList;
-
-  char buf[BUFSIZ];
-  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
 
   Iterator it;
   _linklist->First(it);
   while (!_linklist->Done(it)) {
     DrawLink* l = _linklist->GetDrawLink(it);
-    if (l != fromlink && l->state() == DrawLink::two_way) {
+    if (l != fromlink && l->state() == DrawLink::two_way)
       _freeze_sent_to->add_drawlink(l);
-      SendCmdString(l, buf);
-    }
     _linklist->Next(it);
   }
+
+  char buf[BUFSIZ];
 
   // no other established links to relay to: this hold is already
   // complete, so ack back (or, if self-originated, finish) right away
@@ -1057,7 +1056,30 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
     } else {
       _freeze_done = true;
     }
+    return;
   }
+
+  // sends walk a private snapshot, not _freeze_sent_to itself, which can
+  // be mutated out from under a live iterator while a send is in flight.
+  DrawLinkList* targets = new DrawLinkList;
+  Iterator si;
+  _freeze_sent_to->First(si);
+  while (!_freeze_sent_to->Done(si)) {
+    targets->Append(_freeze_sent_to->GetDrawLink(si));
+    _freeze_sent_to->Next(si);
+  }
+
+  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
+  Iterator ti;
+  targets->First(ti);
+  while (!targets->Done(ti)) {
+    DrawLink* l = targets->GetDrawLink(ti);
+    if (_freeze_active && _freeze_generation == my_generation &&
+	_freeze_sent_to && _freeze_sent_to->Includes(l))
+      SendCmdString(l, buf);
+    targets->Next(ti);
+  }
+  delete targets;
 }
 
 void DrawServ::freeze_ack_handle(DrawLink* fromlink, freezeid_t qid) {
@@ -1078,18 +1100,34 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
   if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
   if (fromlink != nil && fromlink != _freeze_parent) return; // release only ever arrives from the parent direction
 
+  unsigned long my_generation = _freeze_generation;
+
   if (_freeze_sent_to) {
+    // same snapshot need as freeze_request_handle(): this episode itself
+    // can be cleared or replaced while a send below is in flight.
+    DrawLinkList* targets = new DrawLinkList;
+    Iterator si;
+    _freeze_sent_to->First(si);
+    while (!_freeze_sent_to->Done(si)) {
+      targets->Append(_freeze_sent_to->GetDrawLink(si));
+      _freeze_sent_to->Next(si);
+    }
+
     char buf[BUFSIZ];
     snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :thaw)", qid);
-    Iterator it;
-    _freeze_sent_to->First(it);
-    while (!_freeze_sent_to->Done(it)) {
-      DrawLink* l = _freeze_sent_to->GetDrawLink(it);
-      if (l->state() == DrawLink::two_way) SendCmdString(l, buf);
-      _freeze_sent_to->Next(it);
+    Iterator ti;
+    targets->First(ti);
+    while (!targets->Done(ti)) {
+      DrawLink* l = targets->GetDrawLink(ti);
+      if (_freeze_active && _freeze_generation == my_generation && _freeze_sent_to &&
+	  _freeze_sent_to->Includes(l) && l->state() == DrawLink::two_way)
+	SendCmdString(l, buf);
+      targets->Next(ti);
     }
+    delete targets;
   }
-  freeze_clear();
+
+  if (_freeze_active && _freeze_generation == my_generation) freeze_clear();
 }
 
 boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {

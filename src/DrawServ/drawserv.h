@@ -276,6 +276,10 @@ protected:
   // or as a relay
   freezeid_t _freeze_qid;
   // id of the freeze held in _freeze_active
+  unsigned long _freeze_generation;
+  // bumped each time _freeze_active turns on; unlike _freeze_qid (32 bits,
+  // taken from a peer message or truncated from a uuid) it never repeats,
+  // so a send loop can tell this exact episode from a same-qid successor
   DrawLink* _freeze_parent;
   // link the held freeze's request arrived from; nil when self-originated
   DrawLinkList* _freeze_sent_to;
