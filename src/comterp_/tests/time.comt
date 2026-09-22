@@ -665,15 +665,21 @@ c78=time(c77 :ms)
 ok=ok&&(class(c78)=="TimeObj" && time(c78 :msec)==123 && time(c78 :usec)==456 && time(c78 :nsec)==789)
 print("78 :msec/:usec/:nsec don't disturb :ms/:us/:ns as precision modifiers (expect TimeObj true true true): %v %v %v %v\n" class(c78) (time(c78 :msec)==123) (time(c78 :usec)==456) (time(c78 :nsec)==789))
 
-// --- 79: true/false/blank()/empty() are placeholders, not real values --
-// they count as vacant too, so a stream of them (empty**N) can drive
-// repeated time() captures the same way an absent argument does ---
+// --- 79: true/false are placeholders, not real values -- they count as
+// vacant, same as an absent argument, and still capture now ---
 t79a=time(true)
 t79b=time(false)
+ok=ok&&(t79a!=nil && t79b!=nil)
+print("79 time(true/false) count as vacant, still capture now (expect true true): %v %v\n" (t79a!=nil) (t79b!=nil))
+
+// --- 79b: blank()/empty() are an ongoing stream's not-yet tick, not an
+// absent argument -- they propagate as blank instead of capturing now,
+// so a stream of them (empty**N) drives repeated blank ticks rather than
+// repeated captures ---
 t79c=time(blank())
 t79d=time(empty())
-ok=ok&&(t79a!=nil && t79b!=nil && t79c!=nil && t79d!=nil)
-print("79 time(true/false/blank()/empty()) count as vacant, still capture now (expect true true true true): %v %v %v %v\n" (t79a!=nil) (t79b!=nil) (t79c!=nil) (t79d!=nil))
+ok=ok&&(t79c==blank() && t79d==blank())
+print("79b time(blank()/empty()) propagate as blank (expect blank blank): %v %v\n" t79c t79d)
 
 print("time: %v\n" ok)
 ok

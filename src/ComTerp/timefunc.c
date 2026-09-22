@@ -1061,17 +1061,22 @@ void TimeFunc::execute() {
   } else if (timev.is_timeobj()) {
     timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
   } else {
-    /* absent, or a Boolean/blank placeholder -- none of these name a
-       value time() could read a date from, so all count as "no real
-       argument" the same as leaving the slot out entirely. */
-    boolean vacant = timev.is_null() || timev.is_boolean() || timev.is_blank();
-    if (vacant && !(raw_present || mono_present)) {
+    /* absent, or a Boolean placeholder -- neither names a value time()
+       could read a date from, so both count as "no real argument" the
+       same as leaving the slot out entirely. */
+    boolean vacant = timev.is_null() || timev.is_boolean();
+    if (timev.is_blank() && !(raw_present || mono_present)) {
+      /* an ongoing stream's not-yet tick, not an absent argument --
+	 propagates as blank rather than capturing now. */
+      push_stack(ComValue::blankval());
+      return;
+    } else if (vacant && !(raw_present || mono_present)) {
       /* capture now.  This is the same precedent date()'s own field
 	 keywords use over today's date when no positional DateObj is
 	 given, extended to time()'s own bare capture. */
       timeobj = new TimeObj();
       owns = true;
-    } else if (!vacant && !(raw_present || mono_present)) {
+    } else if (!vacant && !timev.is_blank() && !(raw_present || mono_present)) {
       /* a positional argument was given but isn't one of the recognized
 	 instant shapes -- report nil rather than silently discarding it
 	 and capturing now. */
