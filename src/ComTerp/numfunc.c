@@ -202,6 +202,21 @@ static long timeobj_ns(TimeObj* t) {
   return timespec_scaled(t->raw(), true, false, false);
 }
 
+/* a signed 64-bit nanosecond count only spans roughly 1677-2262; these
+   report overflow instead of letting a boundary instant or a multi-year
+   duration wrap silently. */
+static boolean ns_add_safe(long a, long b, long& sum) {
+  return !__builtin_add_overflow(a, b, &sum);
+}
+
+static boolean ns_sub_safe(long a, long b, long& diff) {
+  return !__builtin_sub_overflow(a, b, &diff);
+}
+
+static boolean ns_mul_safe(long a, long b, long& prod) {
+  return !__builtin_mul_overflow(a, b, &prod);
+}
+
 /* whole days a duration's nanosecond count spans, floored toward negative
    infinity rather than truncated toward zero -- "-30 hours" floors to -2
    days, not -1, the same convention date arithmetic libraries use so that
@@ -218,7 +233,9 @@ static long ns_to_floor_days(long ns) {
    TimeObj ctor doesn't (see TimeObj-copy-paths in timefunc.c); mono stays
    zeroed, matching every other computed (non-capture) instant. */
 static TimeObj* timeobj_shift(TimeObj* instant, long delta_ns) {
-  TimeObj* t = new TimeObj(nsec_to_timespec(timeobj_ns(instant) + delta_ns), instant->tzoff());
+  long ns;
+  if (!ns_add_safe(timeobj_ns(instant), delta_ns, ns)) return nil;
+  TimeObj* t = new TimeObj(nsec_to_timespec(ns), instant->tzoff());
   t->precision(instant->precision());
   return t;
 }
@@ -349,11 +366,21 @@ void AddFunc::execute() {
 	    fprintf(stderr, "Unhandled add: TimeObj instant + TimeObj instant (line %d)\n", funcstate()->linenum());
 	    result = ComValue::nullval();
 	  } else if (t1->delta() && t2->delta()) {
-	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(timeobj_ns(t1) + timeobj_ns(t2)));
+	    long sum_ns;
+	    if (!ns_add_safe(timeobj_ns(t1), timeobj_ns(t2), sum_ns)) {
+	      fprintf(stderr, "Unhandled add: TimeObj duration + TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(sum_ns));
 	  } else {
 	    TimeObj* instant = t1->delta() ? t2 : t1;
 	    TimeObj* duration = t1->delta() ? t1 : t2;
-	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_shift(instant, timeobj_ns(duration)));
+	    TimeObj* shifted = timeobj_shift(instant, timeobj_ns(duration));
+	    if (!shifted) {
+	      fprintf(stderr, "Unhandled add: TimeObj instant + TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)shifted);
 	  }
 
 	} else if (operand1.is_attributelist() && operand2.is_attributelist()) {
@@ -456,7 +483,12 @@ void SubFunc::execute() {
 	} else if (operand1.is_dateobj() && operand2.is_dateobj()) {
 	  Date& d1 = *((DateObj*)operand1.geta(DateObj::class_symid()))->date();
 	  Date& d2 = *((DateObj*)operand2.geta(DateObj::class_symid()))->date();
-	  result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration((long)(d1 - d2) * NSEC_PER_DAY));
+	  long span_ns;
+	  if (!ns_mul_safe((long)(d1 - d2), NSEC_PER_DAY, span_ns)) {
+	    fprintf(stderr, "Unhandled subtraction: DateObj - DateObj span overflows (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else
+	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(span_ns));
 
 	} else if (operand1.is_dateobj() && operand2.is_timeobj()) {
 	  TimeObj* rhs = (TimeObj*)operand2.geta(TimeObj::class_symid());
@@ -477,10 +509,21 @@ void SubFunc::execute() {
 	  TimeObj* t2 = (TimeObj*)operand2.geta(TimeObj::class_symid());
 	  if (t1->delta() == t2->delta()) {
 	    // Ti-Ti or Td-Td: a same-kind difference is a duration, can go negative
-	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(timeobj_ns(t1) - timeobj_ns(t2)));
+	    long diff_ns;
+	    if (!ns_sub_safe(timeobj_ns(t1), timeobj_ns(t2), diff_ns)) {
+	      fprintf(stderr, "Unhandled subtraction: TimeObj - TimeObj span overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(diff_ns));
 	  } else if (!t1->delta() && t2->delta()) {
 	    // Ti-Td: instant moved back by the duration's elapsed time
-	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_shift(t1, -timeobj_ns(t2)));
+	    long negated_ns;
+	    TimeObj* shifted = ns_sub_safe(0, timeobj_ns(t2), negated_ns) ? timeobj_shift(t1, negated_ns) : nil;
+	    if (!shifted) {
+	      fprintf(stderr, "Unhandled subtraction: TimeObj instant - TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)shifted);
 	  } else {
 	    // Td-Ti: a span minus an instant isn't meaningful
 	    fprintf(stderr, "Unhandled subtraction: TimeObj duration - TimeObj instant (line %d)\n", funcstate()->linenum());

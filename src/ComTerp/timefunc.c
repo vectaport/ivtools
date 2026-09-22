@@ -183,11 +183,8 @@ static long years_to_days(long years) {
 
 void TimeObj::printOn(ostream& out) const {
   if (_delta) {
-    /* a duration isn't anchored to any calendar instant, so its days/years
-       come from a synthetic 4-year cycle rather than gmtime_r(). A negative
-       duration decomposes by magnitude (never a per-field negative, which
-       would print "-1:-30" for -90 seconds instead of the one leading sign
-       "-1:30" a reader expects) -- one leading "-" on the whole value. */
+    /* Durations use a synthetic 4-year cycle rather than gmtime_r(). Negative
+       durations decompose by magnitude with one leading sign. */
     long total = (long)_raw.tv_sec;
     boolean negative = total < 0;
     if (negative) total = -total;
