@@ -4,7 +4,7 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair10 sel parsetest optabletest
+#          updown4C ring ringpair ringpair10 sel eagain parsetest optabletest
 #          gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #
@@ -26,6 +26,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      ringpair            two long chains closed at both ends at once\n");
     print("      ringpair10          ringpair at 20 nodes\n");
     print("      sel                 an answer that has to cross a relay\n");
+    print("      eagain              write_full()'s EAGAIN retry, forced by a stalled peer\n");
     print("      parsetest optabletest\n");
     print("                          parser and operator table\n");
     print("      gsexim gsbrushA gsbrushB\n");
@@ -101,6 +102,7 @@ grid_has_id=func(
 run("./updown.comt")
 run("./gstests.comt")
 run("./sel.comt")
+run("./eagain.comt")
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -125,6 +127,13 @@ if(tests_flag :then
         print("sel: pass\n" :err)
       :else
         print("sel: FAIL\n" :err);
+        ok=false));
+    if(t==`eagain || t==`all :then
+      print("running eagain test\n" :err);
+      if(eagain_test(:dummy 0) :then
+        print("eagain: pass\n" :err)
+      :else
+        print("eagain: FAIL\n" :err);
         ok=false));
     if(t==`updown1 || t==`all :then
       print("running updown1 test\n" :err);
