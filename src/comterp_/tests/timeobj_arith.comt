@@ -1,0 +1,138 @@
+// src/comterp_/tests/timeobj_arith.comt -- +/- on DateObj/TimeObj
+
+// funcs: date time class + -
+
+// DateObj/TimeObj + and - extend the existing DateObj + int (days)
+// support to every DateObj/TimeObj-instant/TimeObj-duration combination
+// that has a real answer; every other combination (two dates added, an
+// instant added to another instant, a duration minus an instant, a
+// DateObj mixed with a TimeObj instant) is nil -- there is no meaningful
+// result, so none is manufactured. A non-day-aligned DateObj +/- duration
+// floors silently to whole days. A negative duration (an earlier instant
+// minus a later one, or a longer duration minus a shorter one) is
+// meaningful information, not an error -- printOn() shows it with one
+// leading "-" over positive-magnitude fields ("-1:12:0:0"), never a sign
+// on every field.
+
+ok=true
+
+d1=date(2026:Sep:21)
+d2=date(2026:Sep:25)
+
+// --- 1: DateObj + int is unchanged by this work ---
+ok=ok&&(d1+4==d2)
+print("1 date(2026:Sep:21)+4 (expect 2026:Sep:25): %v\n" d1+4)
+
+// --- 2: DateObj - int is unchanged by this work ---
+ok=ok&&(d2-4==d1)
+print("2 date(2026:Sep:25)-4 (expect 2026:Sep:21): %v\n" d2-4)
+
+// --- 3: DateObj - DateObj is a duration, the whole-day span between them ---
+diff=d2-d1
+ok=ok&&(class(diff)=="TimeObj" && time(diff :delta) && diff==time(4:0:0:0))
+print("3 date(2026:Sep:25)-date(2026:Sep:21) (expect TimeObj duration true, 4:0:0): %v %v %v\n" class(diff) time(diff :delta) diff)
+
+// --- 4: DateObj + DateObj has no meaning -- adding two dates isn't a date ---
+r4=d1+d2
+ok=ok&&(r4==nil)
+print("4 date(2026:Sep:21)+date(2026:Sep:25) (expect nil): %v\n" r4)
+
+// --- 5: DateObj + TimeObj duration advances the date by the duration's
+//        whole days, floored -- 1 day 12 hours floors to 1 day, not 2 ---
+tdbig=time(1:12:0:0)
+ok=ok&&(class(tdbig)=="TimeObj" && time(tdbig :delta))
+r5=d1+tdbig
+ok=ok&&(r5==date(2026:Sep:22))
+print("5 date(2026:Sep:21)+time(1:12:0:0) floors 1.5 days to 1 (expect 2026:Sep:22): %v\n" r5)
+
+// --- 6: TimeObj duration + DateObj commutes with test 5 ---
+r6=tdbig+d1
+ok=ok&&(r6==date(2026:Sep:22))
+print("6 time(1:12:0:0)+date(2026:Sep:21) commutes (expect 2026:Sep:22): %v\n" r6)
+
+// --- 7: DateObj - TimeObj duration subtracts the same floored days ---
+r7=d1-tdbig
+ok=ok&&(r7==date(2026:Sep:20))
+print("7 date(2026:Sep:21)-time(1:12:0:0) floors 1.5 days to 1 (expect 2026:Sep:20): %v\n" r7)
+
+// --- 8: a negative duration floors toward -infinity, not toward zero --
+//        -1.5 days floors to -2, so adding it moves back two full days ---
+zero=time(0:0:0)
+negbig=zero-tdbig
+ok=ok&&(print(negbig :str)=="-1:12:0:0")
+r8=d1+negbig
+ok=ok&&(r8==date(2026:Sep:19))
+print("8 date(2026:Sep:21)+(zero-time(1:12:0:0)) floors -1.5 to -2 (expect -1:12:0:0, 2026:Sep:19): %v %v\n" print(negbig :str) r8)
+
+// --- 9: subtracting that same negative duration floors the same way,
+//        landing two days later instead of earlier ---
+r9=d1-negbig
+ok=ok&&(r9==date(2026:Sep:23))
+print("9 date(2026:Sep:21)-(zero-time(1:12:0:0)) (expect 2026:Sep:23): %v\n" r9)
+
+// --- 10: DateObj +/- a TimeObj instant is a mixed-kind error, nil ---
+ti=time(2026:Sep:21:10:0:0:0)
+r10a=d1+ti
+r10b=d1-ti
+r10c=ti-d1
+ok=ok&&(r10a==nil && r10b==nil && r10c==nil)
+print("10 date+instant, date-instant, instant-date (expect nil nil nil): %v %v %v\n" r10a r10b r10c)
+
+// --- 11: TimeObj instant + TimeObj duration advances raw() by the
+//         duration's elapsed time, keeping tzoff/precision ---
+ti2=time(2026:Sep:21:10:0:0:0)
+td2=time(0:30:0)
+r11=ti2+td2
+ok=ok&&(r11==time(2026:Sep:21:10:30:0:0))
+print("11 time(2026:Sep:21:10:0:0:0)+time(0:30:0) (expect 2026:Sep:21:10:30:0): %v\n" r11)
+
+// --- 12: TimeObj duration + TimeObj instant commutes with test 11 ---
+r12=td2+ti2
+ok=ok&&(r12==time(2026:Sep:21:10:30:0:0))
+print("12 time(0:30:0)+time(2026:Sep:21:10:0:0:0) commutes (expect 2026:Sep:21:10:30:0): %v\n" r12)
+
+// --- 13: TimeObj instant - TimeObj duration moves the instant back ---
+r13=ti2-td2
+ok=ok&&(r13==time(2026:Sep:21:9:30:0:0))
+print("13 time(2026:Sep:21:10:0:0:0)-time(0:30:0) (expect 2026:Sep:21:9:30:0): %v\n" r13)
+
+// --- 14: TimeObj instant - TimeObj instant is the span between them, a
+//         duration -- positive when the earlier instant is subtracted ---
+ti3=time(2026:Sep:21:10:30:0:0)
+diff2=ti3-ti2
+ok=ok&&(class(diff2)=="TimeObj" && time(diff2 :delta) && diff2==time(0:30:0))
+print("14 time(...:10:30:0)-time(...:10:0:0) (expect TimeObj duration true, 0:30:0): %v %v %v\n" class(diff2) time(diff2 :delta) diff2)
+
+// --- 15: the same subtraction reversed goes negative -- an earlier
+//         instant minus a later one is meaningful, not an error ---
+diff3=ti2-ti3
+ok=ok&&(print(diff3 :str)=="-30:0")
+print("15 time(...:10:0:0)-time(...:10:30:0) (expect -30:0): %v\n" print(diff3 :str))
+
+// --- 16: TimeObj instant + TimeObj instant has no meaning -- adding two
+//         calendar instants isn't a calendar instant ---
+r16=ti2+ti3
+ok=ok&&(r16==nil)
+print("16 time(...)+time(...) two instants (expect nil): %v\n" r16)
+
+// --- 17: TimeObj duration + TimeObj duration sums the elapsed time ---
+td3=time(0:10:0)
+td4=time(0:20:0)
+sumd=td3+td4
+ok=ok&&(class(sumd)=="TimeObj" && time(sumd :delta) && sumd==time(0:30:0))
+print("17 time(0:10:0)+time(0:20:0) (expect TimeObj duration true, 0:30:0): %v %v %v\n" class(sumd) time(sumd :delta) sumd)
+
+// --- 18: TimeObj duration - TimeObj duration can go negative -- a
+//         shorter duration minus a longer one is meaningful ---
+diffd=td3-td4
+ok=ok&&(print(diffd :str)=="-10:0")
+print("18 time(0:10:0)-time(0:20:0) (expect -10:0): %v\n" print(diffd :str))
+
+// --- 19: TimeObj duration - TimeObj instant has no meaning -- a span
+//         minus a calendar instant isn't a span ---
+r19=td3-ti2
+ok=ok&&(r19==nil)
+print("19 time(0:10:0)-time(...) duration-instant (expect nil): %v\n" r19)
+
+print("timeobj_arith: %v\n" ok)
+ok

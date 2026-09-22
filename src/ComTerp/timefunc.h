@@ -110,6 +110,14 @@ class TimeObj {
   CLASS_SYMID("TimeObj");
 };
 
+/* a timespec's full nanosecond-precision reading (ns=true) or its :us/:ms
+   scaling, and the inverse construction from a signed nanosecond count --
+   shared by time()'s :raw/:mono/:ns/:us/:ms handling (timefunc.c) and
+   numfunc.c's DateObj/TimeObj +/- operators, both of which need the same
+   round-tripping arithmetic on a timespec. */
+long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, boolean ms);
+struct timespec nsec_to_timespec(long nsec_since);
+
 //: date makes date from days since 1/1/1901, a string, or a TimeObj's
 // calendar date -- nil if that TimeObj carries no date (the epoch-date
 // sentinel, see TimeObj above).

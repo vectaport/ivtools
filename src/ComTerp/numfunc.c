@@ -193,6 +193,68 @@ void NumFunc::promote(ComValue& op1, ComValue& op2) {
 
 /*****************************************************************************/
 
+static const long NSEC_PER_DAY = 86400L * 1000000000L;
+
+/* full-precision nanoseconds-since-epoch/boot a TimeObj's raw() holds --
+   negative for a duration elapsed "backwards" or an instant before the
+   epoch. */
+static long timeobj_ns(TimeObj* t) {
+  return timespec_scaled(t->raw(), true, false, false);
+}
+
+/* a signed 64-bit nanosecond count only spans roughly 1677-2262; these
+   report overflow instead of letting a boundary instant or a multi-year
+   duration wrap silently. */
+static boolean ns_add_safe(long a, long b, long& sum) {
+  return !__builtin_add_overflow(a, b, &sum);
+}
+
+static boolean ns_sub_safe(long a, long b, long& diff) {
+  return !__builtin_sub_overflow(a, b, &diff);
+}
+
+static boolean ns_mul_safe(long a, long b, long& prod) {
+  return !__builtin_mul_overflow(a, b, &prod);
+}
+
+/* whole days a duration's nanosecond count spans, floored toward negative
+   infinity rather than truncated toward zero -- "-30 hours" floors to -2
+   days, not -1, the same convention date arithmetic libraries use so that
+   adding the floored days and the remainder always reconstructs the
+   original span. */
+static long ns_to_floor_days(long ns) {
+  long days = ns / NSEC_PER_DAY;
+  if (ns % NSEC_PER_DAY < 0) days--;
+  return days;
+}
+
+/* a new instant TimeObj, raw() shifted by delta_ns (negative moves it
+   earlier) -- tzoff/precision carry over from the source since the 2-arg
+   TimeObj ctor doesn't (see TimeObj-copy-paths in timefunc.c); mono stays
+   zeroed, matching every other computed (non-capture) instant. */
+static TimeObj* timeobj_shift(TimeObj* instant, long delta_ns) {
+  long ns;
+  if (!ns_add_safe(timeobj_ns(instant), delta_ns, ns)) return nil;
+  TimeObj* t = new TimeObj(nsec_to_timespec(ns), instant->tzoff());
+  t->precision(instant->precision());
+  return t;
+}
+
+/* a new duration TimeObj holding total_ns elapsed (negative is a valid,
+   meaningful duration -- see the operators plan's decision to allow it). */
+static TimeObj* timeobj_duration(long total_ns) {
+  TimeObj* t = new TimeObj(nsec_to_timespec(total_ns), 0);
+  t->delta(true);
+  return t;
+}
+
+/* a copy of d with days (possibly negative) added to its calendar date. */
+static DateObj* dateobj_shift(DateObj* d, long days) {
+  DateObj* result = new DateObj(d);
+  *result->date() = ((const Date)*result->date()) + (int)days;
+  return result;
+}
+
 AddFunc::AddFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
@@ -272,6 +334,54 @@ void AddFunc::execute() {
           int addend = operand2.int_val();
 	  *dateobj->date() = ((const Date)*dateobj->date()) + addend;
 	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
+
+	} else if (operand1.is_dateobj() && operand2.is_dateobj()) {
+	  fprintf(stderr, "Unhandled add: DateObj + DateObj (line %d)\n", funcstate()->linenum());
+	  result = ComValue::nullval();
+
+	} else if (operand1.is_dateobj() && operand2.is_timeobj()) {
+	  TimeObj* rhs = (TimeObj*)operand2.geta(TimeObj::class_symid());
+	  if (!rhs->delta()) {
+	    fprintf(stderr, "Unhandled add: DateObj + TimeObj instant (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else {
+	    DateObj* lhs = (DateObj*)operand1.geta(DateObj::class_symid());
+	    result = ComValue(DateObj::class_symid(), (void*)dateobj_shift(lhs, ns_to_floor_days(timeobj_ns(rhs))));
+	  }
+
+	} else if (operand1.is_timeobj() && operand2.is_dateobj()) {
+	  TimeObj* lhs = (TimeObj*)operand1.geta(TimeObj::class_symid());
+	  if (!lhs->delta()) {
+	    fprintf(stderr, "Unhandled add: TimeObj instant + DateObj (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else {
+	    DateObj* rhs = (DateObj*)operand2.geta(DateObj::class_symid());
+	    result = ComValue(DateObj::class_symid(), (void*)dateobj_shift(rhs, ns_to_floor_days(timeobj_ns(lhs))));
+	  }
+
+	} else if (operand1.is_timeobj() && operand2.is_timeobj()) {
+	  TimeObj* t1 = (TimeObj*)operand1.geta(TimeObj::class_symid());
+	  TimeObj* t2 = (TimeObj*)operand2.geta(TimeObj::class_symid());
+	  if (!t1->delta() && !t2->delta()) {
+	    fprintf(stderr, "Unhandled add: TimeObj instant + TimeObj instant (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else if (t1->delta() && t2->delta()) {
+	    long sum_ns;
+	    if (!ns_add_safe(timeobj_ns(t1), timeobj_ns(t2), sum_ns)) {
+	      fprintf(stderr, "Unhandled add: TimeObj duration + TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(sum_ns));
+	  } else {
+	    TimeObj* instant = t1->delta() ? t2 : t1;
+	    TimeObj* duration = t1->delta() ? t1 : t2;
+	    TimeObj* shifted = timeobj_shift(instant, timeobj_ns(duration));
+	    if (!shifted) {
+	      fprintf(stderr, "Unhandled add: TimeObj instant + TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)shifted);
+	  }
 
 	} else if (operand1.is_attributelist() && operand2.is_attributelist()) {
 	  // merge two attrlists: + is to attrlist as + is to string
@@ -369,7 +479,57 @@ void SubFunc::execute() {
 	  int subtrahend = operand2.int_val();
 	  *dateobj->date() = ((const Date)*dateobj->date()) - subtrahend;
 	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
-	  
+
+	} else if (operand1.is_dateobj() && operand2.is_dateobj()) {
+	  Date& d1 = *((DateObj*)operand1.geta(DateObj::class_symid()))->date();
+	  Date& d2 = *((DateObj*)operand2.geta(DateObj::class_symid()))->date();
+	  long span_ns;
+	  if (!ns_mul_safe((long)(d1 - d2), NSEC_PER_DAY, span_ns)) {
+	    fprintf(stderr, "Unhandled subtraction: DateObj - DateObj span overflows (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else
+	    result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(span_ns));
+
+	} else if (operand1.is_dateobj() && operand2.is_timeobj()) {
+	  TimeObj* rhs = (TimeObj*)operand2.geta(TimeObj::class_symid());
+	  if (!rhs->delta()) {
+	    fprintf(stderr, "Unhandled subtraction: DateObj - TimeObj instant (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  } else {
+	    DateObj* lhs = (DateObj*)operand1.geta(DateObj::class_symid());
+	    result = ComValue(DateObj::class_symid(), (void*)dateobj_shift(lhs, -ns_to_floor_days(timeobj_ns(rhs))));
+	  }
+
+	} else if (operand1.is_timeobj() && operand2.is_dateobj()) {
+	  fprintf(stderr, "Unhandled subtraction: TimeObj - DateObj (line %d)\n", funcstate()->linenum());
+	  result = ComValue::nullval();
+
+	} else if (operand1.is_timeobj() && operand2.is_timeobj()) {
+	  TimeObj* t1 = (TimeObj*)operand1.geta(TimeObj::class_symid());
+	  TimeObj* t2 = (TimeObj*)operand2.geta(TimeObj::class_symid());
+	  if (t1->delta() == t2->delta()) {
+	    // Ti-Ti or Td-Td: a same-kind difference is a duration, can go negative
+	    long diff_ns;
+	    if (!ns_sub_safe(timeobj_ns(t1), timeobj_ns(t2), diff_ns)) {
+	      fprintf(stderr, "Unhandled subtraction: TimeObj - TimeObj span overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)timeobj_duration(diff_ns));
+	  } else if (!t1->delta() && t2->delta()) {
+	    // Ti-Td: instant moved back by the duration's elapsed time
+	    long negated_ns;
+	    TimeObj* shifted = ns_sub_safe(0, timeobj_ns(t2), negated_ns) ? timeobj_shift(t1, negated_ns) : nil;
+	    if (!shifted) {
+	      fprintf(stderr, "Unhandled subtraction: TimeObj instant - TimeObj duration overflows (line %d)\n", funcstate()->linenum());
+	      result = ComValue::nullval();
+	    } else
+	      result = ComValue(TimeObj::class_symid(), (void*)shifted);
+	  } else {
+	    // Td-Ti: a span minus an instant isn't meaningful
+	    fprintf(stderr, "Unhandled subtraction: TimeObj duration - TimeObj instant (line %d)\n", funcstate()->linenum());
+	    result = ComValue::nullval();
+	  }
+
 	} else if (operand1.is_attributelist() && operand2.is_attributelist()) {
 	  // subtract attrlist: remove from al1 any keys present in al2
 	  AttributeList* al1 = (AttributeList*)operand1.obj_val();

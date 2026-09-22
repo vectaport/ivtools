@@ -3086,6 +3086,23 @@ the same way a printed symbol comes back bare and needs `` ` `` added
 back explicitly if quoting was intended. The type is not carried in
 the serialized form; only the reader's own knowledge recovers it.
 
+`date()`/`time()` values (`DateObj`/`TimeObj`) support `==`, `!=`, `<`,
+`<=`, `>`, `>=`, `+` and `-`. Comparison is by value, at full nanosecond
+precision, and only between the same kind: both `DateObj`, or both
+`TimeObj` with matching `:delta` (an instant against an instant, or a
+duration against a duration, never an instant against a duration).
+Comparing mismatched kinds gives `false`/`true` for `==`/`!=` and `nil`
+for ordering, since there's no meaningful answer to manufacture. `+`/`-`
+extend `DateObj +/- int` (days) to also cover `DateObj +/- TimeObj`
+(a duration, floored to whole days), `TimeObj +/- TimeObj` (an instant
+plus/minus a duration advances or retreats it; `DateObj - DateObj` or
+instant `- ` instant gives the span between them as a duration; duration
+`+`/`-` duration sums or differences the elapsed time) -- every other
+combination is `nil`. A negative duration is meaningful, not an error
+(an earlier instant minus a later one, say), and prints with one leading
+`-` over otherwise positive-magnitude fields: `-1:12:0:0`, never
+`-1:-12:-0:-0`.
+
 ## Symbols
 
 A symbol is an interned string — a unique integer id associated with a

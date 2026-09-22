@@ -247,15 +247,18 @@ ok=ok&&(class(c25)=="TimeObj")
 ok=ok&&(time(c25 :mono :ns)==n25)
 print("25 time(:mono N) constructs a TimeObj from nanoseconds N whose time(that :mono :ns) reads back N (expect TimeObj true): %v %v\n" class(c25) (time(c25 :mono :ns)==n25))
 
+// TimeObj == compares raw()/delta() -- the fields printOn() shows -- not
+// mono, so c26 and t26 (identical raw, differing only in mono) are ==;
+// the mono read itself is what proves the reset actually took hold.
 t26=time()
 t26mono0=time(t26 :mono)
 n26=999888777666
 c26=time(t26 :mono n26)
 ok=ok&&(class(c26)=="TimeObj")
-ok=ok&&(c26!=t26)
+ok=ok&&(time(c26 :mono :ns)!=time(t26 :mono :ns))
 ok=ok&&(time(t26 :mono)==t26mono0)
 ok=ok&&(time(c26 :mono :ns)==n26)
-print("26 time(t :mono N) returns a distinct non-mutated TimeObj reading back N nanoseconds (expect true true true): %v %v %v\n" (c26!=t26) (time(t26 :mono)==t26mono0) (time(c26 :mono :ns)==n26))
+print("26 time(t :mono N) returns a non-mutated TimeObj with a distinct mono reading N nanoseconds (expect true true true): %v %v %v\n" (time(c26 :mono :ns)!=time(t26 :mono :ns)) (time(t26 :mono)==t26mono0) (time(c26 :mono :ns)==n26))
 
 // --- 27: time(:mono N) alone has no calendar meaning -- raw/tzoff stay
 // at their zeroed default, landing on the epoch-date sentinel, so :yr

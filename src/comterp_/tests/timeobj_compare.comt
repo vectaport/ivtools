@@ -1,0 +1,120 @@
+// src/comterp_/tests/timeobj_compare.comt -- ==/!=/</<=/>/>= on DateObj/TimeObj
+
+// funcs: date time == != < <= > >=
+
+// DateObj and TimeObj compare by value, not by C++ pointer identity:
+// == and != always produce a real answer (false/true) even across
+// mismatched kinds (a DateObj against a TimeObj, or a TimeObj instant
+// against a duration), matching this file's existing cross-class
+// ObjectType convention. The ordering operators (</<=/>/>=) need
+// sameness of kind to mean anything -- a DateObj against a TimeObj, or
+// a TimeObj instant against a duration, is nil rather than a
+// wrong-feeling true or false. Same-kind comparisons read at full
+// nsec precision via TimeObj::raw()/delta() or DateObj's own Date
+// comparison operators. A bare 2-, 3- or 4-element colon list under
+// time() always auto-detects as a duration (delta() true) unless its
+// leading field is a plausible year -- there is no bare hr:min:sec
+// "instant" -- so the instant cases below use full y:Mon:d:h:m:s:TZ
+// literals, which always read as non-duration (delta() false).
+
+ok=true
+
+// --- 1: DateObj equality is by calendar value, not identity -- two
+//        separately-constructed DateObjs on the same date are == ---
+d1=date(2026:Sep:21)
+d2=date(2026:Sep:22)
+d3=date(2026:Sep:21)
+ok=ok&&(d1==d3)
+print("1 date(2026:Sep:21)==date(2026:Sep:21) (expect true): %v\n" d1==d3)
+
+// --- 2: DateObj equality is false across different dates ---
+ok=ok&&!(d1==d2)
+print("2 date(2026:Sep:21)==date(2026:Sep:22) (expect false): %v\n" d1==d2)
+
+// --- 3: != is the negation ---
+ok=ok&&(d1!=d2)
+print("3 date(2026:Sep:21)!=date(2026:Sep:22) (expect true): %v\n" d1!=d2)
+
+// --- 4: < orders by calendar date ---
+ok=ok&&(d1<d2)
+print("4 date(2026:Sep:21)<date(2026:Sep:22) (expect true): %v\n" d1<d2)
+
+// --- 5: <= holds on equal dates too ---
+ok=ok&&(d1<=d3)
+print("5 date(2026:Sep:21)<=date(2026:Sep:21) (expect true): %v\n" d1<=d3)
+
+// --- 6: > is the mirror of < ---
+ok=ok&&(d2>d1)
+print("6 date(2026:Sep:22)>date(2026:Sep:21) (expect true): %v\n" d2>d1)
+
+// --- 7: >= holds on equal dates too ---
+ok=ok&&(d1>=d3)
+print("7 date(2026:Sep:21)>=date(2026:Sep:21) (expect true): %v\n" d1>=d3)
+
+// --- 8: full-form TimeObj instants compare by value, at full precision --
+//        a full y:Mon:d:h:m:s:TZ literal is never a duration (delta()
+//        false), unlike a bare hr:min:sec list ---
+t1=time(2026:Sep:21:10:30:0:0)
+t2=time(2026:Sep:21:11:30:0:0)
+t3=time(2026:Sep:21:10:30:0:0)
+ok=ok&&(!time(t1 :delta) && t1==t3)
+print("8 time(2026:Sep:21:10:30:0:0)==time(2026:Sep:21:10:30:0:0) (expect true): %v\n" t1==t3)
+
+// --- 9: TimeObj instant ordering ---
+ok=ok&&(t1<t2 && t2>t1)
+print("9 time(...10:30:0:0)<time(...11:30:0:0) (expect true): %v\n" t1<t2)
+
+// --- 10: comparison reads full nsec precision, not just whole seconds --
+//         two instants a single nanosecond apart, built via :raw N so the
+//         nsec field is exact, are neither == nor equally ordered ---
+n10=1758450600123456789
+tn1=time(:raw n10)
+tn2=time(:raw (n10+1))
+tn3=time(:raw n10)
+ok=ok&&(!(tn1==tn2) && tn1!=tn2 && tn1<tn2 && tn2>tn1 && tn1<=tn2 && tn2>=tn1 && tn1==tn3)
+print("10 time(:raw N)==time(:raw N+1) 1ns apart (expect false true true true true true true): %v %v %v %v %v %v %v\n" (tn1==tn2) (tn1!=tn2) (tn1<tn2) (tn2>tn1) (tn1<=tn2) (tn2>=tn1) (tn1==tn3))
+
+// --- 11: a bare hr:min:sec colon list under time() always auto-detects
+//         as a duration (leading field isn't a plausible year), giving
+//         two distinct duration TimeObjs to order without any :delta
+//         keyword ---
+td1=time(0:5:0)
+td2=time(0:10:0)
+ok=ok&&(class(td1)=="TimeObj" && time(td1 :delta))
+print("11 class(time(0:5:0)) (expect TimeObj, duration true): %v %v\n" class(td1) time(td1 :delta))
+
+// --- 12: duration TimeObjs order by elapsed time the same way instants do ---
+ok=ok&&(td1<td2 && td2>td1)
+print("12 time(0:5:0)<time(0:10:0) (expect true): %v\n" td1<td2)
+
+// --- 13: a duration TimeObj equals itself ---
+ok=ok&&(td1==td1 && td1<=td1 && td1>=td1)
+print("13 td1==td1 (expect true): %v\n" td1==td1)
+
+// --- 14: a DateObj against a TimeObj is never == regardless of value,
+//         same false/true convention as this file's other cross-class
+//         ObjectType comparisons ---
+ok=ok&&!(d1==t1)
+print("14 date(2026:Sep:21)==time(...) cross-kind (expect false): %v\n" d1==t1)
+
+// --- 15: ordering a DateObj against a TimeObj is nil, not false --
+//         there is no meaningful answer, so none is manufactured ---
+r15=d1<t1
+ok=ok&&(r15==nil)
+print("15 date(2026:Sep:21)<time(...) cross-kind (expect nil): %v\n" r15)
+
+// --- 16: ordering a TimeObj instant against a TimeObj duration is nil
+//         too -- same ObjectType, different kind ---
+r16=t1<td1
+ok=ok&&(r16==nil)
+print("16 time(...instant...)<time(0:5:0) instant-vs-duration (expect nil): %v\n" r16)
+
+// --- 17: ordering a DateObj against a non-ObjectType value is nil,
+//         the existing default: case's behavior, unaffected by the new
+//         DateObj/TimeObj branch ---
+r17=d1<3
+ok=ok&&(r17==nil)
+print("17 date(2026:Sep:21)<3 date-vs-int (expect nil): %v\n" r17)
+
+print("timeobj_compare: %v\n" ok)
+ok
