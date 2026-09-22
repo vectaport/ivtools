@@ -503,7 +503,21 @@ Print a usage summary of all the invocation modes above and exit.
  offset (+HHMM or -HHMM); year/month/day drop when they are the epoch
  sentinel, leaving bare hour:minute:second.
  A duration (:delta true) instead prints [[[years:]days:]hr:]min:sec,
- hr 0-23, with no month or TZ.
+ hr 0-23, with no month or TZ.  A negative duration (an earlier instant
+ minus a later one, or a shorter duration minus a longer one) prints with
+ one leading "-" over positive-magnitude fields, e.g. -1:12:0:0.
+
+ DateObj and TimeObj compare by value with ==, !=, <, <=, >, >=: same-kind
+ operands (both DateObj, or both TimeObj with matching :delta) compare at
+ full nsec precision; mismatched kinds are false/true for ==/!=, nil for
+ ordering, since there is no meaningful answer.  + and - extend the
+ existing DateObj +/- int (days) to DateObj +/- a duration TimeObj
+ (floored to whole days), a TimeObj instant +/- a duration (advances or
+ retreats it), DateObj - DateObj and TimeObj instant - TimeObj instant
+ (both give the span between them as a duration), and duration +/-
+ duration (summed or differenced); every other combination -- two dates
+ added, two instants added, a duration minus an instant, a DateObj mixed
+ with a TimeObj instant -- is nil.
 
  [cnt]=beep(:count) -- beep or alert sound
 
