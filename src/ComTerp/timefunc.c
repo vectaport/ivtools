@@ -298,8 +298,15 @@ void DateFunc::execute() {
     fresh = true;
   } else if (datev.is_null()) {
     dateobj = new DateObj();
-  } else {
+  } else if (datev.is_dateobj()) {
     dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+  } else {
+    /* an AttributeList (or any other type) may carry a date somewhere,
+       but reading one out is not date()'s job -- neither is manufacturing
+       one, so an unrecognized positional argument gets nil, same
+       precedent time() uses for its own unrecognized argument. */
+    push_stack(ComValue::nullval());
+    return;
   }
 
   if (timeobj) {

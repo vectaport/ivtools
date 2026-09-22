@@ -1,6 +1,6 @@
 // src/comterp_/tests/timeobj.comt -- time() vets a colon list into a TimeObj
 
-// funcs: colonlist time date class print size at split index eval
+// funcs: colonlist time date class print size at split index eval attrlist
 
 // ':' itself never recognizes an hr:min:sec chain -- it always stays a
 // plain coloned() list (colonlist.comt). time() is the one explicit
@@ -187,6 +187,22 @@ ok=ok&&(p19=="2026:Sep:21")
 eval("d19b=date("+p19+")")
 ok=ok&&(date(d19b :daymo)==21 && date(d19b :month)==9 && date(d19b :year)==2026)
 print("19 print(date(2026:Sep:21)):str reparsed through date() (expect \"2026:Sep:21\", 21 9 2026): %v %v %v %v\n" p19 date(d19b :daymo) date(d19b :month) date(d19b :year))
+
+// --- 20: an unrecognized positional argument (not a number, string,
+//         colon-list, TimeObj, or DateObj) returns nil rather than
+//         reading a stale/null DateObj* -- a Boolean has no date in it ---
+d20=date(true)
+ok=ok&&(d20==nil)
+print("20 date(true) unrecognized positional (expect nil): %v\n" d20)
+d20b=date(false)
+ok=ok&&(d20b==nil)
+print("20b date(false) unrecognized positional (expect nil): %v\n" d20b)
+
+// --- 21: an AttributeList may carry a date somewhere, but date() doesn't
+//         go looking for one -- nil, not a crash ---
+d21=date(attrlist(:x 1))
+ok=ok&&(d21==nil)
+print("21 date(attrlist(:x 1)) unrecognized positional (expect nil): %v\n" d21)
 
 print("timeobj: %v\n" ok)
 ok
