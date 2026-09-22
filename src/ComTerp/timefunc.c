@@ -278,7 +278,10 @@ void DateFunc::execute() {
   DateObj* dateobj = NULL;
   boolean fresh = false;
   TimeObj* timeobj = NULL;
-  if (datev.is_num()) {
+  if (datev.is_num() && !datev.is_floatingpoint()) {
+    /* an integral epoch day count -- a float has no meaningful whole-day
+       truncation date() could pick without guessing, so it falls through
+       to the unrecognized-argument case below instead. */
     dateobj = new DateObj(datev.long_val());
     fresh = true;
   } else if (datev.is_string()) {

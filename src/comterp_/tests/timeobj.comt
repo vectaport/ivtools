@@ -204,5 +204,18 @@ d21=date(attrlist(:x 1))
 ok=ok&&(d21==nil)
 print("21 date(attrlist(:x 1)) unrecognized positional (expect nil): %v\n" d21)
 
+// --- 22: a floating-point epoch has no meaningful whole-day truncation
+//         date() could pick without guessing -- nil, not a silently
+//         truncated date ---
+d22=date(3.14)
+ok=ok&&(d22==nil)
+print("22 date(3.14) floating-point epoch (expect nil): %v\n" d22)
+
+// --- 22b: an integral epoch day count is unaffected -- only the
+//          floating-point type is rejected, not numerics generally ---
+d22b=date(19623)
+ok=ok&&(class(d22b)=="DateObj" && date(d22b :year)==1954)
+print("22b date(19623) integral epoch (expect DateObj 1954): %v %v\n" class(d22b) date(d22b :year))
+
 print("timeobj: %v\n" ok)
 ok
