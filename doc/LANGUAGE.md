@@ -3079,9 +3079,11 @@ since `time()` is the only thing that ever builds one.
 
 `time()`'s positional argument only recognizes a `DateObj`, a colon
 list, or an existing `TimeObj`; anything else (`time(1)`, `time("x")`)
-is `nil`, the same loud-rather-than-silent rule as above. `time()` with
-no positional argument at all is the one case that still captures the
-current instant.
+is `nil`, the same loud-rather-than-silent rule as above. An absent
+argument, or a placeholder that names no real value (`true`, `false`,
+`blank()`, `empty()`), all count as vacant and still capture the
+current instant instead — which lets a stream of placeholders
+(`empty**6`) drive repeated `time()` captures, one per stream element.
 
 `:msec`/`:usec`/`:nsec` read a `TimeObj`'s three sub-second groups
 individually (each `0..999`), the same decomposition `print()`'s

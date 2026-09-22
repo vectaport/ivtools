@@ -643,8 +643,9 @@ ok=ok&&(t75a==nil && t75b==nil)
 print("75 time(\"bogus\"), time(3.14) unrecognized positionals (expect nil nil): %v %v\n" t75a t75b)
 
 // --- 76: no positional argument at all still captures now, unaffected
-// by 74/75 -- is_null() (absent) is what still triggers a fresh capture,
-// not "any unrecognized value" ---
+// by 74/75 -- absence is what still triggers a fresh capture, not "any
+// unrecognized value" (see 79 for the placeholder values that also count
+// as vacant) ---
 t76=time()
 ok=ok&&(t76!=nil)
 print("76 time() with no positional still captures now (expect true): %v\n" (t76!=nil))
@@ -663,6 +664,16 @@ print("77 time(t :msec/:usec/:nsec) individual sub-second groups (expect 123 456
 c78=time(c77 :ms)
 ok=ok&&(class(c78)=="TimeObj" && time(c78 :msec)==123 && time(c78 :usec)==456 && time(c78 :nsec)==789)
 print("78 :msec/:usec/:nsec don't disturb :ms/:us/:ns as precision modifiers (expect TimeObj true true true): %v %v %v %v\n" class(c78) (time(c78 :msec)==123) (time(c78 :usec)==456) (time(c78 :nsec)==789))
+
+// --- 79: true/false/blank()/empty() are placeholders, not real values --
+// they count as vacant too, so a stream of them (empty**N) can drive
+// repeated time() captures the same way an absent argument does ---
+t79a=time(true)
+t79b=time(false)
+t79c=time(blank())
+t79d=time(empty())
+ok=ok&&(t79a!=nil && t79b!=nil && t79c!=nil && t79d!=nil)
+print("79 time(true/false/blank()/empty()) count as vacant, still capture now (expect true true true true): %v %v %v %v\n" (t79a!=nil) (t79b!=nil) (t79c!=nil) (t79d!=nil))
 
 print("time: %v\n" ok)
 ok
