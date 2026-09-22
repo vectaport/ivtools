@@ -64,47 +64,57 @@ print("8 time(2026:Sep:21:10:30:0:0)==time(2026:Sep:21:10:30:0:0) (expect true):
 ok=ok&&(t1<t2 && t2>t1)
 print("9 time(...10:30:0:0)<time(...11:30:0:0) (expect true): %v\n" t1<t2)
 
-// --- 10: a bare hr:min:sec colon list under time() always auto-detects
+// --- 10: comparison reads full nsec precision, not just whole seconds --
+//         two instants a single nanosecond apart, built via :raw N so the
+//         nsec field is exact, are neither == nor equally ordered ---
+n10=1758450600123456789
+tn1=time(:raw n10)
+tn2=time(:raw (n10+1))
+tn3=time(:raw n10)
+ok=ok&&(!(tn1==tn2) && tn1!=tn2 && tn1<tn2 && tn2>tn1 && tn1<=tn2 && tn2>=tn1 && tn1==tn3)
+print("10 time(:raw N)==time(:raw N+1) 1ns apart (expect false true true true true true true): %v %v %v %v %v %v %v\n" (tn1==tn2) (tn1!=tn2) (tn1<tn2) (tn2>tn1) (tn1<=tn2) (tn2>=tn1) (tn1==tn3))
+
+// --- 11: a bare hr:min:sec colon list under time() always auto-detects
 //         as a duration (leading field isn't a plausible year), giving
 //         two distinct duration TimeObjs to order without any :delta
 //         keyword ---
 td1=time(0:5:0)
 td2=time(0:10:0)
 ok=ok&&(class(td1)=="TimeObj" && time(td1 :delta))
-print("10 class(time(0:5:0)) (expect TimeObj, duration true): %v %v\n" class(td1) time(td1 :delta))
+print("11 class(time(0:5:0)) (expect TimeObj, duration true): %v %v\n" class(td1) time(td1 :delta))
 
-// --- 11: duration TimeObjs order by elapsed time the same way instants do ---
+// --- 12: duration TimeObjs order by elapsed time the same way instants do ---
 ok=ok&&(td1<td2 && td2>td1)
-print("11 time(0:5:0)<time(0:10:0) (expect true): %v\n" td1<td2)
+print("12 time(0:5:0)<time(0:10:0) (expect true): %v\n" td1<td2)
 
-// --- 12: a duration TimeObj equals itself ---
+// --- 13: a duration TimeObj equals itself ---
 ok=ok&&(td1==td1 && td1<=td1 && td1>=td1)
-print("12 td1==td1 (expect true): %v\n" td1==td1)
+print("13 td1==td1 (expect true): %v\n" td1==td1)
 
-// --- 13: a DateObj against a TimeObj is never == regardless of value,
+// --- 14: a DateObj against a TimeObj is never == regardless of value,
 //         same false/true convention as this file's other cross-class
 //         ObjectType comparisons ---
 ok=ok&&!(d1==t1)
-print("13 date(2026:Sep:21)==time(...) cross-kind (expect false): %v\n" d1==t1)
+print("14 date(2026:Sep:21)==time(...) cross-kind (expect false): %v\n" d1==t1)
 
-// --- 14: ordering a DateObj against a TimeObj is nil, not false --
+// --- 15: ordering a DateObj against a TimeObj is nil, not false --
 //         there is no meaningful answer, so none is manufactured ---
-r14=d1<t1
-ok=ok&&(r14==nil)
-print("14 date(2026:Sep:21)<time(...) cross-kind (expect nil): %v\n" r14)
-
-// --- 15: ordering a TimeObj instant against a TimeObj duration is nil
-//         too -- same ObjectType, different kind ---
-r15=t1<td1
+r15=d1<t1
 ok=ok&&(r15==nil)
-print("15 time(...instant...)<time(0:5:0) instant-vs-duration (expect nil): %v\n" r15)
+print("15 date(2026:Sep:21)<time(...) cross-kind (expect nil): %v\n" r15)
 
-// --- 16: ordering a DateObj against a non-ObjectType value is nil,
+// --- 16: ordering a TimeObj instant against a TimeObj duration is nil
+//         too -- same ObjectType, different kind ---
+r16=t1<td1
+ok=ok&&(r16==nil)
+print("16 time(...instant...)<time(0:5:0) instant-vs-duration (expect nil): %v\n" r16)
+
+// --- 17: ordering a DateObj against a non-ObjectType value is nil,
 //         the existing default: case's behavior, unaffected by the new
 //         DateObj/TimeObj branch ---
-r16=d1<3
-ok=ok&&(r16==nil)
-print("16 date(2026:Sep:21)<3 date-vs-int (expect nil): %v\n" r16)
+r17=d1<3
+ok=ok&&(r17==nil)
+print("17 date(2026:Sep:21)<3 date-vs-int (expect nil): %v\n" r17)
 
 print("timeobj_compare: %v\n" ok)
 ok

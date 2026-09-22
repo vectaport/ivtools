@@ -47,11 +47,8 @@ static int n_symid = symbol_add("n");
    wrong-feeling true or false. */
 static boolean date_timeobj_compare(ComValue& operand1, ComValue& operand2, int& cmp) {
   if (operand1.is_dateobj() && operand2.is_dateobj()) {
-    /* obj_val(), not the virtual geta() -- operand1/operand2 are references
-       straight into the interpreter's stack storage, whose vtable is not
-       reliable (see AttributeValue::string_ptr()'s comment); obj_val() is
-       a plain field read, same as the rest of this file's ObjectType
-       handling already relies on. */
+    /* obj_val(), not the virtual geta() -- a stack-bound operand's vtable
+       is not reliable (see AttributeValue::string_ptr()'s comment). */
     Date& d1 = *((DateObj*)operand1.obj_val())->date();
     Date& d2 = *((DateObj*)operand2.obj_val())->date();
     cmp = d1==d2 ? 0 : (d1<d2 ? -1 : 1);
