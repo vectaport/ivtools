@@ -217,5 +217,11 @@ d22b=date(19623)
 ok=ok&&(class(d22b)=="DateObj" && date(d22b :year)==1954)
 print("22b date(19623) integral epoch (expect DateObj 1954): %v %v\n" class(d22b) date(d22b :year))
 
+// --- 23: an ongoing stream's not-yet tick propagates as blank rather
+//         than capturing now or falling to the unrecognized-nil case ---
+d23=date(blank())
+ok=ok&&(d23==blank())
+print("23 date(blank()) not-yet tick (expect blank): %v\n" d23)
+
 print("timeobj: %v\n" ok)
 ok

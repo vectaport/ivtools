@@ -300,6 +300,11 @@ void DateFunc::execute() {
     fresh = true;
   } else if (datev.is_null()) {
     dateobj = new DateObj();
+  } else if (datev.is_blank()) {
+    /* an ongoing stream's not-yet tick, not an absent argument -- propagates
+       as blank rather than capturing now or falling to the nil case below. */
+    push_stack(ComValue::blankval());
+    return;
   } else if (datev.is_dateobj()) {
     dateobj = (DateObj*)datev.geta(DateObj::class_symid());
   } else {
