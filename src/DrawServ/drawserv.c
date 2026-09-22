@@ -444,23 +444,40 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
 
+  /* snapshot targets into their own list first: write_full() below pumps
+     the reactor, which can reenter linkdown() for any link on _linklist
+     while this broadcast is mid-flight. Appending here refs each target
+     (DrawLinkList::Append()) so it outlives a reentrant teardown, and
+     Includes() against the live _linklist below re-checks one wasn't torn
+     down before touching it again. */
+  DrawLinkList* targets = new DrawLinkList;
   Iterator i;
   _linklist->First(i);
   while (!_linklist->Done(i)) {
     DrawLink* link = _linklist->GetDrawLink(i);
-    if (link && link != orglink && link->state()==DrawLink::two_way) {
+    if (link && link != orglink && link->state()==DrawLink::two_way)
+      targets->Append(link);
+    _linklist->Next(i);
+  }
+
+  Iterator ti;
+  targets->First(ti);
+  while (!targets->Done(ti)) {
+    DrawLink* link = targets->GetDrawLink(ti);
+    if (_linklist->Includes(link)) {
       int fd = link->handle();
       if (fd>=0) {
 	link->log_outgoing_command(cmdstring);
 	if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
 	  fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
 		  link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
-	link->ackhandler()->start_timer();
+	if (_linklist->Includes(link))
+	  link->ackhandler()->start_timer();
       }
     }
-    _linklist->Next(i);
+    targets->Next(ti);
   }
-
+  delete targets;
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
@@ -468,14 +485,20 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (cmdstring==NULL || *cmdstring=='\0') return;
 
   if (link) {
+    /* write_full() below pumps the reactor, which can reenter linkdown()
+       for link itself; ref it here so it outlives that and Includes()
+       below re-checks it before start_timer() touches it again. */
+    Resource::ref(link);
     int fd = link->handle();
     if (fd>=0) {
       link->log_outgoing_command(cmdstring);
       if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
 	fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
 		link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
-      link->ackhandler()->start_timer();
+      if (_linklist->Includes(link))
+	link->ackhandler()->start_timer();
     }
+    Resource::unref(link);
   }
 }
 
