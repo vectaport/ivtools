@@ -63,17 +63,18 @@ protected:
 };
 
 //: ^^ (gate) operator.
-// passes operand1 through unchanged when both operands are non-nil;
-// otherwise nil.  Swap operand order to gate on/pass the other value.
-// A regular eager operator (not post_eval), so a stream operand overdrives
-// it one element at a time like any other binary operator.
+// passes operand1 through unchanged when both operands carry a real value;
+// nil if either is nil, else blank if either is blank.  Swap operand order
+// to gate on/pass the other value.  A regular eager operator (not
+// post_eval), so a stream operand overdrives it one element at a time like
+// any other binary operator.
 class GateFunc : public ComFunc {
 public:
     GateFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=val1^^val2 -- gate operator: val1 when both operands are non-nil, else nil"; }
+      return "val=val1^^val2 -- gate operator: val1 when both operands carry a value, else nil/blank"; }
 };
 
 //: ! (negate) operator.

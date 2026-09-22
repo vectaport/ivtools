@@ -2,11 +2,13 @@
 
 // funcs: ^^ gate postfix
 
-// val1^^val2 passes val1 through when both operands carry a real value;
-// nil (a stream that has ended) or blank (an ongoing stream's not-yet
-// tick) on either side means that operand carries no real value, so the
-// gate discards val1 and the result is nil. Swap operand order to gate
-// on/pass the other value -- there is no :second keyword.
+// val1^^val2 passes val1 through when both operands carry a real value.
+// nil (a stream that has ended) on either side closes the gate for good,
+// so the result is nil; blank (an ongoing stream's not-yet tick) closes
+// it only for that tick, so the result is blank instead -- the two never
+// collapse into each other. nil wins when one operand is nil and the
+// other blank. Swap operand order to gate on/pass the other value --
+// there is no :second keyword.
 
 ok=true
 
@@ -28,20 +30,25 @@ r4=nil^^2
 ok=ok&&(r4==nil)
 print("4 nil^^2 (expect nil): %v\n" r4)
 
-// --- 5: blank() on the second operand discards the first, same as nil ---
+// --- 5: blank() on the second operand discards the first, result is blank ---
 r5=1^^blank()
-ok=ok&&(r5==nil)
-print("5 1^^blank() (expect nil): %v\n" r5)
+ok=ok&&(r5==blank())
+print("5 1^^blank() (expect blank): %v\n" r5)
 
 // --- 6: blank() on the first operand discards it too ---
 r6=blank()^^1
-ok=ok&&(r6==nil)
-print("6 blank()^^1 (expect nil): %v\n" r6)
+ok=ok&&(r6==blank())
+print("6 blank()^^1 (expect blank): %v\n" r6)
 
-// --- 7: both absent is still nil ---
+// --- 7: nil wins over blank when the two are mixed ---
 r7=nil^^blank()
 ok=ok&&(r7==nil)
 print("7 nil^^blank() (expect nil): %v\n" r7)
+
+// --- 7b: blank wins over nothing else -- both blank stays blank ---
+r7b=blank()^^blank()
+ok=ok&&(r7b==blank())
+print("7b blank()^^blank() (expect blank): %v\n" r7b)
 
 // --- 8: a string/list value passes through unchanged, not just numerics ---
 r8="hello"^^1
@@ -71,13 +78,14 @@ print("11 ($$(1,2,3))^^($$(10,20,30)) pulled 4x (expect 1 2 3 nil): %v %v %v %v\
       v11a v11b v11c v11d)
 
 // --- 12: a not-yet tick (blank()) on the trigger stream gates that tick
-//         closed, discarding the data stream's value for that tick ---
+//         closed with blank, not nil -- the data stream isn't over, just
+//         suppressed for this tick ---
 r12=1^^(empty**3)
 v12a=*r12
 v12b=*r12
 v12c=*r12
-ok=ok&&(v12a==nil&&v12b==nil&&v12c==nil)
-print("12 1^^(empty**3) every tick gated closed (expect nil nil nil): %v %v %v\n"
+ok=ok&&(v12a==blank()&&v12b==blank()&&v12c==blank())
+print("12 1^^(empty**3) every tick gated closed (expect blank blank blank): %v %v %v\n"
       v12a v12b v12c)
 
 print("gate: %v\n" ok)

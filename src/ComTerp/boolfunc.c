@@ -131,16 +131,18 @@ void AndFunc::execute() {
 GateFunc::GateFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-/* nil (stream ended) or blank (an ongoing stream's not-ready tick) both
-   mean the operand carries no real value, for gating purposes. */
-static boolean gate_absent(ComValue& v) { return v.is_nil() || v.is_blank(); }
-
 void GateFunc::execute() {
     ComValue operand1(stack_arg(0));
     ComValue operand2(stack_arg(1));
     reset_stack();
-    push_stack(gate_absent(operand1) || gate_absent(operand2)
-                 ? ComValue::nullval() : operand1);
+    /* nil closes the gate for good; blank closes it only for this tick,
+       so each propagates through rather than collapsing to the other. */
+    if (operand1.is_nil() || operand2.is_nil())
+      push_stack(ComValue::nullval());
+    else if (operand1.is_blank() || operand2.is_blank())
+      push_stack(ComValue::blankval());
+    else
+      push_stack(operand1);
 }
 
 OrFunc::OrFunc(ComTerp* comterp, boolean pre) : NumFunc(comterp) {
