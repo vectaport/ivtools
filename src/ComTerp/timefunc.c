@@ -252,6 +252,9 @@ void TimeObj::printOn(ostream& out) const {
 
 /*****************************************************************************/
 
+/* defined below, alongside time()'s own colon-list vetting */
+static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, int linenum);
+
 DateFunc::DateFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -271,6 +274,7 @@ void DateFunc::execute() {
 
   DateObj* dateobj = NULL;
   boolean fresh = false;
+  TimeObj* timeobj = NULL;
   if (datev.is_num()) {
     dateobj = new DateObj(datev.long_val());
     fresh = true;
@@ -278,7 +282,24 @@ void DateFunc::execute() {
     dateobj = new DateObj(datev.string_ptr());
     fresh = true;
   } else if (datev.is_timeobj()) {
-    TimeObj* timeobj = (TimeObj*)datev.geta(TimeObj::class_symid());
+    timeobj = (TimeObj*)datev.geta(TimeObj::class_symid());
+  } else if (datev.is_array() && datev.coloned()) {
+    /* year:month[:day], not the day-led dd-mmm-yy string Date's own
+       stream parser expects -- see colonlist_to_dateobj() below */
+    int linenum = funcstate() ? funcstate()->linenum() : 0;
+    dateobj = colonlist_to_dateobj(comterp(), datev.array_val(), linenum);
+    if (!dateobj) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    fresh = true;
+  } else if (datev.is_null()) {
+    dateobj = new DateObj();
+  } else {
+    dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+  }
+
+  if (timeobj) {
     /* no date info: a duration has no calendar date at all, and the
        epoch date is the sentinel for a dateless instant -- see TimeObj */
     if (timeobj->delta() ||
@@ -288,10 +309,6 @@ void DateFunc::execute() {
     }
     dateobj = new DateObj(timeobj->day(), Date::nameOfMonth(timeobj->month()), timeobj->year());
     fresh = true;
-  } else if (datev.is_null()) {
-    dateobj = new DateObj();
-  } else {
-    dateobj = (DateObj*)datev.geta(DateObj::class_symid());
   }
 
   if (dayv.is_true()) {
@@ -356,24 +373,25 @@ static int days_in_month(int mon, int yr) {
 }
 
 /* accepts a bare month-name symbol (looked up via Date::numberOfMonth())
-   or a plain 1-12 integer; warns and returns false on anything else. */
-static boolean parse_month(ComValue& v, int& mon, int linenum) {
+   or a plain 1-12 integer; warns and returns false on anything else.
+   cmdname labels the warning for whichever command is doing the parsing. */
+static boolean parse_month(ComValue& v, int& mon, int linenum, const char* cmdname = "time()") {
   if (v.type()==ComValue::SymbolType) {
     mon = Date::numberOfMonth(symbol_pntr((int)v.symbol_val()));
     if (mon==0) {
-      std::cout << "WARNING:  time(): unrecognized month name -- line "
+      std::cout << "WARNING:  " << cmdname << ": unrecognized month name -- line "
                 << linenum << "\n";
       return false;
     }
   } else if (v.type()==ComValue::IntType) {
     mon = v.int_val();
     if (mon<1 || mon>12) {
-      std::cout << "WARNING:  time(): month " << mon << " out of range (1..12) -- line "
+      std::cout << "WARNING:  " << cmdname << ": month " << mon << " out of range (1..12) -- line "
                 << linenum << "\n";
       return false;
     }
   } else {
-    std::cout << "WARNING:  time(): month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
+    std::cout << "WARNING:  " << cmdname << ": month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
               << linenum << "\n";
     return false;
   }
@@ -866,6 +884,61 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   TimeObj* result = new TimeObj(raw, tzoff);
   result->precision(fracgroups);
   return result;
+}
+
+/* date()'s own colon-list vetting -- year:month[:day], with no duration
+   reading to disambiguate against (unlike time()'s colon lists, which
+   share a field count with min:sec/hr:min:sec/etc.), so every field here
+   is unambiguously a calendar field: no year-plausibility heuristic, and
+   any integer year is accepted, not just the range time()'s int64-
+   nanosecond raw representation happens to need. */
+static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
+  int n = avl->Number();
+  if (n != 2 && n != 3) {
+    std::cout << "WARNING:  date(): needs a 2- or 3-element YEAR:MON[:day] list, got "
+              << n << " element(s) -- line " << linenum << "\n";
+    return nil;
+  }
+
+  ComValue yrv(resolve_elem(comterp, avl, 0));
+  if (yrv.type()!=ComValue::IntType) {
+    std::cout << "WARNING:  date(): year must be a plain integer -- line "
+              << linenum << "\n";
+    return nil;
+  }
+  int yr = yrv.int_val();
+  if (yr<0 || yr>USHRT_MAX) {
+    std::cout << "WARNING:  date(): year " << yr << " out of range (0.."
+              << USHRT_MAX << ") -- line " << linenum << "\n";
+    return nil;
+  }
+
+  ComValue monv(*avl->Get(1));
+  int mon;
+  if (!parse_month(monv, mon, linenum, "date()")) return nil;
+
+  int day = 1;
+  if (n == 3) {
+    ComValue dayv(resolve_elem(comterp, avl, 2));
+    if (dayv.type()!=ComValue::IntType) {
+      std::cout << "WARNING:  date(): day must be a plain integer -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    day = dayv.int_val();
+    if (day<1 || day>31) {
+      std::cout << "WARNING:  date(): day " << day << " out of range (1..31) -- line "
+                << linenum << "\n";
+      return nil;
+    }
+    if (day > days_in_month(mon, yr)) {
+      std::cout << "WARNING:  date(): day " << day << " does not exist in that month/year -- line "
+                << linenum << "\n";
+      return nil;
+    }
+  }
+
+  return new DateObj(day, Date::nameOfMonth(mon), yr);
 }
 
 /* a timespec scaled to the unit :ns/:us/:ms ask for, seconds otherwise --

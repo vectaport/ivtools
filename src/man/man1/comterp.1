@@ -458,11 +458,12 @@ Print a usage summary of all the invocation modes above and exit.
 
  num=xnor(a b) -- bitwise XNOR (negated XOR)
 
- dateobj|int = date([num|str|dateobj|timeobj] :day :month :year :daymo
- :weekday) -- create date from days since 1/1/1901, a string, or a TimeObj's
- calendar date; nil when the TimeObj has no date info (its calendar
- breakdown lands on the epoch date, 1970-01-01 UTC, the "dateless" sentinel
- -- see time() below)
+ dateobj|int = date([num|str|dateobj|timeobj|YEAR:MON[:day]]
+ :day :month :year :daymo :weekday) -- create date from days since
+ 1/1/1901, a string, a TimeObj's calendar date, or a year-led YEAR:MON[:day]
+ colon list; nil when a TimeObj carries no date info (a duration, or a
+ calendar breakdown landing on the epoch date, 1970-01-01 UTC, the
+ "dateless" sentinel -- see time() below)
 
  timeobj|long = time([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|
  days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|
