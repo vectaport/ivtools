@@ -1,34 +1,46 @@
 // src/comterp_/tests/timeobj.comt -- time() vets a colon list into a TimeObj
 
-// funcs: colonlist time class print size at
+// funcs: colonlist time date class print size at split index eval
 
 // ':' itself never recognizes an hr:min:sec chain -- it always stays a
 // plain coloned() list (colonlist.comt). time() is the one explicit
-// place that vets such a list into a TimeObj: minute and second bounded
-// to a clock face, hour left unbounded so an elapsed duration
-// (25:00:00) still constructs. A list that doesn't fit -- wrong shape,
-// non-integer elements, or an out-of-range field -- warns at this exact
-// call site (time() was an explicit ask) and returns nil, rather than
-// falling back silently the way an unrecognized colon literal would.
+// place that vets such a list into a TimeObj. A 3-element list is
+// hr:min:sec: minute and second bounded to a clock face, hour left
+// unbounded at construction, though TimeObj's single gmtime_r-based
+// breakdown (raw()+tzoff(), see TimeObj in timefunc.h) folds an
+// elapsed hour past 23 into the next calendar day the same as a real
+// timestamp would, rather than reporting it back unbounded -- there is
+// only one notion of "hour" once a TimeObj exists, so it can't also stay
+// a raw elapsed count. A 7-to-10-element list is a full
+// y:Mon:d:h:m:s[:ms:us:ns]:TZ timestamp. A list that doesn't fit --
+// wrong shape, non-integer elements, an unrecognized month name, or an
+// out-of-range field -- warns at this exact call site (time() was an
+// explicit ask) and returns nil, rather than falling back silently the
+// way an unrecognized colon literal would. A 2-, 3-, 4- or 5-element list
+// is polymorphic (a year-led instant vs. a duration) -- covered in
+// time.comt, not here; this file stays to the plain hr:min:sec and
+// full-form calendar-instant shapes.
 
 ok=true
 
 // --- 1: hr:min:sec within bounds becomes a TimeObj, not a plain list --
-//        time(t1 :hour/:minute/:second) reads the three fields back,
+//        time(t1 :hr/:min/:sec) reads the three fields back,
 //        the same shape date()'s :day/:month/:year already use for
 //        DateObj ---
 t1=time(1:8:30)
 ok=ok&&(class(t1)=="TimeObj")
 ok=ok&&(print(t1 :str)=="1:8:30")
-ok=ok&&(time(t1 :hour)==1 && time(t1 :minute)==8 && time(t1 :second)==30)
-print("1 t1=time(1:8:30) (expect TimeObj 1:8:30 1 8 30): %v %v %v %v %v\n" class(t1) t1 time(t1 :hour) time(t1 :minute) time(t1 :second))
+ok=ok&&(time(t1 :hr)==1 && time(t1 :min)==8 && time(t1 :sec)==30)
+print("1 t1=time(1:8:30) (expect TimeObj 1:8:30 1 8 30): %v %v %v %v %v\n" class(t1) t1 time(t1 :hr) time(t1 :min) time(t1 :sec))
 
-// --- 2: hour is left unbounded -- an elapsed duration past a clock's
-//        24 hours still constructs, only minute/second are clamped to
-//        a clock face ---
+// --- 2: hour past 23 still constructs (only minute/second are clamped
+//        to a clock face at construction) but reads back folded onto
+//        the next calendar day -- a TimeObj has one calendar breakdown,
+//        computed from raw()+tzoff(), so 25:30:00 becomes hour 1 the
+//        same as a real timestamp crossing midnight would ---
 t2=time(25:30:0)
-ok=ok&&(class(t2)=="TimeObj" && time(t2 :hour)==25)
-print("2 t2=time(25:30:0) elapsed hour>24 (expect TimeObj 25): %v %v\n" class(t2) time(t2 :hour))
+ok=ok&&(class(t2)=="TimeObj" && time(t2 :hr)==1 && time(t2 :min)==30)
+print("2 t2=time(25:30:0) elapsed hour>24 folds to next day (expect TimeObj 1 30): %v %v %v\n" class(t2) time(t2 :hr) time(t2 :min))
 
 // --- 3: minute out of 0..59 doesn't recognize -- warns and returns nil,
 //        an explicit ask (time()) getting a loud, localized answer
@@ -37,11 +49,13 @@ t3=time(1:70:30)
 ok=ok&&(t3==nil)
 print("3 time(1:70:30) bad minute (expect nil): %v\n" t3)
 
-// --- 4: wrong shape (not exactly 3 elements) also warns and returns
-//        nil, same as an out-of-range field ---
-t4=time(1:2)
+// --- 4: a shape outside 2-to-5 or 7-to-10 elements also warns and
+//        returns nil, same as an out-of-range field -- 2-to-5-element
+//        lists are now polymorphic (time.comt), so this uses a 6-element
+//        list, which stays unconditionally invalid ---
+t4=time(1:2:3:4:5:6)
 ok=ok&&(t4==nil)
-print("4 time(1:2) wrong shape (expect nil): %v\n" t4)
+print("4 time(1:2:3:4:5:6) wrong shape (expect nil): %v\n" t4)
 
 // --- 5: a colon-captured bare identifier is resolved (not left as a
 //        symbol) before the bounds check, same lookup_symval() ':'
@@ -50,8 +64,8 @@ h5=1
 m5=8
 s5=30
 t5=time(h5:m5:s5)
-ok=ok&&(class(t5)=="TimeObj" && time(t5 :hour)==1)
-print("5 time(h5:m5:s5) with bound vars (expect TimeObj 1): %v %v\n" class(t5) time(t5 :hour))
+ok=ok&&(class(t5)=="TimeObj" && time(t5 :hr)==1)
+print("5 time(h5:m5:s5) with bound vars (expect TimeObj 1): %v %v\n" class(t5) time(t5 :hr))
 
 // --- 6: without time(), a colon chain is never a TimeObj -- ':' itself
 //        stays generic no matter how the three elements look ---
@@ -66,6 +80,113 @@ buf7="a123456789 more padding to be long enough"
 s7=buf7@1:8:30
 ok=ok&&(s7=="1234567" && size(s7)==7)
 print("7 buf7@1:8:30, in-bounds-looking cap-slice stays a slice (expect 1234567): %v\n" s7)
+
+// --- 8: a full y:Mon:d:h:m:s:TZ literal is vetted the same way, and
+//        print(:str) round-trips it -- parsing the printed string back
+//        through time() reproduces the identical printed form ---
+t8=time(2026:Sep:20:13:18:2:700)
+ok=ok&&(class(t8)=="TimeObj")
+p8=print(t8 :str)
+ok=ok&&(p8=="2026:Sep:20:13:18:2:+0700")
+t8b=time(2026:Sep:20:13:18:2:700)
+p8b=print(t8b :str)
+rt8=(p8==p8b)
+ok=ok&&rt8
+print("8 t8=time(2026:Sep:20:13:18:2:700) (expect 2026:Sep:20:13:18:2:+0700, round-trips): %v %v\n" p8 rt8)
+
+// --- 9: a negative TZ field round-trips the same way, via unary minus,
+//        and prints zero-padded to 4 digits like the positive case ---
+t9=time(2026:Jan:5:24:30:15:-800)
+p9=print(t9 :str)
+ok=ok&&(p9=="2026:Jan:5:24:30:15:-0800")
+print("9 t9=time(2026:Jan:5:24:30:15:-800) negative TZ (expect 2026:Jan:5:24:30:15:-0800): %v\n" p9)
+
+// --- 10: :ms/:us/:ns fractional groups are zero-padded 000-999 groups,
+//         cumulative, and can be supplied directly in the full-form
+//         literal -- ms=8 prints as "008", not bare "8" ---
+t10=time(2026:Sep:20:13:18:2:8:0:0:700)
+p10=print(t10 :str)
+ok=ok&&(p10=="2026:Sep:20:13:18:2:008:000:000:+0700")
+print("10 time(2026:Sep:20:13:18:2:8:0:0:700) (expect 2026:Sep:20:13:18:2:008:000:000:+0700): %v\n" p10)
+
+// --- 11: date(t) on an hr:min:sec-only TimeObj is nil -- the epoch date
+//         (1970-01-01 UTC) is the "no date info" sentinel, never a
+//         separate stored flag ---
+t11=time(1:8:30)
+d11=date(t11)
+ok=ok&&(d11==nil)
+print("11 date(time(1:8:30)) dateless (expect nil): %v\n" d11)
+
+// --- 12: date(t) on a full timestamp returns the matching DateObj --
+//         date()'s own :daymo/:month/:year field accessors read it back,
+//         same shape as time()'s :hr/:min/:sec over a TimeObj ---
+t12=time(2026:Sep:20:13:18:2:700)
+d12=date(t12)
+ok=ok&&(class(d12)=="DateObj")
+ok=ok&&(date(d12 :daymo)==20 && date(d12 :month)==9 && date(d12 :year)==2026)
+print("12 date(time(2026:Sep:20:...)) (expect DateObj 20 9 2026): %v %v %v %v\n" class(d12) date(d12 :daymo) date(d12 :month) date(d12 :year))
+
+// --- 13: time(d) is the inverse direction -- noon UTC that date, tzoff 0,
+//         and date() of the result lands back on the same calendar date ---
+d13=date()
+t13=time(d13)
+ok=ok&&(class(t13)=="TimeObj")
+ok=ok&&(time(t13 :hr)==12 && time(t13 :min)==0 && time(t13 :sec)==0)
+d13b=date(t13)
+ok=ok&&(date(d13b :daymo)==date(d13 :daymo) && date(d13b :month)==date(d13 :month) && date(d13b :year)==date(d13 :year))
+print("13 time(date()) noon, date() of that lands back on today (expect TimeObj 12 0 0, true): %v %v %v %v %v\n" class(t13) time(t13 :hr) time(t13 :min) time(t13 :sec) (date(d13b :daymo)==date(d13 :daymo)))
+
+// --- 14: a year-led 5-element list (y:Mon:d:h:m, no seconds or TZ field)
+//         reads as a local wall-clock instant, not a truncated full-form
+//         list -- a genuinely wrong-length list (test 4 above) still warns
+//         and returns nil ---
+t14=time(2026:Sep:20:13:18)
+ok=ok&&(class(t14)=="TimeObj")
+ok=ok&&(time(t14 :yr)==2026 && time(t14 :mo)==9 && time(t14 :day)==20 && time(t14 :hr)==13 && time(t14 :min)==18)
+print("14 time(2026:Sep:20:13:18) year-led 5-field local instant (expect TimeObj 2026 9 20 13 18): %v %v %v %v %v %v\n" class(t14) time(t14 :yr) time(t14 :mo) time(t14 :day) time(t14 :hr) time(t14 :min))
+
+// --- 15: an unrecognized month name warns and returns nil rather than
+//         guessing ---
+t15=time(2026:Zzz:20:13:18:2:0)
+ok=ok&&(t15==nil)
+print("15 time(2026:Zzz:...) unrecognized month name (expect nil): %v\n" t15)
+
+// --- 16: unary plus is a real operator, symmetric with unary minus --
+//        +5 evaluates to 5, not a parse error ---
+ok=ok&&(+5==5)
+print("16 +5==5 (expect true): %v\n" (+5==5))
+
+// --- 17: printOn()'s printed TZ field re-parses through time() back to
+//        the same field, for a positive offset -- the printed form uses
+//        unary plus, which the scanner reads as an ordinary decimal
+//        literal (not an octal one) even with the leading zero ---
+t17=time(2026:Sep:20:13:18:2:700)
+p17=print(t17 :str)
+eval("t17b=time("+p17+")")
+p17b=print(t17b :str)
+rt17=(p17==p17b)
+ok=ok&&rt17
+print("17 print(t17):str reparsed through time() (expect %v, true): %v %v\n" p17 p17b rt17)
+
+// --- 18: same round-trip for a negative offset, via unary minus ---
+t18=time(2026:Jan:5:24:30:15:-800)
+p18=print(t18 :str)
+eval("t18b=time("+p18+")")
+p18b=print(t18b :str)
+rt18=(p18==p18b)
+ok=ok&&rt18
+print("18 print(t18):str reparsed through time() (expect %v, true): %v %v\n" p18 p18b rt18)
+
+// --- 19: DateObj's printed form is the same year-led colon list
+//         date()/time() accept as input, not Date::printOn()'s day-led
+//         "dd-mmm-yyyy" -- that reparses through date() back to the same
+//         date, where the old form wasn't valid ComTerp syntax at all ---
+d19=date(2026:Sep:21)
+p19=print(d19 :str)
+ok=ok&&(p19=="2026:Sep:21")
+eval("d19b=date("+p19+")")
+ok=ok&&(date(d19b :daymo)==21 && date(d19b :month)==9 && date(d19b :year)==2026)
+print("19 print(date(2026:Sep:21)):str reparsed through date() (expect \"2026:Sep:21\", 21 9 2026): %v %v %v %v\n" p19 date(d19b :daymo) date(d19b :month) date(d19b :year))
 
 print("timeobj: %v\n" ok)
 ok

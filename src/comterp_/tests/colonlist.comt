@@ -194,5 +194,16 @@ t15=20:08:43
 ok=ok&&(size(t15)==3 && t15@0==20 && t15@1==8 && t15@2==43)
 print("15 20:08:43, no octal error on 08 (expect 20 8 43): %v %v %v\n" t15@0 t15@1 t15@2)
 
+// --- 16: the same holds through a unary +/- sign directly off a colon
+//        -- a zero-padded HHMM field like :+0700/:-0800 stays plain
+//        decimal (700/-800) rather than parsing its digits as octal ---
+t16=1:+0700
+ok=ok&&(size(t16)==2 && t16@0==1 && t16@1==700)
+print("16 1:+0700, unary plus off ':' stays decimal (expect 1 700): %v %v\n" t16@0 t16@1)
+
+t16b=1:-0800
+ok=ok&&(size(t16b)==2 && t16b@0==1 && t16b@1==-800)
+print("16b 1:-0800, unary minus off ':' stays decimal (expect 1 -800): %v %v\n" t16b@0 t16b@1)
+
 print("colonlist: %v\n" ok)
 ok

@@ -244,6 +244,13 @@ public:
     // no-arg help() listing and help(:top) -- for test-only or
     // other commands that would just be noise in the general list.
 
+    boolean opr_hidden() { return _opr_hidden; }
+    void opr_hidden(boolean flag) { _opr_hidden = flag; }
+    // unlike hidden(), opr_hidden leaves the command in the no-arg
+    // help() listing -- it only excludes the command from the
+    // operator-ambiguity dump that help("+") and similar print when
+    // several commands share an operator string.
+
 protected:
 
     int& npops();
@@ -290,6 +297,7 @@ protected:
     Component* _context;
     const char* _docstring2;
     boolean _hidden;
+    boolean _opr_hidden;
 
 };
 

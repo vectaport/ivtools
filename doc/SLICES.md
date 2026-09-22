@@ -551,7 +551,7 @@ all — a list that doesn't fit warns loudly at this exact call site
 (wrong element count, a non-integer element, or a field out of range)
 and returns `nil`, rather than falling back to the plain list the way
 an unrecognized colon literal does everywhere else. `t=time(1:8:30)`
-then reads back with `time(t :hour)`/`:minute`/`:second`, the same
+then reads back with `time(t :hr)`/`:min`/`:sec`, the same
 shape `date()` already uses for `DateObj`'s `:day`/`:month`/`:year`.
 
 A colon chain that never passes through `time()` is never a `TimeObj`,
