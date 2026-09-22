@@ -1102,7 +1102,7 @@ boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
   // simply try again once whatever holds the freeze now has cleared.
   if (_freeze_active) return false;
 
-  qid_out = (linkid[0]<<24) | (linkid[1]<<16) | (linkid[2]<<8) | linkid[3];
+  qid_out = uuid_key(linkid);
   freeze_request_handle(nil, qid_out);
   if (_freeze_done) return true; // no established links to flood to: trivially frozen
 
@@ -1129,6 +1129,10 @@ boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
 void DrawServ::unfreeze_fragment(freezeid_t qid) {
   if (_freeze_active && _freeze_qid == qid)
     freeze_release_handle(nil, qid);
+}
+
+boolean DrawServ::freeze_holds_linkid(const uuid_t linkid) {
+  return _freeze_active && _freeze_qid == uuid_key(linkid);
 }
 
 void DrawServ::freeze_link_down(DrawLink* link) {

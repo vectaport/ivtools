@@ -172,6 +172,13 @@ public:
   // release a fragment freeze this node originated, flooding the release
   // to the same links the request went to
 
+  boolean freeze_holds_linkid(const uuid_t linkid);
+  // whether the freeze currently held here carries the qid this exact
+  // linkid derives to -- true only when that hold is the flood for this
+  // specific link formation, proving its far end is already reachable
+  // from here (a cycle), not merely that this node is busy with an
+  // unrelated hold
+
   void freeze_request_handle(DrawLink* fromlink, freezeid_t qid);
   // handle a freeze request, whether self-originated (fromlink==nil) or
   // relayed from a peer: relay it to every other two_way link and echo an

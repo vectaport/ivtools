@@ -195,11 +195,18 @@ void DrawLinkFunc::execute() {
       }
 
       if (!did_freeze) {
-	/* still busy after any retry -- decline outright. No linkup happens
-	   this round, cycle or not; the caller can simply try again once
-	   whatever this end now holds has cleared. */
-	fprintf(stderr, "drawlink: declined %s:%d -- a fragment freeze is already held here, try again shortly\n",
-		hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
+	/* still busy after any retry -- decline outright either way. A held
+	   freeze whose qid traces to this exact linkid proves this dial's
+	   far end already reachable from here, a cycle; that answer won't
+	   change by waiting, so it gets said plainly instead of "try again". */
+	boolean confirmed_cycle = statenum == DrawLink::one_way &&
+	  ((DrawServ*)unidraw)->freeze_holds_linkid(linkid);
+	if (confirmed_cycle)
+	  fprintf(stderr, "drawlink: declined %s:%d -- already reachable from here, forming this link would close a cycle\n",
+		  hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
+	else
+	  fprintf(stderr, "drawlink: declined %s:%d -- a fragment freeze is already held here, try again shortly\n",
+		  hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
 	if (statenum == DrawLink::one_way) {
 	  fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
 	  fflush(comterp()->handler()->wrfptr());

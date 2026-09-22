@@ -93,6 +93,20 @@ declines an incoming dial (`one_way`) outright rather than waiting for
 its own hold to clear — waiting would risk a symmetric deadlock against a
 peer doing the same wait for the same reason.
 
+**Frzid match as proof.** `qid` is derived from the forming link's own
+`linkid` (`DrawServ::freeze_holds_linkid()`), so if the freeze already
+held here carries that same qid, it's this exact dial's own flood having
+reached this node by another path already — proof the far end is
+reachable from here, not just a guess from finding the node busy. That
+answer can't change by waiting, so `DrawLinkFunc::execute()` says so
+plainly rather than suggesting a retry (a collision with an unrelated
+hold, one whose qid doesn't match, is still just contention and may
+clear shortly). The default action is the same either way — decline, no
+connection — but a proven cycle is the one case where forming the link
+anyway and benching it (see "Redundant-Link Tie-Breaking" above) would be
+a deliberate choice rather than a fallback; not implemented, since
+nothing today calls for a link the freeze protocol has already refused.
+
 **Retry against itself.** The one exception is an outgoing dial
 (`new_link`) finding its own freeze already active: that's virtually
 always its own accept of some other, unrelated inbound link, still
