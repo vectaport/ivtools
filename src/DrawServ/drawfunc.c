@@ -195,10 +195,8 @@ void DrawLinkFunc::execute() {
       }
 
       if (!did_freeze) {
-	/* still busy after any retry -- decline outright either way. A held
-	   freeze whose qid traces to this exact linkid proves this dial's
-	   far end already reachable from here, a cycle; that answer won't
-	   change by waiting, so it gets said plainly instead of "try again". */
+	/* a held freeze whose qid matches this linkid proves the far end
+	   already reachable -- a cycle, not just contention. */
 	boolean confirmed_cycle = statenum == DrawLink::one_way &&
 	  ((DrawServ*)unidraw)->freeze_holds_linkid(linkid);
 	if (confirmed_cycle)
