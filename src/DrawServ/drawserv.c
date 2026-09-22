@@ -120,6 +120,7 @@ void DrawServ::Init() {
 
   _freeze_active = false;
   _freeze_qid = 0;
+  _freeze_generation = 0;
   _freeze_parent = nil;
   _freeze_sent_to = nil;
   _freeze_acks_pending = 0;
@@ -1029,6 +1030,7 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
 
   _freeze_active = true;
   _freeze_qid = qid;
+  unsigned long my_generation = ++_freeze_generation;
   _freeze_parent = fromlink;
   _freeze_done = false;
   _freeze_sent_to = new DrawLinkList;
@@ -1057,9 +1059,8 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
     return;
   }
 
-  /* a separate ref'd snapshot to send from: SendCmdString()'s write_full()
-     can pump the reactor, and a reentrant linkdown() mutates _freeze_sent_to
-     itself (freeze_link_down()), so this loop can't walk it directly. */
+  // sends walk a private snapshot, not _freeze_sent_to itself, which can
+  // be mutated out from under a live iterator while a send is in flight.
   DrawLinkList* targets = new DrawLinkList;
   Iterator si;
   _freeze_sent_to->First(si);
@@ -1073,7 +1074,8 @@ void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
   targets->First(ti);
   while (!targets->Done(ti)) {
     DrawLink* l = targets->GetDrawLink(ti);
-    if (_freeze_active && _freeze_qid == qid && _freeze_sent_to && _freeze_sent_to->Includes(l))
+    if (_freeze_active && _freeze_generation == my_generation &&
+	_freeze_sent_to && _freeze_sent_to->Includes(l))
       SendCmdString(l, buf);
     targets->Next(ti);
   }
@@ -1098,10 +1100,11 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
   if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
   if (fromlink != nil && fromlink != _freeze_parent) return; // release only ever arrives from the parent direction
 
+  unsigned long my_generation = _freeze_generation;
+
   if (_freeze_sent_to) {
-    // same ref'd-snapshot need as freeze_request_handle(): a reentrant
-    // linkdown() during a send below can itself re-enter here (if the
-    // dying link is this freeze's parent) and clear this episode first.
+    // same snapshot need as freeze_request_handle(): this episode itself
+    // can be cleared or replaced while a send below is in flight.
     DrawLinkList* targets = new DrawLinkList;
     Iterator si;
     _freeze_sent_to->First(si);
@@ -1116,7 +1119,7 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
     targets->First(ti);
     while (!targets->Done(ti)) {
       DrawLink* l = targets->GetDrawLink(ti);
-      if (_freeze_active && _freeze_qid == qid && _freeze_sent_to &&
+      if (_freeze_active && _freeze_generation == my_generation && _freeze_sent_to &&
 	  _freeze_sent_to->Includes(l) && l->state() == DrawLink::two_way)
 	SendCmdString(l, buf);
       targets->Next(ti);
@@ -1124,7 +1127,7 @@ void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
     delete targets;
   }
 
-  if (_freeze_active && _freeze_qid == qid) freeze_clear();
+  if (_freeze_active && _freeze_generation == my_generation) freeze_clear();
 }
 
 boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
