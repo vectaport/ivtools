@@ -1,0 +1,84 @@
+// src/comterp_/tests/gate.comt -- ^^, the gate operator
+
+// funcs: ^^ gate postfix
+
+// val1^^val2 passes val1 through when both operands carry a real value;
+// nil (a stream that has ended) or blank (an ongoing stream's not-yet
+// tick) on either side means that operand carries no real value, so the
+// gate discards val1 and the result is nil. Swap operand order to gate
+// on/pass the other value -- there is no :second keyword.
+
+ok=true
+
+// --- 1: both present -- passes the first operand ---
+ok=ok&&(1^^2==1)
+print("1 1^^2 (expect 1): %v\n" 1^^2)
+
+// --- 2: swap args to pass the other value ---
+ok=ok&&(2^^1==2)
+print("2 2^^1 (expect 2): %v\n" 2^^1)
+
+// --- 3: nil on the second operand discards the first ---
+r3=1^^nil
+ok=ok&&(r3==nil)
+print("3 1^^nil (expect nil): %v\n" r3)
+
+// --- 4: nil on the first operand discards it too ---
+r4=nil^^2
+ok=ok&&(r4==nil)
+print("4 nil^^2 (expect nil): %v\n" r4)
+
+// --- 5: blank() on the second operand discards the first, same as nil ---
+r5=1^^blank()
+ok=ok&&(r5==nil)
+print("5 1^^blank() (expect nil): %v\n" r5)
+
+// --- 6: blank() on the first operand discards it too ---
+r6=blank()^^1
+ok=ok&&(r6==nil)
+print("6 blank()^^1 (expect nil): %v\n" r6)
+
+// --- 7: both absent is still nil ---
+r7=nil^^blank()
+ok=ok&&(r7==nil)
+print("7 nil^^blank() (expect nil): %v\n" r7)
+
+// --- 8: a string/list value passes through unchanged, not just numerics ---
+r8="hello"^^1
+ok=ok&&(r8=="hello")
+print("8 \"hello\"^^1 (expect hello): %v\n" r8)
+
+// --- 9: precedence sits between && (41) and , (35): 1^^2,3 is (1^^2),3 ---
+p9=postfix(1^^2,3)
+ok=ok&&(index(p9 "gate" :substr)<index(p9 "tuple" :substr))
+print("9 postfix(1^^2,3) gate binds before tuple (expect true): %v\n" index(p9 "gate" :substr)<index(p9 "tuple" :substr))
+
+// --- 10: 1^^2&&3 is 1^^(2&&3) -- gate binds looser than && ---
+p10=postfix(1^^2&&3)
+ok=ok&&(index(p10 "and" :substr)<index(p10 "gate" :substr))
+print("10 postfix(1^^2&&3) and binds before gate (expect true): %v\n" index(p10 "and" :substr)<index(p10 "gate" :substr))
+
+// --- 11: gate is a regular (eager) operator -- a stream operand overdrives
+//         it one element at a time, like any other binary operator, not a
+//         one-shot short-circuit like && or || ---
+r11=$$(1,2,3)^^$$(10,20,30)
+v11a=*r11
+v11b=*r11
+v11c=*r11
+v11d=*r11
+ok=ok&&(v11a==1&&v11b==2&&v11c==3&&v11d==nil)
+print("11 ($$(1,2,3))^^($$(10,20,30)) pulled 4x (expect 1 2 3 nil): %v %v %v %v\n"
+      v11a v11b v11c v11d)
+
+// --- 12: a not-yet tick (blank()) on the trigger stream gates that tick
+//         closed, discarding the data stream's value for that tick ---
+r12=1^^(empty**3)
+v12a=*r12
+v12b=*r12
+v12c=*r12
+ok=ok&&(v12a==nil&&v12b==nil&&v12c==nil)
+print("12 1^^(empty**3) every tick gated closed (expect nil nil nil): %v %v %v\n"
+      v12a v12b v12c)
+
+print("gate: %v\n" ok)
+ok

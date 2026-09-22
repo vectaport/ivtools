@@ -530,6 +530,7 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 42       | `\|`     | bit_or        | LtoR  | BINARY          |
 | 41       | `&&`     | and           | LtoR  | BINARY          |
 | 40       | `\|\|`   | or            | LtoR  | BINARY          |
+| 39       | `^^`     | gate          | LtoR  | BINARY          |
 | 35       | `,`      | tuple         | LtoR  | BINARY          |
 | 32       | `$`      | list          | RtoL  | UNARY PREFIX    |
 | 32       | `~~`     | spread        | RtoL  | UNARY PREFIX    |
@@ -2673,6 +2674,37 @@ not a cross-product:
 list((1..3)+(10..12))  // {11,13,15}  -- zipped add
 list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
 ```
+
+### The gate operator `^^`
+
+`val1^^val2` passes `val1` through when both operands carry a real value;
+nil or blank on either side discards `val1` and the result is nil instead.
+There is no keyword to pick the other operand — swap the operand order.
+It is a regular (eager) binary operator like `,` or `+`, so pairing it
+with two streams zips them element-wise the same way `(1..3)+(10..12)`
+does above, gating a data stream on a second, independently-driven
+trigger stream tick by tick:
+
+```
+d=$$(1,2,3)
+t=$$(10,20,30)
+list(d^^t)              // {1,2,3} -- every tick's trigger was present
+
+ts=empty**3              // three not-yet ticks
+r=1^^ts
+next(r); next(r); next(r) // nil nil nil -- every tick gated closed
+```
+
+(`list()` treats the *first* nil it pulls as end-of-stream and stops
+there, same as any other stream -- `list(1^^ts)` above would read back
+`{}`, not three nils. Pull with `next()`/`*` to see a gate-closed tick
+without that collapse.)
+
+A blank tick (`empty()`/`blank()`) means an ongoing stream has nothing to
+say yet; a nil tick means the stream has ended. Both close the gate for
+that tick, the same way `is_blank()`/`is_nil()` are both checked wherever
+ComTerp code treats "no real value" as one condition (see `class()`,
+`type()`, and the `time()` vacant-argument handling above).
 
 ### Streams are single-pass
 
