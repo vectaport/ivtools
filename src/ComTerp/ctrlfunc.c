@@ -217,12 +217,15 @@ void RemoteFunc::execute() {
   ACE_SOCK_STREAM *socket = nil;
   ACE_SOCK_Connector *conn = nil;
   SocketObj* socketobj = nil;
-  char* cmdstr = nil;
+  /* cstr(), not string_ptr() -- these args are commonly built by
+     concatenation, which can leave a value sliced with no physical NUL
+     at its logical end (see ComValue::append_str()) */
+  std::string cmdscratch, hostscratch, portscratch, cmdbuf;
   if (arg1v.is_string() && arg2v.is_num() && arg3v.is_string()) {
 
-    cmdstr = (char*)arg3v.string_ptr();
-    const char* hoststr = arg1v.string_ptr();
-    const char* portstr = arg2v.is_string() ? arg2v.string_ptr() : nil;
+    cmdbuf = arg3v.cstr(cmdscratch);
+    const char* hoststr = arg1v.cstr(hostscratch);
+    const char* portstr = arg2v.is_string() ? arg2v.cstr(portscratch) : nil;
     u_short portnum = portstr ? atoi(portstr) : arg2v.ushort_val();
     ACE_INET_Addr addr (portnum, hoststr);
     socket = new ACE_SOCK_STREAM;
@@ -234,22 +237,21 @@ void RemoteFunc::execute() {
     }
 
   } else if (arg1v.is_object() && arg2v.is_string()) {
-    
-    cmdstr = (char*)arg2v.string_ptr();
+
+    cmdbuf = arg2v.cstr(cmdscratch);
     socketobj = (SocketObj*)arg1v.geta(SocketObj::class_symid());
-    if (socketobj) 
+    if (socketobj)
       socket = socketobj->socket();
-    
+
   } else
     return;
-  
-  int cmdlen = strlen(cmdstr);
-  int newline_flag = cmdstr[cmdlen-1]=='\n';
-  if (!newline_flag) cmdstr[cmdlen]='\n';
-  int nbytes = write(socket->get_handle(), cmdstr, cmdlen+(newline_flag?0:1));
-  if (nbytes != cmdlen+(newline_flag?0:1))
+
+  /* a fresh, privately-owned buffer -- safe to grow in place, unlike the
+     shared backing a string_ptr() would have pointed into */
+  if (cmdbuf.empty() || cmdbuf.back() != '\n') cmdbuf += '\n';
+  int nbytes = write(socket->get_handle(), cmdbuf.data(), cmdbuf.size());
+  if ((size_t)nbytes != cmdbuf.size())
       fprintf(stderr, "write to socket failed\n");
-  if (!newline_flag) cmdstr[cmdlen]='\0';
   if (nowaitv.is_false()) {
     char buf[BUFSIZ];
     int i=0;
@@ -408,7 +410,11 @@ void ShellFunc::execute() {
 
     ComValue retval;
     if (shellcmdstr.type() == ComValue::StringType) {
-        retval.int_ref() = system(shellcmdstr.string_ptr());
+        /* cstr(), not string_ptr() -- shellcmdstr is commonly built by
+	   concatenation, which can leave it sliced with no physical NUL
+	   at its logical end (see ComValue::append_str()) */
+        std::string scratch;
+        retval.int_ref() = system(shellcmdstr.cstr(scratch));
 	retval.type(ComValue::IntType);
     }
     push_stack(retval);

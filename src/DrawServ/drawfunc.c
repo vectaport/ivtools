@@ -94,7 +94,29 @@ void DrawLinkFunc::execute() {
   if (timerkeyv.is_known()) timerv = timerkeyv;
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
+  static int frzid_sym = symbol_add("frzid");
+  ComValue frzidv(stack_key(frzid_sym));
+  static int req_sym = symbol_add("req");
+  ComValue reqv(stack_key(req_sym));
+  static int ack_sym = symbol_add("ack");
+  ComValue ackv(stack_key(ack_sym));
+  static int thaw_sym = symbol_add("thaw");
+  ComValue thawv(stack_key(thaw_sym));
   reset_stack();
+
+  /* freeze-wave protocol message, arriving on the link this was read from */
+  if (frzidv.is_string() &&
+      (reqv.is_true() || ackv.is_true() || thawv.is_true())) {
+    DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
+    DrawLink* fromlink = handler ? (DrawLink*)handler->drawlink() : nil;
+    freezeid_t qid = (freezeid_t)strtoul(frzidv.string_ptr(), nil, 16);
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (reqv.is_true()) drawserv->freeze_request_handle(fromlink, qid);
+    else if (ackv.is_true()) drawserv->freeze_ack_handle(fromlink, qid);
+    else drawserv->freeze_release_handle(fromlink, qid);
+    push_stack(ComValue::nullval());
+    return;
+  }
 
   DrawLink* link = nil;
 
@@ -133,29 +155,83 @@ void DrawLinkFunc::execute() {
 
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
-    
+
+    u_short statenum = statev.ushort_val();
+
+    /* this link formation's id: from the wire for one_way/two_way,
+       minted here for new_link; settled before the freeze below, which
+       is keyed by it. */
+    uuid_t linkid; uuid_clear(linkid);
+    if (linkidv.is_string()) {
+      uuid_parse(linkidv.string_ptr(),linkid);
+    } else if (statenum == DrawLink::new_link) {
+      uuid_generate(linkid);
+    }
+
+    /* freeze the local fragment for the duration of the cycle check and
+       dial-and-wait below; see HACKING.md's "Linkfreeze Protocol". The
+       two_way leg needs no freeze of its own -- it runs nested inside its
+       own dial's still-active wait loop, already covered by that hold. */
+    boolean did_freeze = false;
+    freezeid_t freeze_qid;
+    if (statenum != DrawLink::two_way) {
+      did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
+
+      /* dialing out against our own already-held freeze retries rather
+	 than declining -- see HACKING.md's "Linkfreeze Protocol". */
+      if (!did_freeze && statenum == DrawLink::new_link) {
+	static const int max_wait_usec = 5000000;  // 5 second overall timeout
+	static const int slice_usec    =    5000;  // 5ms per slice
+	int elapsed = 0;
+
+	/* a bounded direct reactor yield reaches the confirmation this
+	   retry waits on -- same primitive update() wraps (ctrlfunc.c). */
+	while (!did_freeze && elapsed < max_wait_usec) {
+	  ACE_Time_Value timeout(0, slice_usec);
+	  ComterpHandler::reactor_singleton()->handle_events(timeout);
+	  elapsed += slice_usec;
+	  did_freeze = ((DrawServ*)unidraw)->freeze_fragment(freeze_qid, linkid);
+	}
+      }
+
+      if (!did_freeze) {
+	/* a held freeze whose qid matches this linkid proves the far end
+	   already reachable -- a cycle, not just contention. */
+	boolean confirmed_cycle = statenum == DrawLink::one_way &&
+	  ((DrawServ*)unidraw)->freeze_holds_linkid(linkid);
+	if (confirmed_cycle)
+	  fprintf(stderr, "drawlink: declined %s:%d -- already reachable from here, forming this link would close a cycle\n",
+		  hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
+	else
+	  fprintf(stderr, "drawlink: declined %s:%d -- a fragment freeze is already held here, try again shortly\n",
+		  hostv.string_ptr(), portv.is_string() ? atoi(portv.string_ptr()) : portv.ushort_val());
+	if (statenum == DrawLink::one_way) {
+	  fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+	  fflush(comterp()->handler()->wrfptr());
+	  comterp()->quit();
+	}
+	push_stack(ComValue::nullval());
+	return;
+      }
+    }
+
     /* cast off this link if it is a duplicate or cycle */
     uuid_t sid;
     uuid_parse(sidv.string_ptr(), sid);
-    if (statev.int_val()==DrawLink::one_way && 
+    if (statev.int_val()==DrawLink::one_way &&
 	((DrawServ*)unidraw)->cycletest
 	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
       fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
+      if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
       comterp()->quit();
       return;
     }
-    
+
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
-    u_short statenum = statev.ushort_val();
-    
-    uuid_t linkid; uuid_clear(linkid);
-    if (linkidv.is_string()) {
-	uuid_parse(linkidv.string_ptr(),linkid);
-    }
-	
+
     /* two_way leg: re-run cycletest() here too, since the far end may
        already know the peer another way that the one_way check misses. */
     if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {
@@ -199,6 +275,7 @@ void DrawLinkFunc::execute() {
 	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
 	cyclink->report("Redundant connection rejected", buffer);
 	((DrawServ*)unidraw)->linkdown(cyclink);
+	if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
 	comterp()->quit();
 	push_stack(ComValue::nullval());
 	return;
@@ -217,25 +294,39 @@ void DrawLinkFunc::execute() {
       long oldsec, oldusec;
       ((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
       
-      while (link->state() != DrawLink::two_way && elapsed < max_wait_usec) {
+      /* a completing handshake settles at two_way, or, when the far end
+	 finds it redundant, straight at redundant -- either is a normal
+	 outcome of dialing, not a failure to wait out. */
+      while (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant
+	     && elapsed < max_wait_usec) {
         ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
         ((OverlayUnidraw*)unidraw)->Run();
         elapsed += slice_usec;
       }
-      
+
       ((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
-      
-      if (link->state() != DrawLink::two_way) {
+
+      if (link->state() != DrawLink::two_way && link->state() != DrawLink::redundant) {
         fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
         ((DrawServ*)unidraw)->linkdown(link);
+        if (did_freeze) ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
         push_stack(ComValue::nullval());
 	Resource::unref(link); // unreference here because Run calls are done
         return;
       }
     }
+    /* the dialing side's hold can go now that its own link has settled;
+       the accepting side's is carried on the link and deferred -- see
+       HACKING.md's "Linkfreeze Protocol". */
+    if (did_freeze) {
+      if (statenum == DrawLink::new_link || link == nil)
+        ((DrawServ*)unidraw)->unfreeze_fragment(freeze_qid);
+      else
+        link->pending_freeze(freeze_qid);
+    }
     Resource::unref(link); // unreference here because Run calls are done
-  } 
-  
+  }
+
   /* set state to complete linkup */
   if (statev.int_val()==DrawLink::two_way) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
@@ -243,7 +334,14 @@ void DrawLinkFunc::execute() {
       if (link==NULL) link  = (DrawLink*)handler->drawlink();
       if (link != NULL) {
 	link->state(DrawLink::two_way);
-	
+
+	/* this link has now actually settled, so any fragment hold its
+	   accepting side carried while awaiting this moment can go */
+	if (link->has_pending_freeze()) {
+	  ((DrawServ*)unidraw)->unfreeze_fragment(link->pending_freeze_qid());
+	  link->clear_pending_freeze();
+	}
+
 	// at this point paste all graphics to new connection
 	DrawServ* drawserv = (DrawServ*)unidraw;
 	    if (hostv.is_string())
@@ -253,7 +351,21 @@ void DrawLinkFunc::execute() {
       }
     }
   }
-  
+
+  /* peer telling us to bench our own end of an already-open link */
+  else if (statev.int_val()==DrawLink::redundant) {
+    DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
+    if (handler) {
+      if (link==NULL) link = (DrawLink*)handler->drawlink();
+      /* the peer decided this from its own side, without knowing what
+	 else we've since benched; never take our own last active link
+	 down on its say-so -- keep it active from here regardless of
+	 what the peer now thinks. */
+      if (link != NULL && !((DrawServ*)unidraw)->sole_active_link(link))
+	link->state(DrawLink::redundant);
+    }
+  }
+
   /* dump DrawLink table to stderr, or return as list of attrlists */
   else if(nargs()==0) {
     if (tablev.is_true()) {
@@ -338,12 +450,12 @@ void SessionIdFunc::execute() {
 
     uuid_t sid;
     uuid_parse(sidv.string_ptr(), sid);
-    
+
     ((DrawServ*)unidraw)->sessionid_register_handle
-      (link, sid, pidv.int_val(), 
-       userv.string_ptr(), hostv.string_ptr(), 
+      (link, sid, pidv.int_val(),
+       userv.string_ptr(), hostv.string_ptr(),
        hostidv.int_val());
-    
+
   } else {
     if (tablev.is_true()) {
       static int key_row_sym    = symbol_add("key");

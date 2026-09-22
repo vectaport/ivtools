@@ -72,6 +72,81 @@ instance evaluates it in its own interpreter — the REPL IS the wire
 protocol.  This means the script must be valid ComTerp and must
 produce the same visual result as the local command.
 
+## Linkfreeze Protocol
+
+Before finalizing a link formation (`DrawLinkFunc::execute()` in
+`drawfunc.c`), a node floods a "freeze" request across its own
+already-established (`two_way`) links and waits for every neighbor to
+echo an ack, proving its local fragment is quiescent, then runs
+`cycletest()` against that now-guaranteed-stable view. Without this, two
+nodes closing links into the same fragment concurrently can each see a
+locally-stale, no-cycle answer and jointly close a cycle that neither
+could see forming alone (issue #575). `DrawServ::freeze_fragment()` /
+`unfreeze_fragment()` / `freeze_request_handle()` / `freeze_ack_handle()`
+/ `freeze_release_handle()` (`drawserv.c`) implement the flood; see their
+header doc comments in `drawserv.h` for the wave/echo mechanics (a
+parallel, breadth-first request flood down an implicit spanning tree,
+with acks climbing back up the same tree).
+
+**Instant/non-blocking against peers.** A node already holding a freeze
+declines an incoming dial (`one_way`) outright rather than waiting for
+its own hold to clear — waiting would risk a symmetric deadlock against a
+peer doing the same wait for the same reason.
+
+**Frzid match as proof.** `qid` is derived from the forming link's own
+`linkid` (`DrawServ::freeze_holds_linkid()`), so if the freeze already
+held here carries that same qid, it's this exact dial's own flood having
+reached this node by another path already — proof the far end is
+reachable from here, not just a guess from finding the node busy. That
+answer can't change by waiting, so `DrawLinkFunc::execute()` says so
+plainly rather than suggesting a retry (a collision with an unrelated
+hold, one whose qid doesn't match, is still just contention and may
+clear shortly). The default action is the same either way — decline, no
+connection — but a proven cycle is the one case where forming the link
+anyway and benching it (see "Redundant-Link Tie-Breaking" above) would be
+a deliberate choice rather than a fallback; not implemented, since
+nothing today calls for a link the freeze protocol has already refused.
+
+**Retry against itself.** The one exception is an outgoing dial
+(`new_link`) finding its own freeze already active: that's virtually
+always its own accept of some other, unrelated inbound link, still
+pending that link's own two_way confirmation — not a peer to deadlock
+against, just this node's own event loop settling itself. So instead of
+declining, it pumps the reactor briefly and retries, bounded, before
+giving up.
+
+**Deferred release on accept.** An accepting node's freeze only actually
+resolves once that link reaches `two_way`, a later, separate message —
+releasing right after cycletest would thaw the node while that decision
+is still uncommitted. The hold is carried on the `DrawLink` itself
+(`pending_freeze()`/`has_pending_freeze()`/`clear_pending_freeze()` in
+`drawlink.h`) and released when that message arrives, or by `linkdown()`
+as a safety net if the link is torn down first (including cleaning up a
+relay's `_freeze_parent`/`_freeze_sent_to` bookkeeping if the link that
+dies was playing one of those roles in a freeze this node is currently a
+party to — `DrawServ::freeze_link_down()`).
+
+## Redundant-Link Tie-Breaking
+
+`DrawServ::sessionid_register_handle()` (`drawserv.c`) detects a redundant
+link when a peer's session id arrives already on record via a different
+link -- both links lead to the same peer, so one is superfluous. A sid
+echoed back to its own originator is not itself a cycle (propagation
+reaching around a non-redundant path to its source is normal); it only
+means the *link* is redundant if that link's own peer is reachable some
+other way too, exactly like any other sid.
+
+Which of the two redundant links gets benched can't go by arrival order:
+the two nodes on either end of either link decide independently and can
+each see a different one arrive first. Comparing `linkid()` instead works
+network-wide, not just for the one pair that triggered the check -- a
+link's initiator mints its linkid once and the far end copies it
+unchanged, so every node comparing the same pair of links, anywhere in
+the fragment, reaches the identical answer. The one safety exception:
+never bench a node's own last active link over this comparison. Leaving
+both connections up costs a little redundant broadcast traffic once;
+losing a node's only path out is a real disconnection.
+
 ## See Also
 
 - `src/ComTerp/HACKING.md`
