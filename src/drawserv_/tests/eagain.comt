@@ -6,10 +6,12 @@
 /* eagain test -- two nodes, ds1->ds2.  Stop ds2 (SIGSTOP, no reactor to
    drain its socket), burst enough graphic creates through the ds1->ds2
    link to exceed the kernel's combined send/receive buffer capacity, then
-   resume ds2 (SIGCONT) and confirm every create still arrives.  A batch
-   dispatched while stopped taking far longer than the same batch against a
-   live peer is the signature of write_full()'s EAGAIN retry engaging; full
-   delivery after resume is the signature of it succeeding rather than
+   resume ds2 (SIGCONT) and confirm every create still arrives.  A
+   background shell loop samples /proc/net/tcp's tx_queue for the ds1->ds2
+   socket throughout the burst -- a nonblocking write() only returns EAGAIN
+   once that queue is full, so a large sustained backlog is direct evidence
+   write_full()'s retry branch (not buffering luck) absorbed the burst;
+   full delivery after resume is the signature of it succeeding rather than
    silently dropping the tail (see HACKING.md's "Linkfreeze Protocol" --
    the same retry primitive covers link-formation and command relay). */
 eagain_test=func(
@@ -79,6 +81,17 @@ eagain_test=func(
      underway, whether or not this script is still inside remote() calls */
   shell(print("(sleep 3; kill -CONT %v) &" ds2pid :str));
 
+  /* --- watch the ds1->ds2 socket's kernel send-queue while this script is
+     itself blocked inside remote() below; built as string concatenation,
+     not print()'s %-substitution, since the embedded printf/bash need
+     their own literal '%'s untouched.  shell() runs this via system(),
+     i.e. /bin/sh (dash on Linux, not bash) -- 0x, not the bash-only 16#,
+     is the portable way to read a hex field into arithmetic. --- */
+  txq_file="/tmp/eagain_txq_max_"+print("%d" ds2_port :str);
+  shell(print("rm -f %v" txq_file :str));
+  monitor_script="port_hex=$(printf '%04X' "+print("%d" ds2_port :str)+"); max=0; for i in $(seq 1 120); do while IFS=' ' read -r sl loc rem st q rest; do rp=${rem##*:}; if [ \"$rp\" = \"$port_hex\" ]; then th=${q%%:*}; tq=$((0x$th)); if [ \"$tq\" -gt \"$max\" ]; then max=$tq; fi; fi; done < /proc/net/tcp; echo $max > "+txq_file+"; sleep 0.25; done &";
+  shell(monitor_script);
+
   /* --- burst past the combined socket buffer capacity.  Batched into few
      remote() round trips -- RemoteFunc::execute()'s client-side write() has
      no retry of its own (ctrlfunc.c), so many small individual calls stress
@@ -105,6 +118,15 @@ eagain_test=func(
     b=b+1);
   t1=run("date +%s" :popen);
   print("eagain: burst of %v creates (in %v batches) took %v secs\n" total batches t1-t0 :err);
+
+  /* --- confirm the burst actually saturated the kernel send buffer, not
+     just that delivery happened to survive it --- */
+  txq_max=run(print("cat %v 2>/dev/null || echo 0" txq_file :str) :popen);
+  print("eagain: peak ds1->ds2 send-queue backlog while stalled = %v bytes\n" txq_max :err);
+  if(type(txq_max)!=`IntType || txq_max<50000 :then
+    print("eagain: FAIL send-queue never showed a sustained backlog -- burst may not have driven write_full() into its EAGAIN retry\n" :err);
+    ok=false);
+  shell(print("rm -f %v" txq_file :str));
 
   /* --- settle: poll each side's own grid(:table) up to the full count.
      ds1's own count can lag too -- DistributeCmdString() runs synchronously
