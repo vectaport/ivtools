@@ -112,6 +112,27 @@ relay's `_freeze_parent`/`_freeze_sent_to` bookkeeping if the link that
 dies was playing one of those roles in a freeze this node is currently a
 party to — `DrawServ::freeze_link_down()`).
 
+## Redundant-Link Tie-Breaking
+
+`DrawServ::sessionid_register_handle()` (`drawserv.c`) detects a redundant
+link when a peer's session id arrives already on record via a different
+link -- both links lead to the same peer, so one is superfluous. A sid
+echoed back to its own originator is not itself a cycle (propagation
+reaching around a non-redundant path to its source is normal); it only
+means the *link* is redundant if that link's own peer is reachable some
+other way too, exactly like any other sid.
+
+Which of the two redundant links gets benched can't go by arrival order:
+the two nodes on either end of either link decide independently and can
+each see a different one arrive first. Comparing `linkid()` instead works
+network-wide, not just for the one pair that triggered the check -- a
+link's initiator mints its linkid once and the far end copies it
+unchanged, so every node comparing the same pair of links, anywhere in
+the fragment, reaches the identical answer. The one safety exception:
+never bench a node's own last active link over this comparison. Leaving
+both connections up costs a little redundant broadcast traffic once;
+losing a node's only path out is a real disconnection.
+
 ## See Also
 
 - `src/ComTerp/HACKING.md`

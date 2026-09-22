@@ -521,10 +521,8 @@ void DrawServ::sessionid_register_handle
 {
   if (link == NULL) return;
 
-  /* a sid already on record via a different link means that link and the
-     one it's on record via both lead to the same peer -- bench one of
-     the two rather than re-inserting and re-propagating, which would
-     send the pair the same registration back and forth without end. */
+  /* a sid already on record via a different link marks that link
+     redundant with this one -- bench it instead of re-propagating. */
   SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
   void* ptr = nil;
   sidtable->find(ptr, uuid_key(sid));
@@ -535,11 +533,8 @@ void DrawServ::sessionid_register_handle
 
     DrawLink* other = via;
     if (other == nil) {
-      /* our own session id, echoed back to us. By itself that's just
-	 propagation reaching around a non-redundant path and back to its
-	 source -- expected, not a cycle. It only means link is redundant
-	 when link's own peer is one we already reach some other way,
-	 exactly like any other sid; find that other link, if any. */
+      /* our own sid echoed back is expected, not a cycle; it's redundant
+	 only if link's peer is already reached some other way -- find it. */
       Iterator it;
       _linklist->First(it);
       while (!_linklist->Done(it)) {
@@ -550,22 +545,13 @@ void DrawServ::sessionid_register_handle
       if (!other) return;
     }
 
-    /* Which of the two is benched can't go by arrival order, since the
-       two nodes on either end of either link race this same decision
-       independently and could each see a different link arrive first.
-       Compare linkid's instead: a link's initiator generates its linkid
-       once and the far end copies it unchanged onto its own object, so
-       every node comparing this pair of links is comparing the identical
-       pair of uuid's and reaches the same answer regardless of arrival
-       order. */
+    /* compare linkid's, not arrival order -- a linkid is minted once by
+       its initiator and copied unchanged to the far end, so every node
+       comparing this pair reaches the same answer regardless of order. */
     DrawLink* loser = uuid_compare(link->linkid(), other->linkid()) < 0 ? other : link;
 
-    /* a wide-open network races this same comparison at many nodes at
-       once for many different sid's, not just at the two links actually
-       causing the redundancy; never bench a node's own last active link
-       over it; leaving both connections up here costs nothing more than
-       carrying a little unnecessary broadcast traffic once, and losing
-       this node's only path out is a real disconnection. */
+    /* never bench a node's only active link: redundant traffic once is
+       cheap, losing the sole path out is a real disconnection. */
     if (sole_active_link(loser)) return;
 
     bench(loser);
