@@ -27,6 +27,7 @@
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <string.h>
 
@@ -38,6 +39,36 @@
 
 static int sym_symid = symbol_add("sym");
 static int n_symid = symbol_add("n");
+
+/* -1/0/1 ordering between two DateObj or two TimeObj operands, read at full
+   nsec precision; false when the operands aren't the same kind (a DateObj
+   against a TimeObj, or a TimeObj instant against a duration), leaving cmp
+   unset -- the caller reads that as no meaningful comparison, not as a
+   wrong-feeling true or false. */
+static boolean date_timeobj_compare(ComValue& operand1, ComValue& operand2, int& cmp) {
+  if (operand1.is_dateobj() && operand2.is_dateobj()) {
+    /* obj_val(), not the virtual geta() -- operand1/operand2 are references
+       straight into the interpreter's stack storage, whose vtable is not
+       reliable (see AttributeValue::string_ptr()'s comment); obj_val() is
+       a plain field read, same as the rest of this file's ObjectType
+       handling already relies on. */
+    Date& d1 = *((DateObj*)operand1.obj_val())->date();
+    Date& d2 = *((DateObj*)operand2.obj_val())->date();
+    cmp = d1==d2 ? 0 : (d1<d2 ? -1 : 1);
+    return true;
+  }
+  if (operand1.is_timeobj() && operand2.is_timeobj()) {
+    TimeObj* t1 = (TimeObj*)operand1.obj_val();
+    TimeObj* t2 = (TimeObj*)operand2.obj_val();
+    if (t1->delta() != t2->delta()) return false;
+    const struct timespec& r1 = t1->raw();
+    const struct timespec& r2 = t2->raw();
+    cmp = r1.tv_sec!=r2.tv_sec ? (r1.tv_sec<r2.tv_sec ? -1 : 1) :
+          r1.tv_nsec!=r2.tv_nsec ? (r1.tv_nsec<r2.tv_nsec ? -1 : 1) : 0;
+    return true;
+  }
+  return false;
+}
 
 /*****************************************************************************/
 
@@ -312,19 +343,22 @@ void EqualFunc::execute() {
 	result.boolean_ref() = operand1.boolean_val() == operand2.boolean_val();
 	break;
       case ComValue::ObjectType:
-	if (!operand1.object_compview())
-	  result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
+	if (operand1.is_dateobj() || operand1.is_timeobj()) {
+	  int cmp;
+	  result.boolean_ref() = date_timeobj_compare(operand1, operand2, cmp) && cmp==0;
+	} else if (!operand1.object_compview())
+	  result.boolean_ref() = operand2.type() == ComValue::ObjectType &&
 	    operand1.obj_val() == operand2.obj_val() &&
 	    operand1.class_symid() == operand2.class_symid();
 	else
-	  result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
+	  result.boolean_ref() = operand2.type() == ComValue::ObjectType &&
 	    operand1.class_symid() == operand2.class_symid() &&
 	    operand2.object_compview() &&
-	    ((ComponentView*)operand1.obj_val())->GetSubject() == 
+	    ((ComponentView*)operand1.obj_val())->GetSubject() ==
 	    ((ComponentView*)operand2.obj_val())->GetSubject();
 	break;
       default:
-        result.boolean_ref() = 
+        result.boolean_ref() =
 	  operand1.is_type(ComValue::UnknownType) && operand2.is_type(ComValue::UnknownType) ||
 	  operand1.is_type(ComValue::BlankType) && operand2.is_type(ComValue::BlankType);
 	break;
@@ -416,15 +450,18 @@ void NotEqualFunc::execute() {
         !operand1.array_val()->Equal(operand2.array_val());
       break;
     case ComValue::ObjectType: {
-	if (!operand1.object_compview())
-	  result.boolean_ref() = operand2.type() != ComValue::ObjectType || 
+	if (operand1.is_dateobj() || operand1.is_timeobj()) {
+	  int cmp;
+	  result.boolean_ref() = !date_timeobj_compare(operand1, operand2, cmp) || cmp!=0;
+	} else if (!operand1.object_compview())
+	  result.boolean_ref() = operand2.type() != ComValue::ObjectType ||
 	    operand1.obj_val() != operand2.obj_val() ||
 	    operand1.class_symid() != operand2.class_symid();
 	else
-	  result.boolean_ref() = operand2.type() != ComValue::ObjectType || 
+	  result.boolean_ref() = operand2.type() != ComValue::ObjectType ||
 	    operand1.class_symid() != operand2.class_symid() ||
 	    !operand2.object_compview() ||
-	    ((ComponentView*)operand1.obj_val())->GetSubject() != 
+	    ((ComponentView*)operand1.obj_val())->GetSubject() !=
 	    ((ComponentView*)operand2.obj_val())->GetSubject();
 	break;
     }
@@ -524,6 +561,14 @@ void GreaterThanFunc::execute() {
 	operand1.array_val() != operand2.array_val() &&
         operand1.array_val()->GreaterThan(operand2.array_val());
       break;
+    case ComValue::ObjectType: {
+      int cmp;
+      if (date_timeobj_compare(operand1, operand2, cmp))
+	result.boolean_ref() = cmp>0;
+      else
+	result = ComValue::nullval();
+      break;
+    }
     default:
       result = ComValue::nullval();
       break;
@@ -609,6 +654,14 @@ void GreaterThanOrEqualFunc::execute() {
     case ComValue::BooleanType:
 	result.boolean_ref() = operand1.boolean_val() >= operand2.boolean_val();
 	break;
+    case ComValue::ObjectType: {
+      int cmp;
+      if (date_timeobj_compare(operand1, operand2, cmp))
+	result.boolean_ref() = cmp>=0;
+      else
+	result = ComValue::nullval();
+      break;
+    }
     default:
       result = ComValue::nullval();
       break;
@@ -699,6 +752,14 @@ void LessThanFunc::execute() {
 	operand1.array_val() != operand2.array_val() &&
         operand1.array_val()->LesserThan(operand2.array_val());
       break;
+    case ComValue::ObjectType: {
+      int cmp;
+      if (date_timeobj_compare(operand1, operand2, cmp))
+	result.boolean_ref() = cmp<0;
+      else
+	result = ComValue::nullval();
+      break;
+    }
     default:
       result = ComValue::nullval();
       break;
@@ -784,6 +845,14 @@ void LessThanOrEqualFunc::execute() {
     case ComValue::BooleanType:
 	result.boolean_ref() = operand1.boolean_val() <= operand2.boolean_val();
 	break;
+    case ComValue::ObjectType: {
+      int cmp;
+      if (date_timeobj_compare(operand1, operand2, cmp))
+	result.boolean_ref() = cmp<=0;
+      else
+	result = ComValue::nullval();
+      break;
+    }
     default:
       result = ComValue::nullval();
       break;

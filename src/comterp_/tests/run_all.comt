@@ -65,6 +65,10 @@ if(run("./timeobj.comt")
   :then print("pass: timeobj\n")
   :else print("FAIL: timeobj\n");topok=false)
 
+if(run("./timeobj_compare.comt")
+  :then print("pass: timeobj_compare\n")
+  :else print("FAIL: timeobj_compare\n");topok=false)
+
 if(run("./append.comt")
   :then print("pass: append\n")
   :else print("FAIL: append\n");topok=false)

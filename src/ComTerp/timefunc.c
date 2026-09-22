@@ -379,19 +379,19 @@ static boolean parse_month(ComValue& v, int& mon, int linenum, const char* cmdna
   if (v.type()==ComValue::SymbolType) {
     mon = Date::numberOfMonth(symbol_pntr((int)v.symbol_val()));
     if (mon==0) {
-      std::cout << "WARNING:  " << cmdname << ": unrecognized month name -- line "
+      std::cerr << "WARNING:  " << cmdname << ": unrecognized month name -- line "
                 << linenum << "\n";
       return false;
     }
   } else if (v.type()==ComValue::IntType) {
     mon = v.int_val();
     if (mon<1 || mon>12) {
-      std::cout << "WARNING:  " << cmdname << ": month " << mon << " out of range (1..12) -- line "
+      std::cerr << "WARNING:  " << cmdname << ": month " << mon << " out of range (1..12) -- line "
                 << linenum << "\n";
       return false;
     }
   } else {
-    std::cout << "WARNING:  " << cmdname << ": month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
+    std::cerr << "WARNING:  " << cmdname << ": month must be a bare month name (e.g. Sep) or a number 1..12 -- line "
               << linenum << "\n";
     return false;
   }
@@ -478,19 +478,19 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
     ComValue v1(resolve_elem(comterp, avl, 1));
     if (v0.type()!=ComValue::IntType || v1.type()!=ComValue::IntType) {
-      std::cout << "WARNING:  time(): min:sec must be plain integers -- line "
+      std::cerr << "WARNING:  time(): min:sec must be plain integers -- line "
                 << linenum << "\n";
       return nil;
     }
     long mn = v0.long_val();
     long sc = v1.long_val();
     if (mn<0) {
-      std::cout << "WARNING:  time(): minute " << mn << " is negative -- line "
+      std::cerr << "WARNING:  time(): minute " << mn << " is negative -- line "
                 << linenum << "\n";
       return nil;
     }
     if (sc<0 || sc>59) {
-      std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+      std::cerr << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
                 << linenum << "\n";
       return nil;
     }
@@ -513,18 +513,18 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
       ComValue dayv(resolve_elem(comterp, avl, 2));
       if (dayv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): day must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int day = dayv.int_val();
       if (day<1 || day>31) {
-        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+        std::cerr << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (day > days_in_month(mon, yr)) {
-        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
+        std::cerr << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -539,7 +539,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
     scv = comterp->lookup_symval(scv);
     if (hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
         scv.type()!=ComValue::IntType) {
-      std::cout << "WARNING:  time(): hr:min:sec must be plain integers -- line "
+      std::cerr << "WARNING:  time(): hr:min:sec must be plain integers -- line "
                 << linenum << "\n";
       return nil;
     }
@@ -548,17 +548,17 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
     int mn = mnv.int_val();
     int sc = scv.int_val();
     if (hr<0) {
-      std::cout << "WARNING:  time(): hour " << hr << " is negative -- line "
+      std::cerr << "WARNING:  time(): hour " << hr << " is negative -- line "
                 << linenum << "\n";
       return nil;
     }
     if (mn<0 || mn>59) {
-      std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+      std::cerr << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
                 << linenum << "\n";
       return nil;
     }
     if (sc<0 || sc>59) {
-      std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+      std::cerr << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
                 << linenum << "\n";
       return nil;
     }
@@ -579,31 +579,31 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
       ComValue dayv(resolve_elem(comterp, avl, 2));
       if (dayv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): day must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int day = dayv.int_val();
       if (day<1 || day>31) {
-        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+        std::cerr << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (day > days_in_month(mon, yr)) {
-        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
+        std::cerr << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
                   << linenum << "\n";
         return nil;
       }
 
       ComValue hrv(resolve_elem(comterp, avl, 3));
       if (hrv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): hour must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): hour must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int hour = hrv.int_val();
       if (hour<1 || hour>24) {
-        std::cout << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
+        std::cerr << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -616,7 +616,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
     ComValue scv(resolve_elem(comterp, avl, 3));
     if (v0.type()!=ComValue::IntType || hrv.type()!=ComValue::IntType ||
         mnv.type()!=ComValue::IntType || scv.type()!=ComValue::IntType) {
-      std::cout << "WARNING:  time(): days:hr:min:sec must be plain integers -- line "
+      std::cerr << "WARNING:  time(): days:hr:min:sec must be plain integers -- line "
                 << linenum << "\n";
       return nil;
     }
@@ -625,22 +625,22 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
     int mn = mnv.int_val();
     int sc = scv.int_val();
     if (days<0) {
-      std::cout << "WARNING:  time(): days " << days << " is negative -- line "
+      std::cerr << "WARNING:  time(): days " << days << " is negative -- line "
                 << linenum << "\n";
       return nil;
     }
     if (hr<0 || hr>23) {
-      std::cout << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
+      std::cerr << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
                 << linenum << "\n";
       return nil;
     }
     if (mn<0 || mn>59) {
-      std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+      std::cerr << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
                 << linenum << "\n";
       return nil;
     }
     if (sc<0 || sc>59) {
-      std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+      std::cerr << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
                 << linenum << "\n";
       return nil;
     }
@@ -663,31 +663,31 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
       ComValue dayv(resolve_elem(comterp, avl, 2));
       if (dayv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): day must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): day must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int day = dayv.int_val();
       if (day<1 || day>31) {
-        std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+        std::cerr << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (day > days_in_month(mon, yr)) {
-        std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
+        std::cerr << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
                   << linenum << "\n";
         return nil;
       }
 
       ComValue hrv(resolve_elem(comterp, avl, 3));
       if (hrv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): hour must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): hour must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int hour = hrv.int_val();
       if (hour<1 || hour>24) {
-        std::cout << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
+        std::cerr << "WARNING:  time(): hour " << hour << " out of range (1..24) -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -695,13 +695,13 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
       ComValue mnv0(resolve_elem(comterp, avl, 4));
       if (mnv0.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): minute must be a plain integer -- line "
+        std::cerr << "WARNING:  time(): minute must be a plain integer -- line "
                   << linenum << "\n";
         return nil;
       }
       int minute = mnv0.int_val();
       if (minute<0 || minute>59) {
-        std::cout << "WARNING:  time(): minute " << minute << " out of range (0..59) -- line "
+        std::cerr << "WARNING:  time(): minute " << minute << " out of range (0..59) -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -715,7 +715,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
       if (v0.type()!=ComValue::IntType || daysv.type()!=ComValue::IntType ||
           hrv.type()!=ComValue::IntType || mnv.type()!=ComValue::IntType ||
           scv.type()!=ComValue::IntType) {
-        std::cout << "WARNING:  time(): yrs:days:hr:min:sec must be plain integers -- line "
+        std::cerr << "WARNING:  time(): yrs:days:hr:min:sec must be plain integers -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -725,27 +725,27 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
       int mn = mnv.int_val();
       int sc = scv.int_val();
       if (years<0) {
-        std::cout << "WARNING:  time(): years " << years << " is negative -- line "
+        std::cerr << "WARNING:  time(): years " << years << " is negative -- line "
                   << linenum << "\n";
         return nil;
       }
       if (days<0 || days>366) {
-        std::cout << "WARNING:  time(): days " << days << " out of range (0..366) -- line "
+        std::cerr << "WARNING:  time(): days " << days << " out of range (0..366) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (hr<0 || hr>23) {
-        std::cout << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
+        std::cerr << "WARNING:  time(): hour " << hr << " out of range (0..23) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (mn<0 || mn>59) {
-        std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+        std::cerr << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
                   << linenum << "\n";
         return nil;
       }
       if (sc<0 || sc>59) {
-        std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+        std::cerr << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
                   << linenum << "\n";
         return nil;
       }
@@ -760,7 +760,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   }
 
   if (n < 7 || n > 10) {
-    std::cout << "WARNING:  time() needs a 2-to-5-element instant or duration list "
+    std::cerr << "WARNING:  time() needs a 2-to-5-element instant or duration list "
                  "or a 7-to-10-element y:Mon:d:h:m:s[:ms:us:ns]:TZ list, got "
               << n << " element(s) -- line " << linenum << "\n";
     return nil;
@@ -778,7 +778,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   }
 
   if (elems[0].type()!=ComValue::IntType) {
-    std::cout << "WARNING:  time(): year must be a plain integer -- line "
+    std::cerr << "WARNING:  time(): year must be a plain integer -- line "
               << linenum << "\n";
     return nil;
   }
@@ -788,25 +788,25 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   if (!parse_month(elems[1], mon, linenum)) return nil;
 
   if (elems[2].type()!=ComValue::IntType) {
-    std::cout << "WARNING:  time(): day must be a plain integer -- line "
+    std::cerr << "WARNING:  time(): day must be a plain integer -- line "
               << linenum << "\n";
     return nil;
   }
   int day = elems[2].int_val();
   if (day<1 || day>31) {
-    std::cout << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
+    std::cerr << "WARNING:  time(): day " << day << " out of range (1..31) -- line "
               << linenum << "\n";
     return nil;
   }
   if (day > days_in_month(mon, yr)) {
-    std::cout << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
+    std::cerr << "WARNING:  time(): day " << day << " does not exist in that month/year -- line "
               << linenum << "\n";
     return nil;
   }
 
   if (elems[3].type()!=ComValue::IntType || elems[4].type()!=ComValue::IntType ||
       elems[5].type()!=ComValue::IntType) {
-    std::cout << "WARNING:  time(): h:m:s must be plain integers -- line "
+    std::cerr << "WARNING:  time(): h:m:s must be plain integers -- line "
               << linenum << "\n";
     return nil;
   }
@@ -814,18 +814,18 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int mn = elems[4].int_val();
   int sc = elems[5].int_val();
   if (hr<1 || hr>24) {
-    std::cout << "WARNING:  time(): hour " << hr << " out of range (1..24) -- line "
+    std::cerr << "WARNING:  time(): hour " << hr << " out of range (1..24) -- line "
               << linenum << "\n";
     return nil;
   }
   if (hr==24) hr=0;
   if (mn<0 || mn>59) {
-    std::cout << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
+    std::cerr << "WARNING:  time(): minute " << mn << " out of range (0..59) -- line "
               << linenum << "\n";
     return nil;
   }
   if (sc<0 || sc>59) {
-    std::cout << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
+    std::cerr << "WARNING:  time(): second " << sc << " out of range (0..59) -- line "
               << linenum << "\n";
     return nil;
   }
@@ -834,13 +834,13 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int frac[3] = {0, 0, 0};
   for (int g=0; g<fracgroups; g++) {
     if (elems[6+g].type()!=ComValue::IntType) {
-      std::cout << "WARNING:  time(): fractional-second group must be a plain integer -- line "
+      std::cerr << "WARNING:  time(): fractional-second group must be a plain integer -- line "
                 << linenum << "\n";
       return nil;
     }
     int v = elems[6+g].int_val();
     if (v<0 || v>999) {
-      std::cout << "WARNING:  time(): fractional-second group " << v
+      std::cerr << "WARNING:  time(): fractional-second group " << v
                 << " out of range (0..999) -- line " << linenum << "\n";
       return nil;
     }
@@ -849,7 +849,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 
   ComValue tzv = elems[n-1];
   if (tzv.type()!=ComValue::IntType) {
-    std::cout << "WARNING:  time(): trailing TZ field must be a plain integer HHMM offset -- line "
+    std::cerr << "WARNING:  time(): trailing TZ field must be a plain integer HHMM offset -- line "
               << linenum << "\n";
     return nil;
   }
@@ -859,7 +859,7 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
   int tzh = atz/100;
   int tzm = atz%100;
   if (tzm>59) {
-    std::cout << "WARNING:  time(): TZ minutes " << tzm << " out of range (0..59) -- line "
+    std::cerr << "WARNING:  time(): TZ minutes " << tzm << " out of range (0..59) -- line "
               << linenum << "\n";
     return nil;
   }
@@ -895,20 +895,20 @@ static TimeObj* colonlist_to_timeobj(ComTerp* comterp, AttributeValueList* avl, 
 static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, int linenum) {
   int n = avl->Number();
   if (n != 2 && n != 3) {
-    std::cout << "WARNING:  date(): needs a 2- or 3-element YEAR:MON[:day] list, got "
+    std::cerr << "WARNING:  date(): needs a 2- or 3-element YEAR:MON[:day] list, got "
               << n << " element(s) -- line " << linenum << "\n";
     return nil;
   }
 
   ComValue yrv(resolve_elem(comterp, avl, 0));
   if (yrv.type()!=ComValue::IntType) {
-    std::cout << "WARNING:  date(): year must be a plain integer -- line "
+    std::cerr << "WARNING:  date(): year must be a plain integer -- line "
               << linenum << "\n";
     return nil;
   }
   int yr = yrv.int_val();
   if (yr<0 || yr>USHRT_MAX) {
-    std::cout << "WARNING:  date(): year " << yr << " out of range (0.."
+    std::cerr << "WARNING:  date(): year " << yr << " out of range (0.."
               << USHRT_MAX << ") -- line " << linenum << "\n";
     return nil;
   }
@@ -921,18 +921,18 @@ static DateObj* colonlist_to_dateobj(ComTerp* comterp, AttributeValueList* avl, 
   if (n == 3) {
     ComValue dayv(resolve_elem(comterp, avl, 2));
     if (dayv.type()!=ComValue::IntType) {
-      std::cout << "WARNING:  date(): day must be a plain integer -- line "
+      std::cerr << "WARNING:  date(): day must be a plain integer -- line "
                 << linenum << "\n";
       return nil;
     }
     day = dayv.int_val();
     if (day<1 || day>31) {
-      std::cout << "WARNING:  date(): day " << day << " out of range (1..31) -- line "
+      std::cerr << "WARNING:  date(): day " << day << " out of range (1..31) -- line "
                 << linenum << "\n";
       return nil;
     }
     if (day > days_in_month(mon, yr)) {
-      std::cout << "WARNING:  date(): day " << day << " does not exist in that month/year -- line "
+      std::cerr << "WARNING:  date(): day " << day << " does not exist in that month/year -- line "
                 << linenum << "\n";
       return nil;
     }
