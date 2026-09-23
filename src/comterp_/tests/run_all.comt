@@ -73,6 +73,10 @@ if(run("./timeobj_arith.comt")
   :then print("pass: timeobj_arith\n")
   :else print("FAIL: timeobj_arith\n");topok=false)
 
+if(run("./gate.comt")
+  :then print("pass: gate\n")
+  :else print("FAIL: gate\n");topok=false)
+
 if(run("./append.comt")
   :then print("pass: append\n")
   :else print("FAIL: append\n");topok=false)
