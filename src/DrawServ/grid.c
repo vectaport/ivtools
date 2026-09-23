@@ -109,6 +109,10 @@ uint32_t GraphicId::selectorkey() {
   return uuid_key(_selector);
 }
 
+uint32_t GraphicId::idkey() {
+  return uuid_key(_id);
+}
+
 void GraphicId::grcomp(OverlayComp* comp) {
   if (comp==_comp) return;
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();

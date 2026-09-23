@@ -575,6 +575,38 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
 GraphicIdFunc::GraphicIdFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
+/* resolve a grid()-message id field: either a full uuid or its 8-hex
+   gridtable key, the latter always backed by a full uuid learned at that
+   grid's construction. clears out on no match, same as an absent field. */
+static void resolve_gridid(const char* str, uuid_t out) {
+  if (!str) { uuid_clear(out); return; }
+  char* end = nil;
+  uint32_t key = strlen(str) == 8 ? (uint32_t)strtoul(str, &end, 16) : 0;
+  if (end == str + 8) {
+    void* ptr = nil;
+    ((DrawServ*)unidraw)->gridtable()->find(ptr, key);
+    if (ptr) uuid_copy(out, ((GraphicId*)ptr)->id());
+    else uuid_clear(out);
+  } else
+    uuid_parse(str, out);
+}
+
+/* same resolution as resolve_gridid(), against sessionidtable() -- every
+   session id a grid() message can name was already registered there in
+   full by the sid() protocol before it could be referenced. */
+static void resolve_sid(const char* str, uuid_t out) {
+  if (!str) { uuid_clear(out); return; }
+  char* end = nil;
+  uint32_t key = strlen(str) == 8 ? (uint32_t)strtoul(str, &end, 16) : 0;
+  if (end == str + 8) {
+    void* ptr = nil;
+    ((DrawServ*)unidraw)->sessionidtable()->find(ptr, key);
+    if (ptr) uuid_copy(out, ((SessionId*)ptr)->sid());
+    else uuid_clear(out);
+  } else
+    uuid_parse(str, out);
+}
+
 void GraphicIdFunc::execute() {
   static int request_sym = symbol_add("request");
   ComValue requestv(stack_key(request_sym));
@@ -597,9 +629,9 @@ void GraphicIdFunc::execute() {
   reset_stack();
 
   uuid_t id;
-  if (idv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(id);
+  if (idv.is_string()) resolve_gridid(idv.string_ptr(), id); else uuid_clear(id);
   uuid_t selector;
-  if (selectorv.is_string()) uuid_parse(selectorv.string_ptr(), selector); else uuid_clear(selector);
+  if (selectorv.is_string()) resolve_sid(selectorv.string_ptr(), selector); else uuid_clear(selector);
 
   LinkSelection* sel = (LinkSelection*)_ed->GetSelection();
   
@@ -610,7 +642,7 @@ void GraphicIdFunc::execute() {
     if (denyv.is_string()) {
       /* the selector field is the asker, the value the node that refused */
       uuid_t denier;
-      uuid_parse(denyv.string_ptr(), denier);
+      resolve_sid(denyv.string_ptr(), denier);
       ((DrawServ*)unidraw)->grid_deny(link, id, selector, denier, genv.int_val());
     } else
       /* the bare form names no asker, so it can only be for us; the
@@ -632,14 +664,14 @@ void GraphicIdFunc::execute() {
       
       else {
 	uuid_t rid;
-	uuid_parse(requestv.string_ptr(), rid);
+	resolve_sid(requestv.string_ptr(), rid);
 	((DrawServ*)unidraw)->grid_message_handle
 	  (link, id, selector, statev.int_val(), rid, genv.int_val());
       }
-      
+
     } else {
       uuid_t gid;
-      uuid_parse(grantv.string_ptr(), gid);
+      resolve_sid(grantv.string_ptr(), gid);
       
       if (notakenv.is_true())
 	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid, genv.int_val());
