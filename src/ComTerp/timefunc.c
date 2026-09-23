@@ -278,7 +278,9 @@ void DateFunc::execute() {
   DateObj* dateobj = NULL;
   boolean fresh = false;
   TimeObj* timeobj = NULL;
-  if (datev.is_num()) {
+  if (datev.is_num() && !datev.is_floatingpoint()) {
+    /* a float epoch has no meaningful whole-day truncation -- falls
+       through to the unrecognized-argument nil case below. */
     dateobj = new DateObj(datev.long_val());
     fresh = true;
   } else if (datev.is_string()) {
@@ -296,10 +298,22 @@ void DateFunc::execute() {
       return;
     }
     fresh = true;
-  } else if (datev.is_null()) {
+  } else if (datev.is_null() || datev.is_boolean()) {
+    /* absent, or a Boolean presence signal (true/false equivalent) --
+       both vacant, so both capture today, same as time()'s own Boolean. */
     dateobj = new DateObj();
-  } else {
+  } else if (datev.is_blank()) {
+    /* an ongoing stream's not-yet tick, not an absent argument -- propagates
+       as blank rather than capturing now or falling to the nil case below. */
+    push_stack(ComValue::blankval());
+    return;
+  } else if (datev.is_dateobj()) {
     dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+  } else {
+    /* an unrecognized positional argument (e.g. an AttributeList) gets
+       nil, same precedent time() uses for its own case. */
+    push_stack(ComValue::nullval());
+    return;
   }
 
   if (timeobj) {
@@ -988,6 +1002,12 @@ void TimeFunc::execute() {
   ComValue hourv(stack_key(hour_sym));
   ComValue minutev(stack_key(minute_sym));
   ComValue secondv(stack_key(second_sym));
+  static int msec_sym = symbol_add("msec");
+  static int usec_sym = symbol_add("usec");
+  static int nsec_sym = symbol_add("nsec");
+  ComValue msecv(stack_key(msec_sym));
+  ComValue usecv(stack_key(usec_sym));
+  ComValue nsecv(stack_key(nsec_sym));
   static int year_sym = symbol_add("yr");
   static int month_sym = symbol_add("mo");
   static int day_sym = symbol_add("day");
@@ -1054,13 +1074,29 @@ void TimeFunc::execute() {
     owns = true;
   } else if (timev.is_timeobj()) {
     timeobj = (TimeObj*)timev.geta(TimeObj::class_symid());
-  } else if (!(raw_present || mono_present)) {
-    /* no positional TimeObj/DateObj/colon-list and no raw/mono keyword at
-       all -- capture now.  This is the same precedent date()'s own field
-       keywords use over today's date when no positional DateObj is given,
-       extended to time()'s own bare capture. */
-    timeobj = new TimeObj();
-    owns = true;
+  } else {
+    /* absent, or a Boolean placeholder -- neither names a value time()
+       could read a date from, so both count as "no real argument" the
+       same as leaving the slot out entirely. */
+    boolean vacant = timev.is_null() || timev.is_boolean();
+    if (timev.is_blank() && !(raw_present || mono_present)) {
+      /* an ongoing stream's not-yet tick, not an absent argument --
+	 propagates as blank rather than capturing now. */
+      push_stack(ComValue::blankval());
+      return;
+    } else if (vacant && !(raw_present || mono_present)) {
+      /* capture now.  This is the same precedent date()'s own field
+	 keywords use over today's date when no positional DateObj is
+	 given, extended to time()'s own bare capture. */
+      timeobj = new TimeObj();
+      owns = true;
+    } else if (!vacant && !timev.is_blank() && !(raw_present || mono_present)) {
+      /* a positional argument was given but isn't one of the recognized
+	 instant shapes -- report nil rather than silently discarding it
+	 and capturing now. */
+      push_stack(ComValue::nullval());
+      return;
+    }
   }
 
   if (raw_valued || mono_valued) {
@@ -1146,6 +1182,16 @@ void TimeFunc::execute() {
       if (owns) delete timeobj;
     } else if (secondv.is_true()) {
       ComValue retval(timeobj->second());
+      push_stack(retval);
+      if (owns) delete timeobj;
+    } else if (msecv.is_true() || usecv.is_true() || nsecv.is_true()) {
+      /* the same three sub-second groups printOn() decomposes tv_nsec
+         into, read individually rather than as one cumulative scaled
+         value -- unlike :ms/:us/:ns, which stay print-precision knobs. */
+      long nsec = timeobj->raw().tv_nsec;
+      int result = msecv.is_true() ? (int)(nsec / 1000000) :
+	usecv.is_true() ? (int)((nsec / 1000) % 1000) : (int)(nsec % 1000);
+      ComValue retval(result);
       push_stack(retval);
       if (owns) delete timeobj;
     } else if (yearv.is_true() || monthv.is_true() || dayv.is_true()) {
