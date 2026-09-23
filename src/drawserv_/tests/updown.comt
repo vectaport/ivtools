@@ -1490,12 +1490,14 @@ frontback_test=func(
   timeout=60*1000000/poll_usec;
   progress_interval=10*1000000/poll_usec;
 
-  /* --- launch ds1 (source) --- */
+  /* --- launch ds1 (source) -- tiled side by side with ds2 below, same
+     756x491 layout as the launch4 dev script, so both windows are visible
+     at once for a human watching --demo --- */
   ds1_port=find_open_port(:base_port 20002);
   ds1_import=ds1_port-1;
   global(drawserv_upfb1)=false;
   print("frontback: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upfb1) && cnt<timeout
@@ -1511,7 +1513,7 @@ frontback_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_upfb2)=false;
   print("frontback: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upfb2) && cnt<timeout
