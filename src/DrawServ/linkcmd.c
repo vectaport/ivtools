@@ -95,7 +95,9 @@ const char* LinkBrushCmd::dist_script() {
             } else {
                 sbuf << ",grid(";
             }
-            sbuf << "\"" << grid->idstr() << "\")";
+            char gidstr[9];
+            snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+            sbuf << "\"" << gidstr << "\")";
         }
     }
 
@@ -184,13 +186,15 @@ const char* LinkTransformCmd::dist_script() {
 
     char keystr[9];
     snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+    char gidstr[9];
+    snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
 
     /* the select(:unlock)/select(:lock) bracket carries the owner, not the
        address (trans() already names its graphic), for the far node's dist_script. */
     std::ostringstream sbuf;
-    sbuf << "s=select();select(grid(\"" << grid->idstr() << "\")"
+    sbuf << "s=select();select(grid(\"" << gidstr << "\")"
 	 << " :unlock \"" << keystr << "\")"
-	 << ";trans(grid(\"" << grid->idstr() << "\") "
+	 << ";trans(grid(\"" << gidstr << "\") "
 	 << a00 << "," << a01 << "," << a10 << ","
 	 << a11 << "," << a20 << "," << a21 << ")"
 	 << ";select(s :lock \"" << keystr << "\")";
@@ -263,7 +267,9 @@ const char* LinkFontCmd::dist_script() {
             } else {
                 sbuf << ",grid(";
             }
-            sbuf << "\"" << grid->idstr() << "\")";
+            char gidstr[9];
+            snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+            sbuf << "\"" << gidstr << "\")";
         }
     }
 
@@ -346,7 +352,9 @@ const char* LinkPatternCmd::dist_script() {
             } else {
                 sbuf << ",grid(";
             }
-            sbuf << "\"" << grid->idstr() << "\")";
+            char gidstr[9];
+            snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+            sbuf << "\"" << gidstr << "\")";
         }
     }
 
@@ -460,7 +468,9 @@ const char* LinkColorCmd::dist_script() {
             } else {
                 sbuf << ",grid(";
             }
-            sbuf << "\"" << grid->idstr() << "\")";
+            char gidstr[9];
+            snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+            sbuf << "\"" << gidstr << "\")";
         }
     }
 

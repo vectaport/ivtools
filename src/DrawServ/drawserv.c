@@ -98,6 +98,17 @@ extern uint32_t uuid_key(const uuid_t u)
     return ntohl(v);
 }
 
+/* the 8-hex-char form of uuid_key(), for wire messages and logging that
+   reference an already-constructed identity -- gridtable()/sessionidtable()
+   are keyed the same way, so this is enough for a peer to look the full
+   uuid back up. "" for a null/absent uuid, matching an absent wire field. */
+static const char* uuid_shortstr(const uuid_t u, char buf[9])
+{
+    if (u == NULL || uuid_is_null(u)) { buf[0] = '\0'; return buf; }
+    snprintf(buf, 9, "%08X", uuid_key(u));
+    return buf;
+}
+
 /*****************************************************************************/
 
 DrawServ::DrawServ (Catalog* c, int& argc, char** argv, 
@@ -620,23 +631,26 @@ int DrawServ::test_sessionid(uuid_t id) {
 
 void DrawServ::grid_message(GraphicId* grid) {
   char buf[BUFSIZ];
+  char idbuf[9], selbuf[9], sidbuf[9];
   if (grid->selected()==LinkSelection::LocallySelected ||
       (uuid_compare(grid->selector(), sessionid())==0 && grid->selected()==LinkSelection::NotSelected)) {
-    snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c", grid->idstr(), grid->selectorstr(), 
-	     grid->selected()==LinkSelection::LocallySelected ? 
+    snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
+	     uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+	     grid->selected()==LinkSelection::LocallySelected ?
 	     LinkSelection::RemotelySelected : LinkSelection::NotSelected,
 	     grid->compclass(), '\0');
     DistributeCmdString(buf);
   } else {
-    
+
     /* find link on which current selector lives */
     DrawLink* link = _linklist->find_drawlink(grid);
-    
+
     if (link) {
       /* a fresh generation each time we ask, so a delayed answer can be
 	 told apart from one for a request that replaced it. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), grid->selectorstr(), sessionidstr(),
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+	       uuid_shortstr(sessionid(), sidbuf),
 	       grid->next_reqgen(), grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
@@ -644,20 +658,13 @@ void DrawServ::grid_message(GraphicId* grid) {
 }
   
 // handle reserve request from remote DrawLink.
-void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
+void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 				   int state, uuid_t newselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
-  uuid_string_t selector_str;
-  selector_str[0] = '\0';
-  if (selector != NULL && !uuid_is_null(selector))
-    uuid_unparse(selector, selector_str);
-  uuid_string_t newselector_str;
-  newselector_str[0] = '\0';
-  if ((newselector!= NULL) && !uuid_is_null(newselector))
-    uuid_unparse(newselector, newselector_str);
-  
+  char idbuf[9], selbuf[9], newselbuf[9], sidbuf[9];
+
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -669,18 +676,19 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	if (uuid_compare(grid->selector(), sessionid())==0) {
 
 	/* if graphic is not actually selected */
-	if ((grid->selected()==LinkSelection::NotSelected || 
+	if ((grid->selected()==LinkSelection::NotSelected ||
 	     grid->selected()==LinkSelection::WaitingToBeSelected)) {
 	  grid->selected(LinkSelection::NotSelected);
 	  grid->selector(newselector);
 	  grid->grantgen(gen);
 	  char buf[BUFSIZ];
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
-		   grid->idstr(), newselector_str, sessionidstr(),
+		   uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		   uuid_shortstr(sessionid(), sidbuf),
 		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
-	} 
+	}
 
 	  /* else deny it, because it is selected */
 	else {
@@ -688,19 +696,21 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* asker in the selector field, us as the value, the same shape a
 	     grant has, so a refusal can be relayed the same way a grant is. */
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-		   grid->idstr(), newselector_str, sessionidstr(),
+		   uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		   uuid_shortstr(sessionid(), sidbuf),
 		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
-	}	
-      } 
-      
+	}
+      }
+
       /* else reformulate this request and pass it along */
       else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-		 grid->idstr(), grid->selectorstr(), newselector_str,
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+		 uuid_shortstr(newselector, newselbuf),
 		 gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -711,7 +721,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid: request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-		 grid->idstr(), newselector_str, sessionidstr(),
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		 uuid_shortstr(sessionid(), sidbuf),
 		 gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
@@ -744,17 +755,18 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	/* relay what was announced, not what we hold */
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
-		 grid->idstr(), selector_str, state,
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf), state,
 		 grid->compclass(), '\0');
 	DistributeCmdString(buf, link);
-      } 
+      }
 
       /* else pass the request on to the target selector */
       else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-	  grid->idstr(), selector_str, newselector_str,
+	  uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf),
+	  uuid_shortstr(newselector, newselbuf),
 	  gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -764,7 +776,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid:  request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-	  grid->idstr(), newselector_str, sessionidstr(),
+	  uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+	  uuid_shortstr(sessionid(), sidbuf),
 	  gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
@@ -789,15 +802,11 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
       uuid_compare(requester, sessionid())) {
     DrawLink* rlink = linkget(requester);
     if (rlink && rlink != link) {
-      uuid_string_t requester_str;
-      uuid_unparse(requester, requester_str);
-      uuid_string_t denier_str;
-      denier_str[0] = '\0';
-      if (denier != NULL && !uuid_is_null(denier))
-	uuid_unparse(denier, denier_str);
+      char idbuf[9], reqbuf[9], denbuf[9];
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), requester_str, denier_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(requester, reqbuf),
+	       uuid_shortstr(denier, denbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(rlink, buf);
       fprintf(stderr, "grid: denial passed along to the node that asked\n");
@@ -849,15 +858,11 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
   if (uuid_compare(granter, sessionid())) {
     DrawLink* glink = linkget(granter);
     if (glink && glink != link) {
-      uuid_string_t responder_str;
-      responder_str[0] = '\0';
-      if (responder != NULL && !uuid_is_null(responder))
-	uuid_unparse(responder, responder_str);
-      uuid_string_t granter_str;
-      uuid_unparse(granter, granter_str);
+      char idbuf[9], respbuf[9], granterbuf[9];
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
-	       grid->idstr(), responder_str, granter_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(responder, respbuf),
+	       uuid_shortstr(granter, granterbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(glink, buf);
       fprintf(stderr, "grid: grant-not-taken passed along to granter\n");
@@ -877,20 +882,13 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
 }
 
 // handle callback from remote DrawLink.
-void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
+void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 				     int state, uuid_t oldselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
-  uuid_string_t selector_str;
-  selector_str[0] = '\0';
-  if (selector!= NULL) 
-    uuid_unparse(selector, selector_str);
-  uuid_string_t oldselector_str;
-  oldselector_str[0] = '\0';
-  if (oldselector!= NULL) 
-    uuid_unparse(oldselector, oldselector_str);
-  
+  char idbuf[9], selbuf[9], oldselbuf[9], sidbuf[9];
+
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -921,7 +919,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 	 and could undo a later handoff if stale; the granter needs to know. */
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
-	       grid->idstr(), sessionidstr(), oldselector_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(sessionid(), sidbuf),
+	       uuid_shortstr(oldselector, oldselbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
@@ -933,7 +932,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
       /* forward the generation, so a requester two hops away sees the real
 	 value rather than zero, which would match every grant here. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), selector_str, oldselector_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf),
+	       uuid_shortstr(oldselector, oldselbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(linkget(selector), buf);
     }
@@ -994,7 +994,11 @@ void DrawServ::bench(DrawLink* link) {
   if (link->state() == DrawLink::redundant) return;
   link->state(DrawLink::redundant);
   char buf[BUFSIZ];
-  snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state %d)", link->linkid_str(), (int)DrawLink::redundant);
+  char idbuf[9];
+  /* an already-established link's own peer is naming it, so only the log
+     needs an id at all here -- the receiving side identifies the link by
+     the connection the message arrived on, not by parsing this field. */
+  snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state %d)", uuid_shortstr(link->linkid(), idbuf), (int)DrawLink::redundant);
   SendCmdString(link, buf);
   char detail[BUFSIZ];
   snprintf(detail, BUFSIZ, "%s:%d", link->hostname() ? link->hostname() : "", link->portnum());
