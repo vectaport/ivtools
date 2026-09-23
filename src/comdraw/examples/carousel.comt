@@ -45,8 +45,10 @@
 
 CENTERX=427; CENTERY=550
 BASEW=240; BASEH=160
-FR=12
-USEC=8000
+// each carousel.next() walks 6 interpolated steps from a slot's starting
+// position to its ending position, paced by update() at 12fps (usec=1e6/12)
+FR=6
+USEC=83333
 
 offX0=(0-330); offX1=(0-180); offX2=0; offX3=180; offX4=330
 sc0=0.42; sc1=0.65; sc2=1.0; sc3=0.65; sc4=0.42
