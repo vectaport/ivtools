@@ -99,5 +99,9 @@ if(run("./classcomps.comt")
   :then print("pass: classcomps\n")
   :else print("FAIL: classcomps\n");ok=false)
 
+if(run("./carousel.comt")
+  :then print("pass: carousel\n")
+  :else print("FAIL: carousel\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

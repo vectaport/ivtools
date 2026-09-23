@@ -1,0 +1,45 @@
+// src/comdraw/examples/carousel_next.comt -- advance carousel.comt by one
+// photo: the front photo exits past the back, everything else slides one
+// slot forward, and the next library photo spins in from the back to fill
+// the gap. Run carousel.comt once first, then re-run this file as many
+// times as you like -- see carousel.comt's header for why this is a
+// separate file rather than an internal loop.
+
+exiting=img0
+entrant=at(imgs nextlib)
+
+for(f=1 f<=FR f=f+1
+  t=f/FR;
+
+  // slots 0..3 <- what was in slots 1..4, sliding one slot forward
+  s=0;
+  while(s<4
+    src=s+1;
+    im=if(src==1 :then img1 :else if(src==2 :then img2 :else if(src==3 :then img3 :else img4)));
+    fw=slotw(src); fh=sloth(src); fcx=slotcx(src); fcy=slotcy(src);
+    tw=slotw(s); th=sloth(s); tcx=slotcx(s); tcy=slotcy(s);
+    w=fw+(tw-fw)*t; h=fh+(th-fh)*t;
+    cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
+    hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+    trans(im w,0,0,h,tx,ty :set);
+    s=s+1);
+
+  // the exiting photo continues receding past the back
+  ew=exfromw+(extow-exfromw)*t; eh=exfromh+(extoh-exfromh)*t;
+  ecx=exfromcx+(extocx-exfromcx)*t; ecy=exfromcy+(extocy-exfromcy)*t;
+  ehw=ew/2; ehh=eh/2; etx=ecx-ehw; ety=ecy-ehh;
+  trans(exiting ew,0,0,eh,etx,ety :set);
+
+  // the entrant spins in from further back into slot 4
+  nw=enfromw+(entow-enfromw)*t; nh=enfromh+(entoh-enfromh)*t;
+  ncx=enfromcx+(entocx-enfromcx)*t; ncy=enfromcy+(entocy-enfromcy)*t;
+  nhw=nw/2; nhh=nh/2; ntx=ncx-nhw; nty=ncy-nhh;
+  trans(entrant nw,0,0,nh,ntx,nty :set);
+
+  update(USEC))
+
+d0=d1; d1=d2; d2=d3; d3=d4; d4=nextlib
+img0=img1; img1=img2; img2=img3; img3=img4; img4=entrant
+nextlib=mod(nextlib+1 n)
+front(img0); front(img4); front(img1); front(img3); front(img2)
+print("carousel: deck %v %v %v %v %v  nextlib=%v\n" d0 d1 d2 d3 d4 nextlib)
