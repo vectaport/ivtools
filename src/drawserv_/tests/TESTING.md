@@ -178,12 +178,14 @@ closings land at the same instant either one wins and the other is benched,
 or both decline and the chains stay separate -- both outcomes are safe and
 accepted.
 
-### gsfrontback
+### frontback
 
 **What:** ds1 creates two large overlapping circles, colored and centered on
 the page (r2 after r1, so r2 is naturally in front), plus a bold label
 naming the test; after both circles propagate to ds2, ds1 sends r2 to the
-back, then back to the front, over the link.
+back, then back to the front, over the link. Not a graphic-state test --
+lives in `updown.comt` with the other link/propagation tests, not
+`gstests.comt`.
 
 **Checks:**
 - both graphics reach ds2
@@ -194,8 +196,8 @@ back, then back to the front, over the link.
 `LinkFrontCmd`/`LinkBackCmd` (issue #589) -- an interactive z-order change
 never reached a peer once a link was up, unlike the one-shot z-order fixup
 DrawServ already does when a link first forms. Position is checked with
-`index(select(:all) grid(id))` rather than either graphic's own serialized
-form, since a reorder does not touch that.
+`index(list($$(frame())) grid(id))` rather than either graphic's own
+serialized form, since a reorder does not touch that.
 
 ### sel
 
