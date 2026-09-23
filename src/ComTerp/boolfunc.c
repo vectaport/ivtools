@@ -128,6 +128,23 @@ void AndFunc::execute() {
     push_stack(result);
 }
 
+GateFunc::GateFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void GateFunc::execute() {
+    ComValue operand1(stack_arg(0));
+    ComValue operand2(stack_arg(1));
+    reset_stack();
+    /* nil closes the gate for good; blank closes it only for this tick,
+       so each propagates through rather than collapsing to the other. */
+    if (operand1.is_nil() || operand2.is_nil())
+      push_stack(ComValue::nullval());
+    else if (operand1.is_blank() || operand2.is_blank())
+      push_stack(ComValue::blankval());
+    else
+      push_stack(operand1);
+}
+
 OrFunc::OrFunc(ComTerp* comterp, boolean pre) : NumFunc(comterp) {
     _pre = pre;
 }
