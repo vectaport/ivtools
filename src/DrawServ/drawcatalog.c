@@ -131,11 +131,11 @@ OverlayComp* DrawCatalog::ReadComp(const char* name, istream& in, OverlayComp* p
      _node_cnt++;
   }
   
-  else if (strcmp(name, "graph") == 0) 
+  else if (strcmp(name, "graph") == 0)
      child = new GraphComp(in, nil, parent);
-     
+
   else
-     child = OverlayCatalog::ReadComp(name, in, parent);
+     child = FrameCatalog::ReadComp(name, in, parent);
     
   return child;
 }

@@ -1,0 +1,60 @@
+// frameimport* -- import() reading a frame(...) object under drawserv, for
+// the drawmo suite. Loaded by drawmo via run("./frameimport.comt"); it calls
+// the shared helpers (kill_port, find_open_port, callback_port) defined in
+// drawmo, same launch/teardown shape as updown_test.
+
+/* frameimport test -- launch a drawserv whose -runexpr does the whole
+   check (import a drawtool(frame(...)) file, the shape export(frame)
+   produces, and confirm its contents round-trip through export()) and
+   calls back with the boolean result, the same callback mechanism every
+   other test here uses for its "up" signal. Only drawserv's DrawCatalog
+   recognizes "frame" (via FrameCatalog::ReadComp); comdraw's plain
+   OverlayCatalog does not, so this needs a live drawserv, not the
+   comdraw/tests/import.comt subprocess pattern.
+
+   The check runs inside -runexpr rather than over a remote() connection
+   after launch: remote()'s one-line reply protocol is for a single
+   already-known-short expression (as every other test here uses it),
+   and doesn't reliably survive a multi-statement command built around
+   an operation like import() that isn't instant. */
+frameimport_test=func(
+
+  ds_port=find_open_port(:base_port 20002);
+  ds_import=ds_port-1;
+  global(drawserv_frameresult)=nil;
+
+  /* byte-clean fixture, written locally since drawmo and drawserv share a
+     filesystem in every configuration this suite runs under */
+  path=print("/tmp/ivtools-frameimport-%d.drs" ds_port :str);
+  shell(print("echo 'drawtool(\nframe(rectangle(174,190,250,242 :fillbg 1 :brush 65535,0 :fgcolor \"Black\",0,0,0 :bgcolor \"White\",1,1,1 :nonepat :transform 1,0,0,1,76,292)\n))' > %s" path :str));
+
+  print("frameimport: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"r=import(\\\"%s\\\");valid=index(print(r :str) \\\"OverlayIdrawComp\\\" :substr)!=nil;e=export(r :string);hasframe=index(e \\\"frame(\\\" :substr)!=nil;hasrect=index(e \\\"174,190,250,242\\\" :substr)!=nil;if(valid&&hasframe&&hasrect :then remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_frameresult)=true\\\") :else remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_frameresult)=false\\\"));exit\" &" ds_port ds_import path callback_port callback_port :str);
+  shell(cmdstr);
+  print("frameimport: waiting for drawserv result callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(global(drawserv_frameresult)==nil && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("frameimport: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(global(drawserv_frameresult)==nil :then
+    print("frameimport: FAIL timeout waiting for drawserv result callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  ok=global(drawserv_frameresult);
+  print("frameimport: import()+export() round-trip of frame(...) (expect true): %v\n" ok :err);
+  if(!ok :then
+    print("frameimport: FAIL frame(...) did not import and round-trip correctly\n" :err));
+
+  /* -runexpr's own trailing exit already ends the process; just wait for
+     it to actually be gone so the port is free for the next test */
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+    usleep(200000));
+  print("frameimport: drawserv shut down\n" :err);
+  ok)
