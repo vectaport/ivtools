@@ -35,6 +35,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("                          parser and operator table\n");
     print("      gsexim gsbrushA gsbrushB\n");
     print("                          graphic state over a link\n");
+    print("      frameimport         import() of a frame(...) object under drawserv\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--demo\t\t\tslow tests with visible pauses for a human watching live (off by default)\n");
     print("--help\t\t\tprint this help message\n");
@@ -110,6 +111,7 @@ run("./updown.comt")
 run("./gstests.comt")
 run("./sel.comt")
 run("./eagain.comt")
+run("./frameimport.comt")
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -260,6 +262,13 @@ if(tests_flag :then
         print("updown4C: pass\n" :err)
       :else
         print("updown4C: FAIL\n" :err);
+        ok=false));
+    if(t==`frameimport || t==`all :then
+      print("running frameimport test\n" :err);
+      if(frameimport_test(:dummy 0) :then
+        print("frameimport: pass\n" :err)
+      :else
+        print("frameimport: FAIL\n" :err);
         ok=false))))
 
 exit(if(ok :then 0 :else 1))

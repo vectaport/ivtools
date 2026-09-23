@@ -231,6 +231,24 @@ back one hop and stopped, leaving the spoke that asked stuck in
 `WaitingToBeSelected` with no retry to rescue it — a request is only made from
 `NotSelected`.
 
+### frameimport
+
+**What:** launches one drawserv, `import()`s a `drawtool(frame(rectangle(...)))`
+file (the shape `export(frame)` produces) over the wire via `remote()`, and
+checks the result and its `export()` round-trip.
+
+**Checks:**
+- `import()` returns an `ObjectType` (not nil, not a failed read)
+- the re-exported text contains `frame(` -- the frame wrapper itself was
+  read, not silently dropped
+- the re-exported text contains the rectangle's own coordinates -- the
+  frame's contents survived, not just an empty frame
+
+**Purpose:** only `DrawCatalog`/`FrameCatalog::ReadComp` recognize the
+`frame` object name; plain `OverlayCatalog::ReadComp` (what comdraw uses)
+does not, so this needs a live drawserv and can't be covered by
+`comdraw/tests/import.comt`'s subprocess pattern.
+
 ## agreetest — counting runs rather than trusting one
 
 `agreetest` is not a drawmo test and is run on its own:
