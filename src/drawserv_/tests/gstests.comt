@@ -648,11 +648,12 @@ gsfrontback_test=func(
   remote(sock1 "text(40,40 \"FRONT/BACK TEST\")");
   remote(sock1 "font(6)");
 
-  /* pause so the initial drawing is visible on screen before the z-order
-     checks below start flipping it -- update(usec) on ds1 itself, not a
-     local usleep, since ds1's window only repaints when its own editor
-     processes X events; a delay in drawmo's own process wouldn't touch it */
-  remote(sock1 "update(300000)");
+  /* --demo only: pause so the initial drawing is visible on screen before
+     the z-order checks below start flipping it -- update(usec) on ds1
+     itself, not a local usleep, since ds1's window only repaints when its
+     own editor processes X events; a delay in drawmo's own process
+     wouldn't touch it.  Off by default so CI and ordinary runs stay fast. */
+  if(demo_flag :then remote(sock1 "update(300000)"));
 
   /* --- confirm both arrive on ds2, then confirm the CREATION-order z-order
      (r1 back, r2 front) landed there too, before ever calling back()/front() --- */

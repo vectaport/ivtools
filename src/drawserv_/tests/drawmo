@@ -2,11 +2,13 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
+# Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
 #          updown4C ring ringpair ringpair10 sel eagain parsetest optabletest
 #          gsexim gsbrushA gsbrushB gsfrontback
 #   no args runs all tests, portnum defaults to 10002
+#   --demo slows tests down for a human watching the drawserv windows live;
+#   off by default so CI and ordinary runs stay fast
 #
 
 /* command line help */
@@ -40,9 +42,11 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
 callback_port=int(arg(1));
 tests_flag=false;
 tests_val=nil;
+demo_flag=false;
 for(i=2 i<narg() i++
   switch(substr(arg(i) 2 :after)
     :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
+    :demo demo_flag=true
     :default print("drawmo:  Unknown argument %s\n" arg(i) :err)))
 
 /* default to all tests if no --tests flag or if --tests given with no value */
