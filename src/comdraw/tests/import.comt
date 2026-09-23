@@ -1,0 +1,36 @@
+// src/comdraw/tests/import.comt -- import() reading a drawtool-format file from
+// disk, as opposed to gsexim.comt's in-process export(:string)/run(:str)
+// round-trip (a different code path: ImportFunc -> OvImportCmd -> the
+// OverlayIdrawComp/ParamList script reader in OverlayUnidraw/scriptview.c).
+
+ok=true
+srand(int(time(:raw)))
+suffix=int(rand(0,999999))
+
+// --- test 1: a plain drawtool file with one recognized top-level object
+//             imports promptly and returns a non-nil component. ---
+goodpath="/tmp/ivtools-import-good-"+string(suffix)+".drs"
+cmd1="echo 'drawtool(\nrectangle(0,0,50,50 :fillbg 1 :brush 65535,0 :fgcolor \"Black\",0,0,0 :bgcolor \"White\",1,1,1 :nonepat)\n)' > "+goodpath+
+     " && timeout 10 comdraw -stdin_off -runexpr \"r=import(\\\""+goodpath+
+     "\\\");print(\\\"RESULT:%v\\n\\\" r);exit\" < /dev/null 2>&1 | tail -3 | tr \"\n\" \" \""
+out1=*$$open(cmd1 :pipe)
+ok=ok&&(index(out1 "RESULT:OverlayIdrawComp" :substr)!=nil)
+print("1 import() of a recognized top-level object succeeds (expect true): %v\n%s\n\n" ok out1)
+
+// --- test 2: a top-level object name the catalog does not recognize must
+//             fail the read and return control -- not spin forever re-reading
+//             the same unconsumed input.  The subprocess is wrapped in a
+//             shell timeout and its output capped with head -c as a second,
+//             independent bound: if ReadChildren ever regresses to looping,
+//             this still terminates instead of hanging the whole suite. ---
+badpath="/tmp/ivtools-import-bad-"+string(suffix)+".drs"
+cmd2="echo 'drawtool(\nbogus123(1,2,3)\n)' > "+badpath+
+     " && timeout 10 comdraw -stdin_off -runexpr \"r=import(\\\""+badpath+
+     "\\\");print(\\\"RESULT:%v\\n\\\" r);exit\" < /dev/null 2>&1 | head -c 2000 | tr \"\n\" \" \""
+out2=*$$open(cmd2 :pipe)
+ok=ok&&(index(out2 "unknown graphical object bogus123" :substr)!=nil)
+ok=ok&&(index(out2 "RESULT:" :substr)!=nil)
+print("2 import() of an unrecognized object errors and returns, rather than hanging (expect true): %v\n%s\n\n" ok out2)
+
+print("import: %v\n" ok)
+ok
