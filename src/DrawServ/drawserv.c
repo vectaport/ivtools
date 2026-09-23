@@ -402,19 +402,23 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 
       case LINK_FRONT_CMD:
       {
+	/* Execute() is what populates this command's clipboard (from a
+	   preset single target, or the live selection) -- dist_script()
+	   has to run after it, not before, unlike the other Link*Cmd cases
+	   above (see LinkFrontCmd in linkcmd.h). */
+	cmd->Execute();
 	const char* script = ((LinkFrontCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	uuid_copy(sid, ((LinkFrontCmd*)cmd)->dist_owner_sid());
-	cmd->Execute();
 	break;
       }
 
       case LINK_BACK_CMD:
       {
+	cmd->Execute();
 	const char* script = ((LinkBackCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	uuid_copy(sid, ((LinkBackCmd*)cmd)->dist_owner_sid());
-	cmd->Execute();
 	break;
       }
 

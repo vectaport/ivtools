@@ -510,10 +510,13 @@ boolean LinkColorCmd::IsA(ClassId id) {
    collect grid ids from cb this node may relay (owns, or a remote owner
    has unlocked through it), stamping the owner's key/sid so ExecuteCmd
    excludes the link back toward the change's origin.  Unlike the
-   graphic-state commands above, front()/back() already carry their own
-   clipboard snapshot (set by FrontSelectionFunc/BackSelectionFunc, one
-   selected comp or many) rather than acting on the live selection, so
-   this walks cb instead of ed->GetSelection(). */
+   graphic-state commands above, front()/back() read this command's own
+   clipboard rather than the live selection -- populated by Execute()
+   itself (FrontCmd::Execute()/BackCmd::Execute()), from a single
+   explicit target set beforehand (FrontSelectionFunc/BackSelectionFunc)
+   or, when nothing was set, from the live selection -- so this walks cb
+   instead of ed->GetSelection(), and DrawServ::ExecuteCmd calls
+   Execute() before dist_script() for these two commands. */
 static boolean collect_relayable_grids(Clipboard* cb, DrawServ* drawserv,
                                         std::ostringstream& sbuf,
                                         uint32_t& owner_key,
