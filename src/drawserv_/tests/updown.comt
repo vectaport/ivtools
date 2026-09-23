@@ -1478,12 +1478,13 @@ zorder_on_node=func(
    either circle's own gs changes), so it lives here with the other
    link/propagation tests rather than in gstests.comt.
 
-   r1/r2 are large overlapping circles, centered on the default 8.5x11in
-   page (612x792 points, origin bottom-left) with a black border (fgcolor)
-   and a solid colored fill (bgcolor, :graypat 1.0 :fillbg 1 -- the pattern
-   whose fill degenerates to flat bgcolor rather than dithering or matching
-   the fgcolor border) so the reorder is visible on screen and not just in
-   the grid table; a bold label names the test in the lower-left corner. */
+   r1/r2 are large overlapping circles, centered on the 756x491 window
+   ds1/ds2 launch with below (origin bottom-left) with a black border
+   (fgcolor) and a solid colored fill (bgcolor, :graypat 1.0 :fillbg 1 --
+   the pattern whose fill degenerates to flat bgcolor rather than
+   dithering or matching the fgcolor border) so the reorder is visible on
+   screen and not just in the grid table; a bold label names the test in
+   the lower-left corner. */
 frontback_test=func(
 
   poll_usec=2000000;
@@ -1538,11 +1539,11 @@ frontback_test=func(
   /* --- ds1: create r1, then r2 -- r2 naturally in front, creation order.
      both are radius-100 circles overlapping at the page center (306,396)
      so the reorder is visually obvious, one blue-filled and one orange. --- */
-  remote(sock1 "r1=ellipse(270,396,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Blue\",0,0,1 :graypat 1.0 :fillbg 1)");
+  remote(sock1 "r1=ellipse(342,245,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Blue\",0,0,1 :graypat 1.0 :fillbg 1)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table) 0).grid");
-  remote(sock1 "r2=ellipse(342,396,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Orange\",1,0.647,0 :graypat 1.0 :fillbg 1)");
+  remote(sock1 "r2=ellipse(414,245,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Orange\",1,0.647,0 :graypat 1.0 :fillbg 1)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<2 && cnt<200 usleep(100000);cnt++);
   ida=remote(sock1 "at(grid(:table) 0).grid");
