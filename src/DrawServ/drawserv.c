@@ -994,7 +994,11 @@ void DrawServ::bench(DrawLink* link) {
   if (link->state() == DrawLink::redundant) return;
   link->state(DrawLink::redundant);
   char buf[BUFSIZ];
-  snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state %d)", link->linkid_str(), (int)DrawLink::redundant);
+  char idbuf[9];
+  /* an already-established link's own peer is naming it, so only the log
+     needs an id at all here -- the receiving side identifies the link by
+     the connection the message arrived on, not by parsing this field. */
+  snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state %d)", uuid_shortstr(link->linkid(), idbuf), (int)DrawLink::redundant);
   SendCmdString(link, buf);
   char detail[BUFSIZ];
   snprintf(detail, BUFSIZ, "%s:%d", link->hostname() ? link->hostname() : "", link->portnum());
