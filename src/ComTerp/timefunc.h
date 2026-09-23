@@ -147,9 +147,10 @@ public:
 // reset that field on a positional TimeObj rather than dumping it --
 // the same nanosecond count :raw :ns/:mono :ns dumps, so the two round
 // trip exactly. Given a
-// TimeObj, reads a field off it (:hr/:min/:sec) or sets its printed
-// fractional precision (:ms/:us/:ns); given a DateObj, returns noon UTC
-// that date -- the inverse of date()'s TimeObj-to-DateObj conversion.
+// TimeObj, reads a field off it (:hr/:min/:sec/:msec/:usec/:nsec) or sets
+// its printed fractional precision (:ms/:us/:ns); given a DateObj, returns
+// noon UTC that date -- the inverse of date()'s TimeObj-to-DateObj
+// conversion.
 // Given a colon list instead (2 to 10 fields), vets it into a TimeObj
 // (colonlist_to_timeobj()) -- ':' itself never does this, so time() is the
 // explicit ask that can warn loudly at this call site on a bad literal
@@ -172,12 +173,15 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "timeobj|long = %s([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false] :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj at noon, parses a 2-to-10-field colon list as an instant or duration, a year-led 5-field list as local time; hour is 1-24 in instant forms, 0-23 in duration forms"; }
+      return "timeobj|long = %s([timeobj|dateobj|min:sec|YEAR:MON|hr:min:sec|YEAR:MON:day|days:h:m:s|YEAR:MON:day:hr|yrs:days:h:m:s|YEAR:MON:day:hr:min(local)|y:Mon|1-12:d:h:m:s[:ms:us:ns]:TZ] :hr :min :sec :msec :usec :nsec :yr :mo :day :tz :raw [long] :mono [long] :delta [true|false] :ms :us :ns) -- returns or inspects a TimeObj or duration, lands a DateObj at noon, parses a 2-to-10-field colon list as an instant or duration, a year-led 5-field list as local time; hour is 1-24 in instant forms, 0-23 in duration forms"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":hr        hour of a TimeObj; 1-24 for an instant (24 spells the 0th hour), 0-23 for a duration",
 	":min       minute of a TimeObj",
 	":sec       second of a TimeObj",
+	":msec      millisecond component of a TimeObj (0-999)",
+	":usec      microsecond component of a TimeObj (0-999)",
+	":nsec      nanosecond component of a TimeObj (0-999)",
 	":yr        year of a TimeObj; nil if dateless",
 	":mo        month of a TimeObj; nil if dateless",
 	":day       day of a TimeObj; nil if dateless",

@@ -629,5 +629,57 @@ d73=date(70000:Jan:1)
 ok=ok&&(d73==nil)
 print("73 date(70000:Jan:1) year out of Date's storage range (expect nil): %v\n" d73)
 
+// --- 74: an int isn't one of time()'s recognized positional shapes
+// (DateObj, colon-list, TimeObj) -- it's rejected rather than silently
+// discarded in favor of a fresh capture ---
+t74=time(1)
+ok=ok&&(t74==nil)
+print("74 time(1) unrecognized positional (expect nil): %v\n" t74)
+
+// --- 75: same for a string or a float positional ---
+t75a=time("bogus")
+t75b=time(3.14)
+ok=ok&&(t75a==nil && t75b==nil)
+print("75 time(\"bogus\"), time(3.14) unrecognized positionals (expect nil nil): %v %v\n" t75a t75b)
+
+// --- 76: no positional argument at all still captures now, unaffected
+// by 74/75 -- absence is what still triggers a fresh capture, not "any
+// unrecognized value" (see 79 for the placeholder values that also count
+// as vacant) ---
+t76=time()
+ok=ok&&(t76!=nil)
+print("76 time() with no positional still captures now (expect true): %v\n" (t76!=nil))
+
+// --- 77: :msec/:usec/:nsec read the three sub-second groups individually
+// (0-999 each), the same decomposition print()'s :ms/:us/:ns precision
+// groups use -- n77's last 9 digits, 123456789, split into 123:456:789 ---
+n77=1735689600123456789
+c77=time(:raw n77)
+ok=ok&&(time(c77 :msec)==123 && time(c77 :usec)==456 && time(c77 :nsec)==789)
+print("77 time(t :msec/:usec/:nsec) individual sub-second groups (expect 123 456 789): %v %v %v\n" time(c77 :msec) time(c77 :usec) time(c77 :nsec))
+
+// --- 78: :msec/:usec/:nsec stay distinct from :ms/:us/:ns -- the latter
+// remain print-precision modifiers (a TimeObj with :precision set), not
+// field-retrieval keywords, and don't disturb the field values themselves ---
+c78=time(c77 :ms)
+ok=ok&&(class(c78)=="TimeObj" && time(c78 :msec)==123 && time(c78 :usec)==456 && time(c78 :nsec)==789)
+print("78 :msec/:usec/:nsec don't disturb :ms/:us/:ns as precision modifiers (expect TimeObj true true true): %v %v %v %v\n" class(c78) (time(c78 :msec)==123) (time(c78 :usec)==456) (time(c78 :nsec)==789))
+
+// --- 79: true/false are placeholders, not real values -- they count as
+// vacant, same as an absent argument, and still capture now ---
+t79a=time(true)
+t79b=time(false)
+ok=ok&&(t79a!=nil && t79b!=nil)
+print("79 time(true/false) count as vacant, still capture now (expect true true): %v %v\n" (t79a!=nil) (t79b!=nil))
+
+// --- 79b: blank()/empty() are an ongoing stream's not-yet tick, not an
+// absent argument -- they propagate as blank instead of capturing now,
+// so a stream of them (empty**N) drives repeated blank ticks rather than
+// repeated captures ---
+t79c=time(blank())
+t79d=time(empty())
+ok=ok&&(t79c==blank() && t79d==blank())
+print("79b time(blank()/empty()) propagate as blank (expect blank blank): %v %v\n" t79c t79d)
+
 print("time: %v\n" ok)
 ok
