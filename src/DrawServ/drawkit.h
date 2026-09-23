@@ -62,6 +62,12 @@ public:
     virtual FontCmd* make_font_cmd(Editor*, PSFont*, int fontnum=0, const char* fontname=nil);
     virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
     // override to create LinkColorCmd for distributed color changes
+    virtual FrontCmd* make_front_cmd(ControlInfo*);
+    // override to create LinkFrontCmd for distributed z-order changes
+    virtual FrontCmd* make_front_cmd(Editor* = nil);
+    virtual BackCmd* make_back_cmd(ControlInfo*);
+    // override to create LinkBackCmd for distributed z-order changes
+    virtual BackCmd* make_back_cmd(Editor* = nil);
     virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
     // override to create LinkMoveCmd for distributed moves
 

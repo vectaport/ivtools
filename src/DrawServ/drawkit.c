@@ -610,6 +610,22 @@ TransformCmd* DrawKit::make_transform_cmd(Editor* ed, Transformer* t) {
     return new LinkTransformCmd(ed, t);
 }
 
+FrontCmd* DrawKit::make_front_cmd(ControlInfo* ctrlInfo) {
+    return new LinkFrontCmd(ctrlInfo);
+}
+
+FrontCmd* DrawKit::make_front_cmd(Editor* ed) {
+    return new LinkFrontCmd(ed);
+}
+
+BackCmd* DrawKit::make_back_cmd(ControlInfo* ctrlInfo) {
+    return new LinkBackCmd(ctrlInfo);
+}
+
+BackCmd* DrawKit::make_back_cmd(Editor* ed) {
+    return new LinkBackCmd(ed);
+}
+
 MoveCmd* DrawKit::make_move_cmd(Editor* ed, float dx, float dy) {
     return new LinkMoveCmd(ed, dx, dy);
 }

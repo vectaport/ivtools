@@ -4,9 +4,11 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair10 move sel eagain parsetest
+#          updown4C ring ringpair ringpair10 frontback move sel eagain parsetest
 #          optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
+#   --demo slows tests down for a human watching the drawserv windows live;
+#   off by default so CI and ordinary runs stay fast
 #
 
 /* command line help */
@@ -28,6 +30,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      move                a distributed move() animated in equal steps\n");
     print("      sel                 an answer that has to cross a relay\n");
     print("      eagain              write_full()'s EAGAIN retry, forced by a stalled peer\n");
+    print("      frontback           front()/back() z-order propagation over a link\n");
     print("      parsetest optabletest\n");
     print("                          parser and operator table\n");
     print("      gsexim gsbrushA gsbrushB\n");
@@ -243,6 +246,13 @@ if(tests_flag :then
         print("gsbrushB: pass\n" :err)
       :else
         print("gsbrushB: FAIL\n" :err);
+        ok=false));
+    if(t==`frontback || t==`all :then
+      print("running frontback test\n" :err);
+      if(frontback_test(:dummy 0) :then
+        print("frontback: pass\n" :err)
+      :else
+        print("frontback: FAIL\n" :err);
         ok=false));
     if(t==`updown4C || t==`all :then
       print("running updown4C test\n" :err);

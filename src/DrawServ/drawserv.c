@@ -400,6 +400,26 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case LINK_FRONT_CMD:
+      {
+	/* Execute() populates the clipboard dist_script() reads, so it
+	   runs first here, unlike the other Link*Cmd cases above. */
+	cmd->Execute();
+	const char* script = ((LinkFrontCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkFrontCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
+      case LINK_BACK_CMD:
+      {
+	cmd->Execute();
+	const char* script = ((LinkBackCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkBackCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
       case LINK_MOVE_CMD:
       {
 	const char* script = ((LinkMoveCmd*)cmd)->dist_script();

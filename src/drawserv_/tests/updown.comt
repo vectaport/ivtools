@@ -1441,6 +1441,183 @@ ringpair_test=func(
    cycletest() can run. */
 ringpair10_test=func(ringpair_test(:chainlen 10))
 
+/* zorder_on_node -- poll a far node until index(list($$(frame())) grid(zn_back))
+   sits strictly before index(list($$(frame())) grid(zn_front)), i.e. zn_back
+   is behind zn_front in structure (z-)order, or timeout.  frame()'s child
+   stream, like grid(uuid), is a read-only path -- unlike select(:all), which
+   is a distributed OWNERSHIP CLAIM (see grid_message_callback/LinkSelection):
+   select()-ing on a poller collides with the very select(:unlock)/select(:lock)
+   bracket LinkFrontCmd/LinkBackCmd's dist_script() wraps the reorder in on the
+   originating node, denying it and stalling the test rather than reading it
+   (confirmed the hard way -- see PR history).  $$(frame()) streams the frame's
+   children back-most first, same order as select(:all) without the claim;
+   index() finds a compview's position in the materialized list by identity,
+   so this checks POSITION rather than any printed form. */
+zorder_on_node=func(
+  found=false;
+  poll_usec=2000000;
+  timeout=20*1000000/poll_usec;
+  cnt=0;
+  expr=print("index(list($$(frame())) grid(%c%s%c))<index(list($$(frame())) grid(%c%s%c))"
+             34 zn_back 34 34 zn_front 34 :str);
+  while(!found && cnt<timeout
+    r=remote(zn_sock expr);
+    if(r==true :then found=true);
+    if(!found :then usleep(poll_usec);cnt++));
+  found)
+
+/* frontback test -- z-order (front()/back()) propagation ds1->ds2, closing
+   issue #589 (front()/back() had no DrawServCmd counterpart -- a reorder
+   never reached a peer once the link was up, unlike the one-shot z-order
+   fixup DrawServ already does at link-formation time).  ds1 creates r1 then
+   r2 (r2 naturally in front, creation order); after both propagate, ds1
+   sends r2 to the back, then back to the front, and ds2's own structure
+   order must track each reorder -- checked by position via
+   zorder_on_node/index(), not by either graphic's own serialized state,
+   which a reorder does not touch.  Not a graphic-state test (nothing about
+   either circle's own gs changes), so it lives here with the other
+   link/propagation tests rather than in gstests.comt.
+
+   r1/r2 are large overlapping circles, centered on the 756x491 window
+   ds1/ds2 launch with below (origin bottom-left) with a black border
+   (fgcolor) and a solid colored fill (bgcolor, :graypat 1.0 :fillbg 1 --
+   the pattern whose fill degenerates to flat bgcolor rather than
+   dithering or matching the fgcolor border) so the reorder is visible on
+   screen and not just in the grid table; a bold label names the test in
+   the lower-left corner. */
+frontback_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (source) -- tiled side by side with ds2 below, same
+     756x491 layout as the launch4 dev script, so both windows are visible
+     at once for a human watching --demo --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upfb1)=false;
+  print("frontback: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upfb1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("frontback: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upfb1) :then
+    print("frontback: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("frontback: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upfb2)=false;
+  print("frontback: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upfb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upfb2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("frontback: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upfb2) :then
+    print("frontback: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("frontback: ds2 up on %d\n" ds2_port :err);
+
+  /* --- connect to both, link ds1->ds2 --- */
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType :then
+    print("frontback: FAIL could not connect to both drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+
+  /* --- ds1: create r1, then r2 -- r2 naturally in front, creation order.
+     both are radius-100 circles overlapping at the page center (306,396)
+     so the reorder is visually obvious, one blue-filled and one orange. --- */
+  remote(sock1 "r1=ellipse(342,245,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Blue\",0,0,1 :graypat 1.0 :fillbg 1)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  remote(sock1 "r2=ellipse(414,245,100,100 :fgcolor \"Black\",0,0,0 :bgcolor \"Orange\",1,0.647,0 :graypat 1.0 :fillbg 1)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<2 && cnt<200 usleep(100000);cnt++);
+  ida=remote(sock1 "at(grid(:table) 0).grid");
+  idb=remote(sock1 "at(grid(:table) 1).grid");
+  id2=idb; if(ida!=id1 :then id2=ida);
+  print("frontback: created r1=%v (back) r2=%v (front) on ds1\n" id1 id2 :err);
+  if(type(id1)!=`StringType || type(id2)!=`StringType :then
+    print("frontback: FAIL could not read grid ids from ds1\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    return(false));
+
+  /* --- bold label announcing the test, lower-left of the page; purely
+     decorative, so fired without waiting on its own propagation --- */
+  remote(sock1 "text(40,40 \"FRONT/BACK TEST\")");
+  remote(sock1 "font(6)");
+
+  /* --demo only: pause so the initial drawing is visible on screen before
+     the z-order checks below start flipping it -- update(usec) on ds1
+     itself, not a local usleep, since ds1's window only repaints when its
+     own editor processes X events; a delay in drawmo's own process
+     wouldn't touch it.  Off by default so CI and ordinary runs stay fast. */
+  if(demo_flag :then remote(sock1 "update(300000)"));
+
+  /* --- confirm both arrive on ds2, then confirm the CREATION-order z-order
+     (r1 back, r2 front) landed there too, before ever calling back()/front() --- */
+  on1=grid_has_id(:gh_sock sock2 :gh_id id1);
+  on2=grid_has_id(:gh_sock sock2 :gh_id id2);
+  print("frontback: ds2 has r1=%v r2=%v\n" on1 on2 :err);
+  ok=on1 && on2;
+  order0=ok && zorder_on_node(:zn_sock sock2 :zn_back id1 :zn_front id2);
+  print("frontback: ds2 initial order r1-behind-r2 (creation order) = %v\n" order0 :err);
+  if(!order0 :then print("frontback: FAIL initial z-order did not propagate\n" :err));
+  ok=ok && order0;
+
+  /* --- ds1: back(r2) -- send the front graphic to the back, reversing the
+     pair.  LinkBackCmd only relays a comp its node owns (grid->selected()==
+     LocallySelected) or has been unlocked through -- creating the label
+     above made it, not r2, the current selection, so r2 needs an explicit
+     select() to re-establish ownership before back() can relay it; the
+     select(grid(...) :unlock)/select(:lock) bracket LinkBackCmd wraps this
+     in is invisible here, it only shows up on the wire. --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id2 34 :str));
+  remote(sock1 print("back(grid(%c%s%c))" 34 id2 34 :str));
+  /* --demo only: pause both windows so the reversed order is visible before
+     front() below restores it */
+  if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
+  order1=ok && zorder_on_node(:zn_sock sock2 :zn_back id2 :zn_front id1);
+  print("frontback: ds2 order after ds1's back(r2): r2-behind-r1 = %v\n" order1 :err);
+  if(!order1 :then print("frontback: FAIL back() did not propagate to ds2\n" :err));
+  ok=ok && order1;
+
+  /* --- ds1: front(r2) -- undo it, restoring the original pair order --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id2 34 :str));
+  remote(sock1 print("front(grid(%c%s%c))" 34 id2 34 :str));
+  /* --demo only: pause both windows on the restored order before teardown */
+  if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
+  order2=ok && zorder_on_node(:zn_sock sock2 :zn_back id1 :zn_front id2);
+  print("frontback: ds2 order after ds1's front(r2): r1-behind-r2 restored = %v\n" order2 :err);
+  if(!order2 :then print("frontback: FAIL front() did not propagate to ds2\n" :err));
+  ok=ok && order2;
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  print("frontback: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  print("frontback: ds2 shut down\n" :err);
+
+  ok)
+
 /* move test -- distributed move() (issue #376's Group A), closed by
    LinkMoveCmd: each move() step relays the moved comp's resulting ABSOLUTE
    position via trans(), not the delta move() itself carries, so a step

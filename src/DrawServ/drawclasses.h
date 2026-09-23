@@ -42,6 +42,8 @@
 #define LINK_PATTERN_CMD    9808
 #define LINK_FONT_CMD       9809
 #define LINK_TRANSFORM_CMD  9810
-#define LINK_MOVE_CMD       9811
+#define LINK_FRONT_CMD      9811
+#define LINK_BACK_CMD       9812
+#define LINK_MOVE_CMD       9813
 
 #endif
