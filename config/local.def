@@ -50,7 +50,7 @@ XCOMM from <local.def>:
    already getting the compiler's gnu++ default; this keeps that dialect and
    only moves the standard forward. */
 #if LibStdCPlusPlusV3
-#define LanguageCCDefines -Dcplusplus_2_1 -std=gnu++17 -Wno-deprecated -DLEAKCHECK
+#define LanguageCCDefines -Dcplusplus_2_1 -std=gnu++17 -Wno-deprecated
 #else
 #define LanguageCCDefines -Dcplusplus_2_1 -std=gnu++17
 #endif
