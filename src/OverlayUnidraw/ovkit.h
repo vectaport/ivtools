@@ -43,6 +43,7 @@ class BackCmd;
 class TransformCmd;
 class Transformer;
 class PatternCmd;
+class MoveCmd;
 class Command;
 class ControlInfo;
 class Deck;
@@ -243,6 +244,10 @@ public:
     // factory for back()'s command; see make_front_cmd.
     virtual BackCmd* make_back_cmd(Editor* = nil);
     // factory method for creating BackCmd; see the ControlInfo form
+    virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
+    // factory for move()'s command; like the graphic-state factories, it
+    // applies to whatever is selected -- no clipboard target, no ControlInfo
+    // form (move() has no menu item).
 
 protected:
     Glyph* MenuLine(PSBrush*);
