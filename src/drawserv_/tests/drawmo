@@ -15,7 +15,7 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]\n\n");
+    print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]\n\n");
     print("  (no args)             run all tests\n");
     print("--tests [name,...]  tests to run, comma-separated; -1 on error\n");
     print("      all                 everything below\n");
@@ -35,6 +35,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("                          graphic state over a link\n");
     print("      gsfrontback         front()/back() z-order over a link\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
+    print("--demo\t\t\tslow tests with visible pauses for a human watching live (off by default)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
 
