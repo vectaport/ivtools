@@ -95,6 +95,7 @@ img0=at(imgs d0); img1=at(imgs d1); img2=at(imgs d2); img3=at(imgs d3); img4=at(
 place(img0 0); place(img1 1); place(img2 2); place(img3 3); place(img4 4)
 front(img0); front(img4); front(img1); front(img3); front(img2)
 print("carousel: initial deck %v %v %v %v %v\n" d0 d1 d2 d3 d4)
+update()
 
 // fixed endpoints for the exit (past slot 0, off to the left) and entrance
 // (from further right/back than slot 4) legs of the animation -- computed
