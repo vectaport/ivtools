@@ -566,7 +566,12 @@ gsexim_test=func(
    sends r2 to the back, then back to the front, and ds2's own structure
    order must track each reorder -- checked by position via
    zorder_on_node/index(), not by either graphic's own serialized state,
-   which a reorder does not touch. */
+   which a reorder does not touch.
+
+   r1/r2 are large overlapping circles, centered on the default 8.5x11in
+   page (612x792 points, origin bottom-left), colored so the reorder is
+   visible on screen and not just in the grid table; a bold label names
+   the test in the lower-left corner. */
 gsfrontback_test=func(
 
   poll_usec=2000000;
@@ -616,12 +621,14 @@ gsfrontback_test=func(
     return(false));
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
 
-  /* --- ds1: create r1, then r2 -- r2 naturally in front, creation order --- */
-  remote(sock1 "r1=rect(20,20,80,80)");
+  /* --- ds1: create r1, then r2 -- r2 naturally in front, creation order.
+     both are radius-100 circles overlapping at the page center (306,396)
+     so the reorder is visually obvious, one blue and one orange. --- */
+  remote(sock1 "r1=ellipse(270,396,100,100 :fgcolor \"Blue\",0,0,1 :bgcolor \"Blue\",0,0,1 :fillbg 1)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table) 0).grid");
-  remote(sock1 "r2=rect(100,100,160,160)");
+  remote(sock1 "r2=ellipse(342,396,100,100 :fgcolor \"Orange\",1,0.647,0 :bgcolor \"Orange\",1,0.647,0 :fillbg 1)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<2 && cnt<200 usleep(100000);cnt++);
   ida=remote(sock1 "at(grid(:table) 0).grid");
@@ -636,6 +643,11 @@ gsfrontback_test=func(
     while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
     return(false));
 
+  /* --- bold label announcing the test, lower-left of the page; purely
+     decorative, so fired without waiting on its own propagation --- */
+  remote(sock1 "text(40,40 \"FRONT/BACK TEST\")");
+  remote(sock1 "font(6)");
+
   /* --- confirm both arrive on ds2, then confirm the CREATION-order z-order
      (r1 back, r2 front) landed there too, before ever calling back()/front() --- */
   on1=grid_has_id(:gh_sock sock2 :gh_id id1);
@@ -648,8 +660,13 @@ gsfrontback_test=func(
   ok=ok && order0;
 
   /* --- ds1: back(r2) -- send the front graphic to the back, reversing the
-     pair.  the select(grid(...) :unlock)/select(:lock) bracket LinkBackCmd
-     wraps this in is invisible here; it only shows up on the wire. --- */
+     pair.  LinkBackCmd only relays a comp its node owns (grid->selected()==
+     LocallySelected) or has been unlocked through -- creating the label
+     above made it, not r2, the current selection, so r2 needs an explicit
+     select() to re-establish ownership before back() can relay it; the
+     select(grid(...) :unlock)/select(:lock) bracket LinkBackCmd wraps this
+     in is invisible here, it only shows up on the wire. --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id2 34 :str));
   remote(sock1 print("back(grid(%c%s%c))" 34 id2 34 :str));
   order1=ok && zorder_on_node(:zn_sock sock2 :zn_back id2 :zn_front id1);
   print("gsfrontback: ds2 order after ds1's back(r2): r2-behind-r1 = %v\n" order1 :err);
@@ -657,6 +674,7 @@ gsfrontback_test=func(
   ok=ok && order1;
 
   /* --- ds1: front(r2) -- undo it, restoring the original pair order --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id2 34 :str));
   remote(sock1 print("front(grid(%c%s%c))" 34 id2 34 :str));
   order2=ok && zorder_on_node(:zn_sock sock2 :zn_back id1 :zn_front id2);
   print("gsfrontback: ds2 order after ds1's front(r2): r1-behind-r2 restored = %v\n" order2 :err);

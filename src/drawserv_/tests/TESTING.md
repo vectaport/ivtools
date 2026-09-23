@@ -180,9 +180,10 @@ accepted.
 
 ### gsfrontback
 
-**What:** ds1 creates two rects (r2 after r1, so r2 is naturally in front);
-after both propagate to ds2, ds1 sends r2 to the back, then back to the
-front, over the link.
+**What:** ds1 creates two large overlapping circles, colored and centered on
+the page (r2 after r1, so r2 is naturally in front), plus a bold label
+naming the test; after both circles propagate to ds2, ds1 sends r2 to the
+back, then back to the front, over the link.
 
 **Checks:**
 - both graphics reach ds2
