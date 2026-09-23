@@ -26,6 +26,7 @@
 
 #include <Unidraw/classes.h>
 #include <Unidraw/clipboard.h>
+#include <Unidraw/editor.h>
 #include <Unidraw/grid.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/manips.h>
@@ -357,7 +358,7 @@ Command* GraphicView::InterpretManipulator (Manipulator* m) {
             rel->InvTransform(float(x0), float(y0), fx0, fy0);
             rel->InvTransform(float(x1), float(y1), fx1, fy1);
         }
-        cmd = new MoveCmd(ed, fx1-fx0, fy1-fy0);
+        cmd = ed->MakeMoveCmd(fx1-fx0, fy1-fy0);
 
     } else if (tool->IsA(SCALE_TOOL)) {
         ScalingRect* sr = (ScalingRect*) dm->GetRubberband();

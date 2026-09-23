@@ -41,6 +41,7 @@ class Editor;
 class GraphicView;
 class Grid;
 class EivTextEditor;
+class MoveCmd;
 class ObservableText;
 class OverlayComp;
 class OverlayPanner;
@@ -157,6 +158,10 @@ public:
     virtual void ExecuteCmd(Command* cmd);
     // indirect command execution for distributed whiteboard mechanism.
     // actual mechanism implemented in ComEditor.
+
+    virtual MoveCmd* MakeMoveCmd(float dx, float dy);
+    // build the interactive move manipulator's Command via overlay_kit(),
+    // so a linked editor gets a distributing LinkMoveCmd like MoveFunc does.
 
     void SetText();
     // set contents of text-editor.

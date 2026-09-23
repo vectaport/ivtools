@@ -31,6 +31,7 @@
 #include <Unidraw/selection.h>
 #include <Unidraw/unidraw.h>
 #include <Unidraw/viewer.h>
+#include <Unidraw/Commands/transforms.h>
 #include <Unidraw/Components/component.h>
 #include <Unidraw/Components/grview.h>
 
@@ -197,3 +198,5 @@ boolean Editor::DependsOn (Component* parent) {
     }
     return false;
 }
+
+MoveCmd* Editor::MakeMoveCmd (float dx, float dy) { return new MoveCmd(this, dx, dy); }

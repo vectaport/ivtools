@@ -4,7 +4,7 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair10 sel eagain frontback parsetest
+#          updown4C ring ringpair ringpair10 frontback move sel eagain parsetest
 #          optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #   --demo slows tests down for a human watching the drawserv windows live;
@@ -27,6 +27,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      ring                a ring cannot be formed\n");
     print("      ringpair            two long chains closed at both ends at once\n");
     print("      ringpair10          ringpair at 20 nodes\n");
+    print("      move                a distributed move() animated in equal steps\n");
     print("      sel                 an answer that has to cross a relay\n");
     print("      eagain              write_full()'s EAGAIN retry, forced by a stalled peer\n");
     print("      frontback           front()/back() z-order propagation over a link\n");
@@ -203,6 +204,13 @@ if(tests_flag :then
         print("ringpair10: pass\n" :err)
       :else
         print("ringpair10: FAIL\n" :err);
+        ok=false));
+    if(t==`move || t==`all :then
+      print("running move test\n" :err);
+      if(move_test(:dummy 0) :then
+        print("move: pass\n" :err)
+      :else
+        print("move: FAIL\n" :err);
         ok=false));
     if(t==`parsetest || t==`all :then
       print("running parsetest\n" :err);

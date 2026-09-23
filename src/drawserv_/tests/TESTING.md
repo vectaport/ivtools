@@ -199,6 +199,27 @@ DrawServ already does when a link first forms. Position is checked with
 `index(list($$(frame())) grid(id))` rather than either graphic's own
 serialized form, since a reorder does not touch that.
 
+### move
+
+**What:** ds1 creates one circle and moves it across the window in equal
+steps; after each step, confirms ds2's copy has tracked the same absolute
+position. Not a graphic-state test -- lives in `updown.comt` with the other
+link/propagation tests, not `gstests.comt`.
+
+**Checks:**
+- the circle reaches ds2
+- ds2's transform matches the expected absolute position after every step,
+  not just the last one
+
+**Purpose:** `move()` had no `DrawServCmd` counterpart before `LinkMoveCmd`
+(issue #376's Group A) -- an interactive or scripted move never reached a
+peer once a link was up. Unlike `front()`/`back()`, `move()`'s delta is not
+safe to replay as-is (apply it twice and the graphic is somewhere else), so
+`LinkMoveCmd` relays each step's resulting absolute position via `trans()`
+instead, the same idempotent wire form `LinkTransformCmd` uses. Position is
+checked with `trans(grid(id))` rather than a position embedded in the
+graphic's own serialized form, since a move does not touch that.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is

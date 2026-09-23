@@ -33,6 +33,7 @@
 #include <Unidraw/Commands/font.h>
 #include <Unidraw/Commands/patcmd.h>
 #include <Unidraw/Commands/struct.h>
+#include <Unidraw/Commands/transforms.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <string>
 #include <uuid/uuid.h>
@@ -235,6 +236,34 @@ public:
     // return "s=select();select(grid(uuid),... :unlock key);back();select(s :lock key)"
     // for every comp in this command's clipboard this node may relay, or
     // empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
+//: MoveCmd with distributed script generation for DrawServ
+// Mixes MoveCmd with DrawServCmd to relay a move as the ABSOLUTE resulting
+// transform of each moved comp, not the delta move() carries -- move()
+// applies to whatever is selected, like brush/color/pattern/font, but
+// unlike them a delta accumulates (apply it twice and the graphic is
+// somewhere else), where an absolute transform is idempotent (see
+// LinkTransformCmd). So this walks the live selection the way LinkBrushCmd
+// does, and for each comp it may relay, computes where the move lands and
+// emits a trans() call there -- the same wire form LinkTransformCmd uses --
+// rather than replaying move(dx,dy) itself.
+class LinkMoveCmd : public MoveCmd, public DrawServCmd {
+public:
+    LinkMoveCmd(ControlInfo*, float = 0, float = 0);
+    LinkMoveCmd(Editor* = nil, float = 0, float = 0);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);trans(grid(uuid)
+    // a00,...,a21);...;select(s :lock key)", one trans() per comp in the
+    // live selection this node may relay, or empty string if none.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
