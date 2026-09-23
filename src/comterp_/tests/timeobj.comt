@@ -188,15 +188,16 @@ eval("d19b=date("+p19+")")
 ok=ok&&(date(d19b :daymo)==21 && date(d19b :month)==9 && date(d19b :year)==2026)
 print("19 print(date(2026:Sep:21)):str reparsed through date() (expect \"2026:Sep:21\", 21 9 2026): %v %v %v %v\n" p19 date(d19b :daymo) date(d19b :month) date(d19b :year))
 
-// --- 20: an unrecognized positional argument (not a number, string,
-//         colon-list, TimeObj, or DateObj) returns nil rather than
-//         reading a stale/null DateObj* -- a Boolean has no date in it ---
+// --- 20: a Boolean is a presence signal, not a real value -- true and
+//         false are equivalent here, both count as vacant like an absent
+//         argument, and capture today, same as time() treats a Boolean ---
+dref20=date()
 d20=date(true)
-ok=ok&&(d20==nil)
-print("20 date(true) unrecognized positional (expect nil): %v\n" d20)
+ok=ok&&(class(d20)=="DateObj" && date(d20 :daymo)==date(dref20 :daymo) && date(d20 :month)==date(dref20 :month) && date(d20 :year)==date(dref20 :year))
+print("20 date(true) presence signal, captures today (expect DateObj matching date()): %v %v\n" class(d20) (date(d20 :daymo)==date(dref20 :daymo)))
 d20b=date(false)
-ok=ok&&(d20b==nil)
-print("20b date(false) unrecognized positional (expect nil): %v\n" d20b)
+ok=ok&&(class(d20b)=="DateObj" && date(d20b :daymo)==date(dref20 :daymo) && date(d20b :month)==date(dref20 :month) && date(d20b :year)==date(dref20 :year))
+print("20b date(false) presence signal, captures today (expect DateObj matching date()): %v %v\n" class(d20b) (date(d20b :daymo)==date(dref20 :daymo)))
 
 // --- 21: an AttributeList may carry a date somewhere, but date() doesn't
 //         go looking for one -- nil, not a crash ---
