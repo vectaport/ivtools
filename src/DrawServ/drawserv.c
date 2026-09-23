@@ -420,6 +420,15 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case LINK_MOVE_CMD:
+      {
+	const char* script = ((LinkMoveCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkMoveCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
+	break;
+      }
+
       default:
 	cmd->Execute();
 	break;

@@ -1130,6 +1130,10 @@ BackCmd* OverlayKit::make_back_cmd(Editor* ed) {
     return new BackCmd(ed);
 }
 
+MoveCmd* OverlayKit::make_move_cmd(Editor* ed, float dx, float dy) {
+    return new MoveCmd(ed, dx, dy);
+}
+
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new FontCmd(ctrlInfo, font);
 }

@@ -1205,15 +1205,15 @@ int OverlaysScript::read_gsptspic(const char* name, istream& in, OverlaysComp* c
 }
 
 int OverlaysScript::ReadChildren (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
-  OverlayComp* child = nil;
   OverlaysComp* comps = (OverlaysComp*)addr1;
   char buf1[BUFSIZ];
   char buf2[BUFSIZ];
   char* buf = buf1;
-  
+
   while (in.good()) {
     if (read_name(in, buf, BUFSIZ)) break;
 
+    OverlayComp* child = nil;
     int status;
     if (status = read_gsptspic(buf, in, comps)) {
       if (status==-1) break;
@@ -1221,8 +1221,11 @@ int OverlaysScript::ReadChildren (istream& in, void* addr1, void* addr2, void* a
 
     else {
       child = read_obj(buf, in, comps);
+      /* a nil child leaves the stream positioned at its own unconsumed
+	 '(', so returning here is what keeps the loop making progress */
+      if (!child) return -1;
     }
-  
+
     if (child) {
       if (in.good() && child->valid()) {
 	comps->Append(child);

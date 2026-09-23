@@ -199,6 +199,27 @@ DrawServ already does when a link first forms. Position is checked with
 `index(list($$(frame())) grid(id))` rather than either graphic's own
 serialized form, since a reorder does not touch that.
 
+### move
+
+**What:** ds1 creates one circle and moves it across the window in equal
+steps; after each step, confirms ds2's copy has tracked the same absolute
+position. Not a graphic-state test -- lives in `updown.comt` with the other
+link/propagation tests, not `gstests.comt`.
+
+**Checks:**
+- the circle reaches ds2
+- ds2's transform matches the expected absolute position after every step,
+  not just the last one
+
+**Purpose:** `move()` had no `DrawServCmd` counterpart before `LinkMoveCmd`
+(issue #376's Group A) -- an interactive or scripted move never reached a
+peer once a link was up. Unlike `front()`/`back()`, `move()`'s delta is not
+safe to replay as-is (apply it twice and the graphic is somewhere else), so
+`LinkMoveCmd` relays each step's resulting absolute position via `trans()`
+instead, the same idempotent wire form `LinkTransformCmd` uses. Position is
+checked with `trans(grid(id))` rather than a position embedded in the
+graphic's own serialized form, since a move does not touch that.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is
@@ -209,6 +230,24 @@ across the hub; spoke 1 lets go and spoke 2 reaches again and must be
 back one hop and stopped, leaving the spoke that asked stuck in
 `WaitingToBeSelected` with no retry to rescue it — a request is only made from
 `NotSelected`.
+
+### frameimport
+
+**What:** launches one drawserv, `import()`s a `drawtool(frame(rectangle(...)))`
+file (the shape `export(frame)` produces) over the wire via `remote()`, and
+checks the result and its `export()` round-trip.
+
+**Checks:**
+- `import()` returns an `ObjectType` (not nil, not a failed read)
+- the re-exported text contains `frame(` -- the frame wrapper itself was
+  read, not silently dropped
+- the re-exported text contains the rectangle's own coordinates -- the
+  frame's contents survived, not just an empty frame
+
+**Purpose:** only `DrawCatalog`/`FrameCatalog::ReadComp` recognize the
+`frame` object name; plain `OverlayCatalog::ReadComp` (what comdraw uses)
+does not, so this needs a live drawserv and can't be covered by
+`comdraw/tests/import.comt`'s subprocess pattern.
 
 ## agreetest — counting runs rather than trusting one
 

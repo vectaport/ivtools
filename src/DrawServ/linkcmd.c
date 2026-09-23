@@ -626,3 +626,102 @@ Command* LinkBackCmd::Copy() {
 
 ClassId LinkBackCmd::GetClassId() { return LINK_BACK_CMD; }
 boolean LinkBackCmd::IsA(ClassId id) { return id == LINK_BACK_CMD || BackCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkMoveCmd::LinkMoveCmd(ControlInfo* ci, float dx, float dy) : MoveCmd(ci, dx, dy) {}
+LinkMoveCmd::LinkMoveCmd(Editor* ed, float dx, float dy) : MoveCmd(ed, dx, dy) {}
+
+const char* LinkMoveCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    float dx, dy;
+    GetMovement(dx, dy);
+    if (dx == 0 && dy == 0) return _dist_script_buf.c_str();
+
+    Editor* ed = GetEditor();
+    if (!ed) return _dist_script_buf.c_str();
+
+    LinkSelection* sel = (LinkSelection*)ed->GetSelection();
+    if (!sel) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    Transformer delta;
+    delta.translate(dx, dy);
+
+    std::ostringstream sbuf, transbuf;
+    boolean any = false;
+    uint32_t owner_key = 0;
+    Iterator it;
+
+    /* one trans() per relayable comp instead of a replayed move(dx,dy) --
+       each comp's own resulting position is idempotent, the shared delta
+       is not (see class comment). */
+    for (sel->First(it); !sel->Done(it); sel->Next(it)) {
+        OverlayView* view = (OverlayView*)sel->GetView(it);
+        OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (!grid || !(grid->selected() == LinkSelection::LocallySelected ||
+                       grid->unlocked()))
+            continue;
+
+        Graphic* gr = comp->GetGraphic();
+        if (!gr) continue;
+        Transformer result;
+        Transformer* cur = gr->GetTransformer();
+        if (cur) result = *cur;
+        result.postmultiply(delta);
+
+        float a00, a01, a10, a11, a20, a21;
+        result.matrix(a00, a01, a10, a11, a20, a21);
+
+        char gidstr[9];
+        snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+
+        if (!any) {
+            sbuf << "s=select();select(grid(\"" << gidstr << "\")";
+            any = true;
+            if (grid->selected() == LinkSelection::LocallySelected) {
+                owner_key = drawserv->sessionidkey();
+                uuid_copy(_dist_owner_sid, drawserv->sessionid());
+            } else {
+                owner_key = grid->selectorkey();
+                uuid_copy(_dist_owner_sid, grid->selector());
+            }
+        } else {
+            sbuf << ",grid(\"" << gidstr << "\")";
+        }
+
+        transbuf << ";trans(grid(\"" << gidstr << "\") "
+                  << a00 << "," << a01 << "," << a10 << ","
+                  << a11 << "," << a20 << "," << a21 << ")";
+    }
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+        sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << transbuf.str();
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkMoveCmd::Copy() {
+    float dx, dy;
+    GetMovement(dx, dy);
+    LinkMoveCmd* copy = new LinkMoveCmd(CopyControlInfo(), dx, dy);
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkMoveCmd::GetClassId() { return LINK_MOVE_CMD; }
+boolean LinkMoveCmd::IsA(ClassId id) { return id == LINK_MOVE_CMD || MoveCmd::IsA(id); }

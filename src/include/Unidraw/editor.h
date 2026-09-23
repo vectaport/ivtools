@@ -39,6 +39,7 @@ class EditorImpl;
 class KeyMap;
 class Interactor;
 class ManagedWindow;
+class MoveCmd;
 class Selection;
 class StateVar;
 class Tool;
@@ -80,6 +81,11 @@ public:
     virtual void SetInstance(const char*);
 
     virtual void keystroke(const Event&);
+
+    virtual MoveCmd* MakeMoveCmd(float dx, float dy);
+    // factory for the Command an interactive move manipulator builds;
+    // overridden where a richer editor must substitute a distributing
+    // subclass (see OverlayEditor::MakeMoveCmd).
 protected:
     Editor();
     void Insert(Interactor*);

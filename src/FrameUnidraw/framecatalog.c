@@ -119,7 +119,8 @@ OverlayComp* FrameCatalog::ReadComp(const char* name, istream& in, OverlayComp* 
 
   if (strcmp(name, "picture") == 0 ||
       strcmp(name, "grp") == 0)                 child = new FrameOverlaysComp(in, parent);
-  else 
+  else if (strcmp(name, "frame") == 0)           child = new FrameComp(in, parent);
+  else
     child = OverlayCatalog::ReadComp(name, in, parent);
   return child;
 }

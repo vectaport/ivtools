@@ -68,6 +68,8 @@ public:
     virtual BackCmd* make_back_cmd(ControlInfo*);
     // override to create LinkBackCmd for distributed z-order changes
     virtual BackCmd* make_back_cmd(Editor* = nil);
+    virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
+    // override to create LinkMoveCmd for distributed moves
 
     static DrawKit* Instance();
 

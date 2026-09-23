@@ -27,6 +27,7 @@
 
 #include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovpage.h>
 #include <Unidraw/Commands/brushcmd.h>
 #include <Unidraw/Commands/transforms.h>
@@ -101,9 +102,9 @@ void OvPreciseMoveCmd::Execute () {
       }
 
       if (xmove!=0.0 || ymove!=0.0) {
-	MoveCmd* moveCmd = new MoveCmd(GetEditor(), xmove, ymove);
-	moveCmd->Execute();
-	moveCmd->Log();
+	Editor* ed = GetEditor();
+	MoveCmd* moveCmd = ed->MakeMoveCmd(xmove, ymove);
+	((OverlayEditor*)ed)->ExecuteCmd(moveCmd);
       }
       delete _default_movestr;
       _default_movestr = movestr;
