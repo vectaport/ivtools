@@ -38,6 +38,8 @@
 class BrushCmd;
 class ColorCmd;
 class FontCmd;
+class FrontCmd;
+class BackCmd;
 class TransformCmd;
 class Transformer;
 class PatternCmd;
@@ -232,7 +234,16 @@ public:
     virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
     // factory for trans()'s command; unlike the graphic-state factories,
     // it takes no extra args, naming its target via its clipboard.
-  
+    virtual FrontCmd* make_front_cmd(ControlInfo*);
+    // factory for front()'s command; like make_transform_cmd, no extra
+    // args -- the caller names the target(s) via its clipboard.
+    virtual FrontCmd* make_front_cmd(Editor* = nil);
+    // factory method for creating FrontCmd; see the ControlInfo form
+    virtual BackCmd* make_back_cmd(ControlInfo*);
+    // factory for back()'s command; see make_front_cmd.
+    virtual BackCmd* make_back_cmd(Editor* = nil);
+    // factory method for creating BackCmd; see the ControlInfo form
+
 protected:
     Glyph* MenuLine(PSBrush*);
     // create line to put in a pulldown menu.
