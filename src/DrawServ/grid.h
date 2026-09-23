@@ -110,6 +110,9 @@ public:
   boolean unlocked() { return _unlocked; }
   // return true if remote lock temporarily suspended for local modification
 
+  uint32_t idkey();
+  // get key of this graphic's own id, matching gridtable()'s granularity
+
 protected:
   uuid_t _id;
   uuid_string_t _id_str;

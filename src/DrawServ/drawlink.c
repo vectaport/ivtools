@@ -70,6 +70,9 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
 
   _comhandler = nil;
   _ackhandler = nil;
+
+  _freeze_qid = 0;
+  _has_freeze = false;
 }
 
 DrawLink::~DrawLink ()

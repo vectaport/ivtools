@@ -40,6 +40,11 @@ typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 // utility function for grabbing key from uuid_t.
 extern uint32_t uuid_key(const uuid_t u);
 
+typedef uint32_t freezeid_t;
+// id of a linkfreeze hold: the wire protocol only needs enough entropy to
+// tell apart the handful of freezes ever concurrently in flight, not a
+// full uuid_t
+
 #include <OS/table.h>
 declareTable(GraphicIdTable,uint32_t,void*)
 declareTable(SessionIdTable,uint32_t,void*)
@@ -123,10 +128,12 @@ public:
   // register all sessionid's used by this DrawServ with remote DrawServ
   
   void sessionid_register_handle(DrawLink* link, uuid_t sid,
-				 int pid, const char* user, 
+				 int pid, const char* user,
 				 const char* host, int hostid);
-  // handle request to register unique session id
-  
+  // register a session id learned from link, or, when that sid is
+  // already recorded via a different link, bench whichever of the two
+  // links loses the tie-break
+
   void sessionid_register_propagate(DrawLink* link, uuid_t sid, int pid, 
 				    const char* user, const char *host, int hostid);
   // propagate a newly registered session id to all other DrawLink's
@@ -142,6 +149,51 @@ public:
 
   void remove_sids(DrawLink*);
   // remove all SessionId's associated with this DrawLink
+
+  void bench(DrawLink* link);
+  // set a link aside as a redundant path: keep it open and in the link
+  // list, but stop routing broadcast traffic across it, and tell the
+  // peer at its other end to do likewise
+
+  boolean sole_active_link(DrawLink* link);
+  // whether link is the only remaining non-benched link, so benching it
+  // (locally, or on a peer's say-so) would cut this node off entirely
+
+  boolean freeze_fragment(freezeid_t& qid_out, const uuid_t linkid);
+  // originate a fragment freeze for the link formation identified by
+  // linkid: flood a request (its first 4 bytes as the wire id) across
+  // every two_way link and block, pumping the reactor, until every
+  // neighbor has echoed an ack or the attempt times out; on success
+  // qid_out identifies the hold, to release later via unfreeze_fragment().
+  // Deriving the id from linkid rather than generating an unrelated one
+  // ties a freeze's req/ack/thaw log lines to the connection they protect.
+
+  void unfreeze_fragment(freezeid_t qid);
+  // release a fragment freeze this node originated, flooding the release
+  // to the same links the request went to
+
+  boolean freeze_holds_linkid(const uuid_t linkid);
+  // whether the freeze currently held here carries the qid this exact
+  // linkid derives to -- true only when that hold is the flood for this
+  // specific link formation, proving its far end is already reachable
+  // from here (a cycle), not merely that this node is busy with an
+  // unrelated hold
+
+  void freeze_request_handle(DrawLink* fromlink, freezeid_t qid);
+  // handle a freeze request, whether self-originated (fromlink==nil) or
+  // relayed from a peer: relay it to every other two_way link and echo an
+  // ack once every relay target has echoed back; a request for a qid
+  // other than one already held here is dropped rather than queued, so
+  // its sender simply times out and can retry once the hold is released
+
+  void freeze_ack_handle(DrawLink* fromlink, freezeid_t qid);
+  // record an echoed ack for the freeze this node is currently relaying
+  // or originating; once every relay target has acked, echo onward (or,
+  // for the originator, unblock the waiting freeze_fragment() call)
+
+  void freeze_release_handle(DrawLink* fromlink, freezeid_t qid);
+  // relay a freeze release to the same links its request went to and
+  // clear the local hold
 
   void grid_message(GraphicId* grid);
   // generate graphic id selection message
@@ -218,7 +270,46 @@ protected:
   
   int _comdraw_port;
   // port used for comdraw command interpreter
-  
+
+  boolean _freeze_active;
+  // whether this node currently holds a fragment freeze, as originator
+  // or as a relay
+  freezeid_t _freeze_qid;
+  // id of the freeze held in _freeze_active
+  unsigned long _freeze_generation;
+  // bumped each time _freeze_active turns on; unlike _freeze_qid (32 bits,
+  // taken from a peer message or truncated from a uuid) it never repeats,
+  // so a send loop can tell this exact episode from a same-qid successor
+  DrawLink* _freeze_parent;
+  // link the held freeze's request arrived from; nil when self-originated
+  DrawLinkList* _freeze_sent_to;
+  // links the held freeze's request was relayed to, reused to fan out
+  // its eventual release
+  int _freeze_acks_pending;
+  // entries of _freeze_sent_to not yet acked back
+  boolean _freeze_done;
+  // for the originator: whether every relay target has acked, unblocking
+  // the freeze_fragment() wait loop
+
+  void freeze_clear();
+  // drop the local hold unconditionally, without flooding a release
+
+  void freeze_link_down(DrawLink* link);
+  // clean up any freeze bookkeeping that names link before it goes away:
+  // if link is the held freeze's parent, release it as if the release had
+  // arrived from that direction; if link is a still-unacked relay target,
+  // count it as acked and drop it, so its loss can never dangle a pointer
+  // or leave the local hold waiting on an ack that will never come
+
+  boolean write_full(int fd, const char* buf, size_t len);
+  // write len bytes to fd, retrying past a short write or a transient
+  // EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's
+  // socket is nonblocking (DrawLink::open()), so a completely healthy
+  // send can still hit EAGAIN whenever the kernel's socket send buffer is
+  // momentarily full; pumps the reactor while it waits so other links and
+  // timers keep being serviced, bounded so a peer that stops reading
+  // entirely doesn't hang the wait forever.
+
 };
 
 #endif

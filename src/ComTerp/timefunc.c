@@ -278,7 +278,9 @@ void DateFunc::execute() {
   DateObj* dateobj = NULL;
   boolean fresh = false;
   TimeObj* timeobj = NULL;
-  if (datev.is_num()) {
+  if (datev.is_num() && !datev.is_floatingpoint()) {
+    /* a float epoch has no meaningful whole-day truncation -- falls
+       through to the unrecognized-argument nil case below. */
     dateobj = new DateObj(datev.long_val());
     fresh = true;
   } else if (datev.is_string()) {
@@ -296,10 +298,22 @@ void DateFunc::execute() {
       return;
     }
     fresh = true;
-  } else if (datev.is_null()) {
+  } else if (datev.is_null() || datev.is_boolean()) {
+    /* absent, or a Boolean presence signal (true/false equivalent) --
+       both vacant, so both capture today, same as time()'s own Boolean. */
     dateobj = new DateObj();
-  } else {
+  } else if (datev.is_blank()) {
+    /* an ongoing stream's not-yet tick, not an absent argument -- propagates
+       as blank rather than capturing now or falling to the nil case below. */
+    push_stack(ComValue::blankval());
+    return;
+  } else if (datev.is_dateobj()) {
     dateobj = (DateObj*)datev.geta(DateObj::class_symid());
+  } else {
+    /* an unrecognized positional argument (e.g. an AttributeList) gets
+       nil, same precedent time() uses for its own case. */
+    push_stack(ComValue::nullval());
+    return;
   }
 
   if (timeobj) {

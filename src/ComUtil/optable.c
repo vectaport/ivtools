@@ -144,6 +144,7 @@ struct _opr_tbl_default_entry {
   {"|",          "bit_or",             42,         FALSE,      OPTYPE_BINARY },
   {"&&",         "and",                41,         FALSE,      OPTYPE_BINARY },
   {"||",         "or",                 40,         FALSE,      OPTYPE_BINARY },
+  {"^^",         "gate",               39,         FALSE,      OPTYPE_BINARY },
   {",",          "tuple",              35,         FALSE,      OPTYPE_BINARY },
   {"$",          "list",               32,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"~~",         "spread",             32,         TRUE,       OPTYPE_UNARY_PREFIX },
@@ -1110,6 +1111,7 @@ $          stream             125        Y      UNARY PREFIX
 |          bit_or             42         N      BINARY
 &&         and                41         N      BINARY
 ||         or                 40         N      BINARY
+^^         gate               39         N      BINARY
 ,          tuple              35         N      BINARY
 ,,         concat             33         N      BINARY
 %=         mod_assign         30         Y      BINARY

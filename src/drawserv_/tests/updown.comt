@@ -1296,3 +1296,147 @@ ring_test=func(
     print("ring: ds3 shut down\n" :err));
   ok=ok && !stuck;
   ok)
+
+/* ringpair_launch_chain: launch chainlen drawservs in a chain, tagged (for
+   distinct callback/global names, so two chains can be built independently)
+   and linking each new node to the previous one, polling the chain's root
+   for full sid propagation before the next hop -- ring_test's discipline,
+   generalized to an arbitrary length.  Returns (:ok bool :ports list :socks
+   list); on failure it tears down whatever it had already launched. */
+ringpair_launch_chain=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  flagname=print("drawserv_up_ringpair%s" tag :str);
+
+  ports=list();
+  socks=list();
+
+  for(idx=0 idx<chainlen idx++
+    port=find_open_port(:base_port base_port+idx*10000);
+    import_port=port-1;
+    run(print("global(%s)=false" flagname :str) :str);
+    print("ringpair: launching %s%d on port %d\n" tag idx port :err);
+    cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(%s)=true\\\")\" &" port import_port callback_port flagname :str);
+    shell(cmdstr);
+    cnt=0;
+    while(!run(print("global(%s)" flagname :str) :str) && cnt<timeout
+      update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("ringpair: still waiting for %s%d after %d secs\n" tag idx cnt*poll_usec/1000000 :err)));
+    if(!run(print("global(%s)" flagname :str) :str) :then
+      print("ringpair: FAIL timeout waiting for %s%d callback\n" tag idx :err);
+      for(j=0 j<size(socks) j++ remote(at(socks j) "exit" :nowait);close(at(socks j)));
+      kill_port(:kill_port_num port);kill_port(:kill_port_num import_port);
+      return((:ok false)));
+    print("ringpair: %s%d up on %d\n" tag idx port :err);
+
+    sock=socket("127.0.0.1" port);
+    if(type(sock)==`UnknownType :then
+      print("ringpair: FAIL could not connect to %s%d\n" tag idx :err);
+      for(j=0 j<size(socks) j++ remote(at(socks j) "exit" :nowait);close(at(socks j)));
+      kill_port(:kill_port_num port);
+      return((:ok false)));
+
+    ports,port;
+    socks,sock;
+
+    if(idx>0 :then
+      remote(at(socks idx-1) print("drawlink(\"127.0.0.1\" %d)" port :str));
+      cnt=0;
+      while(remote(at(socks 0) "size(sid(:table))")<idx+1 && cnt<50 usleep(200000);cnt++);
+      nsid=remote(at(socks 0) "size(sid(:table))");
+      if(nsid!=idx+1 :then
+        print("ringpair: FAIL %s chain sids did not propagate at hop %d (got %v want %d)\n" tag idx nsid idx+1 :err))));
+
+  (:ok true :ports ports :socks socks));
+
+/* count of sock's own drawlink(:table) rows not benched (state!=redundant) */
+active_link_count=func(
+  sock=arg(0);
+  tbl=remote(sock "drawlink(:table)");
+  n=0;
+  for(i=0 i<size(tbl) i++ if(at(tbl i).state!=3 :then n=n+1));
+  n)
+
+/* ringpair test -- closes two long chains into a pair at both ends at once,
+   so the two closing links' session-id propagation waves can cross while
+   both are still forming; see TESTING.md's "ringpair, ringpair10" section
+   for the race and its two accepted outcomes (issue #575). chainlen
+   defaults to 5 (10 nodes total) if not passed as a keyword; ringpair10_test
+   below reruns the same body at chainlen=10. */
+ringpair_test=func(
+
+  if(chainlen==nil :then chainlen=5);
+
+  ra=ringpair_launch_chain(:tag "A" :chainlen chainlen :base_port 20002);
+  if(!ra.ok :then return(false));
+
+  rb=ringpair_launch_chain(:tag "B" :chainlen chainlen :base_port 20002+chainlen*10000);
+  if(!rb.ok :then
+    for(j=0 j<chainlen j++ remote(at(ra.socks j) "exit" :nowait);close(at(ra.socks j)));
+    return(false));
+
+  aports=ra.ports;asocks=ra.socks;bports=rb.ports;bsocks=rb.socks;
+
+  print("ringpair: closing the pair -- A tail(%d)->B head(%d) and B tail(%d)->A head(%d), concurrently\n"
+    at(aports chainlen-1) at(bports 0) at(bports chainlen-1) at(aports 0) :err);
+  closer_a=socket("127.0.0.1" at(aports chainlen-1));
+  closer_b=socket("127.0.0.1" at(bports chainlen-1));
+  remote(closer_a print("drawlink(\"127.0.0.1\" %d)" at(bports 0) :str) :nowait);
+  remote(closer_b print("drawlink(\"127.0.0.1\" %d)" at(aports 0) :str) :nowait);
+  close(closer_a);close(closer_b);
+  usleep(10000000);
+
+  total=2*chainlen;
+  links=0;
+  for(i=0 i<chainlen i++ links=links+remote(at(asocks i) "size(drawlink(:table))"));
+  for(i=0 i<chainlen i++ links=links+remote(at(bsocks i) "size(drawlink(:table))"));
+  links=links/2;
+
+  edges=0;
+  for(i=0 i<chainlen i++ edges=edges+active_link_count(at(asocks i)));
+  for(i=0 i<chainlen i++ edges=edges+active_link_count(at(bsocks i)));
+  edges=edges/2;
+
+  /* one closing won: both physical links persist, one benched */
+  joined=(links==total);
+  /* both declined rather than race: neither new link ever formed */
+  separate=(links==total-2);
+
+  print("ringpair: physical links = %v, active edges = %v (want %d/%d joined or %d/%d separate)\n"
+    links edges total total-1 total-2 total-2 :err);
+
+  linksok=joined||separate;
+  if(!linksok :then print("ringpair: FAIL physical link count matches neither valid outcome\n" :err));
+
+  edgesok=(joined&&edges==total-1)||(separate&&edges==total-2);
+  if(linksok&&!edgesok :then print("ringpair: FAIL active edge count wrong -- a ring is still active, or more than one link got benched\n" :err));
+
+  connok=true;
+  expect=if(joined :then total :else chainlen);
+  for(i=0 i<chainlen i++
+    n=remote(at(asocks i) "size(sid(:table))");
+    if(n!=expect :then connok=false;print("ringpair: FAIL A%d knows %v of %d sessions\n" i n expect :err)));
+  for(i=0 i<chainlen i++
+    n=remote(at(bsocks i) "size(sid(:table))");
+    if(n!=expect :then connok=false;print("ringpair: FAIL B%d knows %v of %d sessions\n" i n expect :err)));
+  if(connok&&joined :then print("ringpair: one closing won -- all %d nodes joined, no ring\n" total :err));
+  if(connok&&separate :then print("ringpair: both closings declined -- chains stayed separate, no ring\n" :err));
+
+  ok=linksok && edgesok && connok;
+
+  /* --- tear down all 2*chainlen nodes --- */
+  for(i=0 i<chainlen i++ remote(at(asocks i) "exit" :nowait);close(at(asocks i)));
+  for(i=0 i<chainlen i++ remote(at(bsocks i) "exit" :nowait);close(at(bsocks i)));
+  for(i=0 i<chainlen i++
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" at(aports i) :str))==0 usleep(200000)));
+  for(i=0 i<chainlen i++
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" at(bports i) :str))==0 usleep(200000)));
+  print("ringpair: all %d nodes shut down\n" total :err);
+
+  ok)
+
+/* ringpair10_test: ringpair_test at chainlen=10 (20 nodes total), a longer
+   fragment for the linkfreeze flood to cross before either closing link's
+   cycletest() can run. */
+ringpair10_test=func(ringpair_test(:chainlen 10))

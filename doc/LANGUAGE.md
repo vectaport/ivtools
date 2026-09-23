@@ -530,6 +530,7 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 42       | `\|`     | bit_or        | LtoR  | BINARY          |
 | 41       | `&&`     | and           | LtoR  | BINARY          |
 | 40       | `\|\|`   | or            | LtoR  | BINARY          |
+| 39       | `^^`     | gate          | LtoR  | BINARY          |
 | 35       | `,`      | tuple         | LtoR  | BINARY          |
 | 32       | `$`      | list          | RtoL  | UNARY PREFIX    |
 | 32       | `~~`     | spread        | RtoL  | UNARY PREFIX    |
@@ -2673,6 +2674,38 @@ not a cross-product:
 list((1..3)+(10..12))  // {11,13,15}  -- zipped add
 list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
 ```
+
+### The gate operator `^^`
+
+`val1^^val2` passes `val1` through when both operands carry a real value.
+nil on either side closes the gate for good, so the result is nil; blank
+on either side closes it only for that tick, so the result is blank
+instead — nil and blank propagate as themselves rather than collapsing
+into one another (nil wins when one operand is nil and the other blank).
+There is no keyword to pick the other operand — swap the operand order.
+It is a regular (eager) binary operator like `,` or `+`, so pairing it
+with two streams zips them element-wise the same way `(1..3)+(10..12)`
+does above, gating a data stream on a second, independently-driven
+trigger stream tick by tick:
+
+```
+d=$$(1,2,3)
+t=$$(10,20,30)
+list(d^^t)              // {1,2,3} -- every tick's trigger was present
+
+ts=empty**3               // three not-yet ticks
+r=1^^ts
+next(r); next(r); next(r) // blank blank blank -- every tick gated closed
+```
+
+A blank tick (`empty()`/`blank()`) means an ongoing stream has nothing to
+say yet, so the gate suppresses that tick's output but stays open for the
+next one; a nil tick means the stream has ended, so the gate closes for
+good. That distinction is why the gate propagates the specific value it
+saw rather than folding both into nil the way `class()`/`type()`/`time()`'s
+vacant-argument handling treats them as one condition (see above) —
+downstream code reading the gate's output can still tell "nothing yet"
+from "nothing ever again."
 
 ### Streams are single-pass
 

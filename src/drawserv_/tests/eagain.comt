@@ -1,0 +1,166 @@
+// eagain_test -- forces write_full()'s EAGAIN retry path (drawserv.c) by
+// SIGSTOPping a linked peer so its receive buffer can't drain, then
+// broadcasting past the combined socket buffer capacity.
+// Loaded by drawmo via run("./eagain.comt"); shares helpers from drawmo.
+
+/* eagain test -- two nodes, ds1->ds2.  Stop ds2 (SIGSTOP, no reactor to
+   drain its socket), burst enough graphic creates through the ds1->ds2
+   link to exceed the kernel's combined send/receive buffer capacity, then
+   resume ds2 (SIGCONT) and confirm every create still arrives.  A
+   background shell loop samples /proc/net/tcp's tx_queue for the ds1->ds2
+   socket throughout the burst -- a nonblocking write() only returns EAGAIN
+   once that queue is full, so a large sustained backlog is direct evidence
+   write_full()'s retry branch (not buffering luck) absorbed the burst;
+   full delivery after resume is the signature of it succeeding rather than
+   silently dropping the tail (see HACKING.md's "Linkfreeze Protocol" --
+   the same retry primitive covers link-formation and command relay). */
+eagain_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upE1)=false;
+  print("eagain: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upE1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upE1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("eagain: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upE1) :then
+    print("eagain: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("eagain: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upE2)=false;
+  print("eagain: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upE2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upE2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("eagain: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upE2) :then
+    print("eagain: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("eagain: ds2 up on %d\n" ds2_port :err);
+
+  /* --- connect and link ds1 -> ds2 --- */
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType :then
+    print("eagain: FAIL could not connect to both nodes\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+
+  ok=true;
+
+  /* --- stop ds2 dead: no process means no reactor draining its socket,
+     so the kernel receive buffer can only fill, never empty --- */
+  ds2pid=run(print("pgrep -f '[d]rawserv -comdraw %d'" ds2_port :str) :popen);
+  if(type(ds2pid)!=`IntType :then
+    print("eagain: FAIL could not find ds2's pid to stop\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  print("eagain: stopping ds2 (pid %v)\n" ds2pid :err);
+  shell(print("kill -STOP %v" ds2pid :str));
+
+  /* self-contained resume: fires on its own after the burst below is well
+     underway, whether or not this script is still inside remote() calls */
+  shell(print("(sleep 3; kill -CONT %v) &" ds2pid :str));
+
+  /* --- watch the ds1->ds2 socket's kernel send-queue while this script is
+     itself blocked inside remote() below; built as string concatenation,
+     not print()'s %-substitution, since the embedded printf/bash need
+     their own literal '%'s untouched.  shell() runs this via system(),
+     i.e. /bin/sh (dash on Linux, not bash) -- 0x, not the bash-only 16#,
+     is the portable way to read a hex field into arithmetic. --- */
+  txq_file="/tmp/eagain_txq_max_"+print("%d" ds2_port :str);
+  shell(print("rm -f %v" txq_file :str));
+  monitor_script="port_hex=$(printf '%04X' "+print("%d" ds2_port :str)+"); max=0; for i in $(seq 1 120); do while IFS=' ' read -r sl loc rem st q rest; do rp=${rem##*:}; if [ \"$rp\" = \"$port_hex\" ]; then th=${q%%:*}; tq=$((0x$th)); if [ \"$tq\" -gt \"$max\" ]; then max=$tq; fi; fi; done < /proc/net/tcp; echo $max > "+txq_file+"; sleep 0.25; done &";
+  shell(monitor_script);
+
+  /* --- burst past the combined socket buffer capacity.  Batched into few
+     remote() round trips -- RemoteFunc::execute()'s client-side write() has
+     no retry of its own (ctrlfunc.c), so many small individual calls stress
+     that path instead of the one under test; one semicolon-joined batch per
+     call keeps each round trip small while the total volume (batches *
+     creates_per_batch ellipses, ~25-30 bytes of dist_script() each) clears
+     the kernel's default combined send/receive buffering. --- */
+  batches=20;
+  creates_per_batch=300;
+  total=batches*creates_per_batch;
+  t0=run("date +%s" :popen);
+  b=0;
+  while(b<batches
+    line="";
+    j=0;
+    while(j<creates_per_batch
+      if(j>0 :then line=line+";");
+      line=line+print("ellipse(%d,%d,10,10)" (b*creates_per_batch+j)%500 (j*7)%500 :str);
+      j=j+1);
+    /* ';' joins statements here, built with no trailing one -- a line
+       ending in ';' looks incomplete to the parser, which then waits for a
+       statement that never arrives rather than replying. */
+    remote(sock1 line);
+    b=b+1);
+  t1=run("date +%s" :popen);
+  print("eagain: burst of %v creates (in %v batches) took %v secs\n" total batches t1-t0 :err);
+
+  /* --- confirm the burst actually saturated the kernel send buffer, not
+     just that delivery happened to survive it --- */
+  txq_max=run(print("cat %v 2>/dev/null || echo 0" txq_file :str) :popen);
+  print("eagain: peak ds1->ds2 send-queue backlog while stalled = %v bytes\n" txq_max :err);
+  if(type(txq_max)!=`IntType || txq_max<50000 :then
+    print("eagain: FAIL send-queue never showed a sustained backlog -- burst may not have driven write_full() into its EAGAIN retry\n" :err);
+    ok=false);
+  shell(print("rm -f %v" txq_file :str));
+
+  /* --- settle: poll each side's own grid(:table) up to the full count.
+     ds1's own count can lag too -- DistributeCmdString() runs synchronously
+     per create, so a batch dispatched while ds2 is stopped paces ds1's own
+     processing on the same relay backpressure. --- */
+  cnt=0;
+  n1=0;
+  while(n1<total && cnt<150
+    usleep(200000);
+    n1=remote(sock1 "size(grid(:table))");
+    cnt=cnt+1);
+  print("eagain: ds1 grid count=%v (expect %v) after %v polls\n" n1 total cnt :err);
+  if(n1!=total :then
+    print("eagain: FAIL ds1 did not account for all %v creates\n" total :err);
+    ok=false);
+
+  cnt2=0;
+  n2=0;
+  while(n2<total && cnt2<150
+    usleep(200000);
+    n2=remote(sock2 "size(grid(:table))");
+    cnt2=cnt2+1);
+  print("eagain: ds2 grid count=%v (expect %v) after %v polls\n" n2 total cnt2 :err);
+  if(n2!=total :then
+    print("eagain: FAIL ds2 did not receive all %v creates -- write_full() lost data under EAGAIN\n" total :err);
+    ok=false);
+
+  if(ok :then print("eagain: full burst survived a stalled peer and delivered intact\n" :err));
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  print("eagain: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  print("eagain: ds2 shut down\n" :err);
+  ok)

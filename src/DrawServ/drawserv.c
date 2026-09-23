@@ -71,6 +71,8 @@
 #include <unistd.h>
 #include <iostream>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
@@ -96,6 +98,17 @@ extern uint32_t uuid_key(const uuid_t u)
     return ntohl(v);
 }
 
+/* the 8-hex-char form of uuid_key(), for wire messages and logging that
+   reference an already-constructed identity -- gridtable()/sessionidtable()
+   are keyed the same way, so this is enough for a peer to look the full
+   uuid back up. "" for a null/absent uuid, matching an absent wire field. */
+static const char* uuid_shortstr(const uuid_t u, char buf[9])
+{
+    if (u == NULL || uuid_is_null(u)) { buf[0] = '\0'; return buf; }
+    snprintf(buf, 9, "%08X", uuid_key(u));
+    return buf;
+}
+
 /*****************************************************************************/
 
 DrawServ::DrawServ (Catalog* c, int& argc, char** argv, 
@@ -115,6 +128,14 @@ void DrawServ::Init() {
   _gridtable = new GraphicIdTable(1024);
   _sessionidtable = new SessionIdTable(256);
   _compidtable = new CompIdTable(1024);
+
+  _freeze_active = false;
+  _freeze_qid = 0;
+  _freeze_generation = 0;
+  _freeze_parent = nil;
+  _freeze_sent_to = nil;
+  _freeze_acks_pending = 0;
+  _freeze_done = false;
 
   create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
@@ -159,7 +180,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
       ((DrawServHandler*)comterp->handler())->drawlink(link);
       link->comhandler((DrawServHandler*)comterp->handler());
     }
-    if (state == DrawLink::new_link) {
+    if (link_id == NULL) {
       uuid_generate(link->linkid());
     } else {
       uuid_copy(link->linkid(), link_id);
@@ -192,7 +213,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
 	((DrawServHandler*)comterp->handler())->drawlink(curlink);
 	curlink->comhandler((DrawServHandler*)comterp->handler());
       }
-      fprintf(stderr, "link up with %s(%s) via port %d\n", 
+      fprintf(stderr, "link up with %s(%s) via port %d\n",
 	      curlink->hostname(), curlink->althostname(), portnum);
       // fprintf(stderr, "link id %.8s\n", curlink->linkid_str());
 
@@ -216,6 +237,11 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
 
 int DrawServ::linkdown(DrawLink* link) {
   if (link && _linklist->Includes(link)) {
+    if (link->has_pending_freeze()) {
+      unfreeze_fragment(link->pending_freeze_qid());
+      link->clear_pending_freeze();
+    }
+    freeze_link_down(link);
     Resource::ref(link);  // stops _linklist->Remove from deleting it right away
     _linklist->Remove(link);
     link->close();
@@ -293,7 +319,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	    OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
 	    
 	    original = add_grid(comp, grid, sid);
-	    
+
 	    if (comp && (original || linklist()->Number()>1)) {
 	      Creator* creator = unidraw->GetCatalog()->GetCreator();
 	      OverlayScript* scripter = (OverlayScript*)
@@ -394,44 +420,88 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   }
 }
 
+boolean DrawServ::write_full(int fd, const char* buf, size_t len) {
+  size_t sent = 0;
+  static const int max_wait_usec = 2000000;
+  static const int slice_usec    =    5000;
+  int waited = 0;
+
+  boolean ok = true;
+  while (sent < len) {
+    ssize_t n = write(fd, buf+sent, len-sent);
+    if (n > 0) {
+      sent += n;
+    } else if (n < 0 && errno == EINTR) {
+      continue;
+    } else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+      if (waited >= max_wait_usec) { ok = false; break; }
+      /* pumps other links/timers instead of sleeping dead -- same
+	 primitive as update() (ctrlfunc.c) and resolve_requests() below. */
+      ACE_Time_Value timeout(0, slice_usec);
+      ComterpHandler::reactor_singleton()->handle_events(timeout);
+      waited += slice_usec;
+    } else {
+      ok = false;
+      break;
+    }
+  }
+  return ok;
+}
+
 void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
 
+  /* targets are ref'd via Append(); write_full() pumps the reactor, so
+     Includes() below re-validates each one before it's touched again. */
+  DrawLinkList* targets = new DrawLinkList;
   Iterator i;
   _linklist->First(i);
   while (!_linklist->Done(i)) {
     DrawLink* link = _linklist->GetDrawLink(i);
-    if (link && link != orglink && link->state()==DrawLink::two_way) {
+    if (link && link != orglink && link->state()==DrawLink::two_way)
+      targets->Append(link);
+    _linklist->Next(i);
+  }
+
+  Iterator ti;
+  targets->First(ti);
+  while (!targets->Done(ti)) {
+    DrawLink* link = targets->GetDrawLink(ti);
+    if (_linklist->Includes(link)) {
       int fd = link->handle();
       if (fd>=0) {
 	link->log_outgoing_command(cmdstring);
-	FILE* fp=fdopen(dup(fd), "w");
-	fputs(cmdstring, fp);
-	fputs("\n", fp);
-	fclose(fp);
-	link->ackhandler()->start_timer();
+	if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
+	  fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
+		  link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
+	if (_linklist->Includes(link))
+	  link->ackhandler()->start_timer();
       }
     }
-    _linklist->Next(i);
+    targets->Next(ti);
   }
-  
+  delete targets;
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
-  
+
   if (link) {
+    /* ref'd since write_full() pumps the reactor; Includes() below
+       re-validates before start_timer() touches link again. */
+    Resource::ref(link);
     int fd = link->handle();
     if (fd>=0) {
       link->log_outgoing_command(cmdstring);
-      FILE* fp=fdopen(dup(fd), "w");
-      fputs(cmdstring, fp);
-      fputs("\n", fp);
-      fclose(fp);
-      link->ackhandler()->start_timer();
+      if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
+	fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
+		link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
+      if (_linklist->Includes(link))
+	link->ackhandler()->start_timer();
     }
+    Resource::unref(link);
   }
 }
 
@@ -458,18 +528,54 @@ void DrawServ::sessionid_register(DrawLink* link) {
 
 // handle request to register session id
 void DrawServ::sessionid_register_handle
-(DrawLink* link, uuid_t sid, int pid, 
- const char* username, const char* hostname, int hostid) 
+(DrawLink* link, uuid_t sid, int pid,
+ const char* username, const char* hostname, int hostid)
 {
-  if (link != NULL) {
-    SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
-    SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
-    sidtable->insert(uuid_key(sid), session_id);
+  if (link == NULL) return;
 
-    /* propagate */
-    sessionid_register_propagate(link, sid, pid, username,
-				 hostname, hostid);
+  /* a sid already on record via a different link marks that link
+     redundant with this one -- bench it instead of re-propagating. */
+  SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
+  void* ptr = nil;
+  sidtable->find(ptr, uuid_key(sid));
+  SessionId* known = (SessionId*)ptr;
+  if (known) {
+    DrawLink* via = known->drawlink();
+    if (via == link) return;   // already recorded via this same link
+
+    DrawLink* other = via;
+    if (other == nil) {
+      /* our own sid echoed back is expected, not a cycle; it's redundant
+	 only if link's peer is already reached some other way -- find it. */
+      Iterator it;
+      _linklist->First(it);
+      while (!_linklist->Done(it)) {
+	DrawLink* o = _linklist->GetDrawLink(it);
+	if (o != link && o->same_peer(link)) { other = o; break; }
+	_linklist->Next(it);
+      }
+      if (!other) return;
+    }
+
+    /* compare linkid's, not arrival order -- a linkid is minted once by
+       its initiator and copied unchanged to the far end, so every node
+       comparing this pair reaches the same answer regardless of order. */
+    DrawLink* loser = uuid_compare(link->linkid(), other->linkid()) < 0 ? other : link;
+
+    /* never bench a node's only active link: redundant traffic once is
+       cheap, losing the sole path out is a real disconnection. */
+    if (sole_active_link(loser)) return;
+
+    bench(loser);
+    return;
   }
+
+  SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
+  sidtable->insert(uuid_key(sid), session_id);
+
+  /* propagate */
+  sessionid_register_propagate(link, sid, pid, username,
+			       hostname, hostid);
 }
 
 // propagate request to register session id
@@ -486,7 +592,7 @@ void DrawServ::sessionid_register_propagate
   while (!_linklist->Done(it)) {
     char buf[BUFSIZ];
     DrawLink* otherlink = _linklist->GetDrawLink(it);
-    if (otherlink != link) {
+    if (otherlink != link && otherlink->state() == DrawLink::two_way) {
       snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", sid_str, pid, username, hostname, hostid, '\0');
       SendCmdString(otherlink, buf);
     }
@@ -525,23 +631,26 @@ int DrawServ::test_sessionid(uuid_t id) {
 
 void DrawServ::grid_message(GraphicId* grid) {
   char buf[BUFSIZ];
+  char idbuf[9], selbuf[9], sidbuf[9];
   if (grid->selected()==LinkSelection::LocallySelected ||
       (uuid_compare(grid->selector(), sessionid())==0 && grid->selected()==LinkSelection::NotSelected)) {
-    snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c", grid->idstr(), grid->selectorstr(), 
-	     grid->selected()==LinkSelection::LocallySelected ? 
+    snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
+	     uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+	     grid->selected()==LinkSelection::LocallySelected ?
 	     LinkSelection::RemotelySelected : LinkSelection::NotSelected,
 	     grid->compclass(), '\0');
     DistributeCmdString(buf);
   } else {
-    
+
     /* find link on which current selector lives */
     DrawLink* link = _linklist->find_drawlink(grid);
-    
+
     if (link) {
       /* a fresh generation each time we ask, so a delayed answer can be
 	 told apart from one for a request that replaced it. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), grid->selectorstr(), sessionidstr(),
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+	       uuid_shortstr(sessionid(), sidbuf),
 	       grid->next_reqgen(), grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
@@ -549,20 +658,13 @@ void DrawServ::grid_message(GraphicId* grid) {
 }
   
 // handle reserve request from remote DrawLink.
-void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
+void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 				   int state, uuid_t newselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
-  uuid_string_t selector_str;
-  selector_str[0] = '\0';
-  if (selector != NULL && !uuid_is_null(selector))
-    uuid_unparse(selector, selector_str);
-  uuid_string_t newselector_str;
-  newselector_str[0] = '\0';
-  if ((newselector!= NULL) && !uuid_is_null(newselector))
-    uuid_unparse(newselector, newselector_str);
-  
+  char idbuf[9], selbuf[9], newselbuf[9], sidbuf[9];
+
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -574,18 +676,19 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	if (uuid_compare(grid->selector(), sessionid())==0) {
 
 	/* if graphic is not actually selected */
-	if ((grid->selected()==LinkSelection::NotSelected || 
+	if ((grid->selected()==LinkSelection::NotSelected ||
 	     grid->selected()==LinkSelection::WaitingToBeSelected)) {
 	  grid->selected(LinkSelection::NotSelected);
 	  grid->selector(newselector);
 	  grid->grantgen(gen);
 	  char buf[BUFSIZ];
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
-		   grid->idstr(), newselector_str, sessionidstr(),
+		   uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		   uuid_shortstr(sessionid(), sidbuf),
 		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
-	} 
+	}
 
 	  /* else deny it, because it is selected */
 	else {
@@ -593,19 +696,21 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* asker in the selector field, us as the value, the same shape a
 	     grant has, so a refusal can be relayed the same way a grant is. */
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-		   grid->idstr(), newselector_str, sessionidstr(),
+		   uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		   uuid_shortstr(sessionid(), sidbuf),
 		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
-	}	
-      } 
-      
+	}
+      }
+
       /* else reformulate this request and pass it along */
       else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-		 grid->idstr(), grid->selectorstr(), newselector_str,
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(grid->selector(), selbuf),
+		 uuid_shortstr(newselector, newselbuf),
 		 gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -616,7 +721,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid: request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-		 grid->idstr(), newselector_str, sessionidstr(),
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+		 uuid_shortstr(sessionid(), sidbuf),
 		 gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
@@ -649,17 +755,18 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	/* relay what was announced, not what we hold */
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
-		 grid->idstr(), selector_str, state,
+		 uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf), state,
 		 grid->compclass(), '\0');
 	DistributeCmdString(buf, link);
-      } 
+      }
 
       /* else pass the request on to the target selector */
       else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
-	  grid->idstr(), selector_str, newselector_str,
+	  uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf),
+	  uuid_shortstr(newselector, newselbuf),
 	  gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -669,7 +776,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid:  request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-	  grid->idstr(), newselector_str, sessionidstr(),
+	  uuid_shortstr(grid->id(), idbuf), uuid_shortstr(newselector, newselbuf),
+	  uuid_shortstr(sessionid(), sidbuf),
 	  gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
@@ -694,15 +802,11 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
       uuid_compare(requester, sessionid())) {
     DrawLink* rlink = linkget(requester);
     if (rlink && rlink != link) {
-      uuid_string_t requester_str;
-      uuid_unparse(requester, requester_str);
-      uuid_string_t denier_str;
-      denier_str[0] = '\0';
-      if (denier != NULL && !uuid_is_null(denier))
-	uuid_unparse(denier, denier_str);
+      char idbuf[9], reqbuf[9], denbuf[9];
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), requester_str, denier_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(requester, reqbuf),
+	       uuid_shortstr(denier, denbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(rlink, buf);
       fprintf(stderr, "grid: denial passed along to the node that asked\n");
@@ -754,15 +858,11 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
   if (uuid_compare(granter, sessionid())) {
     DrawLink* glink = linkget(granter);
     if (glink && glink != link) {
-      uuid_string_t responder_str;
-      responder_str[0] = '\0';
-      if (responder != NULL && !uuid_is_null(responder))
-	uuid_unparse(responder, responder_str);
-      uuid_string_t granter_str;
-      uuid_unparse(granter, granter_str);
+      char idbuf[9], respbuf[9], granterbuf[9];
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
-	       grid->idstr(), responder_str, granter_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(responder, respbuf),
+	       uuid_shortstr(granter, granterbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(glink, buf);
       fprintf(stderr, "grid: grant-not-taken passed along to granter\n");
@@ -782,20 +882,13 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
 }
 
 // handle callback from remote DrawLink.
-void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
+void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 				     int state, uuid_t oldselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
-  uuid_string_t selector_str;
-  selector_str[0] = '\0';
-  if (selector!= NULL) 
-    uuid_unparse(selector, selector_str);
-  uuid_string_t oldselector_str;
-  oldselector_str[0] = '\0';
-  if (oldselector!= NULL) 
-    uuid_unparse(oldselector, oldselector_str);
-  
+  char idbuf[9], selbuf[9], oldselbuf[9], sidbuf[9];
+
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -826,7 +919,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 	 and could undo a later handoff if stale; the granter needs to know. */
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
-	       grid->idstr(), sessionidstr(), oldselector_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(sessionid(), sidbuf),
+	       uuid_shortstr(oldselector, oldselbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
@@ -838,7 +932,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
       /* forward the generation, so a requester two hops away sees the real
 	 value rather than zero, which would match every grant here. */
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
-	       grid->idstr(), selector_str, oldselector_str,
+	       uuid_shortstr(grid->id(), idbuf), uuid_shortstr(selector, selbuf),
+	       uuid_shortstr(oldselector, oldselbuf),
 	       gen, grid->compclass(), '\0');
       SendCmdString(linkget(selector), buf);
     }
@@ -889,13 +984,230 @@ void DrawServ::remove_sids(DrawLink* link) {
     DrawLink* testlink = sid->drawlink();
     int altid = it.cur_key();
     it.next();
-    if (testlink==link) 
-      if (!table->find_and_remove(vsid, altid)) 
+    if (testlink==link)
+      if (!table->find_and_remove(vsid, altid))
 	fprintf(stderr, "unable to remove SessionId's associated with DrawLink\n");
   }
 }
 
-boolean DrawServ::cycletest(uuid_t sid, const char* host, const char* user, int pid) 
+void DrawServ::bench(DrawLink* link) {
+  if (link->state() == DrawLink::redundant) return;
+  link->state(DrawLink::redundant);
+  char buf[BUFSIZ];
+  char idbuf[9];
+  /* an already-established link's own peer is naming it, so only the log
+     needs an id at all here -- the receiving side identifies the link by
+     the connection the message arrived on, not by parsing this field. */
+  snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state %d)", uuid_shortstr(link->linkid(), idbuf), (int)DrawLink::redundant);
+  SendCmdString(link, buf);
+  char detail[BUFSIZ];
+  snprintf(detail, BUFSIZ, "%s:%d", link->hostname() ? link->hostname() : "", link->portnum());
+  link->report("Benched redundant connection", detail);
+}
+
+boolean DrawServ::sole_active_link(DrawLink* link) {
+  Iterator it;
+  _linklist->First(it);
+  while (!_linklist->Done(it)) {
+    DrawLink* l = _linklist->GetDrawLink(it);
+    if (l != link && l->state() == DrawLink::two_way) return false;
+    _linklist->Next(it);
+  }
+  return true;
+}
+
+void DrawServ::freeze_clear() {
+  _freeze_active = false;
+  _freeze_qid = 0;
+  _freeze_parent = nil;
+  delete _freeze_sent_to;
+  _freeze_sent_to = nil;
+  _freeze_acks_pending = 0;
+  _freeze_done = false;
+}
+
+void DrawServ::freeze_request_handle(DrawLink* fromlink, freezeid_t qid) {
+  // a request for a different qid than the one already held here can't be
+  // serviced until that hold is released -- drop it rather than queue it,
+  // so its sender times out and retries once this hold clears
+  if (_freeze_active) return;
+
+  _freeze_active = true;
+  _freeze_qid = qid;
+  unsigned long my_generation = ++_freeze_generation;
+  _freeze_parent = fromlink;
+  _freeze_done = false;
+  _freeze_sent_to = new DrawLinkList;
+
+  Iterator it;
+  _linklist->First(it);
+  while (!_linklist->Done(it)) {
+    DrawLink* l = _linklist->GetDrawLink(it);
+    if (l != fromlink && l->state() == DrawLink::two_way)
+      _freeze_sent_to->add_drawlink(l);
+    _linklist->Next(it);
+  }
+
+  char buf[BUFSIZ];
+
+  // no other established links to relay to: this hold is already
+  // complete, so ack back (or, if self-originated, finish) right away
+  _freeze_acks_pending = _freeze_sent_to->Number();
+  if (_freeze_acks_pending == 0) {
+    if (_freeze_parent != nil) {
+      snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", qid);
+      SendCmdString(_freeze_parent, buf);
+    } else {
+      _freeze_done = true;
+    }
+    return;
+  }
+
+  // sends walk a private snapshot, not _freeze_sent_to itself, which can
+  // be mutated out from under a live iterator while a send is in flight.
+  DrawLinkList* targets = new DrawLinkList;
+  Iterator si;
+  _freeze_sent_to->First(si);
+  while (!_freeze_sent_to->Done(si)) {
+    targets->Append(_freeze_sent_to->GetDrawLink(si));
+    _freeze_sent_to->Next(si);
+  }
+
+  snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :req)", qid);
+  Iterator ti;
+  targets->First(ti);
+  while (!targets->Done(ti)) {
+    DrawLink* l = targets->GetDrawLink(ti);
+    if (_freeze_active && _freeze_generation == my_generation &&
+	_freeze_sent_to && _freeze_sent_to->Includes(l))
+      SendCmdString(l, buf);
+    targets->Next(ti);
+  }
+  delete targets;
+}
+
+void DrawServ::freeze_ack_handle(DrawLink* fromlink, freezeid_t qid) {
+  if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
+  if (_freeze_acks_pending > 0) _freeze_acks_pending--;
+  if (_freeze_acks_pending > 0) return;
+
+  if (_freeze_parent != nil) {
+    char buf[BUFSIZ];
+    snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", _freeze_qid);
+    SendCmdString(_freeze_parent, buf);
+  } else {
+    _freeze_done = true; // originator: unblocks freeze_fragment()'s wait loop
+  }
+}
+
+void DrawServ::freeze_release_handle(DrawLink* fromlink, freezeid_t qid) {
+  if (!_freeze_active || _freeze_qid != qid) return; // stale or mismatched
+  if (fromlink != nil && fromlink != _freeze_parent) return; // release only ever arrives from the parent direction
+
+  unsigned long my_generation = _freeze_generation;
+
+  if (_freeze_sent_to) {
+    // same snapshot need as freeze_request_handle(): this episode itself
+    // can be cleared or replaced while a send below is in flight.
+    DrawLinkList* targets = new DrawLinkList;
+    Iterator si;
+    _freeze_sent_to->First(si);
+    while (!_freeze_sent_to->Done(si)) {
+      targets->Append(_freeze_sent_to->GetDrawLink(si));
+      _freeze_sent_to->Next(si);
+    }
+
+    char buf[BUFSIZ];
+    snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :thaw)", qid);
+    Iterator ti;
+    targets->First(ti);
+    while (!targets->Done(ti)) {
+      DrawLink* l = targets->GetDrawLink(ti);
+      if (_freeze_active && _freeze_generation == my_generation && _freeze_sent_to &&
+	  _freeze_sent_to->Includes(l) && l->state() == DrawLink::two_way)
+	SendCmdString(l, buf);
+      targets->Next(ti);
+    }
+    delete targets;
+  }
+
+  if (_freeze_active && _freeze_generation == my_generation) freeze_clear();
+}
+
+boolean DrawServ::freeze_fragment(freezeid_t& qid_out, const uuid_t linkid) {
+  // a hold already active here belongs to some other freeze -- waiting it
+  // out would risk a deadlock symmetric with a peer doing the same (each
+  // side blocked on the other's release, when each release depends on the
+  // other side answering first). Decline on the spot instead: if this
+  // node is already frozen for something else, no linkup happens this
+  // round, whether or not it would have been a cycle -- the caller can
+  // simply try again once whatever holds the freeze now has cleared.
+  if (_freeze_active) return false;
+
+  qid_out = uuid_key(linkid);
+  freeze_request_handle(nil, qid_out);
+  if (_freeze_done) return true; // no established links to flood to: trivially frozen
+
+  static const int max_wait_usec = 5000000;  // 5 second overall timeout, matching linkup()'s handshake wait
+  static const int slice_usec    =    5000;
+  int elapsed = 0;
+
+  long oldsec, oldusec;
+  get_timeout(oldsec, oldusec);
+  while (!_freeze_done && elapsed < max_wait_usec) {
+    set_timeout(0, slice_usec);
+    Run();
+    elapsed += slice_usec;
+  }
+  set_timeout(oldsec, oldusec);
+
+  if (!_freeze_done) {
+    freeze_release_handle(nil, _freeze_qid); // release whatever partial hold accumulated, and clear it
+    return false;
+  }
+  return true;
+}
+
+void DrawServ::unfreeze_fragment(freezeid_t qid) {
+  if (_freeze_active && _freeze_qid == qid)
+    freeze_release_handle(nil, qid);
+}
+
+boolean DrawServ::freeze_holds_linkid(const uuid_t linkid) {
+  return _freeze_active && _freeze_qid == uuid_key(linkid);
+}
+
+void DrawServ::freeze_link_down(DrawLink* link) {
+  if (!_freeze_active) return;
+
+  if (link == _freeze_parent) {
+    /* the direction the held freeze would eventually ack back to, or
+       receive its release from, is gone -- treat it exactly like a
+       release arriving from that direction: thaw whatever children this
+       node has relayed to and drop the hold, rather than leave a stale
+       pointer for a later ack or release to dereference. */
+    freeze_release_handle(link, _freeze_qid);
+    return;
+  }
+
+  if (_freeze_sent_to && _freeze_sent_to->Includes(link)) {
+    /* a relay target this node is still waiting on died before acking --
+       its loss can't block the hold forever, so count it as answered and
+       drop it before a later release flood can reach it. */
+    _freeze_sent_to->Remove(link);
+    if (_freeze_acks_pending > 0) _freeze_acks_pending--;
+    if (_freeze_acks_pending > 0) return;
+    if (_freeze_parent != nil) {
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "drawlink(:frzid \"%08X\" :ack)", _freeze_qid);
+      SendCmdString(_freeze_parent, buf);
+    } else {
+      _freeze_done = true;
+    }
+  }
+}
+
+boolean DrawServ::cycletest(uuid_t sid, const char* host, const char* user, int pid)
 {
   boolean found = false;
   SessionIdTable* table = sessionidtable();

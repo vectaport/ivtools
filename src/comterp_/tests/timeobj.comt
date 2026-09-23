@@ -1,6 +1,6 @@
 // src/comterp_/tests/timeobj.comt -- time() vets a colon list into a TimeObj
 
-// funcs: colonlist time date class print size at split index eval
+// funcs: colonlist time date class print size at split index eval attrlist
 
 // ':' itself never recognizes an hr:min:sec chain -- it always stays a
 // plain coloned() list (colonlist.comt). time() is the one explicit
@@ -187,6 +187,42 @@ ok=ok&&(p19=="2026:Sep:21")
 eval("d19b=date("+p19+")")
 ok=ok&&(date(d19b :daymo)==21 && date(d19b :month)==9 && date(d19b :year)==2026)
 print("19 print(date(2026:Sep:21)):str reparsed through date() (expect \"2026:Sep:21\", 21 9 2026): %v %v %v %v\n" p19 date(d19b :daymo) date(d19b :month) date(d19b :year))
+
+// --- 20: a Boolean is a presence signal, not a real value -- true and
+//         false are equivalent here, both count as vacant like an absent
+//         argument, and capture today, same as time() treats a Boolean ---
+dref20=date()
+d20=date(true)
+ok=ok&&(class(d20)=="DateObj" && date(d20 :daymo)==date(dref20 :daymo) && date(d20 :month)==date(dref20 :month) && date(d20 :year)==date(dref20 :year))
+print("20 date(true) presence signal, captures today (expect DateObj matching date()): %v %v\n" class(d20) (date(d20 :daymo)==date(dref20 :daymo)))
+d20b=date(false)
+ok=ok&&(class(d20b)=="DateObj" && date(d20b :daymo)==date(dref20 :daymo) && date(d20b :month)==date(dref20 :month) && date(d20b :year)==date(dref20 :year))
+print("20b date(false) presence signal, captures today (expect DateObj matching date()): %v %v\n" class(d20b) (date(d20b :daymo)==date(dref20 :daymo)))
+
+// --- 21: an AttributeList may carry a date somewhere, but date() doesn't
+//         go looking for one -- nil, not a crash ---
+d21=date(attrlist(:x 1))
+ok=ok&&(d21==nil)
+print("21 date(attrlist(:x 1)) unrecognized positional (expect nil): %v\n" d21)
+
+// --- 22: a floating-point epoch has no meaningful whole-day truncation
+//         date() could pick without guessing -- nil, not a silently
+//         truncated date ---
+d22=date(3.14)
+ok=ok&&(d22==nil)
+print("22 date(3.14) floating-point epoch (expect nil): %v\n" d22)
+
+// --- 22b: an integral epoch day count is unaffected -- only the
+//          floating-point type is rejected, not numerics generally ---
+d22b=date(19623)
+ok=ok&&(class(d22b)=="DateObj" && date(d22b :year)==1954)
+print("22b date(19623) integral epoch (expect DateObj 1954): %v %v\n" class(d22b) date(d22b :year))
+
+// --- 23: an ongoing stream's not-yet tick propagates as blank rather
+//         than capturing now or falling to the unrecognized-nil case ---
+d23=date(blank())
+ok=ok&&(d23==blank())
+print("23 date(blank()) not-yet tick (expect blank): %v\n" d23)
 
 print("timeobj: %v\n" ok)
 ok

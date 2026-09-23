@@ -146,6 +146,38 @@ assertion is `size(sidtable)==1`.
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
 
+### ringpair, ringpair10
+
+**What:** Build two independent chains of `chainlen` drawservs each, then
+link the two ends of the pair -- A's tail to B's head, and B's tail to A's
+head -- at once, so the session-id propagation waves the two closing links
+start can cross each other while both links are still forming. `ringpair`
+runs at `chainlen=5` (10 nodes); `ringpair10` reruns the same function at
+`chainlen=10` (20 nodes) for a longer fragment. Both are part of `all`.
+
+**Checks:**
+- both chains build cleanly, with `ring_test`'s per-hop settle-poll
+- after the pair is closed and settles, the physical link count and active
+  edge count across all `2*chainlen` nodes matches one of two accepted
+  outcomes: **joined** (`2*chainlen` links, `2*chainlen-1` active edges, one
+  closing link benched as redundant, every node's `sid(:table)` holding all
+  `2*chainlen` sessions) or **separate** (`2*chainlen-2` links, all active,
+  each chain's nodes still holding only their own `chainlen` sessions). A
+  ring (more active edges than `2*chainlen-1`) or a node cut off from its
+  own chain always fails.
+
+**Purpose:** `cycletest()` only sees a cycle already present in the local
+session-id table at handshake time. A cycle formed by two propagation waves
+crossing after both links already exist is a case ordinary link-at-a-time
+testing (`ring`) cannot reach, however many chain hops it uses, because
+`ring` closes its loop with a single link against an already-settled
+network. The linkfreeze protocol (`DrawServ::freeze_fragment()` et al. in
+`src/DrawServ/drawserv.h`; see issue #575) serializes the two closings
+against forming a cycle, but freezing is instant/non-blocking, so when both
+closings land at the same instant either one wins and the other is benched,
+or both decline and the chains stay separate -- both outcomes are safe and
+accepted.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is
