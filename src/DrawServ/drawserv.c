@@ -388,7 +388,25 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	cmd->Execute();
 	break;
       }
-      
+
+      case LINK_FRONT_CMD:
+      {
+	const char* script = ((LinkFrontCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkFrontCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
+	break;
+      }
+
+      case LINK_BACK_CMD:
+      {
+	const char* script = ((LinkBackCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkBackCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
+	break;
+      }
+
       default:
 	cmd->Execute();
 	break;

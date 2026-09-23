@@ -1056,10 +1056,10 @@ MenuItem* OverlayKit::MakeStructureMenu() {
 	     "Group   ");
     MakeMenu(mbi, new UngroupCmd(new ControlInfo("Ungroup", KLBL_UNGROUP, CODE_UNGROUP)),
 	     "Ungroup   ");
-    MakeMenu(mbi, new FrontCmd(new ControlInfo("Bring to Front",
+    MakeMenu(mbi, make_front_cmd(new ControlInfo("Bring to Front",
 				       KLBL_FRONT, CODE_FRONT)),
 	     "Bring to Front   ");
-    MakeMenu(mbi, new BackCmd(new ControlInfo("Send to Back",
+    MakeMenu(mbi, make_back_cmd(new ControlInfo("Send to Back",
 				      KLBL_BACK, CODE_BACK)),
 	     "Send to Back   ");
     MakeMenu(mbi, new PullCmd(new ControlInfo("Pull Up One"
@@ -1112,6 +1112,22 @@ BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
 
 TransformCmd* OverlayKit::make_transform_cmd(Editor* ed, Transformer* t) {
     return new SetTransformCmd(ed, t);
+}
+
+FrontCmd* OverlayKit::make_front_cmd(ControlInfo* ctrlInfo) {
+    return new FrontCmd(ctrlInfo);
+}
+
+FrontCmd* OverlayKit::make_front_cmd(Editor* ed) {
+    return new FrontCmd(ed);
+}
+
+BackCmd* OverlayKit::make_back_cmd(ControlInfo* ctrlInfo) {
+    return new BackCmd(ctrlInfo);
+}
+
+BackCmd* OverlayKit::make_back_cmd(Editor* ed) {
+    return new BackCmd(ed);
 }
 
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {

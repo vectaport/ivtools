@@ -32,6 +32,7 @@
 #include <Unidraw/Commands/colorcmd.h>
 #include <Unidraw/Commands/font.h>
 #include <Unidraw/Commands/patcmd.h>
+#include <Unidraw/Commands/struct.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <string>
 #include <uuid/uuid.h>
@@ -187,6 +188,55 @@ public:
 protected:
     std::string _dist_script_buf;
     int _fgnum, _bgnum;
+};
+
+//: FrontCmd with distributed script generation for DrawServ
+// Mixes FrontCmd with DrawServCmd to provide dist_script() that
+// serializes a move-to-front for distribution to remote drawservs.
+// front() itself applies to whatever its clipboard holds -- the current
+// selection, or a single explicit compview argument -- so dist_script()
+// selects the same comps by grid id at the far end and replays a bare
+// front(), the same select(:unlock)/select(:lock) bracket LinkBrushCmd
+// uses, addressed from this command's own clipboard rather than the
+// live selection (see LinkTransformCmd for why a snapshot is used here).
+class LinkFrontCmd : public FrontCmd, public DrawServCmd {
+public:
+    LinkFrontCmd(ControlInfo*);
+    LinkFrontCmd(Editor* = nil);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);front();select(s :lock key)"
+    // for every comp in this command's clipboard this node may relay, or
+    // empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
+//: BackCmd with distributed script generation for DrawServ
+// Mixes BackCmd with DrawServCmd to provide dist_script() that
+// serializes a move-to-back for distribution to remote drawservs; see
+// LinkFrontCmd.
+class LinkBackCmd : public BackCmd, public DrawServCmd {
+public:
+    LinkBackCmd(ControlInfo*);
+    LinkBackCmd(Editor* = nil);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);back();select(s :lock key)"
+    // for every comp in this command's clipboard this node may relay, or
+    // empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
 };
 
 #endif

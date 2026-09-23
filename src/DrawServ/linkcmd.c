@@ -493,3 +493,123 @@ ClassId LinkColorCmd::GetClassId() { return LINK_COLOR_CMD; }
 boolean LinkColorCmd::IsA(ClassId id) {
     return id == LINK_COLOR_CMD || ColorCmd::IsA(id);
 }
+
+/*****************************************************************************/
+
+/* shared by LinkFrontCmd::dist_script() and LinkBackCmd::dist_script():
+   collect grid ids from cb this node may relay (owns, or a remote owner
+   has unlocked through it), stamping the owner's key/sid so ExecuteCmd
+   excludes the link back toward the change's origin.  Unlike the
+   graphic-state commands above, front()/back() already carry their own
+   clipboard snapshot (set by FrontSelectionFunc/BackSelectionFunc, one
+   selected comp or many) rather than acting on the live selection, so
+   this walks cb instead of ed->GetSelection(). */
+static boolean collect_relayable_grids(Clipboard* cb, DrawServ* drawserv,
+                                        std::ostringstream& sbuf,
+                                        uint32_t& owner_key,
+                                        uuid_t owner_sid) {
+    boolean any = false;
+    Iterator it;
+    for (cb->First(it); !cb->Done(it); cb->Next(it)) {
+        OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (!grid) continue;   /* not distributed yet */
+        if (grid->selected() == LinkSelection::LocallySelected || grid->unlocked()) {
+            if (!any) {
+                sbuf << "s=select();select(grid(";
+                any = true;
+                if (grid->selected() == LinkSelection::LocallySelected) {
+                    owner_key = drawserv->sessionidkey();
+                    uuid_copy(owner_sid, drawserv->sessionid());
+                } else {
+                    owner_key = grid->selectorkey();
+                    uuid_copy(owner_sid, grid->selector());
+                }
+            } else {
+                sbuf << ",grid(";
+            }
+            sbuf << "\"" << grid->idstr() << "\")";
+        }
+    }
+    return any;
+}
+
+LinkFrontCmd::LinkFrontCmd(ControlInfo* ci) : FrontCmd(ci) {}
+LinkFrontCmd::LinkFrontCmd(Editor* ed) : FrontCmd(ed) {}
+
+const char* LinkFrontCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    Clipboard* cb = GetClipboard();
+    if (!cb) return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf;
+    uint32_t owner_key = 0;
+    boolean any = collect_relayable_grids(cb, drawserv, sbuf, owner_key, _dist_owner_sid);
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+	sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << ";front();select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkFrontCmd::Copy() {
+    LinkFrontCmd* copy = new LinkFrontCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkFrontCmd::GetClassId() { return LINK_FRONT_CMD; }
+boolean LinkFrontCmd::IsA(ClassId id) { return id == LINK_FRONT_CMD || FrontCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkBackCmd::LinkBackCmd(ControlInfo* ci) : BackCmd(ci) {}
+LinkBackCmd::LinkBackCmd(Editor* ed) : BackCmd(ed) {}
+
+const char* LinkBackCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    Clipboard* cb = GetClipboard();
+    if (!cb) return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf;
+    uint32_t owner_key = 0;
+    boolean any = collect_relayable_grids(cb, drawserv, sbuf, owner_key, _dist_owner_sid);
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+	sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << ";back();select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkBackCmd::Copy() {
+    LinkBackCmd* copy = new LinkBackCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkBackCmd::GetClassId() { return LINK_BACK_CMD; }
+boolean LinkBackCmd::IsA(ClassId id) { return id == LINK_BACK_CMD || BackCmd::IsA(id); }

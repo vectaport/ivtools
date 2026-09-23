@@ -178,6 +178,24 @@ closings land at the same instant either one wins and the other is benched,
 or both decline and the chains stay separate -- both outcomes are safe and
 accepted.
 
+### gsfrontback
+
+**What:** ds1 creates two rects (r2 after r1, so r2 is naturally in front);
+after both propagate to ds2, ds1 sends r2 to the back, then back to the
+front, over the link.
+
+**Checks:**
+- both graphics reach ds2
+- ds2's own structure order matches ds1's creation order before any reorder
+- ds2's order tracks ds1's `back()`, then its `front()`
+
+**Purpose:** `front()`/`back()` had no `DrawServCmd` counterpart before
+`LinkFrontCmd`/`LinkBackCmd` (issue #589) -- an interactive z-order change
+never reached a peer once a link was up, unlike the one-shot z-order fixup
+DrawServ already does when a link first forms. Position is checked with
+`index(select(:all) grid(id))` rather than either graphic's own serialized
+form, since a reorder does not touch that.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is

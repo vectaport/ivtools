@@ -250,7 +250,8 @@ void BackSelectionFunc::execute() {
 	cb->Append(grcomp);
     else
 	cb->Init(viewer->GetSelection());
-    BackCmd* cmd = new BackCmd(GetEditor());
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    BackCmd* cmd = kit->make_back_cmd(GetEditor());
     cmd->SetClipboard(cb);
     
     execute_log(cmd);
@@ -277,7 +278,8 @@ void FrontSelectionFunc::execute() {
 	cb->Append(grcomp);
     else
 	cb->Init(viewer->GetSelection());
-    FrontCmd* cmd = new FrontCmd(GetEditor());
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    FrontCmd* cmd = kit->make_front_cmd(GetEditor());
     cmd->SetClipboard(cb);
     
     execute_log(cmd);
