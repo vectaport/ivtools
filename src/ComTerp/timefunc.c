@@ -299,11 +299,8 @@ void DateFunc::execute() {
     }
     fresh = true;
   } else if (datev.is_null() || datev.is_boolean()) {
-    /* absent, or a Boolean placeholder -- neither names a value date()
-       could read a date from, so both count as "no real argument" and
-       capture today, the same presence-signal treatment time() gives a
-       Boolean (a stream of true/false can drive repeated captures the
-       same way a stream of absent slots would). */
+    /* absent, or a Boolean presence signal (true/false equivalent) --
+       both vacant, so both capture today, same as time()'s own Boolean. */
     dateobj = new DateObj();
   } else if (datev.is_blank()) {
     /* an ongoing stream's not-yet tick, not an absent argument -- propagates
