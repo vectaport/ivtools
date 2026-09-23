@@ -1840,6 +1840,7 @@ void ComTerp::add_defaults() {
     add_command("rshift", new RightShiftFunc(this));
     add_command("and", new AndFunc(this));
     add_command("or", new OrFunc(this));
+    add_command("gate", new GateFunc(this));
     add_command("negate", new NegFunc(this));
     add_command("eq", new EqualFunc(this));
     add_command("not_eq", new NotEqualFunc(this));
