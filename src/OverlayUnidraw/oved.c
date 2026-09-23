@@ -433,3 +433,7 @@ void OverlayEditor::Ding() {
 #endif
 }
 
+MoveCmd* OverlayEditor::MakeMoveCmd(float dx, float dy) {
+    return overlay_kit()->make_move_cmd(this, dx, dy);
+}
+
