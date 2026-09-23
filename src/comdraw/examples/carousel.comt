@@ -3,21 +3,30 @@
 // Lays out 5 visible slots in an arc: the center slot is full-size, and
 // each slot further out shrinks and drops slightly, giving the appearance
 // of photos receding away from the viewer. Run this once to build the
-// library and lay out the first 5 photos, then re-run carousel_next.comt
-// as many times as you like to spin the carousel: the front photo exits
-// past the back, everything else slides one slot forward, and a new photo
-// (reused circularly from the library) spins in from the back to fill the
-// gap.
+// library and lay out the first 5 photos, then call carousel.next() as
+// many times as you like to spin it: the front photo exits past the back,
+// everything else slides one slot forward, and a new photo (reused
+// circularly from the library) spins in from the back to fill the gap.
 //
 //   run("src/comdraw/examples/carousel.comt")
-//   run("src/comdraw/examples/carousel_next.comt")   // repeat to keep spinning
+//   carousel.next()   // repeat to keep spinning
 //
-// The two steps are separate files rather than one script with an internal
-// loop: wrapping the animation's own for/while nesting in one more outer
-// for() loop was observed to hang comterp's postfix re-evaluation, so each
-// advance is driven from outside instead -- see the PR description for
-// this finding. A shell loop, a key binding, or a timer-driven remote()
-// call can all replay carousel_next.comt to keep it spinning.
+// carousel is one object (same bundling-data-and-behavior idiom as
+// zoomap.comt's zoo) rather than a script re-run with run(): next is a
+// func value parsed once, when carousel is built, and every later
+// carousel.next() call just executes that already-parsed postfix again --
+// no re-read, re-parse of a file per advance. The deck (d0..d4, nextlib,
+// img0..img4) lives as fields on carousel itself, since a func's plain
+// assignments only persist back into fields of the SAME attrlist it was
+// called through (carousel.next()'s own d0=d1 etc.) -- writing to a
+// variable outside that object, from inside a func, would need local()
+// instead (see etchasketch.comt), and wouldn't give an outside caller
+// anything to read back afterwards anyway. A shell loop, a key binding, or
+// a timer-driven remote() call can all repeat carousel.next() to keep it
+// spinning. (Driving each advance from outside like this, rather than an
+// internal loop inside next() itself, sidesteps a separate finding from
+// building this: nesting the animation's own for/while in one more outer
+// for() hangs comterp's postfix re-evaluation -- see the PR description.)
 //
 // Photos here are solid-color 1x1 rasters, scaled up by trans() -- stand-
 // ins so the demo needs nothing beyond what's already in the tree. Real
@@ -86,17 +95,6 @@ place=func(
   trans(img w,0,0,h,tx,ty :set);
   nil)
 
-// deck: which library photo (by index) currently occupies each of the 5
-// slots; nextlib: the next library photo to spin in when advancing
-d0=0; d1=1; d2=2; d3=3; d4=4
-nextlib=5
-
-img0=at(imgs d0); img1=at(imgs d1); img2=at(imgs d2); img3=at(imgs d3); img4=at(imgs d4)
-place(img0 0); place(img1 1); place(img2 2); place(img3 3); place(img4 4)
-front(img0); front(img4); front(img1); front(img3); front(img2)
-print("carousel: initial deck %v %v %v %v %v\n" d0 d1 d2 d3 d4)
-update()
-
 // fixed endpoints for the exit (past slot 0, off to the left) and entrance
 // (from further right/back than slot 4) legs of the animation -- computed
 // once since they never depend on which photo occupies the slot
@@ -104,3 +102,62 @@ exfromw=slotw(0); exfromh=sloth(0); exfromcx=slotcx(0); exfromcy=slotcy(0)
 extow=42; extoh=28; extocx=(0-480); extocy=CENTERY-60
 enfromw=25; enfromh=17; enfromcx=480; enfromcy=CENTERY-60
 entow=slotw(4); entoh=sloth(4); entocx=slotcx(4); entocy=slotcy(4)
+
+// carousel -- the deck (which library photo, by index, occupies each of
+// the 5 slots, and which library photo spins in next) plus the one method
+// that advances it. next()'s plain assignments to d0..d4/nextlib/img0..
+// img4 persist across calls because they land on carousel's own fields --
+// see the header note above.
+carousel=(
+  :d0 0 :d1 1 :d2 2 :d3 3 :d4 4 :nextlib 5
+  :img0 at(imgs 0) :img1 at(imgs 1) :img2 at(imgs 2) :img3 at(imgs 3) :img4 at(imgs 4)
+
+  // carousel.next() -- advance by one photo: the front photo exits past
+  // the back, everything else slides one slot forward, and the next
+  // library photo spins in from the back to fill the gap.
+  :next func(
+    exiting=img0;
+    entrant=at(imgs nextlib);
+
+    for(f=1 f<=FR f=f+1
+      t=f/FR;
+
+      // slots 0..3 <- what was in slots 1..4, sliding one slot forward
+      s=0;
+      while(s<4
+        src=s+1;
+        im=if(src==1 :then img1 :else if(src==2 :then img2 :else if(src==3 :then img3 :else img4)));
+        fw=slotw(src); fh=sloth(src); fcx=slotcx(src); fcy=slotcy(src);
+        tw=slotw(s); th=sloth(s); tcx=slotcx(s); tcy=slotcy(s);
+        w=fw+(tw-fw)*t; h=fh+(th-fh)*t;
+        cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
+        hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+        trans(im w,0,0,h,tx,ty :set);
+        s=s+1);
+
+      // the exiting photo continues receding past the back
+      ew=exfromw+(extow-exfromw)*t; eh=exfromh+(extoh-exfromh)*t;
+      ecx=exfromcx+(extocx-exfromcx)*t; ecy=exfromcy+(extocy-exfromcy)*t;
+      ehw=ew/2; ehh=eh/2; etx=ecx-ehw; ety=ecy-ehh;
+      trans(exiting ew,0,0,eh,etx,ety :set);
+
+      // the entrant spins in from further back into slot 4
+      nw=enfromw+(entow-enfromw)*t; nh=enfromh+(entoh-enfromh)*t;
+      ncx=enfromcx+(entocx-enfromcx)*t; ncy=enfromcy+(entocy-enfromcy)*t;
+      nhw=nw/2; nhh=nh/2; ntx=ncx-nhw; nty=ncy-nhh;
+      trans(entrant nw,0,0,nh,ntx,nty :set);
+
+      update(USEC));
+
+    d0=d1; d1=d2; d2=d3; d3=d4; d4=nextlib;
+    img0=img1; img1=img2; img2=img3; img3=img4; img4=entrant;
+    nextlib=mod(nextlib+1 n);
+    front(img0); front(img4); front(img1); front(img3); front(img2);
+    print("carousel: deck %v %v %v %v %v  nextlib=%v\n" d0 d1 d2 d3 d4 nextlib);
+    nil)
+)
+
+place(carousel.img0 0); place(carousel.img1 1); place(carousel.img2 2); place(carousel.img3 3); place(carousel.img4 4)
+front(carousel.img0); front(carousel.img4); front(carousel.img1); front(carousel.img3); front(carousel.img2)
+print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
+update()

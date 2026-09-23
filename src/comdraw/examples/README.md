@@ -73,18 +73,23 @@ the drawing (and any funcs the script defined) live in the session.
   changes. `keytest()` for plain keys, `lastkey_shiftcapture()` for the
   `:shiftcapture`-captured versions.
 
-- **carousel.comt** / **carousel_next.comt** — a coverflow-style photo
-  carousel: 5 visible slots in an arc, the center one full-size, the rest
-  shrinking and dropping as they recede.  `carousel.comt` builds the photo
-  library and lays out the first 5; re-running `carousel_next.comt` slides
-  everything one slot forward, retires the front photo past the back, and
-  spins the next library photo in to fill the gap (`trans()` + `front()`
-  under an `update(usec)`-paced animation loop, same primitives DrawServ
-  already relays between linked editors — see `src/DrawServ/HACKING.md`).
-  Two files rather than one script with an internal loop: nesting the
-  animation's own `for`/`while` inside one more `for()` was observed to
-  hang comterp's postfix re-evaluation, so each advance is driven from
-  outside instead.  *The slot is the seat; the photo just circulates.*
+- **carousel.comt** — a coverflow-style photo carousel: 5 visible slots in
+  an arc, the center one full-size, the rest shrinking and dropping as they
+  recede.  Builds the photo library, lays out the first 5, and leaves a
+  `carousel` object behind; calling `carousel.next()` slides everything one
+  slot forward, retires the front photo past the back, and spins the next
+  library photo in to fill the gap (`trans()` + `front()` under an
+  `update(usec)`-paced animation loop, same primitives DrawServ already
+  relays between linked editors — see `src/DrawServ/HACKING.md`).  `next`
+  is a func value parsed once, when `carousel` is built, so repeating
+  `carousel.next()` never re-reads or re-parses a file the way repeating
+  `run(...)` would; the deck lives as fields on `carousel` itself, since a
+  func's plain assignments only persist back into fields of the same
+  attrlist it was called through (same idiom as `zoomap.comt`'s `zoo`).
+  Advancing is driven from outside rather than by an internal loop inside
+  `next()`: nesting the animation's own `for`/`while` in one more `for()`
+  was observed to hang comterp's postfix re-evaluation.  *The slot is the
+  seat; the photo just circulates.*
 
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,

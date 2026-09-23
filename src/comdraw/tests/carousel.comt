@@ -1,11 +1,11 @@
 // src/comdraw/tests/carousel.comt -- integration coverage for the
-// examples/carousel.comt + carousel_next.comt coverflow demo: front slot
-// is largest and centered, side slots shrink symmetrically, and advancing
+// examples/carousel.comt coverflow demo: front slot is largest and
+// centered, side slots shrink symmetrically, and advancing (carousel.next())
 // rotates the deck (dropping the front photo, spinning the next library
 // photo in) while every slot converges back to the same target geometry
 // regardless of which photo now occupies it.
 //
-// funcs: carousel carousel_next place slotw sloth slotcx slotcy
+// funcs: carousel.next place slotw sloth slotcx slotcy
 run("../examples/carousel.comt")
 
 ok=true
@@ -22,7 +22,7 @@ print("1 size(imgs) (expect 7): %v\n" size(imgs))
 //             positions round differently even at the same scale), so
 //             sizes are compared within a fraction-of-a-pixel tolerance
 //             rather than by exact equality. ---
-m0=mbr(img0); m1=mbr(img1); m2=mbr(img2); m3=mbr(img3); m4=mbr(img4)
+m0=mbr(carousel.img0); m1=mbr(carousel.img1); m2=mbr(carousel.img2); m3=mbr(carousel.img3); m4=mbr(carousel.img4)
 w0=at(m0 2)-at(m0 0); w2=at(m2 2)-at(m2 0); w4=at(m4 2)-at(m4 0)
 wdiff=abs(w0-w4)
 ok=ok&&(w2>w0)&&(wdiff<0.01)
@@ -43,26 +43,26 @@ mbrsclose=func(
 
 // --- test 3: advancing rotates the deck: each slot's photo index shifts
 //             down by one, and a fresh library photo appears at slot 4 ---
-run("../examples/carousel_next.comt")
-ok=ok&&(d0==1)&&(d1==2)&&(d2==3)&&(d3==4)&&(d4==5)&&(nextlib==6)
-print("3 deck after one advance (expect 1 2 3 4 5, nextlib 6): %v %v %v %v %v nextlib=%v\n" d0 d1 d2 d3 d4 nextlib)
+carousel.next()
+ok=ok&&(carousel.d0==1)&&(carousel.d1==2)&&(carousel.d2==3)&&(carousel.d3==4)&&(carousel.d4==5)&&(carousel.nextlib==6)
+print("3 deck after one advance (expect 1 2 3 4 5, nextlib 6): %v %v %v %v %v nextlib=%v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4 carousel.nextlib)
 
 // --- test 4: whichever photo now sits in a slot, its geometry matches that
 //             slot's fixed target -- the animation converges, not just the
 //             bookkeeping ---
-ok=ok&&mbrsclose(mbr(img2) m2)
-print("4 the new front photo lands on the same front-slot geometry (expect %v): %v\n" m2 mbr(img2))
+ok=ok&&mbrsclose(mbr(carousel.img2) m2)
+print("4 the new front photo lands on the same front-slot geometry (expect %v): %v\n" m2 mbr(carousel.img2))
 
 // --- test 5: advancing past the end of the 7-photo library wraps around
 //             instead of erroring ---
-run("../examples/carousel_next.comt")
-run("../examples/carousel_next.comt")
-run("../examples/carousel_next.comt")
-run("../examples/carousel_next.comt")
-run("../examples/carousel_next.comt")
-ok=ok&&(nextlib==4)
-ok=ok&&mbrsclose(mbr(img2) m2)
-print("5 six advances total wrap the 7-photo library (expect nextlib 4): %v\n" nextlib)
+carousel.next()
+carousel.next()
+carousel.next()
+carousel.next()
+carousel.next()
+ok=ok&&(carousel.nextlib==4)
+ok=ok&&mbrsclose(mbr(carousel.img2) m2)
+print("5 six advances total wrap the 7-photo library (expect nextlib 4): %v\n" carousel.nextlib)
 
 print("carousel: %v\n" ok)
 ok
