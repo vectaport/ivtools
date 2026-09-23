@@ -2,10 +2,10 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
+# Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair10 sel eagain parsetest optabletest
-#          gsexim gsbrushA gsbrushB
+#          updown4C ring ringpair ringpair10 move sel eagain parsetest
+#          optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -13,7 +13,7 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]\n\n");
+    print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]\n\n");
     print("  (no args)             run all tests\n");
     print("--tests [name,...]  tests to run, comma-separated; -1 on error\n");
     print("      all                 everything below\n");
@@ -25,6 +25,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      ring                a ring cannot be formed\n");
     print("      ringpair            two long chains closed at both ends at once\n");
     print("      ringpair10          ringpair at 20 nodes\n");
+    print("      move                a distributed move() animated in equal steps\n");
     print("      sel                 an answer that has to cross a relay\n");
     print("      eagain              write_full()'s EAGAIN retry, forced by a stalled peer\n");
     print("      parsetest optabletest\n");
@@ -32,6 +33,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      gsexim gsbrushA gsbrushB\n");
     print("                          graphic state over a link\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
+    print("--demo\t\t\tslow tests with visible pauses for a human watching live (off by default)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
 
@@ -39,9 +41,11 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
 callback_port=int(arg(1));
 tests_flag=false;
 tests_val=nil;
+demo_flag=false;
 for(i=2 i<narg() i++
   switch(substr(arg(i) 2 :after)
     :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
+    :demo demo_flag=true
     :default print("drawmo:  Unknown argument %s\n" arg(i) :err)))
 
 /* default to all tests if no --tests flag or if --tests given with no value */
@@ -197,6 +201,13 @@ if(tests_flag :then
         print("ringpair10: pass\n" :err)
       :else
         print("ringpair10: FAIL\n" :err);
+        ok=false));
+    if(t==`move || t==`all :then
+      print("running move test\n" :err);
+      if(move_test(:dummy 0) :then
+        print("move: pass\n" :err)
+      :else
+        print("move: FAIL\n" :err);
         ok=false));
     if(t==`parsetest || t==`all :then
       print("running parsetest\n" :err);

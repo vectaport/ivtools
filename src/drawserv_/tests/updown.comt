@@ -1440,3 +1440,120 @@ ringpair_test=func(
    fragment for the linkfreeze flood to cross before either closing link's
    cycletest() can run. */
 ringpair10_test=func(ringpair_test(:chainlen 10))
+
+/* move test -- distributed move() (issue #376's Group A), closed by
+   LinkMoveCmd: each move() step relays the moved comp's resulting ABSOLUTE
+   position via trans(), not the delta move() itself carries, so a step
+   landing twice or out of order still lands correctly (see LinkMoveCmd in
+   linkcmd.h). Moves one circle across ds1's window in equal steps and
+   confirms ds2's copy tracks the same position after every step, not just
+   the last one.
+
+   A solid-filled circle like frontback's, and a bold label naming the
+   test in the lower-left corner. */
+move_test=func(
+  poll_usec=200000;
+  timeout=30*1000000/poll_usec;
+  steps=8;
+  step_dx=40;
+  step_dy=0;
+
+  /* --- launch ds1 (source) -- tiled side by side with ds2, same 756x491
+     layout as frontback's --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upmv1)=false;
+  print("move: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upmv1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upmv1) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_upmv1) :then
+    print("move: FAIL ds1 did not come up\n" :err);
+    return(false));
+  print("move: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upmv2)=false;
+  print("move: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upmv2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upmv2) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_upmv2) :then
+    print("move: FAIL ds2 did not come up\n" :err);
+    return(false));
+  print("move: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(!sock1 || !sock2 :then
+    print("move: FAIL could not connect to both nodes\n" :err);
+    return(false));
+
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(drawlink(:table))")<1 && cnt<timeout usleep(poll_usec);cnt++);
+
+  /* --- ds1: one circle, centered in the left window --- */
+  remote(sock1 "c1=ellipse(158,245,80,80 :fillbg 1 :fgcolor \"Black\",0,0,0 :bgcolor \"SeaGreen\",0.18,0.55,0.34 :graypat 1.0)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<timeout usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  if(type(id1)!=`StringType :then
+    print("move: FAIL could not read circle's grid id\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    return(false));
+  print("move: created c1=%v on ds1\n" id1 :err);
+
+  /* bold label, purely decorative -- creating it makes it, not c1, the
+     current selection, same lesson as frontback_test */
+  remote(sock1 "text(40,40 \"MOVE TEST\")");
+  remote(sock1 "font(6)");
+
+  ok=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("move: ds2 has c1=%v\n" ok :err);
+  if(!ok :then print("move: FAIL circle did not propagate to ds2\n" :err));
+
+  /* baseline is the graphic's own transform, not the ellipse() creation
+     args -- ellipse() takes a center point, but its transform's own
+     translation is a different, unrelated offset. */
+  base=remote(sock2 print("trans(grid(%c%s%c))" 34 id1 34 :str));
+  x=int(base@4); y=int(base@5);
+
+  if(demo_flag :then remote(sock1 "update(300000)"));
+
+  /* --- ds1: move c1 in equal steps, confirming ds2 tracks each one --- */
+  i=0;
+  while(ok && i<steps
+    remote(sock1 print("select(grid(%c%s%c))" 34 id1 34 :str));
+    remote(sock1 print("move(%d %d)" step_dx step_dy :str));
+    x=x+step_dx; y=y+step_dy;
+    if(demo_flag :then remote(sock1 "update(150000)");remote(sock2 "update(150000)"));
+    found=false;
+    pollcnt=0;
+    expr=print("trans(grid(%c%s%c))==(1,0,0,1,%d,%d)" 34 id1 34 x y :str);
+    while(!found && pollcnt<timeout
+      r=remote(sock2 expr);
+      if(r==true :then found=true);
+      if(!found :then usleep(poll_usec);pollcnt++));
+    if(!found :then print("move: FAIL step %d did not propagate (want x=%d y=%d)\n" i x y :err));
+    ok=ok && found;
+    i++);
+
+  print("move: all %d steps tracked on ds2 = %v\n" steps ok :err);
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("move: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("move: ds2 shut down\n" :err);
+
+  ok)

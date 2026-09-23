@@ -1114,6 +1114,10 @@ TransformCmd* OverlayKit::make_transform_cmd(Editor* ed, Transformer* t) {
     return new SetTransformCmd(ed, t);
 }
 
+MoveCmd* OverlayKit::make_move_cmd(Editor* ed, float dx, float dy) {
+    return new MoveCmd(ed, dx, dy);
+}
+
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new FontCmd(ctrlInfo, font);
 }

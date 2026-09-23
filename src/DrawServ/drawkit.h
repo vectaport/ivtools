@@ -62,6 +62,8 @@ public:
     virtual FontCmd* make_font_cmd(Editor*, PSFont*, int fontnum=0, const char* fontname=nil);
     virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
     // override to create LinkColorCmd for distributed color changes
+    virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
+    // override to create LinkMoveCmd for distributed moves
 
     static DrawKit* Instance();
 

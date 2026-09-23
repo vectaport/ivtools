@@ -1682,7 +1682,8 @@ void MoveFunc::execute() {
     MoveCmd* cmd = nil;
 
     if (delx != 0  || dely != 0) {
-	cmd = new MoveCmd(_ed, delx, dely);
+	OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_move_cmd(_ed, delx, dely);
 	execute_log(cmd);
     }
 

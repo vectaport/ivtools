@@ -610,6 +610,10 @@ TransformCmd* DrawKit::make_transform_cmd(Editor* ed, Transformer* t) {
     return new LinkTransformCmd(ed, t);
 }
 
+MoveCmd* DrawKit::make_move_cmd(Editor* ed, float dx, float dy) {
+    return new LinkMoveCmd(ed, dx, dy);
+}
+
 FontCmd* DrawKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new LinkFontCmd(ctrlInfo, font, fontnum, fontname);
 }

@@ -41,6 +41,7 @@ class FontCmd;
 class TransformCmd;
 class Transformer;
 class PatternCmd;
+class MoveCmd;
 class Command;
 class ControlInfo;
 class Deck;
@@ -232,7 +233,11 @@ public:
     virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
     // factory for trans()'s command; unlike the graphic-state factories,
     // it takes no extra args, naming its target via its clipboard.
-  
+    virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
+    // factory for move()'s command; like the graphic-state factories, it
+    // applies to whatever is selected -- no clipboard target, no ControlInfo
+    // form (move() has no menu item).
+
 protected:
     Glyph* MenuLine(PSBrush*);
     // create line to put in a pulldown menu.
