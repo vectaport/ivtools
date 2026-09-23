@@ -580,9 +580,11 @@ GraphicIdFunc::GraphicIdFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp
    grid's construction. clears out on no match, same as an absent field. */
 static void resolve_gridid(const char* str, uuid_t out) {
   if (!str) { uuid_clear(out); return; }
-  if (strlen(str) == 8) {
+  char* end = nil;
+  uint32_t key = strlen(str) == 8 ? (uint32_t)strtoul(str, &end, 16) : 0;
+  if (end == str + 8) {
     void* ptr = nil;
-    ((DrawServ*)unidraw)->gridtable()->find(ptr, (uint32_t)strtoul(str, nil, 16));
+    ((DrawServ*)unidraw)->gridtable()->find(ptr, key);
     if (ptr) uuid_copy(out, ((GraphicId*)ptr)->id());
     else uuid_clear(out);
   } else
@@ -594,9 +596,11 @@ static void resolve_gridid(const char* str, uuid_t out) {
    full by the sid() protocol before it could be referenced. */
 static void resolve_sid(const char* str, uuid_t out) {
   if (!str) { uuid_clear(out); return; }
-  if (strlen(str) == 8) {
+  char* end = nil;
+  uint32_t key = strlen(str) == 8 ? (uint32_t)strtoul(str, &end, 16) : 0;
+  if (end == str + 8) {
     void* ptr = nil;
-    ((DrawServ*)unidraw)->sessionidtable()->find(ptr, (uint32_t)strtoul(str, nil, 16));
+    ((DrawServ*)unidraw)->sessionidtable()->find(ptr, key);
     if (ptr) uuid_copy(out, ((SessionId*)ptr)->sid());
     else uuid_clear(out);
   } else
