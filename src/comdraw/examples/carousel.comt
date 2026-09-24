@@ -102,7 +102,7 @@ place=func(
 // once since they never depend on which photo occupies the slot
 exfromw=slotw(0); exfromh=sloth(0); exfromcx=slotcx(0); exfromcy=slotcy(0)
 extow=42; extoh=28; extocx=(0-480); extocy=CENTERY-60
-enfromw=25; enfromh=17; enfromcx=480; enfromcy=CENTERY-60
+enfromw=25; enfromh=17; enfromcx=CENTERX+(CENTERX-extocx); enfromcy=CENTERY-60
 entow=slotw(4); entoh=sloth(4); entocx=slotcx(4); entocy=slotcy(4)
 
 // carousel -- the deck (which library photo, by index, occupies each of

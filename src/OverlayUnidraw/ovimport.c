@@ -1557,7 +1557,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
     } else if (strncmp(creator, "GIF", 3)==0) {
       static boolean giftopnm = OverlayKit::bincheck("giftopnm");
       if (giftopnm) {
-	if (pathname && !return_fd) {
+	if (pathname && !return_fd && !cmdflag) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
 	    snprintf(buffer, sizeof(buffer), "gunzip -c %s | giftopnm", pathname);
@@ -1577,7 +1577,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	cerr << "giftopnm not found (part of netpbm)\n";
 
     } else if (strncmp(creator, "TIFF", 4)==0) {
-      if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
+      if (pathname && !return_fd && !cmdflag && strcmp(pathname,"-")!=0 && !compressed)
 	comp = TIFF_Image(pathname);
       else {
 	static boolean convert = OverlayKit::bincheck("convert");
@@ -1588,7 +1588,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       }
 
     } else if (strncmp(creator, "X11", 3)==0) {
-      if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
+      if (pathname && !return_fd && !cmdflag && strcmp(pathname,"-")!=0 && !compressed)
 	comp = XBitmap_Image(pathname);
       else {
 	static boolean xbmtopbm = OverlayKit::bincheck("xbmtopbm");
@@ -1603,7 +1603,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       static boolean djpeg_flag = OverlayKit::bincheck("djpeg");
       if (stdcmapppm_flag && djpeg_flag) {
 
-	if (pathname && !return_fd) {
+	if (pathname && !return_fd && !cmdflag) {
 	  char buffer[BUFSIZ];
 	  if (dithermap_flag) {
 	    if (compressed) 
@@ -1637,7 +1637,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
     } else if (strncmp(creator, "PNG", 3)==0) {
       static boolean pngtopnm = OverlayKit::bincheck("pngtopnm");
       if (pngtopnm) {
-	if (pathname && !return_fd) {
+	if (pathname && !return_fd && !cmdflag) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
 	    snprintf(buffer, sizeof(buffer), "gunzip -c \"%s\" | pngtopnm", pathname);
