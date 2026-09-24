@@ -155,6 +155,13 @@ incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 wschars=" \t"
 
+/* names seen as a global(name) argument so far (either form -- a bare
+   read global(name), or an lvalue global(name)=... -- both register the
+   same global binding per #561/#562), and the line each was first seen;
+   flaggedglobal is the subset already reported, so a name bare-written
+   many times after its global() only gets one finding */
+globalnames=list();globallines=list();flaggedglobal=list()
+
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
    running paren DEPTH across the whole statement -- and only handed to
@@ -320,6 +327,19 @@ while((srcline=gets(fp))!=nil
       name=name+at(schars nmi);
       nmi=nmi+1);
 
+    /* a bare write to a name already established global earlier in this
+       script lands in that same global rather than a fresh local (#561's
+       bare-write-mirrors-bare-read rule) -- flag it once per name, at its
+       first bare-write site after the global() that declared it (#562) */
+    gidx=index(globalnames name);
+    if(gidx!=nil && index(flaggedglobal name)==nil :then
+      flaggedglobal=flaggedglobal,name;
+      gline=at(globallines gidx);
+      print("%s:%v: global(%s) declares %s global here\n" target gline name name);
+      print("%s:%v: %s=...: writes it bare -- lands in the same global (see #561), not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is\n"
+        target stmtline name name name);
+      nflagged=nflagged+1);
+
     istypecmd=print("istype(%s CommandType)" name :str);
     isshadow=eval(istypecmd);
     if(isshadow!=true :then continue);
@@ -363,6 +383,21 @@ while((srcline=gets(fp))!=nil
     if(size(ctoks)<2 :then continue);
     obsnarg=int(at(ctoks 0));
     obsnkey=int(at(ctoks 1));
+
+    /* global(name) (bare read or lvalue -- both tag identically, see
+       #562) establishes name as global from here on; record its first
+       sighting so a later bare write to the same name can be checked
+       against it. ti was already advanced past this token, so ti-2 is
+       the token immediately before it -- global's own single positional
+       argument, per postfix's left-to-right argument order. */
+    if(name=="global" && obsnarg>=1 :then
+      gtok=at(toks ti-2);
+      glb=index(gtok "[");
+      gname=gtok;
+      if(glb!=nil :then gname=substr(gtok "["));
+      if(size(gname)>0 && index(globalnames gname)==nil :then
+        globalnames=globalnames,gname;
+        globallines=globallines,stmtline));
 
     /* dot-attribute access (a.name(...)) resolves to whatever a.name
        is bound to, not the same-named global command -- postfix still
