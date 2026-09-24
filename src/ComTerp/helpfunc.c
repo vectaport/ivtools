@@ -99,11 +99,16 @@ static const char* help_dockey_desc(ComFunc* func, const char* keyname) {
 /* true if ":keyname" appears as a bare keyword token in func's docstring
    signature (bounded before " -- ", same as comlint's own keyword-name
    scan) -- a keyword mentioned in the signature but never elaborated in
-   dockeys(). A keyword's ':' always sits at a token boundary ('(', '[',
-   '|', whitespace, or the start), possibly itself inside "[...]" since
-   every keyword is optional (islist's "[:any]"); a colon glued directly
-   onto a preceding identifier character (date's "YEAR:MON") is instead a
-   value-form separator inside a positional argument, not a keyword. */
+   dockeys(). A keyword's ':' sits at a token boundary (whitespace, '(',
+   '|', or the start), possibly itself inside "[...]" since every keyword
+   is optional (islist's "[:any]") -- so a run of '[' or ']' glued
+   directly before the ':' is skipped first to reach the character that
+   actually precedes the bracket group. A colon reached without crossing
+   such a boundary -- glued onto a preceding identifier character (date's
+   "YEAR:MON"), or onto a ']' that itself closes a nested value-form group
+   with no space before its own '[' (time's "[:ms:us:ns]:TZ") -- is
+   instead a value-form separator inside a positional argument, not a
+   keyword. */
 static boolean help_signature_has_key(ComFunc* func, int command_symid, const char* keyname) {
   char buffer[8192];  // see the sizing comment where execute() uses this same pattern
   if (func->docstring2() != nil) {
@@ -121,7 +126,10 @@ static boolean help_signature_has_key(ComFunc* func, int command_symid, const ch
   char* p = buffer;
   while (p < end) {
     if (*p != ':') { p++; continue; }
-    if (p > buffer && help_is_idchar(*(p-1))) { p++; continue; }
+    char* b = p;
+    while (b > buffer && (*(b-1) == '[' || *(b-1) == ']')) b--;
+    boolean boundary = (b == buffer) || !help_is_idchar(*(b-1));
+    if (!boundary) { p++; continue; }
     p++;
     char* namestart = p;
     while (p < end && help_is_idchar(*p)) p++;

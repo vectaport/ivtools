@@ -1,6 +1,6 @@
 // src/comterp_/tests/help.comt -- test help() and optable()
 //
-// coverage: 20/20 (100%)
+// coverage: 21/21 (100%)
 // funcs: help() help(:posteval) help(:top) help("op") help(cmd :key name)
 //        optable(:table) optable(:bypri) optable(:byopr) optable(:bycom)
 // optable(:table) returns list of attrlists (:opr :cmd :pri :rtol :type)
@@ -166,6 +166,20 @@ prev_ok=check_fail(:ok ok)
 ka=help(islist :key any)
 ok=ok&&(ka==true)
 print("20 help(islist :key any) returns true (expect true): %v\n" ka)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: a value-form field glued onto a ']' that closes a nested
+//     value-form group with no space before its own '[' (time's
+//     "[:ms:us:ns]:TZ") is still a value separator, not a keyword --
+//     the real keyword is the differently-cased ":tz" later in the
+//     signature, which :key must still find ---
+kt=help(time :key TZ)
+ok=ok&&(kt==nil)
+print("21 help(time :key TZ) returns nil (expect true): %v\n" (kt==nil))
+prev_ok=check_fail(:ok ok)
+kz=help(time :key tz)
+ok=ok&&(type(kz)==`StringType)
+print("21b help(time :key tz) returns its dockeys description\n    (expect true): %v\n" (type(kz)==`StringType))
 prev_ok=check_fail(:ok ok)
 
 print("help: %v\n" ok)
