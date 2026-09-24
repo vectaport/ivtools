@@ -338,8 +338,9 @@ void ImportFunc::execute() {
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
 
-    // acknowledge back quickly with a blank if over socket
-    if (comterp() && comterp()->handler() && comterp()->handler()->wrfptr()) {
+    // Acknowledge remote peers; fd 0 identifies the local console.
+    if (comterp() && comterp()->handler() && comterp()->handler()->wrfptr() &&
+	comterp()->handler()->wrfd() != 0) {
       fputs("blank\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
     }
