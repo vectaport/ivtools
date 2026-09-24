@@ -135,7 +135,14 @@ carousel=(
         cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
         hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
         trans(im w,0,0,h,tx,ty :set);
+        if(s==1 :then leftw=w);
+        if(s==2 :then centerw=w; centerimg=im);
         s=s+1);
+
+      // bring the growing center-bound photo in front the moment it
+      // overtakes its left neighbor in size, rather than waiting for the
+      // whole walk to finish and fixing z-order only once at the end
+      if(centerw>leftw :then front(centerimg));
 
       // the exiting photo continues receding past the back
       ew=exfromw+(extow-exfromw)*t; eh=exfromh+(extoh-exfromh)*t;
