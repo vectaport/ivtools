@@ -153,6 +153,7 @@ lineno=0
 mlbal=0
 incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
+wschars=" \t"
 
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
@@ -283,19 +284,21 @@ while((srcline=gets(fp))!=nil
     if(sc!='=' :then continue);
 
     /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
-       their lhs; ==, !=, <=, >= are comparisons, not assignments */
+       their lhs; ==, !=, <=, >= are comparisons, not assignments.
+       wschars covers both space and tab, ComTerp's other accepted
+       inter-token whitespace character */
     nextc=' ';
     if(ssi<ssz :then nextc=at(schars ssi));
     if(nextc=='=' :then continue);
     wpos=ssi-2;
-    while(wpos>=0 && at(schars wpos)==' '
+    while(wpos>=0 && index(wschars at(schars wpos))!=nil
       wpos=wpos-1);
     prevc=' ';
     if(wpos>=0 :then prevc=at(schars wpos));
     if(index("!<>" prevc)!=nil :then continue);
     idend=wpos;
     if(index("+-*/%" prevc)!=nil :then idend=wpos-1);
-    while(idend>=0 && at(schars idend)==' '
+    while(idend>=0 && index(wschars at(schars idend))!=nil
       idend=idend-1);
 
     /* walk back over the identifier immediately before '=' (or before

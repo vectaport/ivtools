@@ -1,6 +1,6 @@
 // src/comterp_/tests/help.comt -- test help() and optable()
 //
-// coverage: 19/19 (100%)
+// coverage: 20/20 (100%)
 // funcs: help() help(:posteval) help(:top) help("op") help(cmd :key name)
 //        optable(:table) optable(:bypri) optable(:byopr) optable(:bycom)
 // optable(:table) returns list of attrlists (:opr :cmd :pri :rtol :type)
@@ -158,6 +158,14 @@ prev_ok=check_fail(:ok ok)
 kv=help(date :key MON)
 ok=ok&&(kv==nil)
 print("19 help(date :key MON) returns nil (expect true): %v\n" (kv==nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 20: a keyword bracketed as optional in the signature (islist's
+//     "[:any]", since every keyword is optional) is still a real keyword,
+//     unlike a value-form colon glued onto a preceding identifier ---
+ka=help(islist :key any)
+ok=ok&&(ka==true)
+print("20 help(islist :key any) returns true (expect true): %v\n" ka)
 prev_ok=check_fail(:ok ok)
 
 print("help: %v\n" ok)

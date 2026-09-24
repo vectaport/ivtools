@@ -99,10 +99,11 @@ static const char* help_dockey_desc(ComFunc* func, const char* keyname) {
 /* true if ":keyname" appears as a bare keyword token in func's docstring
    signature (bounded before " -- ", same as comlint's own keyword-name
    scan) -- a keyword mentioned in the signature but never elaborated in
-   dockeys(). A colon inside a "[...]" positional-argument group (e.g.
-   date's "[num|str|...|YEAR:MON[:day]]") is a value-form separator, not
-   a declared keyword, so it's skipped by tracking bracket depth and only
-   matching at depth 0. */
+   dockeys(). A keyword's ':' always sits at a token boundary ('(', '[',
+   '|', whitespace, or the start), possibly itself inside "[...]" since
+   every keyword is optional (islist's "[:any]"); a colon glued directly
+   onto a preceding identifier character (date's "YEAR:MON") is instead a
+   value-form separator inside a positional argument, not a keyword. */
 static boolean help_signature_has_key(ComFunc* func, int command_symid, const char* keyname) {
   char buffer[8192];  // see the sizing comment where execute() uses this same pattern
   if (func->docstring2() != nil) {
@@ -118,11 +119,9 @@ static boolean help_signature_has_key(ComFunc* func, int command_symid, const ch
   char* end = dd != nil ? dd : buffer + strlen(buffer);
   int kwlen = strlen(keyname);
   char* p = buffer;
-  int depth = 0;
   while (p < end) {
-    if (*p == '[') { depth++; p++; continue; }
-    if (*p == ']') { if (depth>0) depth--; p++; continue; }
-    if (*p != ':' || depth > 0) { p++; continue; }
+    if (*p != ':') { p++; continue; }
+    if (p > buffer && help_is_idchar(*(p-1))) { p++; continue; }
     p++;
     char* namestart = p;
     while (p < end && help_is_idchar(*p)) p++;
