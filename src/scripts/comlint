@@ -363,8 +363,8 @@ while((srcline=gets(fp))!=nil
           searchfor=kwname+" ";
 
           if(index(declared searchfor)==nil :then
-            print("%s:%v: %s(): unrecognized keyword %s -- not declared in %s's signature or dockeys (kw-unknown)\n"
-              target stmtline name kwname name);
+            print("%s:%v: %s(): unrecognized keyword %s\n"
+              target stmtline name kwname);
             nflagged=nflagged+1)));
       continue);
 
