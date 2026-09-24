@@ -456,14 +456,15 @@ public:
 	return "%s(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file"; }
 };
 
-//: command to access a graphic's transformer
-// a00,a01,a10,a11,a20,a21=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic
+//: command to access a graphic's transformer, or the viewer's own current transform
+// a00,a01,a10,a11,a20,a21=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic <br>
+// a00,a01,a10,a11,a20,a21=trans() -- the viewer's current drawing-to-window transform
 class TransformerFunc : public UnidrawFunc {
 public:
     TransformerFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-      return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21] :set :apply) -- set/get transformer associated with a graphic"; }
+      return "[compview|a00,a01,a10,a11,a20,a21]=trans([compview] [a00,a01,a10,a11,a20,a21] :set :apply) -- set/get transformer associated with a graphic; return the viewer's current drawing-to-window transform if no args"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
         ":set      impose the matrix, backing out the current transform (default)",

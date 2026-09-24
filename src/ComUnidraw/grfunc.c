@@ -1937,9 +1937,30 @@ TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(com
 }
 
 void TransformerFunc::execute() {
-    
+
     static int apply_sym = symbol_add("apply");
     static int set_sym    = symbol_add("set");
+
+    if (nargs()==0 && nkeys()==0) {
+      /* bare trans() -- the viewer's current drawing-to-window transform,
+         the same Rel used to place a freshly drawn graphic with no
+         explicit :transform */
+      reset_stack();
+      Transformer* rel = _ed->GetViewer()->GetRel();
+      AttributeValueList* avl = new AttributeValueList();
+      float a00, a01, a10, a11, a20, a21;
+      rel->matrix(a00, a01, a10, a11, a20, a21);
+      rel->unref();
+      avl->Append(new AttributeValue(a00));
+      avl->Append(new AttributeValue(a01));
+      avl->Append(new AttributeValue(a10));
+      avl->Append(new AttributeValue(a11));
+      avl->Append(new AttributeValue(a20));
+      avl->Append(new AttributeValue(a21));
+      ComValue retval(avl);
+      push_stack(retval);
+      return;
+    }
 
     ComValue objv(stack_arg(0));
     ComValue transv(stack_arg(1));
