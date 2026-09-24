@@ -458,13 +458,13 @@ public:
 
 //: command to access a graphic's transformer, or the viewer's own current transform
 // a00,a01,a10,a11,a20,a21=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic <br>
-// a00,a01,a10,a11,a20,a21=trans() -- the window-to-drawing transform a freshly drawn graphic gets
+// a00,a01,a10,a11,a20,a21=trans() -- the window-to-drawing transform a click-drawn graphic gets
 class TransformerFunc : public UnidrawFunc {
 public:
     TransformerFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-      return "[compview|a00,a01,a10,a11,a20,a21]=trans([compview] [a00,a01,a10,a11,a20,a21] :set :apply) -- set/get transformer associated with a graphic; return the window-to-drawing transform a freshly drawn graphic gets if no args"; }
+      return "[compview|a00,a01,a10,a11,a20,a21]=trans([compview] [a00,a01,a10,a11,a20,a21] :set :apply) -- set/get transformer associated with a graphic; return the window-to-drawing transform a click-drawn graphic gets if no args"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
         ":set      impose the matrix, backing out the current transform (default)",

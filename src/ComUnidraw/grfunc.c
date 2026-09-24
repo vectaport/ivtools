@@ -1942,12 +1942,9 @@ void TransformerFunc::execute() {
     static int set_sym    = symbol_add("set");
 
     if (nargs()==0 && nkeys()==0) {
-      /* bare trans() -- the window-to-drawing transform a freshly drawn
-         graphic with no explicit :transform is given, so a script can
-         place local (screen-relative) coordinates to land where a click
-         at that position would */
+      /* bare trans() -- window-to-drawing transform a click-drawn graphic gets */
       reset_stack();
-      Transformer* rel = _ed->GetViewer()->GetRel();
+      Transformer* rel = _ed->GetViewer()->ComputeGravityRel();
       rel->Invert();
       AttributeValueList* avl = new AttributeValueList();
       float a00, a01, a10, a11, a20, a21;
