@@ -442,13 +442,20 @@ member needs that member named explicitly, or those commands are
 simply unregistered and silently unchecked.
 
 It works from `postfix()`'s and `help()`'s output alone and never
-executes the target script. It only analyzes a line that parses as one
-complete, self-contained statement — a line containing `;`, or one
-physical line of a construct spanning several, is skipped entirely,
-not just left unflagged. Dot-attribute calls (`a.name(...)`) are never
-checked by either rule below — `postfix()` labels `name` with the
-*global* command's arity even when `a.name` is a local override,
-exactly the exception the previous section describes.
+executes the target script. A statement spanning several physical
+lines (a `for`/`while`/`func` body, most commonly) is buffered line by
+line, tracking a running paren balance, and checked as a whole once
+balanced — `postfix()` parses the reassembled statement without ever
+firing it, the same never-execute guarantee as a single-line
+statement, and flattens arbitrarily nested control structures (a
+`while` inside a `while` inside a `func`, and so on) into one token
+stream, so a call at any nesting depth gets checked. `;` needs no
+special handling either: it's ComTerp's own sequencing operator, so a
+line (or reassembled statement) containing one is already a single
+complete, checkable unit. Dot-attribute calls (`a.name(...)`) are the
+one thing never checked by either rule below — `postfix()` labels
+`name` with the *global* command's arity even when `a.name` is a local
+override, exactly the exception the previous section describes.
 
 **Positional-arity check** flags a call whose real, post-glue
 positional-argument count falls short of what the command declares as
