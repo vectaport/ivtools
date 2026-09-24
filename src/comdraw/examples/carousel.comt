@@ -122,7 +122,7 @@ carousel=(
     entrant=at(imgs nextlib);
 
     for(f=1 f<=FR f=f+1
-      t=f/FR;
+      t=f/float(FR);
 
       // slots 0..3 <- what was in slots 1..4, sliding one slot forward
       s=0;
