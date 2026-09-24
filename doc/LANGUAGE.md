@@ -479,6 +479,21 @@ val...])`), or `:keyword value` (`setattr(compview [:keyword value
 is exempt: flagging a name any of them deliberately doesn't enumerate
 would be a false positive, not a catch.
 
+**Command-shadowing assignment check** flags a plain assignment
+(`name=value`, or a `+=`/`-=`/`*=`/`/=`/`%=` compound form) to a symbol
+name that also names a registered command — `pi=0` or `list+=1`, for
+example. Assigning to a command name this way either warns and no-ops
+(a bare command called with no args) or silently rebinds it out from
+under every later call in the script, and both failure modes are easy
+to miss until something downstream behaves strangely. This check is a
+plain text scan of the reassembled statement rather than a `postfix()`
+walk: only the raw `=` and the identifier immediately before it matter,
+so a comparison (`==`, `!=`, `<=`, `>=`) is excluded by checking the
+character before it, and dot-attribute assignment (`a.name=...`) and
+index-assignment (`obj@name=...`) are excluded by checking the
+character before the identifier itself, since both assign through the
+object rather than to the bare name.
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by

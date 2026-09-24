@@ -17,9 +17,10 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("program picks which family member's commands to check against\n");
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
     print("Flags a call passing fewer positional arguments than the\n");
-    print("command requires, or a :keyword the command doesn't declare\n");
-    print("in its own signature or dockeys(). Never executes the target\n");
-    print("script.\n\n");
+    print("command requires, a :keyword the command doesn't declare in\n");
+    print("its own signature or dockeys(), or a plain assignment (name=\n");
+    print("value, or a compound += form) to a name that also names a\n");
+    print("registered command. Never executes the target script.\n\n");
     print("A call using a keyword skips the positional-arity check (an\n");
     print("alternate calling convention it can't validate) but still gets\n");
     print("its keyword names checked. Statements spanning multiple lines\n");
@@ -221,6 +222,76 @@ while((srcline=gets(fp))!=nil
 
   stmt=stmtbuf;stmtline=stmtlineno;
   stmtbuf="";stmtnlines=0;
+
+  /* flag a plain assignment (name=value, or a +=/-=/etc. compound form)
+     to a symbol name that also names a registered command -- assigning
+     to it this way either warns and no-ops (a bare command, no args)
+     or silently rebinds it out from under every later call, per #536.
+     A pure text scan of stmt: only the raw '=' and the identifier
+     immediately before it matter, so no postfix() token is needed.
+     Dot-attribute assignment (a.name=...) is excluded by requiring the
+     character right before that identifier not be '.'. */
+  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;
+  while(ssi<ssz
+    sc=at(schars ssi);
+    ssi=ssi+1;
+    if(sescape>0 :then sescape=0;continue);
+    if(sc=='\\' :then sescape=1;continue);
+    if(sinstr>0 :then
+      if(sc=='"' :then sinstr=0);
+      continue);
+    if(sinchr>0 :then
+      if(sc=='\'' :then sinchr=0);
+      continue);
+    if(sc=='"' :then sinstr=1;continue);
+    if(sc=='\'' :then sinchr=1;continue);
+    if(sc!='=' :then continue);
+
+    /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
+       their lhs; ==, !=, <=, >= are comparisons, not assignments */
+    nextc=' ';
+    if(ssi<ssz :then nextc=at(schars ssi));
+    if(nextc=='=' :then continue);
+    prevpos=ssi-2;
+    prevc=' ';
+    if(prevpos>=0 :then prevc=at(schars prevpos));
+    if(index("!<>" prevc)!=nil :then continue);
+    idend=prevpos;
+    if(index("+-*/%" prevc)!=nil :then idend=prevpos-1);
+
+    /* walk back over the identifier immediately before '=' (or before
+       a compound-assign's operator character) */
+    idstart=idend;
+    while(idstart>=0 && index(idchars at(schars idstart))!=nil
+      idstart=idstart-1);
+    idstart=idstart+1;
+    if(idstart>idend :then continue);
+    if(index("0123456789" at(schars idstart))!=nil :then continue);
+    /* a.name=... (dot attribute) and obj@name=... (index-assign) both
+       assign through the object, not to the global command "name" */
+    if(idstart>0 :then
+      pc2=at(schars idstart-1);
+      if(pc2=='.' || pc2=='@' :then continue));
+
+    name="";nmi=idstart;
+    while(nmi<=idend
+      name=name+at(schars nmi);
+      nmi=nmi+1);
+
+    istypecmd=print("istype(%s CommandType)" name :str);
+    isshadow=eval(istypecmd);
+    if(isshadow!=true :then continue);
+
+    hsig=name;
+    helpcmd=print("help(%s)" name :str);
+    helptext=eval(helpcmd);
+    if(istype(helptext StringType) :then
+      hlines=split(helptext :tokstr '\n');
+      hsig=at(hlines 0));
+
+    print("%s:%v: %s=...: \"%s\" is a registered command (%s) -- assigning to it as a plain variable may silently fail or behave unexpectedly\n"
+      target stmtline name name hsig);
+    nflagged=nflagged+1)
 
   pfcmd=print("postfix(%s)" stmt :str);
   pftext=eval(pfcmd);
