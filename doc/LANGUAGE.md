@@ -426,13 +426,10 @@ v                // 99 -- referencing v bare fires it, because v is a
                  //   plain symbol now, not because the copy did anything
 ```
 
-### Catching glue collapse with `comlint`
+### Catching glue collapse and unknown keywords with `comlint`
 
-`comlint` (`src/scripts/comlint`) statically flags a call whose real,
-post-glue positional-argument count falls short of what the command
-declares as required — the failure mode above, where a bare symbol's
-glued-on arglist silently absorbs part of what a neighboring call was
-supposed to receive:
+`comlint` (`src/scripts/comlint`) statically checks a script's command
+calls against each command's own `help()`/`dockeys()` signature:
 
 ```
 comlint script.comt [program]
@@ -448,13 +445,32 @@ It works from `postfix()`'s and `help()`'s output alone and never
 executes the target script. It only analyzes a line that parses as one
 complete, self-contained statement — a line containing `;`, or one
 physical line of a construct spanning several, is skipped entirely,
-not just left unflagged. Within what it does look at, two call shapes
-are deliberately not checked: a call that supplies any keyword
-argument (a keyword often signals an alternate calling form a single
-signature line can't validate), and dot-attribute calls
-(`a.name(...)`) — `postfix()` labels `name` with the *global*
-command's arity even when `a.name` is a local override, exactly the
-exception the previous section describes.
+not just left unflagged. Dot-attribute calls (`a.name(...)`) are never
+checked by either rule below — `postfix()` labels `name` with the
+*global* command's arity even when `a.name` is a local override,
+exactly the exception the previous section describes.
+
+**Positional-arity check** flags a call whose real, post-glue
+positional-argument count falls short of what the command declares as
+required — the failure mode above, where a bare symbol's glued-on
+arglist silently absorbs part of what a neighboring call was supposed
+to receive. A call that supplies any keyword argument is skipped by
+this check (a keyword often signals an alternate calling form a single
+signature line can't validate).
+
+**Unknown-keyword check** flags a `:keyword` in a call that doesn't
+match any keyword the command declares — in its docstring signature
+line(s) or in `dockeys()` — the same silent-no-op failure mode ComTerp
+shares with a REST API ignoring an unrecognized query parameter,
+misspell `:color` as `:colour` and nothing says so. This is the check
+that *does* run on keyword-bearing calls, independent of the
+positional-arity check they skip. A command whose docstring uses any
+of the three documented wildcard idioms — `:<name>` (`attrlist([:<name>
+[val]] ...)`), `:key val...` (`echo(arg [arg [...]] [:key
+val...])`), or `:keyword value` (`setattr(compview [:keyword value
+[:keyword value [...]]])`), all meaning any keyword name is accepted —
+is exempt: flagging a name any of them deliberately doesn't enumerate
+would be a false positive, not a catch.
 
 ## Arguments: Fixed Before Keywords — Always
 
