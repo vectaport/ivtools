@@ -363,19 +363,19 @@ void SF_MultiLine::getExtent (
 
 boolean SF_MultiLine::contains (PointObj& po, Graphic* gs) {
     return
-        (!gs->GetPattern()->None() && f_contains(po, gs)) ||
+        (gs->GetPattern()!=NULL && !gs->GetPattern()->None() && f_contains(po, gs)) ||
         s_contains(po, gs);
 }
 
 boolean SF_MultiLine::intersects (BoxObj& userb, Graphic* gs) {
     return
-        (!gs->GetPattern()->None() && f_intersects(userb, gs)) ||
+        (gs->GetPattern()!=NULL && !gs->GetPattern()->None() && f_intersects(userb, gs)) ||
         s_intersects(userb, gs);
 }
 
 void SF_MultiLine::draw (Canvas *c, Graphic* gs) {
     update(gs);
-    if (!gs->GetPattern()->None()) {
+    if (gs->GetPattern()!=NULL && !gs->GetPattern()->None()) {
         _p->FillPolygon(c, x(), y(), count());
     }
     if (!gs->GetBrush()->None()) {
