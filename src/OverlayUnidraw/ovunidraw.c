@@ -155,7 +155,14 @@ void OverlayUnidraw::Run () {
 	    long elapsed_usec = elapsedMicroseconds(start, now);
 	    
 	    remaining_usec = target_usec - elapsed_usec;
-	    // fprintf(stderr, "AFTER NO EVENT remaining_usec %ld\n", remaining_usec);
+	    // A repaint queued by the Update(true) that preceded this Run()
+	    // (or by an earlier pass through this same loop) only reaches the
+	    // display on the branch below, after a real X event is handled --
+	    // this timeout path is otherwise the only way out of the loop, so
+	    // it needs its own flush or a paced update(usec) with no incoming
+	    // events (the common case while animating unattended) never
+	    // becomes visible until something unrelated flushes it later.
+	    session->default_display()->flush();
 	    if ( remaining_usec > 0 ) continue;
 	    break;
 	  }
