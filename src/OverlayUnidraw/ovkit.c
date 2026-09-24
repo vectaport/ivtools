@@ -1134,6 +1134,14 @@ MoveCmd* OverlayKit::make_move_cmd(Editor* ed, float dx, float dy) {
     return new MoveCmd(ed, dx, dy);
 }
 
+ScaleCmd* OverlayKit::make_scale_cmd(Editor* ed, float sx, float sy, Alignment a) {
+    return new ScaleCmd(ed, sx, sy, a);
+}
+
+RotateCmd* OverlayKit::make_rotate_cmd(Editor* ed, float angle) {
+    return new RotateCmd(ed, angle);
+}
+
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new FontCmd(ctrlInfo, font);
 }

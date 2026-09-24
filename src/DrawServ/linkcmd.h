@@ -273,4 +273,62 @@ protected:
     std::string _dist_script_buf;
 };
 
+//: ScaleCmd with distributed script generation for DrawServ
+// Mixes ScaleCmd with DrawServCmd to relay a scale (uniform or, via the
+// interactive Stretch tool, non-uniform) as the ABSOLUTE resulting
+// transform of each comp, same reasoning as LinkMoveCmd. Unlike a move's
+// delta, a scale's resulting transform depends on each comp's own
+// alignment point (Graphic::Scale() scales about a point derived from the
+// comp's own bounds, converted through its parent chain) -- rather than
+// reproduce that per-comp geometry here, DrawServ::ExecuteCmd runs
+// Execute() before calling dist_script() for this command (like
+// LinkFrontCmd/LinkBackCmd, the reverse of LinkMoveCmd's ordering), and
+// dist_script() simply reads back each relayable comp's now-current
+// transform.
+class LinkScaleCmd : public ScaleCmd, public DrawServCmd {
+public:
+    // 4 is Center (IV-2_6/InterViews/alignment.h) spelled as a literal --
+    // the bare name collides with the "current" IV library's own Center
+    // under this translation unit's naming mode at this point in the file.
+    LinkScaleCmd(ControlInfo*, float = 1, float = 1, Alignment = 4);
+    LinkScaleCmd(Editor* = nil, float = 1, float = 1, Alignment = 4);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);trans(grid(uuid)
+    // a00,...,a21);...;select(s :lock key)", one trans() per comp in the
+    // live selection this node may relay, or empty string if none. Must be
+    // called after Execute() -- see class comment.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
+//: RotateCmd with distributed script generation for DrawServ
+// Mixes RotateCmd with DrawServCmd to relay a rotation as the ABSOLUTE
+// resulting transform of each comp, same reasoning as LinkScaleCmd
+// (Graphic::Rotate() turns about each comp's own center) -- same
+// Execute()-before-dist_script() ordering requirement.
+class LinkRotateCmd : public RotateCmd, public DrawServCmd {
+public:
+    LinkRotateCmd(ControlInfo*, float = 0);
+    LinkRotateCmd(Editor* = nil, float = 0);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);trans(grid(uuid)
+    // a00,...,a21);...;select(s :lock key)", one trans() per comp in the
+    // live selection this node may relay, or empty string if none. Must be
+    // called after Execute() -- see LinkScaleCmd's class comment.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
 #endif

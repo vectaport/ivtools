@@ -42,6 +42,8 @@ class GraphicView;
 class Grid;
 class EivTextEditor;
 class MoveCmd;
+class ScaleCmd;
+class RotateCmd;
 class ObservableText;
 class OverlayComp;
 class OverlayPanner;
@@ -162,6 +164,17 @@ public:
     virtual MoveCmd* MakeMoveCmd(float dx, float dy);
     // build the interactive move manipulator's Command via overlay_kit(),
     // so a linked editor gets a distributing LinkMoveCmd like MoveFunc does.
+
+    virtual ScaleCmd* MakeScaleCmd(float sx, float sy, Alignment = 4);
+    // 4 is Center (IV-2_6/InterViews/alignment.h) spelled as a literal --
+    // the bare name collides with the "current" IV library's own Center
+    // under this translation unit's naming mode at this point in the file.
+    // build the interactive scale/stretch manipulator's Command via
+    // overlay_kit(); see MakeMoveCmd.
+
+    virtual RotateCmd* MakeRotateCmd(float angle);
+    // build the interactive rotate manipulator's Command via overlay_kit();
+    // see MakeMoveCmd.
 
     void SetText();
     // set contents of text-editor.
