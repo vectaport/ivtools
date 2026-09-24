@@ -464,12 +464,13 @@ line(s) or in `dockeys()` — the same silent-no-op failure mode ComTerp
 shares with a REST API ignoring an unrecognized query parameter,
 misspell `:color` as `:colour` and nothing says so. This is the check
 that *does* run on keyword-bearing calls, independent of the
-positional-arity check they skip. A command whose docstring uses
-either documented wildcard idiom — `:<name>` (`attrlist([:<name>
-[val]] ...)`) or `:key val...` (`echo(arg [arg [...]] [:key
-val...])`), both meaning any keyword name is accepted — is exempt:
-flagging a name either idiom deliberately doesn't enumerate would be a
-false positive, not a catch.
+positional-arity check they skip. A command whose docstring uses any
+of the three documented wildcard idioms — `:<name>` (`attrlist([:<name>
+[val]] ...)`), `:key val...` (`echo(arg [arg [...]] [:key
+val...])`), or `:keyword value` (`setattr(compview [:keyword value
+[:keyword value [...]]])`), all meaning any keyword name is accepted —
+is exempt: flagging a name any of them deliberately doesn't enumerate
+would be a false positive, not a catch.
 
 ## Arguments: Fixed Before Keywords — Always
 

@@ -241,12 +241,14 @@ while((srcline=gets(fp))!=nil
       while(hli<size(helplines) && !wildcard
         hline=at(helplines hli);
         hli=hli+1;
-        /* two documented wildcard idioms mean any keyword name is
-           accepted: ":<name>" (attrlist's [:<name> [val]]) and
-           ":key val..." (echo's [:key val...]) -- skip this whole
+        /* three documented wildcard idioms mean any keyword name is
+           accepted: ":<name>" (attrlist's [:<name> [val]]),
+           ":key val..." (echo's [:key val...]), and ":keyword value"
+           (setattr's [:keyword value [...]]) -- skip this whole
            command's keyword check rather than flag a name it
            deliberately doesn't enumerate */
-        if(index(hline ":<")!=nil || index(hline ":key ")!=nil :then
+        if(index(hline ":<")!=nil || index(hline ":key ")!=nil ||
+          index(hline ":keyword ")!=nil :then
           wildcard=true;continue);
         /* a dockeys() line is always "        :name[ placeholder]
            <padding>description..." (helpfunc.c pads every entry with
