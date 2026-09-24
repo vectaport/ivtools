@@ -156,15 +156,22 @@ idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
-   running paren balance -- and only handed to postfix() once balanced
-   back to zero, joined with '\n' exactly as it appeared in the source.
-   postfix() (like eval()/help() elsewhere in this script) parses without
-   ever firing the statement, so buffering never risks executing target
-   script code (#521-safe). ';' needs no special casing: it's ComTerp's
-   own sequencing operator, so a line with balanced parens containing one
-   is already a single complete, checkable statement -- postfix() reads
-   "x=1;y=2" as one seq[...] node the same as any other expression. */
-stmtbuf="";stmtlineno=0;stmtnlines=0
+   running paren DEPTH across the whole statement -- and only handed to
+   postfix() once balanced back to zero, joined with '\n' exactly as it
+   appeared in the source. postfix() (like eval()/help() elsewhere in
+   this script) parses without ever firing the statement, so buffering
+   never risks executing target script code (#521-safe) -- PROVIDED the
+   depth never goes negative mid-statement: a premature ')' would close
+   this script's own postfix(%s) wrapper early, and anything after it up
+   to the next ';' becomes a second, independently-executed top-level
+   statement once eval() sees the interpolated string. stmtbad latches
+   that condition so the whole statement is rejected outright, whatever
+   its FINAL balance settles to (#609-security). ';' itself needs no
+   special casing: it's ComTerp's own sequencing operator, so a line
+   with balanced parens containing one is already a single complete,
+   checkable statement -- postfix() reads "x=1;y=2" as one seq[...] node
+   the same as any other expression. */
+stmtbuf="";stmtlineno=0;stmtnlines=0;stmtbad=false
 
 while((srcline=gets(fp))!=nil
   lineno=lineno+1;
@@ -184,11 +191,17 @@ while((srcline=gets(fp))!=nil
   /* parens inside a "..." string literal or a '(' / ')' char literal
      (or after an escaping backslash) aren't structural -- e.g.
      print("(expect true)" ...) or this very script's own
-     pc=='(' :then popens=popens+1 -- so track quote/char state
+     pc=='(' :then mlbal=mlbal+1 -- so track quote/char state
      (escape-aware) while counting rather than treating every raw
-     '(' / ')' character as real syntax */
-  popens=0;pcloses=0;pidx=0;pchars=split(srcline);instr=0;inchr=0;pescape=0;
-  while(pidx<size(pchars)
+     '(' / ')' character as real syntax. A '//' outside a string/char
+     literal starts a line comment (to the end of this physical line
+     only) whose parens don't count either. mlbal is a running DEPTH
+     across the whole buffered statement, not a per-line net -- checked
+     for going negative the instant a ')' is seen, since that's the
+     premature-close injection this guards against (see the comment
+     above stmtbuf's reset). */
+  pidx=0;pchars=split(srcline);instr=0;inchr=0;pescape=0;lcmt=0;
+  while(pidx<size(pchars) && !lcmt
     pc=at(pchars pidx);
     pidx=pidx+1;
     if(pescape>0 :then pescape=0;continue);
@@ -201,17 +214,29 @@ while((srcline=gets(fp))!=nil
       continue);
     if(pc=='"' :then instr=1;continue);
     if(pc=='\'' :then inchr=1;continue);
-    if(pc=='(' :then popens=popens+1);
-    if(pc==')' :then pcloses=pcloses+1));
+    if(pc=='/' :then
+      pnc=' ';
+      if(pidx<size(pchars) :then pnc=at(pchars pidx));
+      if(pnc=='/' :then lcmt=1;continue));
+    if(pc=='(' :then mlbal=mlbal+1;continue);
+    if(pc==')' :then
+      mlbal=mlbal-1;
+      if(mlbal<0 :then stmtbad=true)));
 
   if(stmtnlines==0 :then stmtlineno=lineno;stmtbuf=srcline);
   if(stmtnlines>0 :then stmtbuf=stmtbuf+"\n"+srcline);
   stmtnlines=stmtnlines+1;
-  mlbal=mlbal+popens-pcloses;
 
-  /* not balanced yet -- keep buffering, nothing to check on this line
-     by itself */
-  if(mlbal>0 :then nskipped=nskipped+1;continue);
+  if(stmtbad :then
+    /* a premature ')' was seen somewhere in this statement -- reject it
+       outright, whatever mlbal now reads; never hand it to eval() */
+    nskipped=nskipped+stmtnlines;
+    stmtbuf="";stmtnlines=0;mlbal=0;stmtbad=false;continue);
+
+  /* not balanced yet -- keep buffering. Not counted as skipped: once
+     the statement completes it is checked in full, so no line of it
+     was actually skipped. */
+  if(mlbal>0 :then continue);
 
   if(mlbal<0 :then
     /* more closes than opens across the buffered statement -- malformed
@@ -230,11 +255,17 @@ while((srcline=gets(fp))!=nil
      A pure text scan of stmt: only the raw '=' and the identifier
      immediately before it matter, so no postfix() token is needed.
      Dot-attribute assignment (a.name=...) is excluded by requiring the
-     character right before that identifier not be '.'. */
-  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;
+     character right before that identifier not be '.'. Whitespace
+     around '=' or a compound operator (print = 1, print += 1) is
+     skipped rather than assumed absent, and a '//' line comment (to the
+     next '\n' -- stmt can join several source lines) is never scanned
+     as code. */
+  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;slcmt=0;
   while(ssi<ssz
     sc=at(schars ssi);
     ssi=ssi+1;
+    if(sc=='\n' :then slcmt=0;continue);
+    if(slcmt>0 :then continue);
     if(sescape>0 :then sescape=0;continue);
     if(sc=='\\' :then sescape=1;continue);
     if(sinstr>0 :then
@@ -245,6 +276,10 @@ while((srcline=gets(fp))!=nil
       continue);
     if(sc=='"' :then sinstr=1;continue);
     if(sc=='\'' :then sinchr=1;continue);
+    if(sc=='/' :then
+      snc=' ';
+      if(ssi<ssz :then snc=at(schars ssi));
+      if(snc=='/' :then slcmt=1;continue));
     if(sc!='=' :then continue);
 
     /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
@@ -252,12 +287,16 @@ while((srcline=gets(fp))!=nil
     nextc=' ';
     if(ssi<ssz :then nextc=at(schars ssi));
     if(nextc=='=' :then continue);
-    prevpos=ssi-2;
+    wpos=ssi-2;
+    while(wpos>=0 && at(schars wpos)==' '
+      wpos=wpos-1);
     prevc=' ';
-    if(prevpos>=0 :then prevc=at(schars prevpos));
+    if(wpos>=0 :then prevc=at(schars wpos));
     if(index("!<>" prevc)!=nil :then continue);
-    idend=prevpos;
-    if(index("+-*/%" prevc)!=nil :then idend=prevpos-1);
+    idend=wpos;
+    if(index("+-*/%" prevc)!=nil :then idend=wpos-1);
+    while(idend>=0 && at(schars idend)==' '
+      idend=idend-1);
 
     /* walk back over the identifier immediately before '=' (or before
        a compound-assign's operator character) */
@@ -324,10 +363,13 @@ while((srcline=gets(fp))!=nil
 
     /* dot-attribute access (a.name(...)) resolves to whatever a.name
        is bound to, not the same-named global command -- postfix still
-       labels it with the global command's arity, so skip rather than
-       misreport a local override as a glue collapse */
-    dotpat=print(".%s(" name :str);
-    if(index(stmt dotpat)!=nil :then continue);
+       labels the call with the global command's arity, but tags it
+       with an immediately-following dot[...] token (postfix(a.b(1)) is
+       "a 1 b[1|0|1]* dot[2|0|1]*"), so skip only THIS occurrence
+       rather than searching stmt as a whole -- an unrelated bare call
+       of the same name elsewhere in the statement still gets checked */
+    nexttok=at(toks ti);
+    if(substr(nexttok 4)=="dot[" :then continue);
 
     nchecked=nchecked+1;
 

@@ -96,9 +96,13 @@ static const char* help_dockey_desc(ComFunc* func, const char* keyname) {
   return nil;
 }
 
-/* true if ":keyname" appears as a bare token in func's docstring signature
-   (bounded before " -- ", same as comlint's own keyword-name scan) --
-   a keyword mentioned in the signature but never elaborated in dockeys() */
+/* true if ":keyname" appears as a bare keyword token in func's docstring
+   signature (bounded before " -- ", same as comlint's own keyword-name
+   scan) -- a keyword mentioned in the signature but never elaborated in
+   dockeys(). A colon inside a "[...]" positional-argument group (e.g.
+   date's "[num|str|...|YEAR:MON[:day]]") is a value-form separator, not
+   a declared keyword, so it's skipped by tracking bracket depth and only
+   matching at depth 0. */
 static boolean help_signature_has_key(ComFunc* func, int command_symid, const char* keyname) {
   char buffer[8192];  // see the sizing comment where execute() uses this same pattern
   if (func->docstring2() != nil) {
@@ -114,8 +118,11 @@ static boolean help_signature_has_key(ComFunc* func, int command_symid, const ch
   char* end = dd != nil ? dd : buffer + strlen(buffer);
   int kwlen = strlen(keyname);
   char* p = buffer;
+  int depth = 0;
   while (p < end) {
-    if (*p != ':') { p++; continue; }
+    if (*p == '[') { depth++; p++; continue; }
+    if (*p == ']') { if (depth>0) depth--; p++; continue; }
+    if (*p != ':' || depth > 0) { p++; continue; }
     p++;
     char* namestart = p;
     while (p < end && help_is_idchar(*p)) p++;
@@ -179,6 +186,7 @@ void HelpFunc::execute() {
 	comterp()->localtable()->find(vptr, val.string_val());
 	if (vptr && ((ComValue*)vptr)->is_command()) {
 	  comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	  command_ids[i] = ((ComValue*)vptr)->command_symid();
 	} else {
 	  command_ids[i] = val.symbol_val();
 	  comfuncs[i] = nil;
@@ -255,14 +263,8 @@ void HelpFunc::execute() {
   reset_stack();
 
   if (keyval.is_known()) {
-    /* help(cmd :key name) -- look up one keyword's own description rather
-       than rendering cmd's whole help text: name's dockeys() entry if it
-       has one, else true if name is merely mentioned bare in cmd's
-       docstring signature with no separate dockey, else nil */
-    /* the requested keyword name may itself name a registered command
-       (help(help :key posteval), say), in which case even preserving
-       its symbol-ness (the "true" passed to stack_key() above) still
-       resolves it to a CommandType, not a bare SymbolType */
+    /* help(cmd :key name) -- name's dockeys() entry, true if merely named
+       bare in cmd's signature, else nil. name may itself be a command. */
     const char* keyname = keyval.is_type(AttributeValue::SymbolType)
       ? symbol_pntr(keyval.symbol_val())
       : keyval.is_type(AttributeValue::CommandType)
@@ -277,9 +279,9 @@ void HelpFunc::execute() {
       else if (help_signature_has_key(keyfunc, command_ids[0], keyname))
         keyretval = ComValue::trueval();
     }
-    delete command_ids;
-    delete comfuncs;
-    delete str_flags;
+    delete [] command_ids;
+    delete [] comfuncs;
+    delete [] str_flags;
     delete [] funcobj_help;
     push_stack(keyretval);
     return;

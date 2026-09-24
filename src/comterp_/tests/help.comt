@@ -1,6 +1,6 @@
 // src/comterp_/tests/help.comt -- test help() and optable()
 //
-// coverage: 17/17 (100%)
+// coverage: 19/19 (100%)
 // funcs: help() help(:posteval) help(:top) help("op") help(cmd :key name)
 //        optable(:table) optable(:bypri) optable(:byopr) optable(:bycom)
 // optable(:table) returns list of attrlists (:opr :cmd :pri :rtol :type)
@@ -143,6 +143,21 @@ kp=help(help :key posteval)
 ok=ok&&(type(kp)==`StringType)
 ok=ok&&(kp=="return help on commands that post evaluate arguments")
 print("17 help(help :key posteval) resolves a command-shaped key name\n   (expect true): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: help(cmd :key name) also works when cmd is passed as a
+//     quoted string naming a registered command (not just bare/symbol) ---
+ks=help("beep" :key count)
+ok=ok&&(ks==true)
+print("18 help(\"beep\" :key count) returns true (expect true): %v\n" ks)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: a colon inside a signature's "[...]" positional-argument
+//     group (date's year-led "YEAR:MON[:day]" form) is a value separator,
+//     not a declared keyword, so :key must not mistake it for one ---
+kv=help(date :key MON)
+ok=ok&&(kv==nil)
+print("19 help(date :key MON) returns nil (expect true): %v\n" (kv==nil))
 prev_ok=check_fail(:ok ok)
 
 print("help: %v\n" ok)
