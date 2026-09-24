@@ -248,24 +248,58 @@ while((srcline=gets(fp))!=nil
            deliberately doesn't enumerate */
         if(index(hline ":<")!=nil || index(hline ":key ")!=nil :then
           wildcard=true;continue);
-        htoks=split(hline :tokstr ' ');hti=0;
-        while(hti<size(htoks)
-          htok=at(htoks hti);
-          hti=hti+1;
-          if(substr(htok 1)!=":" :then continue);
-          /* ":str|:string" aliases two spellings for one keyword --
-             check each alias separately */
-          atoks=split(htok :tokstr '|');ati=0;
-          while(ati<size(atoks)
-            atok=at(atoks ati);
-            ati=ati+1;
-            if(substr(atok 1)!=":" :then continue);
-            nm=":";nci=1;nchars=split(atok);
-            while(nci<size(nchars)
-              nc=at(nchars nci);
-              nci=nci+1;
-              if(index(idchars nc)==nil :then break);
-              nm=nm+nc);
+        /* a dockeys() line is always "        :name[ placeholder]
+           <padding>description..." (helpfunc.c pads every entry with
+           a fixed 8-space indent) -- but split(:tokstr) trims that
+           indent off, so the reliable signal left is that a dockeys
+           line's first character is ':' where a signature line's
+           never is (it always leads with a return-value prefix or the
+           command name itself). The declared name on a dockeys line is
+           only its first token. A signature line has no comparable
+           indent to strip, and a keyword there can glue straight onto
+           an opening paren with no separating space (e.g. beep's
+           "beep(:count)"), so it needs a character scan rather than
+           space-tokenizing, bounded to before " -- " so a free-text
+           description mentioning :name-shaped return-value fields
+           (e.g. grid's "grid(:table) -- ... list of (:grid :comptype
+           ...) rows") is never read as more accepted keywords */
+        isdockeys=(substr(hline 1)==":");
+        if(isdockeys :then
+          htoks=split(hline :tokstr ' ');hti=0;firsttok=nil;
+          while(hti<size(htoks) && firsttok==nil
+            htok=at(htoks hti);
+            hti=hti+1;
+            if(size(htok)>0 :then firsttok=htok));
+          if(firsttok!=nil :then
+            atoks=split(firsttok :tokstr '|');ati=0;
+            while(ati<size(atoks)
+              atok=at(atoks ati);
+              ati=ati+1;
+              if(substr(atok 1)!=":" :then continue);
+              /* ":str|:string" aliases two spellings for one keyword --
+                 check each alias separately */
+              nm=":";nci=1;nchars=split(atok);
+              while(nci<size(nchars)
+                nc=at(nchars nci);
+                nci=nci+1;
+                if(index(idchars nc)==nil :then break);
+                nm=nm+nc);
+              if(size(nm)>1 :then declared=declared+nm+" "))));
+        if(!isdockeys :then
+          dd=index(hline " -- ");
+          if(dd==nil :then scanpart=hline);
+          if(dd!=nil :then scanpart=substr(hline dd));
+          schars=split(scanpart);sci=0;
+          while(sci<size(schars)
+            sc=at(schars sci);
+            sci=sci+1;
+            if(sc!=':' :then continue);
+            nm=":";innerdone=false;
+            while(sci<size(schars) && !innerdone
+              sc2=at(schars sci);
+              if(index(idchars sc2)==nil :then innerdone=true;continue);
+              nm=nm+sc2;
+              sci=sci+1);
             if(size(nm)>1 :then declared=declared+nm+" "))));
 
       if(!wildcard :then
