@@ -45,6 +45,85 @@ using std::streambuf;
 
 #define HELPOUT 0  // set to 1 if desire to print instead of return help info
 
+static boolean help_is_idchar(char c) {
+  return isalnum((unsigned char)c) || c == '_';
+}
+
+/* the dockeys() description text for keyname (no leading ':'), or nil if
+   func declares no dockey by that name. Only a dockeys entry's own leading
+   name (with any "name|alias" aliases, e.g. ":str|:string") is checked --
+   never the free-text description, which may itself mention other
+   ":name"-shaped keywords in passing (optable's :table entry describes
+   itself as returning "(:opr :cmd :pri :rtol :type)", none of which are
+   :table's own name). */
+static const char* help_dockey_desc(ComFunc* func, const char* keyname) {
+  const char** keydoc = func->dockeys();
+  if (keydoc == nil) return nil;
+  int kwlen = strlen(keyname);
+  while (*keydoc != nil) {
+    const char* entry = *keydoc;
+    if (*entry == ':') {
+      const char* p = entry;
+      boolean matched = false;
+      while (*p == ':') {
+        p++;
+        const char* namestart = p;
+        while (help_is_idchar(*p)) p++;
+        if ((int)(p-namestart) == kwlen && strncmp(namestart, keyname, kwlen) == 0)
+          matched = true;
+        if (*p != '|') break;
+        p++;
+      }
+      if (matched) {
+        /* the description starts after the first run of 2+ spaces --
+           the column-alignment padding every dockeys entry uses between
+           its name (with any placeholder word, e.g. "pri n") and its
+           free-text description */
+        const char* q = entry;
+        while (*q != '\0') {
+          if (q[0] == ' ' && q[1] == ' ') {
+            while (*q == ' ') q++;
+            return q;
+          }
+          q++;
+        }
+        while (*p == ' ') p++;
+        return p;
+      }
+    }
+    keydoc++;
+  }
+  return nil;
+}
+
+/* true if ":keyname" appears as a bare token in func's docstring signature
+   (bounded before " -- ", same as comlint's own keyword-name scan) --
+   a keyword mentioned in the signature but never elaborated in dockeys() */
+static boolean help_signature_has_key(ComFunc* func, int command_symid, const char* keyname) {
+  char buffer[8192];  // see the sizing comment where execute() uses this same pattern
+  if (func->docstring2() != nil) {
+    strncpy(buffer, func->docstring2(), sizeof(buffer)-1);
+    buffer[sizeof(buffer)-1] = '\0';
+  } else {
+    snprintf(buffer, sizeof(buffer), func->docstring(), symbol_pntr(command_symid));
+  }
+  /* bounded to before " -- " so a free-text description mentioning a
+     ":name"-shaped return-value field is never read as a declared
+     keyword -- the signature itself is the only part that means one */
+  char* dd = strstr(buffer, " -- ");
+  char* end = dd != nil ? dd : buffer + strlen(buffer);
+  int kwlen = strlen(keyname);
+  char* p = buffer;
+  while (p < end) {
+    if (*p != ':') { p++; continue; }
+    p++;
+    char* namestart = p;
+    while (p < end && help_is_idchar(*p)) p++;
+    if ((int)(p-namestart) == kwlen && strncmp(namestart, keyname, kwlen) == 0) return true;
+  }
+  return false;
+}
+
 /*****************************************************************************/
 
 HelpFunc::HelpFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -64,7 +143,10 @@ void HelpFunc::execute() {
 		   
   static int top_symid = symbol_add("top");
   ComValue topflag(stack_key(top_symid));
-		   
+
+  static int key_symid = symbol_add("key");
+  ComValue keyval(stack_key(key_symid, true));
+
   boolean noargs = !nargs() && !nkeys();
   ComFunc** comfuncs= nil;
   int* command_ids = nil;
@@ -171,6 +253,37 @@ void HelpFunc::execute() {
   }
   
   reset_stack();
+
+  if (keyval.is_known()) {
+    /* help(cmd :key name) -- look up one keyword's own description rather
+       than rendering cmd's whole help text: name's dockeys() entry if it
+       has one, else true if name is merely mentioned bare in cmd's
+       docstring signature with no separate dockey, else nil */
+    /* the requested keyword name may itself name a registered command
+       (help(help :key posteval), say), in which case even preserving
+       its symbol-ness (the "true" passed to stack_key() above) still
+       resolves it to a CommandType, not a bare SymbolType */
+    const char* keyname = keyval.is_type(AttributeValue::SymbolType)
+      ? symbol_pntr(keyval.symbol_val())
+      : keyval.is_type(AttributeValue::CommandType)
+      ? symbol_pntr(keyval.command_symid())
+      : keyval.is_type(AttributeValue::StringType) ? keyval.string_ptr() : nil;
+    ComFunc* keyfunc = (nfuncs>0 && comfuncs) ? comfuncs[0] : nil;
+    ComValue keyretval = ComValue::nullval();
+    if (keyfunc != nil && keyname != nil) {
+      const char* desc = help_dockey_desc(keyfunc, keyname);
+      if (desc != nil)
+        keyretval = ComValue(desc);
+      else if (help_signature_has_key(keyfunc, command_ids[0], keyname))
+        keyretval = ComValue::trueval();
+    }
+    delete command_ids;
+    delete comfuncs;
+    delete str_flags;
+    delete [] funcobj_help;
+    push_stack(keyretval);
+    return;
+  }
 
   std::strstreambuf sbuf;
   #if HELPOUT

@@ -482,10 +482,12 @@ would be a false positive, not a catch.
 **Command-shadowing assignment check** flags a plain assignment
 (`name=value`, or a `+=`/`-=`/`*=`/`/=`/`%=` compound form) to a symbol
 name that also names a registered command — `pi=0` or `list+=1`, for
-example. Assigning to a command name this way either warns and no-ops
-(a bare command called with no args) or silently rebinds it out from
-under every later call in the script, and both failure modes are easy
-to miss until something downstream behaves strangely. This check is a
+example. ComTerp itself refuses a bare assignment to a registered
+command name ("assignment to command ... without args not allowed"),
+leaving it still bound to the command, so the assignment has no effect
+— easy to miss until something downstream behaves strangely, since the
+warning scrolls by at runtime rather than showing up in the script
+itself. This check is a
 plain text scan of the reassembled statement rather than a `postfix()`
 walk: only the raw `=` and the identifier immediately before it matter,
 so a comparison (`==`, `!=`, `<=`, `>=`) is excluded by checking the
@@ -935,11 +937,18 @@ help(funcname)       // help for one command
 help(:all)           // help for every registered command
 help(:top)           // help for top-level commands in this program
 help(:posteval)      // help for post_eval commands
+help(funcname :key name)  // one keyword's own description
 ```
 
 `help()` is the primary reference for command signatures. The docstring
 format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
 Square brackets indicate optional fixed args.
+
+`help(funcname :key name)` looks up a single keyword of `funcname`
+rather than rendering its whole help text: `name`'s own `dockeys()`
+description if it has one, `true` if `name` is declared in `funcname`'s
+signature but has no separate `dockeys()` entry (e.g. `beep(:count)`),
+or `nil` if `name` isn't a keyword `funcname` recognizes at all.
 
 ## Functions
 
