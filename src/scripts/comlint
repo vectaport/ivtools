@@ -17,9 +17,13 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("program picks which family member's commands to check against\n");
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
     print("Flags a call passing fewer positional arguments than the\n");
-    print("command requires. Never executes the target script.\n\n");
-    print("Some calls aren't checked (keyword args, dot-attribute calls,\n");
-    print("multi-line or ';'-joined statements). See doc/LANGUAGE.md.\n");
+    print("command requires, or a :keyword the command doesn't declare\n");
+    print("in its own signature or dockeys(). Never executes the target\n");
+    print("script.\n\n");
+    print("A call using a keyword skips the positional-arity check (an\n");
+    print("alternate calling convention it can't validate) but still gets\n");
+    print("its keyword names checked. Dot-attribute calls and multi-line\n");
+    print("or ';'-joined statements aren't checked at all. See doc/LANGUAGE.md.\n");
     exit)
 
 target=arg(1)
@@ -145,6 +149,7 @@ nskipped=0
 lineno=0
 mlbal=0
 incomm=0
+idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 
 while((srcline=gets(fp))!=nil
   lineno=lineno+1;
@@ -210,12 +215,6 @@ while((srcline=gets(fp))!=nil
     obsnarg=int(at(ctoks 0));
     obsnkey=int(at(ctoks 1));
 
-    /* a call that supplies any keyword commonly uses an alternate
-       calling convention (e.g. class(:comps), global(:dump)) that our
-       single-signature-line parse below can't validate -- skip rather
-       than risk a false positive */
-    if(obsnkey>0 :then continue);
-
     /* dot-attribute access (a.name(...)) resolves to whatever a.name
        is bound to, not the same-named global command -- postfix still
        labels it with the global command's arity, so skip rather than
@@ -230,6 +229,112 @@ while((srcline=gets(fp))!=nil
     if(!istype(helptext StringType) :then continue);
     helplines=split(helptext :tokstr '\n');
     sig=at(helplines 0);
+
+    if(obsnkey>0 :then
+      /* a call that supplies a keyword commonly uses an alternate
+         calling convention (e.g. class(:comps), global(:dump)) that
+         the single-signature-line positional-arity check below can't
+         validate -- skip that check, but the keyword names themselves
+         are still checkable against the command's declared set,
+         independent of arity */
+      declared=" ";wildcard=false;hli=0;
+      while(hli<size(helplines) && !wildcard
+        hline=at(helplines hli);
+        hli=hli+1;
+        /* three documented wildcard idioms mean any keyword name is
+           accepted: ":<name>" (attrlist's [:<name> [val]]),
+           ":key val..." (echo's [:key val...]), and ":keyword value"
+           (setattr's [:keyword value [...]]) -- skip this whole
+           command's keyword check rather than flag a name it
+           deliberately doesn't enumerate */
+        if(index(hline ":<")!=nil || index(hline ":key ")!=nil ||
+          index(hline ":keyword ")!=nil :then
+          wildcard=true;continue);
+        /* a dockeys() line is always "        :name[ placeholder]
+           <padding>description..." (helpfunc.c pads every entry with
+           a fixed 8-space indent) -- but split(:tokstr) trims that
+           indent off, so the reliable signal left is that a dockeys
+           line's first character is ':' where a signature line's
+           never is (it always leads with a return-value prefix or the
+           command name itself). The declared name on a dockeys line is
+           only its first token. A signature line has no comparable
+           indent to strip, and a keyword there can glue straight onto
+           an opening paren with no separating space (e.g. beep's
+           "beep(:count)"), so it needs a character scan rather than
+           space-tokenizing, bounded to before " -- " so a free-text
+           description mentioning :name-shaped return-value fields
+           (e.g. grid's "grid(:table) -- ... list of (:grid :comptype
+           ...) rows") is never read as more accepted keywords */
+        isdockeys=(substr(hline 1)==":");
+        if(isdockeys :then
+          htoks=split(hline :tokstr ' ');hti=0;firsttok=nil;
+          while(hti<size(htoks) && firsttok==nil
+            htok=at(htoks hti);
+            hti=hti+1;
+            if(size(htok)>0 :then firsttok=htok));
+          if(firsttok!=nil :then
+            atoks=split(firsttok :tokstr '|');ati=0;
+            while(ati<size(atoks)
+              atok=at(atoks ati);
+              ati=ati+1;
+              if(substr(atok 1)!=":" :then continue);
+              /* ":str|:string" aliases two spellings for one keyword --
+                 check each alias separately */
+              nm=":";nci=1;nchars=split(atok);
+              while(nci<size(nchars)
+                nc=at(nchars nci);
+                nci=nci+1;
+                if(index(idchars nc)==nil :then break);
+                nm=nm+nc);
+              if(size(nm)>1 :then declared=declared+nm+" "))));
+        if(!isdockeys :then
+          dd=index(hline " -- ");
+          if(dd==nil :then scanpart=hline);
+          if(dd!=nil :then scanpart=substr(hline dd));
+          schars=split(scanpart);sci=0;
+          while(sci<size(schars)
+            sc=at(schars sci);
+            sci=sci+1;
+            if(sc!=':' :then continue);
+            nm=":";innerdone=false;
+            while(sci<size(schars) && !innerdone
+              sc2=at(schars sci);
+              if(index(idchars sc2)==nil :then innerdone=true;continue);
+              nm=nm+sc2;
+              sci=sci+1);
+            if(size(nm)>1 :then declared=declared+nm+" "))));
+
+      if(!wildcard :then
+        /* the keyword markers this call actually supplied are the
+           obsnkey nearest keyword-shaped tokens walking back from
+           this call's own marker -- keywords are always the last
+           thing evaluated before a call fires ("Fixed Before Keywords
+           Always", doc/LANGUAGE.md), so they're the nearest matches in
+           the flat postfix stream regardless of how many plain values
+           or nested calls sit between them */
+        kfound=0;kidx=ti-2;
+        while(kfound<obsnkey && kidx>=0
+          ktok=at(toks kidx);
+          kidx=kidx-1;
+          if(substr(ktok 1)!=":" :then continue);
+          kp=index(ktok "(");
+          if(kp==nil :then continue);
+          kwname=substr(ktok "(");
+          if(size(kwname)<=1 :then continue);
+          kfound=kfound+1;
+          /* bound the search in its own variable rather than writing
+             index(declared (kwname+" ")) -- declared is a plain value,
+             not a command, so a space-separated paren group glues
+             onto it as an ignored call attempt and silently drops the
+             search pattern (the exact failure mode this tool exists
+             to catch) */
+          searchfor=kwname+" ";
+
+          if(index(declared searchfor)==nil :then
+            print("%s:%v: %s(): unrecognized keyword %s -- not declared in %s's signature or dockeys (kw-unknown)\n"
+              target lineno name kwname name);
+            nflagged=nflagged+1)));
+      continue);
 
     op=index(sig "(");
     dd=index(sig " -- ");

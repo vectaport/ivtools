@@ -186,18 +186,19 @@ public:
 
 
 //: command to make assign a global variable
-// sym=global(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- designate a symbol instance as global
+// sym=global(sym)|global(sym)=val|global(sym :clear)|global(:dump)|global(:cnt) -- designate a symbol instance as global
 class GlobalSymbolFunc : public ComFunc {
 public:
     GlobalSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- designate a symbol instance as global"; }
+      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump)|global(:cnt) -- designate a symbol instance as global"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from global table",
 	":dump      dump global symbol table",
+	":cnt       return count of entries in the global symbol table",
 	nil
       };
       return keys;
