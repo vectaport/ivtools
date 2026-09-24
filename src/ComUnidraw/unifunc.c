@@ -338,8 +338,12 @@ void ImportFunc::execute() {
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
 
-    // acknowledge back quickly with a blank if over socket
-    if (comterp() && comterp()->handler() && comterp()->handler()->wrfptr()) {
+    // acknowledge back quickly with a blank if a remote peer -- fd 0 is
+    // the local console (same convention ComterpHandler::handle_input()
+    // uses to tell the two apart), which has no need for the ack and
+    // would otherwise see it as a stray extra line at every import()
+    if (comterp() && comterp()->handler() && comterp()->handler()->wrfd() != 0 &&
+	comterp()->handler()->wrfptr()) {
       fputs("blank\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
     }
