@@ -68,12 +68,18 @@
 // below stages its six values into plain variables first for exactly that
 // reason.
 
+// each import() below selects the photo it just pasted in, so without
+// this the selection tic-marks would flash on and off around every
+// photo as the deck builds; restored at the end of the script, once the
+// deck is up and nothing is being imported anymore
+prevhandles=handles(:get); handles(0)
+
 CENTERX=427; CENTERY=550
 BASEW=240; BASEH=160
 // each carousel.next() walks 6 interpolated steps from a slot's starting
-// position to its ending position, paced by update() at 12fps (usec=1e6/12)
+// position to its ending position, paced by update() at 24fps (usec=1e6/24)
 FR=6
-USEC=83333
+USEC=41667
 
 offX0=(0-330); offX1=(0-180); offX2=0; offX3=180; offX4=330
 sc0=0.42; sc1=0.65; sc2=1.0; sc3=0.65; sc4=0.42
@@ -169,15 +175,14 @@ for(i=1 i<n i=i+1
   imgs=imgs,imgi;
   libw=libw,pwi;
   libh=libh,phi;
-  // each newly placed photo pastes on top of the stack, so slots 1 and 3
-  // (adjacent to center) briefly cover slot 2 until re-fronted here in
-  // the same depth order (center topmost) the final deck settles into
+  // slot geometry only overlaps at the two center/neighbor seams (1-2 and
+  // 3-2); every other pair of slots is spaced apart. Slot 1 is placed
+  // before slot 2, so it already pastes underneath center with no fixup.
+  // Slot 3 pastes after, so without this it would cover center's edge --
+  // re-fronting center right after is the only correction this loop needs.
   if(i<5 :then
     place(imgi i pwi phi);
-    if(4<=i :then front(at(imgs 4)));
-    if(1<=i :then front(at(imgs 1)));
-    if(3<=i :then front(at(imgs 3)));
-    if(2<=i :then front(at(imgs 2)));
+    if(i==3 :then front(at(imgs 2)));
     update()
    :else park(imgi pwi phi)))
 print("carousel: built %v photos\n" n)
@@ -246,11 +251,11 @@ carousel=(
     img0=img1; img1=img2; img2=img3; img3=img4; img4=entrant;
     nextlib=mod(nextlib+1 n);
     front(img0); front(img4); front(img1); front(img3); front(img2);
-    print("carousel: deck %v %v %v %v %v  nextlib=%v\n" d0 d1 d2 d3 d4 nextlib);
     nil)
 )
 
 // slots were already placed, shown, and re-fronted into depth order one at
 // a time during the library loop above
 print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
+handles(prevhandles)
 update()
