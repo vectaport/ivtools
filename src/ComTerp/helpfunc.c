@@ -29,6 +29,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <ComTerp/comvalue.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/iterator.h>
@@ -161,6 +162,8 @@ void HelpFunc::execute() {
   static int key_symid = symbol_add("key");
   ComValue keyval(stack_key(key_symid, true));
 
+  static int dot_symid = symbol_add("dot");
+
   boolean noargs = !nargs() && !nkeys();
   ComFunc** comfuncs= nil;
   int* command_ids = nil;
@@ -188,6 +191,27 @@ void HelpFunc::execute() {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
+	if (command_ids[i]==dot_symid && val.narg()==2) {
+	  /* help(a.f) -- "a.f" is still a pending, unfired dot expression.
+	     Evaluate it the same way any post_eval command's own argument
+	     gets evaluated -- stack_arg_post_eval() pushes its tokens, runs
+	     it, and leaves one finalized result. symbol=true keeps the
+	     result as the raw dotted-pair Attribute (name + value) instead
+	     of auto-unwrapping to the bare value, so a FuncObj found there
+	     can be labeled with its field name ("f"), matching how
+	     help(h) labels with h's own name below. A bare func() assigned
+	     onto a dotlist field is never auto-fired, so evaluating "a.f"
+	     yields the FuncObj itself, same as typing "a.f" bare at the
+	     prompt. */
+	  ComValue dotval = stack_arg_post_eval(i, true);
+	  if (dotval.class_symid()==Attribute::class_symid()) {
+	    Attribute* attr = (Attribute*) dotval.obj_val();
+	    if (attr->Value()->is_object(FuncObj::class_symid())) {
+	      funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)attr->Value()->obj_val());
+	      command_ids[i] = attr->SymbolId();
+	    }
+	  }
+	}
       } else if (val.is_type(AttributeValue::StringType)) {
  	void *vptr = nil;
 	comterp()->localtable()->find(vptr, val.string_val());

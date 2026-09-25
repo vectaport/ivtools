@@ -257,5 +257,35 @@ ok=ok&&(r17=="greet(:name [\"world\"])")
 print("17 greet=func(if(name==nil :then \"world\" :else name)); help(greet) (expect \"greet(:name [\\\"world\\\"])\"): %v\n\n" r17)
 check_fail(:ok ok)
 
+// --- test 18: help(a.f) on a dotted FuncObj-valued attribute resolves the
+// same way help(h) does for a plain variable bound to the same FuncObj --
+// "a.f" is still a pending, unfired dot expression when help() reads it, so
+// it must be fired (via stack_arg_post_eval()) rather than shown as dot's
+// own docstring ---
+dh=(:f func(arg(0)*arg(1)))
+h18=dh.f
+r18a=help(h18)
+r18b=help(dh.f)
+ok=ok&&(r18a=="h18(arg0 arg1)")
+ok=ok&&(r18b=="f(arg0 arg1)")
+print("18 dh.f=func(arg(0)*arg(1)); help(dh.f) resolves the FuncObj, labeled\n   by its field name (expect \"h18(arg0 arg1)\" \"f(arg0 arg1)\"): %v %v\n\n" r18a r18b)
+check_fail(:ok ok)
+
+// --- test 19: help() on a dotted attribute that is NOT a FuncObj still
+// falls through to dot's own docstring, unchanged from before -- only the
+// FuncObj case is special-cased ---
+dh.n=5
+r19=help(dh.n)
+ok=ok&&(index(r19 "dot (.) makes compound variables")==0)
+print("19 dh.n=5; help(dh.n) still shows dot's own docstring (expect true): %v\n\n" (index(r19 "dot (.) makes compound variables")==0))
+check_fail(:ok ok)
+
+// --- test 20: firing "dh.f" to answer help() has no side effects -- the
+// FuncObj is still callable afterward with its normal behavior intact ---
+r20=dh.f(3 4)
+ok=ok&&(r20==12)
+print("20 dh.f(3 4) after help(dh.f) inspected it (expect 12): %v\n\n" r20)
+check_fail(:ok ok)
+
 print("funchelp: %v\n" ok)
 ok
