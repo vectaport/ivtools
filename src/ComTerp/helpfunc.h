@@ -41,13 +41,14 @@ public:
     virtual void execute();
 
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "%s([command] [command...] :all :posteval :top) -- help for commands"; }
+    virtual const char* docstring() {
+      return "%s([command] [command...] :all :posteval :top :key name) -- help for commands"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":all       return help on every command",
 	":posteval  return help on commands that post evaluate arguments",
 	":top       return help on top-level commands specific to this program",
+	":key name  return one keyword's own dockeys() description for the first command argument (true if declared but undocumented, nil if unrecognized)",
 	nil
       };
       return keys;
