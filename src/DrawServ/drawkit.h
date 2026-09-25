@@ -70,6 +70,13 @@ public:
     virtual BackCmd* make_back_cmd(Editor* = nil);
     virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
     // override to create LinkMoveCmd for distributed moves
+    virtual ScaleCmd* make_scale_cmd(Editor* = nil, float = 1, float = 1, Alignment = 4);
+    // 4 is Center (IV-2_6/InterViews/alignment.h) spelled as a literal --
+    // the bare name collides with the "current" IV library's own Center
+    // under this translation unit's naming mode at this point in the file.
+    // override to create LinkScaleCmd for distributed scale/stretch changes
+    virtual RotateCmd* make_rotate_cmd(Editor* = nil, float = 0);
+    // override to create LinkRotateCmd for distributed rotations
 
     static DrawKit* Instance();
 

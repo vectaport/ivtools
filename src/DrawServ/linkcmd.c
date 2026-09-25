@@ -725,3 +725,151 @@ Command* LinkMoveCmd::Copy() {
 
 ClassId LinkMoveCmd::GetClassId() { return LINK_MOVE_CMD; }
 boolean LinkMoveCmd::IsA(ClassId id) { return id == LINK_MOVE_CMD || MoveCmd::IsA(id); }
+
+/*****************************************************************************/
+
+/* shared by LinkScaleCmd::dist_script() and LinkRotateCmd::dist_script():
+   both run AFTER Execute() has already applied the scale/rotate to each
+   comp's own Graphic (see their class comments -- unlike LinkMoveCmd's
+   uniform delta, a scale or rotation's resulting transform depends on a
+   per-comp alignment/center point that Graphic::Scale()/Rotate() derive
+   from the comp's own bounds and parent chain, so predicting it here
+   would mean duplicating that geometry). So this walks the live
+   selection like LinkMoveCmd, but simply reads back each relayable
+   comp's now-current absolute transform instead of computing one. */
+static boolean collect_relayable_selection_transforms(
+    LinkSelection* sel, DrawServ* drawserv,
+    std::ostringstream& sbuf, std::ostringstream& transbuf,
+    uint32_t& owner_key, uuid_t owner_sid
+) {
+    boolean any = false;
+    Iterator it;
+    for (sel->First(it); !sel->Done(it); sel->Next(it)) {
+        OverlayView* view = (OverlayView*)sel->GetView(it);
+        OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (!grid || !(grid->selected() == LinkSelection::LocallySelected ||
+                       grid->unlocked()))
+            continue;
+
+        Graphic* gr = comp->GetGraphic();
+        if (!gr) continue;
+        float a00 = 1, a01 = 0, a10 = 0, a11 = 1, a20 = 0, a21 = 0;
+        Transformer* cur = gr->GetTransformer();
+        if (cur) cur->matrix(a00, a01, a10, a11, a20, a21);
+
+        char gidstr[9];
+        snprintf(gidstr, sizeof(gidstr), "%08X", grid->idkey());
+
+        if (!any) {
+            sbuf << "s=select();select(grid(\"" << gidstr << "\")";
+            any = true;
+            if (grid->selected() == LinkSelection::LocallySelected) {
+                owner_key = drawserv->sessionidkey();
+                uuid_copy(owner_sid, drawserv->sessionid());
+            } else {
+                owner_key = grid->selectorkey();
+                uuid_copy(owner_sid, grid->selector());
+            }
+        } else {
+            sbuf << ",grid(\"" << gidstr << "\")";
+        }
+
+        transbuf << ";trans(grid(\"" << gidstr << "\") "
+                  << a00 << "," << a01 << "," << a10 << ","
+                  << a11 << "," << a20 << "," << a21 << ")";
+    }
+    return any;
+}
+
+LinkScaleCmd::LinkScaleCmd(ControlInfo* ci, float sx, float sy, Alignment a) : ScaleCmd(ci, sx, sy, a) {}
+LinkScaleCmd::LinkScaleCmd(Editor* ed, float sx, float sy, Alignment a) : ScaleCmd(ed, sx, sy, a) {}
+
+const char* LinkScaleCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    Editor* ed = GetEditor();
+    if (!ed) return _dist_script_buf.c_str();
+
+    LinkSelection* sel = (LinkSelection*)ed->GetSelection();
+    if (!sel) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf, transbuf;
+    uint32_t owner_key = 0;
+    boolean any = collect_relayable_selection_transforms(
+        sel, drawserv, sbuf, transbuf, owner_key, _dist_owner_sid);
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+        sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << transbuf.str();
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkScaleCmd::Copy() {
+    float sx, sy;
+    GetScaling(sx, sy);
+    LinkScaleCmd* copy = new LinkScaleCmd(CopyControlInfo(), sx, sy, GetAlignment());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkScaleCmd::GetClassId() { return LINK_SCALE_CMD; }
+boolean LinkScaleCmd::IsA(ClassId id) { return id == LINK_SCALE_CMD || ScaleCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkRotateCmd::LinkRotateCmd(ControlInfo* ci, float angle) : RotateCmd(ci, angle) {}
+LinkRotateCmd::LinkRotateCmd(Editor* ed, float angle) : RotateCmd(ed, angle) {}
+
+const char* LinkRotateCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    Editor* ed = GetEditor();
+    if (!ed) return _dist_script_buf.c_str();
+
+    LinkSelection* sel = (LinkSelection*)ed->GetSelection();
+    if (!sel) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf, transbuf;
+    uint32_t owner_key = 0;
+    boolean any = collect_relayable_selection_transforms(
+        sel, drawserv, sbuf, transbuf, owner_key, _dist_owner_sid);
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+        sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << transbuf.str();
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkRotateCmd::Copy() {
+    LinkRotateCmd* copy = new LinkRotateCmd(CopyControlInfo(), GetRotation());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkRotateCmd::GetClassId() { return LINK_ROTATE_CMD; }
+boolean LinkRotateCmd::IsA(ClassId id) { return id == LINK_ROTATE_CMD || RotateCmd::IsA(id); }

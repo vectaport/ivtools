@@ -334,7 +334,7 @@ Command* GraphicView::InterpretStretchManip (Manipulator* m) {
         sx = sy;
         sy = tmp;
     }
-    return new ScaleCmd(ed, sx, sy, a);
+    return ed->MakeScaleCmd(sx, sy, a);
 }
 
 Command* GraphicView::InterpretManipulator (Manipulator* m) {
@@ -364,7 +364,7 @@ Command* GraphicView::InterpretManipulator (Manipulator* m) {
         ScalingRect* sr = (ScalingRect*) dm->GetRubberband();
         float scale = sr->CurrentScaling();
 
-        cmd = new ScaleCmd(ed, scale, scale);
+        cmd = ed->MakeScaleCmd(scale, scale);
 
     } else if (tool->IsA(STRETCH_TOOL)) {
         cmd = InterpretStretchManip(m);
@@ -372,7 +372,7 @@ Command* GraphicView::InterpretManipulator (Manipulator* m) {
     } else if (tool->IsA(ROTATE_TOOL)) {
         RotatingRect* rr = (RotatingRect*) dm->GetRubberband();
 
-        cmd = new RotateCmd(ed, rr->CurrentAngle());
+        cmd = ed->MakeRotateCmd(rr->CurrentAngle());
     }
     return cmd;
 }

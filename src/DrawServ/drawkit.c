@@ -630,6 +630,14 @@ MoveCmd* DrawKit::make_move_cmd(Editor* ed, float dx, float dy) {
     return new LinkMoveCmd(ed, dx, dy);
 }
 
+ScaleCmd* DrawKit::make_scale_cmd(Editor* ed, float sx, float sy, Alignment a) {
+    return new LinkScaleCmd(ed, sx, sy, a);
+}
+
+RotateCmd* DrawKit::make_rotate_cmd(Editor* ed, float angle) {
+    return new LinkRotateCmd(ed, angle);
+}
+
 FontCmd* DrawKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new LinkFontCmd(ctrlInfo, font, fontnum, fontname);
 }

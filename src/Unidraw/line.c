@@ -267,13 +267,13 @@ Command* LineView::InterpretManipulator (Manipulator* m) {
         ScalingLine* sl = (ScalingLine*) dm->GetRubberband();
         float sxy = sl->CurrentScaling();
 
-        cmd = new ScaleCmd(ed, sxy, sxy);
+        cmd = ed->MakeScaleCmd(sxy, sxy);
 
     } else if (tool->IsA(ROTATE_TOOL)) {
         RotatingLine* rl = (RotatingLine*) dm->GetRubberband();
         float angle = rl->CurrentAngle() - rl->OriginalAngle();
 
-        cmd = new RotateCmd(ed, angle);
+        cmd = ed->MakeRotateCmd(angle);
 
     } else if (tool->IsA(RESHAPE_TOOL)) {
         RubberLine* rl = (RubberLine*) dm->GetRubberband();
