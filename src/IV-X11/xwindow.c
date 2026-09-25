@@ -2136,6 +2136,13 @@ void DisplayRep::set_dpi(Coord& pixel) {
  * if the window is known and is valid.  Because we don't keep track
  * of subwindows, it is possible to get an event for a subwindow after
  * the main window has been unmapped.  We must ignore such events.
+ *
+ * Damaged windows are repaired before the next event is read rather
+ * than only once the input queue drains, so a window's remap/redraw
+ * (e.g. an embedded Interactor's window, unmapped by undraw() on every
+ * resize and remapped only by the matching draw()) can't be starved by
+ * a continuous stream of ConfigureNotify events during an interactive
+ * resize.
  */
 
 boolean Display::get(Event& event) {
@@ -2145,24 +2152,14 @@ boolean Display::get(Event& event) {
     XDisplay* dpy = d->display_;
     XEvent& xe = e.xevent_;
     if (d->damaged_->count() != 0) {
-	if (QLength(dpy) == 0) {
-	    if (trace_resize_enabled()) {
-		fprintf(
-		    stderr,
-		    "[x11-trace %.6f] Display::get repairing %ld damaged window(s),"
-		    " qlength=0\n",
-		    trace_resize_now(), d->damaged_->count()
-		);
-	    }
-	    repair();
-	} else if (trace_resize_enabled()) {
+	if (trace_resize_enabled()) {
 	    fprintf(
 		stderr,
-		"[x11-trace %.6f] Display::get deferring repair of %ld damaged"
-		" window(s), qlength=%d\n",
-		trace_resize_now(), d->damaged_->count(), QLength(dpy)
+		"[x11-trace %.6f] Display::get repairing %ld damaged window(s)\n",
+		trace_resize_now(), d->damaged_->count()
 	    );
 	}
+	repair();
     }
     if (!XPending(dpy)) {
 	return false;
