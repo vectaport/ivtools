@@ -1,11 +1,11 @@
 // src/comdraw/tests/carousel.comt -- integration coverage for the
 // examples/carousel.comt coverflow demo: front slot is largest and
 // centered, side slots shrink symmetrically, and advancing (carousel.next())
-// rotates the deck (dropping the front photo, spinning the next library
-// photo in) while every slot converges back to the same target geometry
-// regardless of which photo now occupies it.
+// or reversing (carousel.prev()) rotates the deck while every slot
+// converges back to the same target geometry regardless of which photo
+// now occupies it.
 //
-// funcs: carousel.next place park slotw sloth slotcx slotcy
+// funcs: carousel.next carousel.prev place park slotw sloth slotcx slotcy
 run("../examples/carousel.comt")
 
 ok=true
@@ -83,6 +83,15 @@ carousel.next()
 ok=ok&&(carousel.nextlib==4)
 ok=ok&&mbrsclose(mbr(carousel.img2) m2)
 print("5 six advances total wrap the 7-photo library (expect nextlib 4): %v\n" carousel.nextlib)
+
+// --- test 6: prev() is next()'s exact mirror -- one prev() undoes the
+//             sixth advance, landing back on the deck test 5 passed
+//             through (5,6,0,1,2 nextlib 3), with the same converged
+//             front-slot geometry ---
+carousel.prev()
+ok=ok&&(carousel.d0==5)&&(carousel.d1==6)&&(carousel.d2==0)&&(carousel.d3==1)&&(carousel.d4==2)&&(carousel.nextlib==3)
+ok=ok&&mbrsclose(mbr(carousel.img2) m2)
+print("6 prev() undoes an advance (expect 5 6 0 1 2, nextlib 3): %v %v %v %v %v nextlib=%v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4 carousel.nextlib)
 
 print("carousel: %v\n" ok)
 ok
