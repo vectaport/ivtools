@@ -45,8 +45,10 @@
 #include <OS/list.h>
 #include <OS/table2.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef __DECCXX
 struct _XRegion;
@@ -57,6 +59,23 @@ implementPtrList(TransformerStack,Transformer)
 
 declarePtrList(ClippingStack,_XRegion)
 implementPtrList(ClippingStack,_XRegion)
+
+/*
+ * Diagnostic tracing for the resize/repair path (chrome-goes-black-on-
+ * resize investigation). Enabled at runtime via IVTOOLS_TRACE_RESIZE so a
+ * debug build can be handed to someone who can reproduce interactively.
+ * Temporary: remove once the bug is root-caused and fixed.
+ */
+static boolean trace_resize_enabled() {
+    static int enabled = (getenv("IVTOOLS_TRACE_RESIZE") != nil) ? 1 : 0;
+    return boolean(enabled);
+}
+
+static double trace_resize_now() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+}
 
 /* class Canvas */
 
@@ -1121,6 +1140,16 @@ void CanvasRep::bind(boolean double_buffered) {
 	c.copybuffer_ = CanvasRep::unbound;
     }
     c.drawgc_ = XCreateGC(dpy, c.drawbuffer_, GCGraphicsExposures, &gcv);
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr,
+	    "[x11-trace %.6f] CanvasRep::bind double_buffered=%d"
+	    " drawbuffer=%lu copybuffer=%lu %dx%d\n",
+	    trace_resize_now(), int(double_buffered),
+	    (unsigned long)c.drawbuffer_, (unsigned long)c.copybuffer_,
+	    c.pwidth_, c.pheight_
+	);
+    }
 }
 
 /*
@@ -1130,6 +1159,14 @@ void CanvasRep::bind(boolean double_buffered) {
 
 void CanvasRep::unbind() {
     CanvasRep& c = *this;
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr,
+	    "[x11-trace %.6f] CanvasRep::unbind drawbuffer=%lu copybuffer=%lu\n",
+	    trace_resize_now(), (unsigned long)c.drawbuffer_,
+	    (unsigned long)c.copybuffer_
+	);
+    }
     if (c.display_ != nil) {
 	XDisplay* dpy = c.dpy();
 	if (c.copybuffer_ != CanvasRep::unbound) {
@@ -1187,6 +1224,16 @@ boolean CanvasRep::start_repair() {
     XUnionRectWithRegion(&clip, c.empty_, c.clipping_);
     XSetClipRectangles(dpy(), c.drawgc_, 0, 0, &clip, 1, YXBanded);
     c.repairing_ = true;
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr,
+	    "[x11-trace %.6f] CanvasRep::start_repair drawbuffer=%lu"
+	    " pwidth=%d pheight=%d clip=(%d,%d %ux%u) damage=(%g,%g %g,%g)\n",
+	    trace_resize_now(), (unsigned long)c.drawbuffer_,
+	    c.pwidth_, c.pheight_, clip.x, clip.y, clip.width, clip.height,
+	    damage.left, damage.bottom, damage.right, damage.top
+	);
+    }
     return true;
 }
 
@@ -1197,6 +1244,15 @@ void CanvasRep::finish_repair() {
     c.damaged_ = false;
     c.on_damage_list_ = false;
     c.repairing_ = false;
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr, "[x11-trace %.6f] CanvasRep::finish_repair drawbuffer=%lu"
+	    " copybuffer=%lu clip=(%d,%d %ux%u)\n",
+	    trace_resize_now(), (unsigned long)c.drawbuffer_,
+	    (unsigned long)c.copybuffer_, c.clip_.x, c.clip_.y,
+	    c.clip_.width, c.clip_.height
+	);
+    }
 }
 
 void CanvasRep::flush() {

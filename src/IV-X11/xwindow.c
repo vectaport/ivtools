@@ -30,6 +30,9 @@
 #include "config.h"
 #endif
 #include "wtable.h"
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <InterViews/bitmap.h>
 #include <InterViews/canvas.h>
 #include <InterViews/color.h>
@@ -83,6 +86,23 @@ extern "C" {
 #include <asm/socket.h>
 #endif
 #endif
+/*
+ * Diagnostic tracing for the resize/repair path (chrome-goes-black-on-
+ * resize investigation). Enabled at runtime via IVTOOLS_TRACE_RESIZE so a
+ * debug build can be handed to someone who can reproduce interactively.
+ * Temporary: remove once the bug is root-caused and fixed.
+ */
+static boolean trace_resize_enabled() {
+    static int enabled = (getenv("IVTOOLS_TRACE_RESIZE") != nil) ? 1 : 0;
+    return boolean(enabled);
+}
+
+static double trace_resize_now() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+}
+
 implementPtrList(WindowVisualList,WindowVisual)
 
 declarePtrList(WindowCursorStack,Cursor)
@@ -589,8 +609,23 @@ void Window::repair() {
     WindowRep& w = *rep();
     CanvasRep& c = *w.canvas_->rep();
     if (c.start_repair()) {
+	if (trace_resize_enabled()) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] Window::repair win=%p drawing"
+		" drawbuffer=%lu copybuffer=%lu clip=(%d,%d %ux%u)\n",
+		trace_resize_now(), (void*)w.xwindow_,
+		(unsigned long)c.drawbuffer_, (unsigned long)c.copybuffer_,
+		c.clip_.x, c.clip_.y, c.clip_.width, c.clip_.height
+	    );
+	}
 	w.glyph_->draw(w.canvas_, w.allocation_);
 	c.finish_repair();
+    } else if (trace_resize_enabled()) {
+	fprintf(
+	    stderr, "[x11-trace %.6f] Window::repair win=%p nothing to repair\n",
+	    trace_resize_now(), (void*)w.xwindow_
+	);
     }
 }
 
@@ -1002,7 +1037,22 @@ void WindowRep::configure_notify(Window* w, XConfigureEvent& xe) {
     moved_ = true;
     if (resized_) {
 	if (xe.width != canvas_->pwidth() || xe.height != canvas_->pheight()) {
+	    if (trace_resize_enabled()) {
+		fprintf(
+		    stderr,
+		    "[x11-trace %.6f] configure_notify win=%p %dx%d -> %ux%u\n",
+		    trace_resize_now(), (void*)xwindow_,
+		    canvas_->pwidth(), canvas_->pheight(), xe.width, xe.height
+		);
+	    }
 	    resize(w, xe.width, xe.height);
+	} else if (trace_resize_enabled()) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] configure_notify win=%p unchanged size %dx%d\n",
+		trace_resize_now(), (void*)xwindow_,
+		canvas_->pwidth(), canvas_->pheight()
+	    );
 	}
     } else {
 	canvas_->psize(xe.width, xe.height);
@@ -1039,6 +1089,17 @@ void WindowRep::resize(Window* w, unsigned int xwidth, unsigned int xheight) {
     Extension ext;
     ext.clear();
     init_renderer(w);
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr,
+	    "[x11-trace %.6f] resize win=%p done drawbuffer=%lu copybuffer=%lu"
+	    " pwidth=%d pheight=%d\n",
+	    trace_resize_now(), (void*)xwindow_,
+	    (unsigned long)canvas_->rep()->drawbuffer_,
+	    (unsigned long)canvas_->rep()->copybuffer_,
+	    canvas_->pwidth(), canvas_->pheight()
+	);
+    }
     if (resized_) {
 	glyph_->undraw();
     }
@@ -2025,8 +2086,25 @@ boolean Display::get(Event& event) {
     e.display_ = this;
     XDisplay* dpy = d->display_;
     XEvent& xe = e.xevent_;
-    if (d->damaged_->count() != 0 && QLength(dpy) == 0) {
-	repair();
+    if (d->damaged_->count() != 0) {
+	if (QLength(dpy) == 0) {
+	    if (trace_resize_enabled()) {
+		fprintf(
+		    stderr,
+		    "[x11-trace %.6f] Display::get repairing %d damaged window(s),"
+		    " qlength=0\n",
+		    trace_resize_now(), d->damaged_->count()
+		);
+	    }
+	    repair();
+	} else if (trace_resize_enabled()) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] Display::get deferring repair of %d damaged"
+		" window(s), qlength=%d\n",
+		trace_resize_now(), d->damaged_->count(), QLength(dpy)
+	    );
+	}
     }
     if (!XPending(dpy)) {
 	return false;
