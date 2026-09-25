@@ -1241,6 +1241,7 @@ void CanvasRep::finish_repair() {
     CanvasRep& c = *this;
     c.flush();
     c.swapbuffers();
+    XSync(c.dpy(), False);
     c.damaged_ = false;
     c.on_damage_list_ = false;
     c.repairing_ = false;
