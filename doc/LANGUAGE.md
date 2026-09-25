@@ -442,13 +442,20 @@ member needs that member named explicitly, or those commands are
 simply unregistered and silently unchecked.
 
 It works from `postfix()`'s and `help()`'s output alone and never
-executes the target script. It only analyzes a line that parses as one
-complete, self-contained statement — a line containing `;`, or one
-physical line of a construct spanning several, is skipped entirely,
-not just left unflagged. Dot-attribute calls (`a.name(...)`) are never
-checked by either rule below — `postfix()` labels `name` with the
-*global* command's arity even when `a.name` is a local override,
-exactly the exception the previous section describes.
+executes the target script. A statement spanning several physical
+lines (a `for`/`while`/`func` body, most commonly) is buffered line by
+line, tracking a running paren balance, and checked as a whole once
+balanced — `postfix()` parses the reassembled statement without ever
+firing it, the same never-execute guarantee as a single-line
+statement, and flattens arbitrarily nested control structures (a
+`while` inside a `while` inside a `func`, and so on) into one token
+stream, so a call at any nesting depth gets checked. `;` needs no
+special handling either: it's ComTerp's own sequencing operator, so a
+line (or reassembled statement) containing one is already a single
+complete, checkable unit. Dot-attribute calls (`a.name(...)`) are the
+one thing never checked by either rule below — `postfix()` labels
+`name` with the *global* command's arity even when `a.name` is a local
+override, exactly the exception the previous section describes.
 
 **Positional-arity check** flags a call whose real, post-glue
 positional-argument count falls short of what the command declares as
@@ -471,6 +478,23 @@ val...])`), or `:keyword value` (`setattr(compview [:keyword value
 [:keyword value [...]]])`), all meaning any keyword name is accepted —
 is exempt: flagging a name any of them deliberately doesn't enumerate
 would be a false positive, not a catch.
+
+**Command-shadowing assignment check** flags a plain assignment
+(`name=value`, or a `+=`/`-=`/`*=`/`/=`/`%=` compound form) to a symbol
+name that also names a registered command — `pi=0` or `list+=1`, for
+example. ComTerp itself refuses a bare assignment to a registered
+command name ("assignment to command ... without args not allowed"),
+leaving it still bound to the command, so the assignment has no effect
+— easy to miss until something downstream behaves strangely, since the
+warning scrolls by at runtime rather than showing up in the script
+itself. This check is a
+plain text scan of the reassembled statement rather than a `postfix()`
+walk: only the raw `=` and the identifier immediately before it matter,
+so a comparison (`==`, `!=`, `<=`, `>=`) is excluded by checking the
+character before it, and dot-attribute assignment (`a.name=...`) and
+index-assignment (`obj@name=...`) are excluded by checking the
+character before the identifier itself, since both assign through the
+object rather than to the bare name.
 
 ## Arguments: Fixed Before Keywords — Always
 
@@ -913,11 +937,18 @@ help(funcname)       // help for one command
 help(:all)           // help for every registered command
 help(:top)           // help for top-level commands in this program
 help(:posteval)      // help for post_eval commands
+help(funcname :key name)  // one keyword's own description
 ```
 
 `help()` is the primary reference for command signatures. The docstring
 format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
 Square brackets indicate optional fixed args.
+
+`help(funcname :key name)` looks up a single keyword of `funcname`
+rather than rendering its whole help text: `name`'s own `dockeys()`
+description if it has one, `true` if `name` is declared in `funcname`'s
+signature but has no separate `dockeys()` entry (e.g. `beep(:count)`),
+or `nil` if `name` isn't a keyword `funcname` recognizes at all.
 
 ## Functions
 

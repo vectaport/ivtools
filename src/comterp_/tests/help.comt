@@ -1,7 +1,7 @@
 // src/comterp_/tests/help.comt -- test help() and optable()
 //
-// coverage: 13/13 (100%)
-// funcs: help() help(:posteval) help(:top) help("op")
+// coverage: 21/21 (100%)
+// funcs: help() help(:posteval) help(:top) help("op") help(cmd :key name)
 //        optable(:table) optable(:bypri) optable(:byopr) optable(:bycom)
 // optable(:table) returns list of attrlists (:opr :cmd :pri :rtol :type)
 // optable(:bypri :byopr :bycom) prints to stdout only
@@ -108,6 +108,78 @@ prev_ok=check_fail(:ok ok)
 optable(:bycom)
 ok=ok&&true
 print("13 optable(:bycom) no crash (expect true): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: help(cmd :key name) returns the dockeys() description ---
+kd=help(help :key top)
+ok=ok&&(type(kd)==`StringType)
+ok=ok&&(kd=="return help on top-level commands specific to this program")
+print("14 help(help :key top) returns its dockeys description (expect true): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14b: alias-bearing dockeys entries are checked by every alias ---
+kdopr=help(optable :key pri)
+ok=ok&&(type(kdopr)==`StringType)
+ok=ok&&(kdopr=="operator priority for :insert (default 80)")
+print("14b help(optable :key pri) returns its own description, not a keyword\n   mentioned in another entry's free text (expect true): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: help(cmd :key name) returns true for a keyword declared in
+//     the signature but with no separate dockeys() entry ---
+kb=help(beep :key count)
+ok=ok&&(kb==true)
+print("15 help(beep :key count) returns true (expect true): %v\n" kb)
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: help(cmd :key name) returns nil for an unrecognized keyword ---
+ku=help(beep :key bogus123)
+ok=ok&&(ku==nil)
+print("16 help(beep :key bogus123) returns nil (expect true): %v\n" (ku==nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 17: help(cmd :key name) also resolves a name that is itself a
+//     registered command (e.g. posteval), not just a bare symbol ---
+kp=help(help :key posteval)
+ok=ok&&(type(kp)==`StringType)
+ok=ok&&(kp=="return help on commands that post evaluate arguments")
+print("17 help(help :key posteval) resolves a command-shaped key name\n   (expect true): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: help(cmd :key name) also works when cmd is passed as a
+//     quoted string naming a registered command (not just bare/symbol) ---
+ks=help("beep" :key count)
+ok=ok&&(ks==true)
+print("18 help(\"beep\" :key count) returns true (expect true): %v\n" ks)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: a colon inside a signature's "[...]" positional-argument
+//     group (date's year-led "YEAR:MON[:day]" form) is a value separator,
+//     not a declared keyword, so :key must not mistake it for one ---
+kv=help(date :key MON)
+ok=ok&&(kv==nil)
+print("19 help(date :key MON) returns nil (expect true): %v\n" (kv==nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 20: a keyword bracketed as optional in the signature (islist's
+//     "[:any]", since every keyword is optional) is still a real keyword,
+//     unlike a value-form colon glued onto a preceding identifier ---
+ka=help(islist :key any)
+ok=ok&&(ka==true)
+print("20 help(islist :key any) returns true (expect true): %v\n" ka)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: a value-form field glued onto a ']' that closes a nested
+//     value-form group with no space before its own '[' (time's
+//     "[:ms:us:ns]:TZ") is still a value separator, not a keyword --
+//     the real keyword is the differently-cased ":tz" later in the
+//     signature, which :key must still find ---
+kt=help(time :key TZ)
+ok=ok&&(kt==nil)
+print("21 help(time :key TZ) returns nil (expect true): %v\n" (kt==nil))
+prev_ok=check_fail(:ok ok)
+kz=help(time :key tz)
+ok=ok&&(type(kz)==`StringType)
+print("21b help(time :key tz) returns its dockeys description\n    (expect true): %v\n" (type(kz)==`StringType))
 prev_ok=check_fail(:ok ok)
 
 print("help: %v\n" ok)
