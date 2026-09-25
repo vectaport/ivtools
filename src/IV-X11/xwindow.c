@@ -103,6 +103,43 @@ static double trace_resize_now() {
     return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
 }
 
+/* Defined in src/InterViews/patch.c; see the comment there. */
+extern "C" {
+    extern long ivtools_trace_patches_visited;
+    extern long ivtools_trace_patches_drawn;
+}
+
+/*
+ * Ask the X server directly what's actually mapped/visible under a
+ * window, recursively, so the trace log shows ground truth rather than
+ * what this process's own bookkeeping believes.
+ */
+static void trace_dump_tree(XDisplay* dpy, XWindow win, int depth) {
+    XWindow root, parent, *children;
+    unsigned int nchildren;
+    if (!XQueryTree(dpy, win, &root, &parent, &children, &nchildren)) {
+	return;
+    }
+    for (unsigned int i = 0; i < nchildren; i++) {
+	XWindowAttributes attrs;
+	if (XGetWindowAttributes(dpy, children[i], &attrs)) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] tree%*s child=%p map_state=%d"
+		" (0=Unmapped 1=Unviewable 2=Viewable) x=%d y=%d %dx%d"
+		" mapped_bit=%d\n",
+		trace_resize_now(), depth * 2, "", (void*)children[i],
+		attrs.map_state, attrs.x, attrs.y, attrs.width, attrs.height,
+		attrs.map_installed
+	    );
+	}
+	trace_dump_tree(dpy, children[i], depth + 1);
+    }
+    if (children != nil) {
+	XFree(children);
+    }
+}
+
 implementPtrList(WindowVisualList,WindowVisual)
 
 declarePtrList(WindowCursorStack,Cursor)
@@ -619,7 +656,21 @@ void Window::repair() {
 		c.clip_.x, c.clip_.y, c.clip_.width, c.clip_.height
 	    );
 	}
+	if (trace_resize_enabled()) {
+	    ivtools_trace_patches_visited = 0;
+	    ivtools_trace_patches_drawn = 0;
+	}
 	w.glyph_->draw(w.canvas_, w.allocation_);
+	if (trace_resize_enabled()) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] Window::repair win=%p patches visited=%ld"
+		" drawn=%ld skipped=%ld\n",
+		trace_resize_now(), (void*)w.xwindow_,
+		ivtools_trace_patches_visited, ivtools_trace_patches_drawn,
+		ivtools_trace_patches_visited - ivtools_trace_patches_drawn
+	    );
+	}
 	c.finish_repair();
     } else if (trace_resize_enabled()) {
 	fprintf(
@@ -1105,6 +1156,13 @@ void WindowRep::resize(Window* w, unsigned int xwidth, unsigned int xheight) {
     }
     glyph_->allocate(canvas_, allocation_, ext);
     resized_ = true;
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr, "[x11-trace %.6f] resize win=%p dumping child window tree\n",
+	    trace_resize_now(), (void*)xwindow_
+	);
+	trace_dump_tree(dpy(), xwindow_, 0);
+    }
 }
 
 void WindowRep::check_position(const Window*) {
@@ -2091,7 +2149,7 @@ boolean Display::get(Event& event) {
 	    if (trace_resize_enabled()) {
 		fprintf(
 		    stderr,
-		    "[x11-trace %.6f] Display::get repairing %d damaged window(s),"
+		    "[x11-trace %.6f] Display::get repairing %ld damaged window(s),"
 		    " qlength=0\n",
 		    trace_resize_now(), d->damaged_->count()
 		);
@@ -2100,7 +2158,7 @@ boolean Display::get(Event& event) {
 	} else if (trace_resize_enabled()) {
 	    fprintf(
 		stderr,
-		"[x11-trace %.6f] Display::get deferring repair of %d damaged"
+		"[x11-trace %.6f] Display::get deferring repair of %ld damaged"
 		" window(s), qlength=%d\n",
 		trace_resize_now(), d->damaged_->count(), QLength(dpy)
 	    );

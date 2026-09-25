@@ -28,6 +28,25 @@
 
 #include <InterViews/canvas.h>
 #include <InterViews/patch.h>
+#include <stdlib.h>
+
+/*
+ * Diagnostic counters for the chrome-goes-black-on-resize investigation,
+ * read and reset by Window::repair() (src/IV-X11/xwindow.c) around each
+ * top-level draw so a trace log can show how many Patches in the tree
+ * were actually asked to draw versus skipped as undamaged. Enabled at
+ * runtime via IVTOOLS_TRACE_RESIZE. Temporary: remove once the bug is
+ * root-caused and fixed.
+ */
+extern "C" {
+    long ivtools_trace_patches_visited = 0;
+    long ivtools_trace_patches_drawn = 0;
+}
+
+static boolean patch_trace_enabled() {
+    static int enabled = (getenv("IVTOOLS_TRACE_RESIZE") != nil) ? 1 : 0;
+    return boolean(enabled);
+}
 
 Patch::Patch(Glyph* body) : MonoGlyph(body) {
     canvas_ = nil;
@@ -76,7 +95,13 @@ void Patch::allocate(Canvas* c, const Allocation& a, Extension& ext) {
 }
 
 void Patch::draw(Canvas* c, const Allocation& a) const {
+    if (patch_trace_enabled()) {
+	ivtools_trace_patches_visited++;
+    }
     if (c->damaged(extension_)) {
+	if (patch_trace_enabled()) {
+	    ivtools_trace_patches_drawn++;
+	}
 	MonoGlyph::draw(c, a);
     }
 }
