@@ -200,3 +200,5 @@ boolean Editor::DependsOn (Component* parent) {
 }
 
 MoveCmd* Editor::MakeMoveCmd (float dx, float dy) { return new MoveCmd(this, dx, dy); }
+ScaleCmd* Editor::MakeScaleCmd (float sx, float sy, Alignment a) { return new ScaleCmd(this, sx, sy, a); }
+RotateCmd* Editor::MakeRotateCmd (float angle) { return new RotateCmd(this, angle); }

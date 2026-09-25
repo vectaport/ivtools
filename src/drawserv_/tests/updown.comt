@@ -1734,3 +1734,179 @@ move_test=func(
   print("move: ds2 shut down\n" :err);
 
   ok)
+
+/* transform test -- distributed move()/scale()/rotate() together (issue
+   #376), closed by LinkScaleCmd/LinkRotateCmd joining LinkMoveCmd: each
+   op relays the comp's resulting ABSOLUTE transform via trans(), not the
+   op itself, so a step landing twice or out of order still lands
+   correctly (see linkcmd.h). Runs move, a uniform scale, a non-uniform
+   scale, and a rotate on one circle in sequence, confirming ds2's copy
+   converges on ds1's own resulting transform after every step -- checked
+   against what ds1 itself reports, not a hand-computed matrix, since
+   replicating Graphic::Scale()/Rotate()'s per-comp alignment-point math
+   in the test would just re-implement dist_script()'s own reasoning for
+   using Execute()-then-read-back (see LinkScaleCmd's class comment).
+
+   The non-uniform scale step stands in for the interactive Stretch tool
+   -- Stretch builds a plain ScaleCmd with unequal sx/sy and a corner
+   Alignment rather than a distinct command class, and LinkScaleCmd's
+   dist_script() is alignment-agnostic (it only reads back the resulting
+   transform), so this exercises the identical relay code Stretch uses.
+
+   A solid-filled circle like move_test's, and a bold label naming the
+   test in the lower-left corner. */
+transform_test=func(
+  poll_usec=200000;
+  timeout=30*1000000/poll_usec;
+
+  /* --- launch ds1 (source) -- tiled side by side with ds2, same 756x491
+     layout as move_test's --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_uptf1)=false;
+  print("transform: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uptf1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uptf1) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_uptf1) :then
+    print("transform: FAIL ds1 did not come up\n" :err);
+    /* kill by the drawserv process's own -comdraw port on its command line
+       (same '[d]rawserv' pattern used for shutdown confirmation below),
+       not by port occupancy -- kill_port's lsof-by-port lookup can match
+       an unrelated process that later bound the same port, or (once a
+       socket() connects below) this test runner's own client socket. */
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    return(false));
+  print("transform: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_uptf2)=false;
+  print("transform: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uptf2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uptf2) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_uptf2) :then
+    print("transform: FAIL ds2 did not come up\n" :err);
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
+    return(false));
+  print("transform: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(!sock1 || !sock2 :then
+    print("transform: FAIL could not connect to both nodes\n" :err);
+    if(sock1 :then close(sock1));
+    if(sock2 :then close(sock2));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
+    return(false));
+
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(drawlink(:table))")<1 && cnt<timeout usleep(poll_usec);cnt++);
+
+  /* --- ds1: one circle, centered in the left window --- */
+  remote(sock1 "c1=ellipse(158,245,80,80 :fillbg 1 :fgcolor \"Black\",0,0,0 :bgcolor \"SeaGreen\",0.18,0.55,0.34 :graypat 1.0)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<timeout usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  if(type(id1)!=`StringType :then
+    print("transform: FAIL could not read circle's grid id\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    return(false));
+  print("transform: created c1=%v on ds1\n" id1 :err);
+
+  /* bold label, purely decorative -- creating it makes it, not c1, the
+     current selection, same lesson as move_test */
+  remote(sock1 "text(40,40 \"TRANSFORM TEST\")");
+  remote(sock1 "font(6)");
+
+  ok=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("transform: ds2 has c1=%v\n" ok :err);
+  if(!ok :then print("transform: FAIL circle did not propagate to ds2\n" :err));
+
+  if(demo_flag :then remote(sock1 "update(300000)"));
+
+  transexpr=print("trans(grid(%c%s%c))" 34 id1 34 :str);
+  selexpr=print("select(grid(%c%s%c))" 34 id1 34 :str);
+
+  /* --- move --- */
+  remote(sock1 selexpr);
+  remote(sock1 "move(40 0)");
+  if(demo_flag :then remote(sock1 "update(300000)"));
+  expected=remote(sock1 transexpr);
+  found=false;pollcnt=0;
+  while(!found && pollcnt<timeout
+    r=remote(sock2 transexpr);
+    if(r==expected :then found=true);
+    if(!found :then usleep(poll_usec);pollcnt++));
+  if(demo_flag && found :then remote(sock2 "update(300000)"));
+  if(!found :then print("transform: FAIL move step did not propagate (want %v)\n" expected :err));
+  print("transform: move step propagated = %v\n" found :err);
+  ok=ok && found;
+
+  /* --- scale (uniform) --- */
+  remote(sock1 selexpr);
+  remote(sock1 "scale(1.5 1.5)");
+  if(demo_flag :then remote(sock1 "update(300000)"));
+  expected=remote(sock1 transexpr);
+  found=false;pollcnt=0;
+  while(ok && !found && pollcnt<timeout
+    r=remote(sock2 transexpr);
+    if(r==expected :then found=true);
+    if(!found :then usleep(poll_usec);pollcnt++));
+  if(demo_flag && found :then remote(sock2 "update(300000)"));
+  if(!found :then print("transform: FAIL scale step did not propagate (want %v)\n" expected :err));
+  print("transform: scale step propagated = %v\n" found :err);
+  ok=ok && found;
+
+  /* --- stretch: non-uniform scale, the same LinkScaleCmd relay the
+     interactive Stretch tool goes through (see class comment above) --- */
+  remote(sock1 selexpr);
+  remote(sock1 "scale(1.3 0.6)");
+  if(demo_flag :then remote(sock1 "update(300000)"));
+  expected=remote(sock1 transexpr);
+  found=false;pollcnt=0;
+  while(ok && !found && pollcnt<timeout
+    r=remote(sock2 transexpr);
+    if(r==expected :then found=true);
+    if(!found :then usleep(poll_usec);pollcnt++));
+  if(demo_flag && found :then remote(sock2 "update(300000)"));
+  if(!found :then print("transform: FAIL stretch step did not propagate (want %v)\n" expected :err));
+  print("transform: stretch step propagated = %v\n" found :err);
+  ok=ok && found;
+
+  /* --- rotate --- */
+  remote(sock1 selexpr);
+  remote(sock1 "rotate(30)");
+  if(demo_flag :then remote(sock1 "update(300000)"));
+  expected=remote(sock1 transexpr);
+  found=false;pollcnt=0;
+  while(ok && !found && pollcnt<timeout
+    r=remote(sock2 transexpr);
+    if(r==expected :then found=true);
+    if(!found :then usleep(poll_usec);pollcnt++));
+  if(demo_flag && found :then remote(sock2 "update(300000)"));
+  if(!found :then print("transform: FAIL rotate step did not propagate (want %v)\n" expected :err));
+  print("transform: rotate step propagated = %v\n" found :err);
+  ok=ok && found;
+
+  print("transform: all steps tracked on ds2 = %v\n" ok :err);
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("transform: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("transform: ds2 shut down\n" :err);
+
+  ok)

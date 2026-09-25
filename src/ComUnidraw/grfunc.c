@@ -109,7 +109,7 @@ Transformer* CreateGraphicFunc::get_transformer(AttributeList* al) {
     avl->Next(it); a21=avl->GetAttrVal(it)->float_val();
     rel = new Transformer(a00, a01, a10, a11, a20, a21);
   } else {
-    rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
+    rel = ((OverlayViewer*)_ed->GetViewer())->ComputeGravityRel();
     if (rel != nil) {
       rel = new Transformer(rel);
       rel->Invert();
@@ -1705,7 +1705,8 @@ void ScaleFunc::execute() {
     ScaleCmd* cmd = nil;
 
     if (fx > 0.0  || fy > 0.0) {
-	cmd = new ScaleCmd(_ed, fx, fy);
+	OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_scale_cmd(_ed, fx, fy);
 	execute_log(cmd);
     }
 
@@ -1723,7 +1724,8 @@ void RotateFunc::execute() {
 
     RotateCmd* cmd = nil;
 
-    cmd = new RotateCmd(_ed, rf);
+    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+    cmd = kit->make_rotate_cmd(_ed, rf);
 
     execute_log(cmd);
 }
@@ -1937,9 +1939,29 @@ TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(com
 }
 
 void TransformerFunc::execute() {
-    
+
     static int apply_sym = symbol_add("apply");
     static int set_sym    = symbol_add("set");
+
+    if (nargs()==0 && nkeys()==0) {
+      /* bare trans() -- window-to-drawing transform a click-drawn graphic gets */
+      reset_stack();
+      Transformer* rel = _ed->GetViewer()->ComputeGravityRel();
+      rel->Invert();
+      AttributeValueList* avl = new AttributeValueList();
+      float a00, a01, a10, a11, a20, a21;
+      rel->matrix(a00, a01, a10, a11, a20, a21);
+      rel->unref();
+      avl->Append(new AttributeValue(a00));
+      avl->Append(new AttributeValue(a01));
+      avl->Append(new AttributeValue(a10));
+      avl->Append(new AttributeValue(a11));
+      avl->Append(new AttributeValue(a20));
+      avl->Append(new AttributeValue(a21));
+      ComValue retval(avl);
+      push_stack(retval);
+      return;
+    }
 
     ComValue objv(stack_arg(0));
     ComValue transv(stack_arg(1));
