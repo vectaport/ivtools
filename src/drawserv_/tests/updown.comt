@@ -1771,6 +1771,7 @@ transform_test=func(
   while(!global(drawserv_uptf1) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_uptf1) :then
     print("transform: FAIL ds1 did not come up\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
     return(false));
   print("transform: ds1 up on %d\n" ds1_port :err);
 
@@ -1785,6 +1786,8 @@ transform_test=func(
   while(!global(drawserv_uptf2) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_uptf2) :then
     print("transform: FAIL ds2 did not come up\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("transform: ds2 up on %d\n" ds2_port :err);
 
@@ -1792,6 +1795,8 @@ transform_test=func(
   sock2=socket("127.0.0.1" ds2_port);
   if(!sock1 || !sock2 :then
     print("transform: FAIL could not connect to both nodes\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
 
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
