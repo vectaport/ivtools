@@ -1,0 +1,59 @@
+// fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Every bare write below
+// lands in a real global with nothing shadowing/clearing it, so
+// comlint should flag every name -- gs_dotfunc's write sits inside
+// obj.func(...), a method call on obj literally named "func", not the
+// func(...) closure-literal builtin, so it does not get that builtin's
+// own-frame suppression; gs_reclear is re-declared with a fresh
+// global(gs_reclear)=2 after being cleared, which un-clears it;
+// gs_joined's declaration shares a statement (joined with ';') with a
+// later expression, so its assign is not the statement's outermost
+// postfix token -- still recognized as the lvalue form; gs_nestedrhs's
+// declaration's value is itself a call (list(1)), a post-eval command
+// whose own postfix token is tagged just like assign's -- still
+// recognized as the lvalue form, not mistaken for the whole
+// declaration's end; gs_wsparen is declared with whitespace between
+// "global" and its '(' -- still valid ComTerp syntax (confirmed
+// against a real run) and still recognized; gs_cmtparen's declaration
+// has a '//' comment inside the parens, before the close -- the
+// comment is skipped by the same string/comment-aware scan the rest
+// of the statement gets, not misread as part of the argument;
+// gs_embedded's bare write sits nested inside another call's own
+// argument list (a local(symadd(...)) call whose argument text
+// contains "gs_embedded=..."), so it isn't skipped over just because
+// it's inside a paren the scan is also using to look for a
+// declaration; gs_quotedlocal's local(name "s") passes a quoted
+// second positional argument -- rejected by the runtime without
+// creating a local shadow -- so the earlier global declaration still
+// stands and the later bare write still lands in that global.
+
+global(gs_p)=1
+gs_p=2
+
+global(gs_dotfunc)=1
+obj.func(gs_dotfunc=2)
+
+global(gs_reclear)=1
+global(gs_reclear :clear)
+global(gs_reclear)=2
+gs_reclear=3
+
+global(gs_joined)=1;print(0)
+gs_joined=2
+
+global(gs_nestedrhs)=list(1)
+gs_nestedrhs=2
+
+global (gs_wsparen)=1
+gs_wsparen=2
+
+global(gs_cmtparen // trailing comment
+)=1
+gs_cmtparen=2
+
+global(gs_embedded)=1
+local(symadd("y"+print(gs_embedded=2 :str)))=3
+
+global(gs_quotedlocal)=1
+local(gs_quotedlocal "s")=2
+gs_quotedlocal=3

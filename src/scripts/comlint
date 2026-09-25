@@ -18,9 +18,12 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
     print("Flags a call passing fewer positional arguments than the\n");
     print("command requires, a :keyword the command doesn't declare in\n");
-    print("its own signature or dockeys(), or a plain assignment (name=\n");
+    print("its own signature or dockeys(), a plain assignment (name=\n");
     print("value, or a compound += form) to a name that also names a\n");
-    print("registered command. Never executes the target script.\n\n");
+    print("registered command, or a bare write to a name already\n");
+    print("declared global() earlier in the script (see doc/LANGUAGE.md\n");
+    print("for how local()/func() scoping and global(:clear) narrow\n");
+    print("this last check). Never executes the target script.\n\n");
     print("A call using a keyword skips the positional-arity check (an\n");
     print("alternate calling convention it can't validate) but still gets\n");
     print("its keyword names checked. Statements spanning multiple lines\n");
@@ -35,7 +38,7 @@ if(program==nil :then program="comterp")
 
 if(program!="comterp" && arg(3)!="direct" :then
   /* comdraw/drawserv's -runfile has no argv-forwarding to arg(n) the
-     way comterp's `run` subcommand does (#530), so this same script
+     way comterp's `run` subcommand does, so this same script
      can't just be invoked under $program directly and see its own
      positional arguments the normal way. Instead, shell out
      (shell()/open(:pipe) both exist in ComTerp) to $program with a
@@ -92,7 +95,7 @@ if(program!="comterp" && arg(3)!="direct" :then
 
   /* tmppath is only somewhat unpredictable (time + a random suffix)
      in shared /tmp, with no atomic-create primitive available from
-     ComTerp (open() has no :excl/O_EXCL equivalent -- see #533), so
+     ComTerp (open() has no :excl/O_EXCL equivalent), so
      this is a best-effort mitigation against guessing, not a real
      fix for the underlying TOCTOU/symlink race */
   selfpath=arg(0);
@@ -155,19 +158,44 @@ incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 wschars=" \t"
 
+/* names seen as the lvalue of a global(name)=... assignment so far, and
+   the line each was first seen -- only that assign form actually
+   creates the table entry (confirmed against real runs: a bare read
+   global(name), with no "=value", never does, not even the multi-arg
+   global(a b) form -- see the assignment-text scan's comment, in the
+   main loop below, on how the assign/clear forms are recognized).
+   flaggedglobal is the subset already reported, so a name bare-written
+   many times after its global()=... only gets one finding. clearedglobal
+   is the subset later cleared via the bare, valueless global(name
+   :clear) -- once cleared, a name is never flagged again even if it's
+   later re-seen in globalnames without an intervening fresh
+   global(name)=... registration, trading a possible missed
+   re-declaration for no false positive; a fresh global(name)=... after
+   a clear removes the name from clearedglobal again, matching the real
+   table (confirmed: global(x)=1;global(x :clear);global(x)=2;x=3;
+   global(x) reads 3). localnames is the set ever named as the lvalue of
+   a local(name)=... assignment anywhere in the script -- local()
+   searches before global() (see comterp.c's "func scope -> local ->
+   global" order), so a later bare write to a name in localnames lands
+   in the local table, not the global one, whatever global() also
+   declared -- suppressed permanently once seen, the same conservative
+   trade-off as clearedglobal. */
+globalnames=list();globallines=list();flaggedglobal=list()
+clearedglobal=list();localnames=list()
+
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
    running paren DEPTH across the whole statement -- and only handed to
    postfix() once balanced back to zero, joined with '\n' exactly as it
    appeared in the source. postfix() (like eval()/help() elsewhere in
    this script) parses without ever firing the statement, so buffering
-   never risks executing target script code (#521-safe) -- PROVIDED the
+   never risks executing target script code -- PROVIDED the
    depth never goes negative mid-statement: a premature ')' would close
    this script's own postfix(%s) wrapper early, and anything after it up
    to the next ';' becomes a second, independently-executed top-level
    statement once eval() sees the interpolated string. stmtbad latches
    that condition so the whole statement is rejected outright, whatever
-   its FINAL balance settles to (#609-security). ';' itself needs no
+   its FINAL balance settles to. ';' itself needs no
    special casing: it's ComTerp's own sequencing operator, so a line
    with balanced parens containing one is already a single complete,
    checkable statement -- postfix() reads "x=1;y=2" as one seq[...] node
@@ -252,7 +280,7 @@ while((srcline=gets(fp))!=nil
   /* flag a plain assignment (name=value, or a +=/-=/etc. compound form)
      to a symbol name that also names a registered command -- assigning
      to it this way either warns and no-ops (a bare command, no args)
-     or silently rebinds it out from under every later call, per #536.
+     or silently rebinds it out from under every later call.
      A pure text scan of stmt: only the raw '=' and the identifier
      immediately before it matter, so no postfix() token is needed.
      Dot-attribute assignment (a.name=...) is excluded by requiring the
@@ -262,25 +290,178 @@ while((srcline=gets(fp))!=nil
      next '\n' -- stmt can join several source lines) is never scanned
      as code. */
   schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;slcmt=0;
+  /* one entry per currently open '(' -- kind is "func", "scope" (a
+     global(/local( call), or "other"; scopename/argtext/argok are
+     only meaningful for a "scope" entry, but every open paren pushes
+     one of each so the stacks stay in lockstep and a plain ')' can
+     always pop by position regardless of kind. argtext accumulates
+     this frame's argument text char-by-char as the SAME loop that
+     already tracks strings/comments/escapes below visits it (so a
+     quoted ')' or a '// comment' inside the argument is handled by
+     the one correct implementation, not a second one); argok goes
+     false the moment a nested '(' opens within it, since global(sym)/
+     local(sym)'s one argument is only ever recognizable as a
+     declaration when it's a bare symbol (optionally "sym :clear") --
+     anything built from a nested call (global(symadd(dynamic)), a
+     real, valid call per a real run) can't be resolved to a name
+     statically, so it's left unregistered rather than guessed at. */
+  parenkind=list();parenscopename=list();parenargtext=list();parenargok=list();
+  funcdepthcount=0;
   while(ssi<ssz
     sc=at(schars ssi);
     ssi=ssi+1;
+    /* whether this char lands inside a still-open scope-call's argument,
+       decided from the stack state left by prior iterations -- computed
+       once up front so every early-continue branch below (string/char
+       literal content, an escaped char) can still append its character
+       to that frame's argtext before skipping the rest of the loop body,
+       instead of only the fallthrough case at the bottom reaching it;
+       a quoted argument's content (e.g. the "s" in global(x "s")=1) is
+       argument text like any other and must count toward its token
+       total, same as an unquoted one -- only true comment text (already
+       excluded by the slcmt check above) and this frame's own enclosing
+       parens are not part of the argument. */
+    inscopearg=(size(parenkind)>0 && at(parenkind nil)=="scope");
     if(sc=='\n' :then slcmt=0;continue);
     if(slcmt>0 :then continue);
-    if(sescape>0 :then sescape=0;continue);
-    if(sc=='\\' :then sescape=1;continue);
+    if(sescape>0 :then sescape=0;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
+    if(sc=='\\' :then sescape=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
     if(sinstr>0 :then
       if(sc=='"' :then sinstr=0);
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
       continue);
     if(sinchr>0 :then
       if(sc=='\'' :then sinchr=0);
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
       continue);
-    if(sc=='"' :then sinstr=1;continue);
-    if(sc=='\'' :then sinchr=1;continue);
+    if(sc=='"' :then sinstr=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
+    if(sc=='\'' :then sinchr=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
     if(sc=='/' :then
       snc=' ';
       if(ssi<ssz :then snc=at(schars ssi));
       if(snc=='/' :then slcmt=1;continue));
+
+    /* a bare write inside a func(...) literal's body lands in that
+       call's own frame, never in a same-named global, however outer
+       code declared it (confirmed against a real global(x)=1;
+       f=func(x=2;0);f(); run -- global(x) still reads 1 afterward) --
+       so track paren depth here too, tagging each '(' with whether the
+       identifier immediately before it is "func", and count how many
+       still-open parens are func-tagged. Popped with at(:del) (list has
+       no other stack-pop primitive); a non-func paren's close is a
+       no-op on the count. */
+    if(sc=='(' :then
+      /* the identifier immediately before '(' may have whitespace
+         between it and the paren (confirmed valid: global (x)=1 still
+         registers x for a real global(x) read afterward), and a
+         dot-call's '.' may have whitespace after it too (confirmed:
+         postfix(obj. global(x)) still tags dot[2|0|1]*) -- so skip
+         whitespace on both sides of the identifier before checking
+         either boundary. */
+      fbpos=ssi-2;
+      while(fbpos>=0 && index(wschars at(schars fbpos))!=nil
+        fbpos=fbpos-1);
+      fbnameend=fbpos;
+      while(fbpos>=0 && index(idchars at(schars fbpos))!=nil
+        fbpos=fbpos-1);
+      fbname="";fbi=fbpos+1;
+      while(fbi<=fbnameend
+        fbname=fbname+at(schars fbi);
+        fbi=fbi+1);
+      dotpos=fbpos;
+      while(dotpos>=0 && index(wschars at(schars dotpos))!=nil
+        dotpos=dotpos-1);
+      /* obj.func(...)/obj.global(...)/obj.local(...) call a method on
+         obj -- unrelated to the same-named builtin -- so an identifier
+         match alone isn't enough; require it not be a dot-call by
+         checking the nearest non-whitespace character before it isn't
+         '.' */
+      fbisdot=(dotpos>=0 && at(schars dotpos)=='.');
+      fbisfunc=(fbname=="func" && !fbisdot);
+
+      /* global(sym)/local(sym) (optionally "sym :clear") are the only
+         forms that touch the table -- see the comment by globalnames
+         above. Their argument is read as raw text (rather than
+         reconstructed from postfix(), whose trailing '*' marks
+         post-eval status, not a statement boundary -- confirmed via a
+         real run showing list(1)'s own call token is starred exactly
+         like assign's) by the SAME char-by-char loop this whole
+         function already runs, via the parenkind/parenargtext stacks
+         below -- not a separate scan -- so a quoted ')' or a
+         '// comment' inside the argument is handled by the one
+         string/comment-aware implementation this loop already has,
+         and an embedded '=' deeper in the argument (e.g.
+         local(symadd("y"+print(x=2 :str)))=3) still reaches the
+         bare-write check below instead of being skipped over. */
+      isscopecall=((fbname=="global"||fbname=="local") && !fbisdot);
+      parenkind=parenkind,if(fbisfunc :then "func" :else if(isscopecall :then "scope" :else "other"));
+      parenscopename=parenscopename,if(isscopecall :then fbname :else "");
+      parenargtext=parenargtext,"";
+      parenargok=parenargok,true;
+      if(fbisfunc :then funcdepthcount=funcdepthcount+1);
+      continue);
+    if(sc==')' :then
+      if(size(parenkind)>0 :then
+        wasfunc=at(parenkind nil :del);
+        wasscopename=at(parenscopename nil :del);
+        wasargtext=at(parenargtext nil :del);
+        wasargok=at(parenargok nil :del);
+        if(wasfunc=="func" :then funcdepthcount=funcdepthcount-1);
+        if(wasfunc=="scope" :then
+          wsi=ssi;
+          while(wsi<ssz && index(wschars at(schars wsi))!=nil
+            wsi=wsi+1);
+          isassigncall=false;
+          if(wsi<ssz && at(schars wsi)=='=' :then
+            wnc=' ';
+            if(wsi+1<ssz :then wnc=at(schars wsi+1));
+            if(wnc!='=' :then isassigncall=true));
+
+          argtoks=split(wasargtext :tokstr);
+          gname=nil;isclear=false;
+          if(wasargok && size(argtoks)>=1 :then gname=at(argtoks 0));
+          if(wasargok && size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
+
+          /* global(x :clear)=val is itself malformed -- confirmed via
+             a real run that it warns "assignment to something other
+             than a symbol ... ignored" and does nothing beyond the
+             clear -- so isclear (an unambiguous, self-contained
+             effect) always wins over a trailing '=' that never
+             actually lands */
+          if(wasargok && isclear && wasscopename=="global" :then
+            if(index(clearedglobal gname)==nil :then
+              clearedglobal=clearedglobal,gname));
+          if(wasargok && !isclear && isassigncall && size(argtoks)==1 && gname!=nil :then
+            if(wasscopename=="global" :then
+              gcidx=index(clearedglobal gname);
+              if(gcidx!=nil :then at(clearedglobal gcidx :del));
+              if(index(globalnames gname)==nil :then
+                globalnames=globalnames,gname;
+                globallines=globallines,stmtline));
+            if(wasscopename=="local" :then
+              if(index(localnames gname)==nil :then
+                localnames=localnames,gname)))));
+      /* a nested '(' inside a still-open scope-call's argument means
+         that argument isn't a bare symbol (e.g. global(symadd(dyn)),
+         a real, valid call per a real run) -- mark it unrecognizable
+         rather than guess at the name it might resolve to; done here,
+         after the pop above, against whatever is now the new top (the
+         frame this ')' actually closed already popped off) */
+      if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
+        at(parenargok size(parenargok)-1 :set false));
+      continue);
+
+    if(inscopearg :then
+      at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+
     if(sc!='=' :then continue);
 
     /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
@@ -319,6 +500,27 @@ while((srcline=gets(fp))!=nil
     while(nmi<=idend
       name=name+at(schars nmi);
       nmi=nmi+1);
+
+    /* a bare write to a name already established global earlier in this
+       script lands in that same global rather than a fresh local (a bare
+       write mirrors a bare read) -- flag it once per name, at its
+       first bare-write site after the global() that declared it.
+       Suppressed when the name was later global(:clear)ed, was ever named
+       in a local() call (local() shadows global() per comterp.c's lookup
+       order), or this write sits inside a func(...) body (its own frame,
+       never the global) -- see the comments by clearedglobal/localnames
+       and funcdepthcount above for why each is a permanent, one-way
+       suppression rather than a precise re-enable. */
+    gidx=index(globalnames name);
+    if(gidx!=nil && index(clearedglobal name)==nil &&
+      index(localnames name)==nil && funcdepthcount==0 &&
+      index(flaggedglobal name)==nil :then
+      flaggedglobal=flaggedglobal,name;
+      gline=at(globallines gidx);
+      print("%s:%v: global(%s) declares %s global here\n" target gline name name);
+      print("%s:%v: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is\n"
+        target stmtline name name name);
+      nflagged=nflagged+1);
 
     istypecmd=print("istype(%s CommandType)" name :str);
     isshadow=eval(istypecmd);
@@ -365,14 +567,30 @@ while((srcline=gets(fp))!=nil
     obsnkey=int(at(ctoks 1));
 
     /* dot-attribute access (a.name(...)) resolves to whatever a.name
-       is bound to, not the same-named global command -- postfix still
-       labels the call with the global command's arity, but tags it
-       with an immediately-following dot[...] token (postfix(a.b(1)) is
-       "a 1 b[1|0|1]* dot[2|0|1]*"), so skip only THIS occurrence
-       rather than searching stmt as a whole -- an unrelated bare call
+       is bound to, not the same-named global/local command -- postfix
+       still labels the call with the target command's arity, but tags
+       it with an immediately-following dot[...] token (postfix(a.b(1))
+       is "a 1 b[1|0|1]* dot[2|0|1]*"), so a dot-called global()/local()
+       (e.g. obj.global(x), a real method call, not the declaration --
+       confirmed via postfix(x.global(a)) tagging it dot[2|0|1]*) never
+       registers a declaration below, and is skipped for the
+       arity/keyword checks further down too -- an unrelated bare call
        of the same name elsewhere in the statement still gets checked */
+    /* dot-attribute access (a.name(...)) resolves to whatever a.name
+       is bound to, not the same-named global/local command -- postfix
+       still labels the call with the target command's arity, but tags
+       it with an immediately-following dot[...] token (postfix(a.b(1))
+       is "a 1 b[1|0|1]* dot[2|0|1]*"), so a dot-called global()/local()
+       (e.g. obj.global(x), a real method call, not the declaration --
+       confirmed via postfix(x.global(a)) tagging it dot[2|0|1]*) is
+       skipped for the arity/keyword checks further down -- an
+       unrelated bare call of the same name elsewhere in the statement
+       still gets checked. (Registering a global()/local() declaration
+       itself happens earlier, in the assignment-text scan above --
+       see the comment there for why postfix() isn't used for that.) */
     nexttok=at(toks ti);
-    if(substr(nexttok 4)=="dot[" :then continue);
+    isdotcall=(substr(nexttok 4)=="dot[");
+    if(isdotcall :then continue);
 
     nchecked=nchecked+1;
 
@@ -516,7 +734,7 @@ while((srcline=gets(fp))!=nil
       required=required+1);
 
     if(obsnarg<required :then
-      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse (#521/#265-class); check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
+      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
         target stmtline name obsnarg name required);
       nflagged=nflagged+1)))
 
