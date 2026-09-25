@@ -1,5 +1,5 @@
 // src/comterp_/tests/comlint_globalshadow.comt -- regression test for
-// comlint's #562 global-shadow check: asserts its exact diagnostic
+// comlint's global-shadow check: asserts its exact diagnostic
 // output on two fixture scripts, rather than only that comlint runs
 // without crashing -- a false positive or false negative here is
 // silent (comlint just prints nothing extra and exits 0), so the
