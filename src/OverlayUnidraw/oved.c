@@ -437,3 +437,11 @@ MoveCmd* OverlayEditor::MakeMoveCmd(float dx, float dy) {
     return overlay_kit()->make_move_cmd(this, dx, dy);
 }
 
+ScaleCmd* OverlayEditor::MakeScaleCmd(float sx, float sy, Alignment a) {
+    return overlay_kit()->make_scale_cmd(this, sx, sy, a);
+}
+
+RotateCmd* OverlayEditor::MakeRotateCmd(float angle) {
+    return overlay_kit()->make_rotate_cmd(this, angle);
+}
+

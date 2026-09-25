@@ -1705,7 +1705,8 @@ void ScaleFunc::execute() {
     ScaleCmd* cmd = nil;
 
     if (fx > 0.0  || fy > 0.0) {
-	cmd = new ScaleCmd(_ed, fx, fy);
+	OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_scale_cmd(_ed, fx, fy);
 	execute_log(cmd);
     }
 
@@ -1723,7 +1724,8 @@ void RotateFunc::execute() {
 
     RotateCmd* cmd = nil;
 
-    cmd = new RotateCmd(_ed, rf);
+    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+    cmd = kit->make_rotate_cmd(_ed, rf);
 
     execute_log(cmd);
 }

@@ -429,6 +429,27 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case LINK_SCALE_CMD:
+      {
+	/* the resulting transform depends on each comp's own alignment
+	   point, so Execute() runs first and dist_script() reads it back --
+	   see LinkScaleCmd's class comment, same ordering as front()/back(). */
+	cmd->Execute();
+	const char* script = ((LinkScaleCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkScaleCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
+      case LINK_ROTATE_CMD:
+      {
+	cmd->Execute();
+	const char* script = ((LinkRotateCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkRotateCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
       default:
 	cmd->Execute();
 	break;

@@ -45,5 +45,7 @@
 #define LINK_FRONT_CMD      9811
 #define LINK_BACK_CMD       9812
 #define LINK_MOVE_CMD       9813
+#define LINK_SCALE_CMD      9814
+#define LINK_ROTATE_CMD     9815
 
 #endif
