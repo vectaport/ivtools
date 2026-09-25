@@ -219,8 +219,12 @@ carousel=(
 
   // carousel.next() -- advance by one photo: the front photo exits past
   // the back, everything else slides one slot forward, and the next
-  // library photo spins in from the back to fill the gap.
+  // library photo spins in from the back to fill the gap. A no-op while
+  // zoomed in (full) -- every slot's animation assumes it starts from its
+  // normal carousel geometry, which isn't where the center photo is while
+  // full screen; zoomout() first to rotate.
   :next func(
+    if(full :then return(nil));
     exiting=img0;
     entrant=at(imgs nextlib);
     expw=at(libw d0); exph=at(libh d0);
@@ -277,8 +281,10 @@ carousel=(
   // carousel.prev() -- spin the other way: the back photo exits past the
   // front, everything else slides one slot backward, and the library
   // photo just before the current deck spins in from the front to fill
-  // the gap. Exact mirror image of next() -- see its comment above.
+  // the gap. Exact mirror image of next() -- see its comment above,
+  // including the zoomed-in no-op.
   :prev func(
+    if(full :then return(nil));
     exiting=img4;
     entlib=mod(d0-1+n n);
     entrant=at(imgs entlib);

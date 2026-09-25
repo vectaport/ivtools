@@ -115,5 +115,20 @@ carousel.zoomout()
 ok=ok&&(carousel.full==0)&&mbrsclose(mbr(carousel.img2) m2_before_zoom)
 print("7d redundant zoomout() is a no-op (expect full=0, same geometry): full=%v\n" carousel.full)
 
+// --- test 8: next()/prev() are no-ops while zoomed in -- the deck (and
+//             the fullscreen geometry) must not move until zoomout() --
+//             then rotation resumes working normally ---
+carousel.zoomin()
+d0_before_rotate=carousel.d0; m2_full_before_rotate=mbr(carousel.img2)
+carousel.next()
+ok=ok&&(carousel.d0==d0_before_rotate)&&(carousel.full==1)&&mbrsclose(mbr(carousel.img2) m2_full_before_rotate)
+carousel.prev()
+ok=ok&&(carousel.d0==d0_before_rotate)&&(carousel.full==1)&&mbrsclose(mbr(carousel.img2) m2_full_before_rotate)
+print("8 next()/prev() are no-ops while zoomed in (expect d0=%v, full=1, unmoved): d0=%v full=%v\n" d0_before_rotate carousel.d0 carousel.full)
+carousel.zoomout()
+carousel.next()
+ok=ok&&(carousel.d0==mod(d0_before_rotate+1 n))&&(carousel.full==0)
+print("8b rotation resumes after zoomout() (expect d0=%v): d0=%v\n" mod(d0_before_rotate+1 n) carousel.d0)
+
 print("carousel: %v\n" ok)
 ok
