@@ -103,6 +103,10 @@ if(run("./import.comt")
   :then print("pass: import\n")
   :else print("FAIL: import\n");ok=false)
 
+if(run("./frontback.comt")
+  :then print("pass: frontback\n")
+  :else print("FAIL: frontback\n");ok=false)
+
 if(run("./carousel.comt")
   :then print("pass: carousel\n")
   :else print("FAIL: carousel\n");ok=false)
