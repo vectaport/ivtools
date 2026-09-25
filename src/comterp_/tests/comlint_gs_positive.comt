@@ -22,7 +22,10 @@
 // argument list (a local(symadd(...)) call whose argument text
 // contains "gs_embedded=..."), so it isn't skipped over just because
 // it's inside a paren the scan is also using to look for a
-// declaration.
+// declaration; gs_quotedlocal's local(name "s") passes a quoted
+// second positional argument -- rejected by the runtime without
+// creating a local shadow -- so the earlier global declaration still
+// stands and the later bare write still lands in that global.
 
 global(gs_p)=1
 gs_p=2
@@ -50,3 +53,7 @@ gs_cmtparen=2
 
 global(gs_embedded)=1
 local(symadd("y"+print(gs_embedded=2 :str)))=3
+
+global(gs_quotedlocal)=1
+local(gs_quotedlocal "s")=2
+gs_quotedlocal=3
