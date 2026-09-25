@@ -1795,6 +1795,12 @@ transform_test=func(
   sock2=socket("127.0.0.1" ds2_port);
   if(!sock1 || !sock2 :then
     print("transform: FAIL could not connect to both nodes\n" :err);
+    /* close whichever socket did connect before killing by port -- lsof
+       matches a live client connection to a port as well as its listener,
+       so killing by port while our own socket is still open risks killing
+       this test runner instead of (or as well as) the target node. */
+    if(sock1 :then close(sock1));
+    if(sock2 :then close(sock2));
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
