@@ -9,9 +9,13 @@
 // against a real run), a bare global(name) read used only as someone
 // else's rvalue (never the lvalue-assign form itself), a global()
 // call passing more than one positional argument (never the assign
-// form either), and a local()=val declaration that shares a statement
-// (joined with ';') with a later expression, so its own assign is not
-// the outermost postfix token of the whole buffered statement.
+// form either), a local()=val declaration that shares a statement
+// (joined with ';') with a later expression, a bare global() read
+// nested as an argument inside another call whose own postfix token
+// happens to be tagged like assign's (list(), a post-eval command),
+// and a global(name :clear)=val compound -- confirmed by a real run to
+// warn and leave the value assignment a no-op, but the clear itself
+// still lands, so a later bare write is not a global write either.
 
 obj.global(gs_dot)
 gs_dot=1
@@ -45,3 +49,10 @@ gs_nested=1
 global(gs_joinedlocal)=1
 local(gs_joinedlocal)=2;print(0)
 gs_joinedlocal=3
+
+gs_argread=print(list() global(gs_argread) :str)
+gs_argread=1
+
+global(gs_clearassign)=1
+global(gs_clearassign :clear)=99
+gs_clearassign=2

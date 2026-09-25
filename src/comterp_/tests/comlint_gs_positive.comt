@@ -8,7 +8,11 @@
 // global(gs_reclear)=2 after being cleared, which un-clears it;
 // gs_joined's declaration shares a statement (joined with ';') with a
 // later expression, so its assign is not the statement's outermost
-// postfix token -- still recognized as the lvalue form.
+// postfix token -- still recognized as the lvalue form; gs_nestedrhs's
+// declaration's value is itself a call (list(1)), a post-eval command
+// whose own postfix token is tagged just like assign's -- still
+// recognized as the lvalue form, not mistaken for the whole
+// declaration's end.
 
 global(gs_p)=1
 gs_p=2
@@ -23,3 +27,6 @@ gs_reclear=3
 
 global(gs_joined)=1;print(0)
 gs_joined=2
+
+global(gs_nestedrhs)=list(1)
+gs_nestedrhs=2

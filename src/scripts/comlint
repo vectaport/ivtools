@@ -162,7 +162,8 @@ wschars=" \t"
    the line each was first seen -- only that assign form actually
    creates the table entry (confirmed against real runs: a bare read
    global(name), with no "=value", never does, not even the multi-arg
-   global(a b) form -- see the assign-detection comment below).
+   global(a b) form -- see the assignment-text scan's comment, in the
+   main loop below, on how the assign/clear forms are recognized).
    flaggedglobal is the subset already reported, so a name bare-written
    many times after its global()=... only gets one finding. clearedglobal
    is the subset later cleared via the bare, valueless global(name
@@ -327,12 +328,74 @@ while((srcline=gets(fp))!=nil
       while(fbi<=ssi-2
         fbname=fbname+at(schars fbi);
         fbi=fbi+1);
-      /* obj.func(...) calls a method literally named "func" on obj --
-         unrelated to the func(...) closure-literal builtin -- so an
-         identifier match alone isn't enough; require it not be a
-         dot-call by checking the character right before it isn't '.' */
+      /* obj.func(...)/obj.global(...)/obj.local(...) call a method on
+         obj -- unrelated to the same-named builtin -- so an identifier
+         match alone isn't enough; require it not be a dot-call by
+         checking the character right before it isn't '.' */
       fbisdot=(fbpos>=0 && at(schars fbpos)=='.');
       fbisfunc=(fbname=="func" && !fbisdot);
+
+      /* global(sym)/local(sym) (optionally "sym :clear") are the only
+         forms that touch the table -- see the comment by globalnames
+         above -- and their one argument is always a bare symbol, per
+         their own docstring signature, never a nested call. So rather
+         than reconstruct this from postfix() (whose trailing '*' marks
+         post-eval status, not a statement boundary -- confirmed via a
+         real run showing list(1)'s own call token is starred exactly
+         like assign's, which broke an earlier postfix-token-scanning
+         version of this check on any RHS or argument built from a
+         post-eval command such as list()), read the argument text
+         directly: scan forward to this paren's matching close (depth-
+         tracked, though a symbol argument never nests one), then check
+         whether a bare '=' (not '==') follows. */
+      isscopecall=((fbname=="global"||fbname=="local") && !fbisdot);
+      if(isscopecall :then
+        scopedepth=1;argtext="";sci=ssi;
+        while(sci<ssz && scopedepth>0
+          scc=at(schars sci);
+          sci=sci+1;
+          if(scc=='(' :then scopedepth=scopedepth+1;argtext=argtext+scc;continue);
+          if(scc==')' :then
+            scopedepth=scopedepth-1;
+            if(scopedepth==0 :then continue);
+            argtext=argtext+scc;continue);
+          argtext=argtext+scc);
+
+        wsi=sci;
+        while(wsi<ssz && index(wschars at(schars wsi))!=nil
+          wsi=wsi+1);
+        isassigncall=false;
+        if(wsi<ssz && at(schars wsi)=='=' :then
+          wnc=' ';
+          if(wsi+1<ssz :then wnc=at(schars wsi+1));
+          if(wnc!='=' :then isassigncall=true));
+
+        argtoks=split(argtext :tokstr);
+        gname=nil;isclear=false;
+        if(size(argtoks)>=1 :then gname=at(argtoks 0));
+        if(size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
+
+        /* global(x :clear)=val is itself malformed -- confirmed via a
+           real run that it warns "assignment to something other than
+           a symbol ... ignored" and does nothing beyond the clear --
+           so isclear (an unambiguous, self-contained effect) always
+           wins over a trailing '=' that never actually lands */
+        if(isclear && fbname=="global" :then
+          if(index(clearedglobal gname)==nil :then
+            clearedglobal=clearedglobal,gname));
+        if(!isclear && isassigncall && size(argtoks)==1 && gname!=nil :then
+          if(fbname=="global" :then
+            gcidx=index(clearedglobal gname);
+            if(gcidx!=nil :then at(clearedglobal gcidx :del));
+            if(index(globalnames gname)==nil :then
+              globalnames=globalnames,gname;
+              globallines=globallines,stmtline));
+          if(fbname=="local" :then
+            if(index(localnames gname)==nil :then
+              localnames=localnames,gname)));
+
+        ssi=sci;continue);
+
       parenisfunc=parenisfunc,fbisfunc;
       if(fbisfunc :then funcdepthcount=funcdepthcount+1);
       continue);
@@ -456,97 +519,20 @@ while((srcline=gets(fp))!=nil
        registers a declaration below, and is skipped for the
        arity/keyword checks further down too -- an unrelated bare call
        of the same name elsewhere in the statement still gets checked */
+    /* dot-attribute access (a.name(...)) resolves to whatever a.name
+       is bound to, not the same-named global/local command -- postfix
+       still labels the call with the target command's arity, but tags
+       it with an immediately-following dot[...] token (postfix(a.b(1))
+       is "a 1 b[1|0|1]* dot[2|0|1]*"), so a dot-called global()/local()
+       (e.g. obj.global(x), a real method call, not the declaration --
+       confirmed via postfix(x.global(a)) tagging it dot[2|0|1]*) is
+       skipped for the arity/keyword checks further down -- an
+       unrelated bare call of the same name elsewhere in the statement
+       still gets checked. (Registering a global()/local() declaration
+       itself happens earlier, in the assignment-text scan above --
+       see the comment there for why postfix() isn't used for that.) */
     nexttok=at(toks ti);
     isdotcall=(substr(nexttok 4)=="dot[");
-
-    /* Only the single-positional-argument forms of global()/local() do
-       anything the table can observe: the bare valueless clear
-       global(sym :clear), and the lvalue assign global(sym)=val. A
-       bare read global(sym) -- with no ":clear" and no "=val" -- never
-       creates a binding (confirmed: global(x);x=2;print(global(x))
-       reads nil), and neither does the multi-arg bare form
-       global(a b) (confirmed: both a and b come back nil too, and
-       global(a b)=val is not even valid syntax -- ComTerp warns
-       "assignment to something other than a symbol ... ignored" and
-       does nothing, since one value can't assign to a list of names).
-       So obsnarg==1 gates entry to this whole block; anything else
-       (a bare multi-name read, or the malformed global(x :clear
-       false)/global(x :clear true) -- which parse with a stray second
-       positional and just warn at runtime -- see doc/LANGUAGE.md) is
-       left untouched rather than guessed at. */
-    if((name=="global" || name=="local") && obsnarg==1 && !isdotcall :then
-      gkidx=ti-2;isclear=false;iskeyok=(obsnkey<=1);
-      if(obsnkey==1 :then
-        gktok=at(toks gkidx);
-        gkidx=gkidx-1;
-        gkname=nil;
-        gkp=index(gktok "(");
-        if(gkp!=nil :then gkname=substr(gktok "("));
-        if(gkname==":clear" :then isclear=true :else iskeyok=false));
-
-      if(iskeyok :then
-        gtok=at(toks gkidx);
-        gkidx=gkidx-1;
-        glb=index(gtok "[");
-        gname=gtok;
-        if(glb!=nil :then gname=substr(gtok "["));
-
-        if(isclear :then
-          if(name=="global" :then
-            if(index(clearedglobal gname)==nil :then
-              clearedglobal=clearedglobal,gname))
-          :else
-          /* the assign form -- a trailing '*' on a bracket-tagged token
-             marks it the root of one complete top-level ';'-joined
-             unit (confirmed: postfix(global(x)=1;print(0)) is "x
-             global[1|0|1] 1 assign[2|0|1]* 0 print[1|0|1] seq[2|0|1]*"
-             -- assign, not the statement's true last token seq[...],
-             is what's starred for our unit). So "nothing precedes this
-             call within its own unit" is gkidx==-1 (the call starts
-             the whole postfix stream) OR the token right before it is
-             itself '*'-marked (the end of a prior unit in the same
-             ';'-chain, confirmed against the local(y)=2 half of
-             postfix(global(y)=1;local(y)=2;print(0))). Given that,
-             the call is the lvalue iff the FIRST '*'-marked token
-             scanned forward from it is an assign/*_assign -- postfix
-             is strictly compositional, so that first star is exactly
-             this call's immediate enclosing unit, never a later
-             statement's. This is what distinguishes the lvalue form
-             from a bare read used as someone else's rvalue or
-             argument -- e.g. x=global(y) postfixes as "x y
-             global[1|0|1] assign[2|0|1]*", where global(y)'s own
-             argument "y" sits at index 1, not 0, because "x" was
-             pushed first, so its precedes-check fails. */
-          precedesok=(gkidx==-1);
-          if(!precedesok && gkidx>=0 :then
-            ptok=at(toks gkidx);
-            precedesok=(substr(ptok size(ptok)-1 :after)=="*"));
-
-          isassign=false;
-          if(precedesok :then
-            fwi=ti;fwfound=false;
-            while(fwi<size(toks) && !fwfound
-              fwtok=at(toks fwi);
-              fwi=fwi+1;
-              if(substr(fwtok size(fwtok)-1 :after)!="*" :then continue);
-              fwfound=true;
-              if(index(fwtok "assign[")!=nil :then isassign=true)));
-
-          if(isassign && name=="global" :then
-            /* a fresh assign always un-clears the name, whether or
-               not it was already in globalnames from an earlier
-               declaration -- otherwise a clear/redeclare/clear-again
-               cycle would leave a stale clearedglobal entry no later
-               assign ever removes */
-            gcidx=index(clearedglobal gname);
-            if(gcidx!=nil :then at(clearedglobal gcidx :del));
-            if(index(globalnames gname)==nil :then
-              globalnames=globalnames,gname;
-              globallines=globallines,stmtline));
-          if(isassign && name=="local" :then
-            if(index(localnames gname)==nil :then
-              localnames=localnames,gname)))));
-
     if(isdotcall :then continue);
 
     nchecked=nchecked+1;

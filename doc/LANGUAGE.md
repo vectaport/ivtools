@@ -525,9 +525,14 @@ this last suppression checks for a literal, undotted `func(...)`, so a
 method call named `func` on some object (`obj.func(x=1)`) is never
 mistaken for it. A dot-called `global()`/`local()` (`obj.global(x)`)
 is a method call on `obj`, not the declaration, and is never treated as
-one. Not yet checked: `x++`/`--x` against a declared global, and a
-`global()`/`local()` appearing later in the same multi-line statement
-as the write it should affect (both left for a future pass).
+one. A `global(name)`/`local(name)` declaration is recognized as such
+regardless of where it sits in a multi-line or `;`-joined statement
+(`global(x)=1;print(0)` still registers `x`) and regardless of what its
+value expression is, including one built from another call
+(`global(x)=list(1)`); a bare `global(name)` read nested as an argument
+inside some other call is never mistaken for a declaration either
+(`y=print(list() global(x) :str)` registers nothing). Not yet checked:
+`x++`/`--x` against a declared global.
 
 ## Arguments: Fixed Before Keywords — Always
 
