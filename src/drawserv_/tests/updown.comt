@@ -1771,7 +1771,12 @@ transform_test=func(
   while(!global(drawserv_uptf1) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_uptf1) :then
     print("transform: FAIL ds1 did not come up\n" :err);
-    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    /* kill by the drawserv process's own -comdraw port on its command line
+       (same '[d]rawserv' pattern used for shutdown confirmation below),
+       not by port occupancy -- kill_port's lsof-by-port lookup can match
+       an unrelated process that later bound the same port, or (once a
+       socket() connects below) this test runner's own client socket. */
+    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
     return(false));
   print("transform: ds1 up on %d\n" ds1_port :err);
 
@@ -1786,8 +1791,8 @@ transform_test=func(
   while(!global(drawserv_uptf2) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_uptf2) :then
     print("transform: FAIL ds2 did not come up\n" :err);
-    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
-    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
   print("transform: ds2 up on %d\n" ds2_port :err);
 
@@ -1795,14 +1800,10 @@ transform_test=func(
   sock2=socket("127.0.0.1" ds2_port);
   if(!sock1 || !sock2 :then
     print("transform: FAIL could not connect to both nodes\n" :err);
-    /* close whichever socket did connect before killing by port -- lsof
-       matches a live client connection to a port as well as its listener,
-       so killing by port while our own socket is still open risks killing
-       this test runner instead of (or as well as) the target node. */
     if(sock1 :then close(sock1));
     if(sock2 :then close(sock2));
-    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
-    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
 
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
