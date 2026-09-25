@@ -9,11 +9,11 @@
 // the back; prev() is its exact mirror, exiting past the front and
 // spinning the previous library photo in from the front.
 //
-//   run("src/comdraw/examples/carousel.comt")
-//   carousel.next()   // repeat to keep spinning forward
-//   carousel.prev()   // ...or backward
-//   carouseldrive()   // or drive it with Shift/CapsLock + left/right arrow
+// Start it like this:
 //
+//     comdraw -runfile src/comdraw/examples/carousel.comt
+//
+// Then try:   carousel.help()
 // carousel is one object (same bundling-data-and-behavior idiom as
 // zoomap.comt's zoo) rather than a script re-run with run(): next is a
 // func value parsed once, when carousel is built, and every later
@@ -319,6 +319,17 @@ carousel=(
     nextlib=mod(d4+1 n);
     front(img0); front(img4); front(img1); front(img3); front(img2);
     nil)
+
+  // carousel.help() -- remind me how to spin it (same idiom as
+  // etchasketch's etchhelp()/spirograph's spirohelp() -- short enough to
+  // fit the -comt pane with no scrolling)
+  :help func(
+    print("*** CAROUSEL HELP ***\n");
+    print("carousel.next()       -- spin forward one photo\n");
+    print("carousel.prev()       -- spin backward one photo\n");
+    print("carouseldrive([n])    -- drive with the keyboard, default n=1000 polls:\n");
+    print("                         hold Shift or turn Caps Lock on, then LEFT/RIGHT\n");
+    print("                         arrow to spin; Esc stops\n"))
 )
 
 // carouseldrive([n]) -- drive the carousel with the keyboard: hold Shift
@@ -347,3 +358,18 @@ carouseldrive=func(
 print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
 handles(prevhandles)
 update()
+
+// ============================================================
+// welcome!  (same banner-with-runnable-examples idiom as etchasketch.comt
+// and spirograph.comt -- ctrl-p up to one of the lines below, in the -comt
+// pane, and hit return to run it)
+// ============================================================
+print("\n=================================================\n")
+print("   WELCOME TO YOUR PHOTO CAROUSEL!\n")
+print("   5 photos are on stage, center one full-size.\n")
+print("   Try typing:\n")
+print("       carousel.next()\n")
+print("       carousel.prev()\n")
+print("       carouseldrive()\n")
+print("       carousel.help()    <- shows all the magic words\n")
+print("=================================================\n")
