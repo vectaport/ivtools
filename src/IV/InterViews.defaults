@@ -1,6 +1,7 @@
 *PopupWindow*overlay: false
 *PopupWindow*saveUnder: on
 *TransientWindow*saveUnder: on
+*ApplicationWindow*backingStore: on
 *background: #ffffff
 *brush_width: 0
 *double_buffered: on

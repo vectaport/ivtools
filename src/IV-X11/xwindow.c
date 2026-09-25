@@ -874,6 +874,12 @@ ApplicationWindow::ApplicationWindow(Glyph* g, const char* display)
 
 ApplicationWindow::~ApplicationWindow() { }
 
+void ApplicationWindow::set_attributes() {
+    Style& s = *style();
+    s.alias("ApplicationWindow");
+    ManagedWindow::set_attributes();
+}
+
 void ApplicationWindow::compute_geometry() {
     WindowRep& wr = *Window::rep();
     CanvasRep& c = *wr.canvas_->rep();

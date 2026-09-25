@@ -159,6 +159,7 @@ public:
 protected:
     virtual void compute_geometry();
     virtual void set_props();
+    virtual void set_attributes();
     const char* _otherdisplay;
 };
 
