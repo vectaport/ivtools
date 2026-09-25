@@ -7,9 +7,11 @@
 // re-clearing is a no-op, not a re-registration), a bare multi-name
 // global(a b) (which never actually registers either name -- confirmed
 // against a real run), a bare global(name) read used only as someone
-// else's rvalue (never the lvalue-assign form itself), and a global()
+// else's rvalue (never the lvalue-assign form itself), a global()
 // call passing more than one positional argument (never the assign
-// form either).
+// form either), and a local()=val declaration that shares a statement
+// (joined with ';') with a later expression, so its own assign is not
+// the outermost postfix token of the whole buffered statement.
 
 obj.global(gs_dot)
 gs_dot=1
@@ -39,3 +41,7 @@ gs_read=1
 
 global(gs_nested symadd(dynamic))
 gs_nested=1
+
+global(gs_joinedlocal)=1
+local(gs_joinedlocal)=2;print(0)
+gs_joinedlocal=3

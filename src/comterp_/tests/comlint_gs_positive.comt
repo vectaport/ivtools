@@ -5,7 +5,10 @@
 // obj.func(...), a method call on obj literally named "func", not the
 // func(...) closure-literal builtin, so it does not get that builtin's
 // own-frame suppression; gs_reclear is re-declared with a fresh
-// global(gs_reclear)=2 after being cleared, which un-clears it.
+// global(gs_reclear)=2 after being cleared, which un-clears it;
+// gs_joined's declaration shares a statement (joined with ';') with a
+// later expression, so its assign is not the statement's outermost
+// postfix token -- still recognized as the lvalue form.
 
 global(gs_p)=1
 gs_p=2
@@ -17,3 +20,6 @@ global(gs_reclear)=1
 global(gs_reclear :clear)
 global(gs_reclear)=2
 gs_reclear=3
+
+global(gs_joined)=1;print(0)
+gs_joined=2

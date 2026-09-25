@@ -496,20 +496,41 @@ while((srcline=gets(fp))!=nil
             if(index(clearedglobal gname)==nil :then
               clearedglobal=clearedglobal,gname))
           :else
-          /* the assign form -- gkidx==-1 iff nothing precedes this
-             call's own argument in the statement's postfix, i.e. this
-             call itself is the very first thing evaluated; combined
-             with the statement's own outermost operation being an
-             assign, that's exactly the shape of name(sym)=val (or a
-             +=/-=/etc. compound). Confirmed this distinguishes it from
-             a bare read used as someone else's rvalue or argument --
-             e.g. x=global(y) postfixes as "x y global[1|0|1]
-             assign[2|0|1]*", where global(y)'s own argument "y" sits
-             at index 1, not 0, because "x" was pushed first. */
+          /* the assign form -- a trailing '*' on a bracket-tagged token
+             marks it the root of one complete top-level ';'-joined
+             unit (confirmed: postfix(global(x)=1;print(0)) is "x
+             global[1|0|1] 1 assign[2|0|1]* 0 print[1|0|1] seq[2|0|1]*"
+             -- assign, not the statement's true last token seq[...],
+             is what's starred for our unit). So "nothing precedes this
+             call within its own unit" is gkidx==-1 (the call starts
+             the whole postfix stream) OR the token right before it is
+             itself '*'-marked (the end of a prior unit in the same
+             ';'-chain, confirmed against the local(y)=2 half of
+             postfix(global(y)=1;local(y)=2;print(0))). Given that,
+             the call is the lvalue iff the FIRST '*'-marked token
+             scanned forward from it is an assign/*_assign -- postfix
+             is strictly compositional, so that first star is exactly
+             this call's immediate enclosing unit, never a later
+             statement's. This is what distinguishes the lvalue form
+             from a bare read used as someone else's rvalue or
+             argument -- e.g. x=global(y) postfixes as "x y
+             global[1|0|1] assign[2|0|1]*", where global(y)'s own
+             argument "y" sits at index 1, not 0, because "x" was
+             pushed first, so its precedes-check fails. */
+          precedesok=(gkidx==-1);
+          if(!precedesok && gkidx>=0 :then
+            ptok=at(toks gkidx);
+            precedesok=(substr(ptok size(ptok)-1 :after)=="*"));
+
           isassign=false;
-          if(gkidx==-1 :then
-            lasttok=at(toks size(toks)-1);
-            if(index(lasttok "assign[2|")!=nil :then isassign=true));
+          if(precedesok :then
+            fwi=ti;fwfound=false;
+            while(fwi<size(toks) && !fwfound
+              fwtok=at(toks fwi);
+              fwi=fwi+1;
+              if(substr(fwtok size(fwtok)-1 :after)!="*" :then continue);
+              fwfound=true;
+              if(index(fwtok "assign[")!=nil :then isassign=true)));
 
           if(isassign && name=="global" :then
             /* a fresh assign always un-clears the name, whether or
