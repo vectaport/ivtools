@@ -51,6 +51,26 @@
 #include <IV-X11/xevent.h>
 #include <IV-X11/xwindow.h>
 #include <OS/math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+/*
+ * Diagnostic tracing for the embedded-interactor rebind path
+ * (chrome-goes-black-on-resize investigation). Enabled at runtime via
+ * IVTOOLS_TRACE_RESIZE. Temporary: remove once the bug is root-caused
+ * and fixed.
+ */
+static boolean trace_resize_enabled() {
+    static int enabled = (getenv("IVTOOLS_TRACE_RESIZE") != nil) ? 1 : 0;
+    return boolean(enabled);
+}
+
+static double trace_resize_now() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+}
 
 boolean Interactor::ValidCanvas(Canvas* c) {
     boolean b = false;
@@ -105,6 +125,17 @@ void Interactor::draw(Canvas* c, const Allocation& a) const {
     unsigned int pheight = c->to_pixels(height);
     int x0 = c->to_pixels(ax.origin());
     int y0 = c->rep()->pheight_ - c->to_pixels(ay.origin()) - pheight;
+    if (trace_resize_enabled()) {
+	fprintf(
+	    stderr,
+	    "[x11-trace %.6f] Interactor::draw this=%p window=%p bound=%d"
+	    " -> %s path (%ux%u @%d,%d)\n",
+	    trace_resize_now(), (void*)this, (void*)window,
+	    int(window != nil && window->bound()),
+	    (window != nil && window->bound()) ? "cheap-resize" : "recreate",
+	    pwidth, pheight, x0, y0
+	);
+    }
     if (window != nil && window->bound()) {
 	CanvasRep& cr = *canvas->rep();
 	WindowRep& wr = *window->Window::rep();
@@ -185,16 +216,39 @@ void Interactor::draw(Canvas* c, const Allocation& a) const {
 void Interactor::undraw() {
     if (window != nil) {
 	WindowRep& w = *window->rep();
+	if (trace_resize_enabled()) {
+	    fprintf(
+		stderr,
+		"[x11-trace %.6f] Interactor::undraw this=%p window=%p"
+		" xwindow=%p toplevel_bound=%d\n",
+		trace_resize_now(), (void*)this, (void*)window,
+		(void*)w.xwindow_,
+		int(w.xwindow_ != WindowRep::unbound && w.toplevel_->bound())
+	    );
+	}
 	if (w.xwindow_ != WindowRep::unbound) {
 	    DisplayRep& d = *w.display_->rep();
 	    if (w.toplevel_->bound()) {
 		XUnmapWindow(d.display_, w.xwindow_);
 		canvas->rep()->status_ = Canvas::unmapped;
 	    } else {
+		if (trace_resize_enabled()) {
+		    fprintf(
+			stderr,
+			"[x11-trace %.6f] Interactor::undraw this=%p"
+			" destroying+unbinding (toplevel not bound)\n",
+			trace_resize_now(), (void*)this
+		    );
+		}
 		XDestroyWindow(d.display_, w.xwindow_);
 		window->unbind();
 	    }
 	}
+    } else if (trace_resize_enabled()) {
+	fprintf(
+	    stderr, "[x11-trace %.6f] Interactor::undraw this=%p window=nil\n",
+	    trace_resize_now(), (void*)this
+	);
     }
 }
 
