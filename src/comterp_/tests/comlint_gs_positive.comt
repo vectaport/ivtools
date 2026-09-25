@@ -1,11 +1,19 @@
 // fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
 // directly (never registered in run_all.comt). Every bare write below
-// is a real global write with nothing shadowing/clearing it in the
-// way, so comlint should flag all three names.
+// lands in a real global with nothing shadowing/clearing it, so
+// comlint should flag every name -- gs_dotfunc's write sits inside
+// obj.func(...), a method call on obj literally named "func", not the
+// func(...) closure-literal builtin, so it does not get that builtin's
+// own-frame suppression; gs_reclear is re-declared with a fresh
+// global(gs_reclear)=2 after being cleared, which un-clears it.
 
 global(gs_p)=1
 gs_p=2
 
-global(gs_m1 gs_m2)
-gs_m1=1
-gs_m2=2
+global(gs_dotfunc)=1
+obj.func(gs_dotfunc=2)
+
+global(gs_reclear)=1
+global(gs_reclear :clear)
+global(gs_reclear)=2
+gs_reclear=3

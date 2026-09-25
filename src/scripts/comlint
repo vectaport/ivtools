@@ -158,21 +158,27 @@ incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 wschars=" \t"
 
-/* names seen as a global(name) argument so far (either form -- a bare
-   read global(name), or an lvalue global(name)=... -- both register the
-   same global binding per #561/#562), and the line each was first seen;
+/* names seen as the lvalue of a global(name)=... assignment so far, and
+   the line each was first seen -- only that assign form actually
+   creates the table entry (confirmed against real runs: a bare read
+   global(name), with no "=value", never does, not even the multi-arg
+   global(a b) form -- see the assign-detection comment below).
    flaggedglobal is the subset already reported, so a name bare-written
-   many times after its global() only gets one finding. clearedglobal is
-   the subset later cleared via global(name :clear) -- once cleared, a
-   name is never flagged again even if it reappears in globalnames,
-   trading a possible missed re-declaration for no false positive
-   (conservative by design, like localnames below). localnames is the
-   set ever named in a local(name) call (any form but :clear) anywhere
-   in the script -- local() searches before global() (see comterp.c's
-   "func scope -> local -> global" order), so a later bare write to a
-   name in localnames lands in the local table, not the global one,
-   whatever global() also declared -- suppressed permanently once seen,
-   the same conservative trade-off as clearedglobal. */
+   many times after its global()=... only gets one finding. clearedglobal
+   is the subset later cleared via the bare, valueless global(name
+   :clear) -- once cleared, a name is never flagged again even if it's
+   later re-seen in globalnames without an intervening fresh
+   global(name)=... registration, trading a possible missed
+   re-declaration for no false positive; a fresh global(name)=... after
+   a clear removes the name from clearedglobal again, matching the real
+   table (confirmed: global(x)=1;global(x :clear);global(x)=2;x=3;
+   global(x) reads 3). localnames is the set ever named as the lvalue of
+   a local(name)=... assignment anywhere in the script -- local()
+   searches before global() (see comterp.c's "func scope -> local ->
+   global" order), so a later bare write to a name in localnames lands
+   in the local table, not the global one, whatever global() also
+   declared -- suppressed permanently once seen, the same conservative
+   trade-off as clearedglobal. */
 globalnames=list();globallines=list();flaggedglobal=list()
 clearedglobal=list();localnames=list()
 
@@ -321,8 +327,14 @@ while((srcline=gets(fp))!=nil
       while(fbi<=ssi-2
         fbname=fbname+at(schars fbi);
         fbi=fbi+1);
-      parenisfunc=parenisfunc,(fbname=="func");
-      if(fbname=="func" :then funcdepthcount=funcdepthcount+1);
+      /* obj.func(...) calls a method literally named "func" on obj --
+         unrelated to the func(...) closure-literal builtin -- so an
+         identifier match alone isn't enough; require it not be a
+         dot-call by checking the character right before it isn't '.' */
+      fbisdot=(fbpos>=0 && at(schars fbpos)=='.');
+      fbisfunc=(fbname=="func" && !fbisdot);
+      parenisfunc=parenisfunc,fbisfunc;
+      if(fbisfunc :then funcdepthcount=funcdepthcount+1);
       continue);
     if(sc==')' :then
       if(size(parenisfunc)>0 :then
@@ -447,48 +459,72 @@ while((srcline=gets(fp))!=nil
     nexttok=at(toks ti);
     isdotcall=(substr(nexttok 4)=="dot[");
 
-    /* global(a b ... :clear) and local(a b ... :clear) each accept more
-       than the one name their docstring shows (confirmed:
-       postfix(global(a b)) tags obsnarg=2) -- walk back obsnarg tokens
-       collecting every one as a declared/local name, first stepping
-       back over this call's own obsnkey keyword-marker tokens (tagged
-       "name(argcount)", e.g. ":clear(0)") the same way the
-       unrecognized-keyword walk-back below does, since keywords sort
-       nearer the call in postfix's left-to-right argument order than
-       positionals do. */
-    if((name=="global" || name=="local") && obsnarg>=1 && !isdotcall :then
-      gkidx=ti-2;gkfound=0;isclear=false;
-      while(gkfound<obsnkey && gkidx>=0
+    /* Only the single-positional-argument forms of global()/local() do
+       anything the table can observe: the bare valueless clear
+       global(sym :clear), and the lvalue assign global(sym)=val. A
+       bare read global(sym) -- with no ":clear" and no "=val" -- never
+       creates a binding (confirmed: global(x);x=2;print(global(x))
+       reads nil), and neither does the multi-arg bare form
+       global(a b) (confirmed: both a and b come back nil too, and
+       global(a b)=val is not even valid syntax -- ComTerp warns
+       "assignment to something other than a symbol ... ignored" and
+       does nothing, since one value can't assign to a list of names).
+       So obsnarg==1 gates entry to this whole block; anything else
+       (a bare multi-name read, or the malformed global(x :clear
+       false)/global(x :clear true) -- which parse with a stray second
+       positional and just warn at runtime -- see doc/LANGUAGE.md) is
+       left untouched rather than guessed at. */
+    if((name=="global" || name=="local") && obsnarg==1 && !isdotcall :then
+      gkidx=ti-2;isclear=false;iskeyok=(obsnkey<=1);
+      if(obsnkey==1 :then
         gktok=at(toks gkidx);
         gkidx=gkidx-1;
-        if(substr(gktok 1)!=":" :then continue);
+        gkname=nil;
         gkp=index(gktok "(");
-        if(gkp==nil :then continue);
-        gkname=substr(gktok "(");
-        if(size(gkname)<=1 :then continue);
-        gkfound=gkfound+1;
-        if(gkname==":clear" :then isclear=true));
+        if(gkp!=nil :then gkname=substr(gktok "("));
+        if(gkname==":clear" :then isclear=true :else iskeyok=false));
 
-      gpidx=gkidx;gpfound=0;
-      while(gpfound<obsnarg && gpidx>=0
-        gtok=at(toks gpidx);
-        gpidx=gpidx-1;
+      if(iskeyok :then
+        gtok=at(toks gkidx);
+        gkidx=gkidx-1;
         glb=index(gtok "[");
         gname=gtok;
         if(glb!=nil :then gname=substr(gtok "["));
-        if(size(gname)==0 :then continue);
-        gpfound=gpfound+1;
 
-        if(name=="global" && isclear :then
-          if(index(clearedglobal gname)==nil :then
-            clearedglobal=clearedglobal,gname));
-        if(name=="global" && !isclear :then
-          if(index(globalnames gname)==nil :then
-            globalnames=globalnames,gname;
-            globallines=globallines,stmtline));
-        if(name=="local" && !isclear :then
-          if(index(localnames gname)==nil :then
-            localnames=localnames,gname))));
+        if(isclear :then
+          if(name=="global" :then
+            if(index(clearedglobal gname)==nil :then
+              clearedglobal=clearedglobal,gname))
+          :else
+          /* the assign form -- gkidx==-1 iff nothing precedes this
+             call's own argument in the statement's postfix, i.e. this
+             call itself is the very first thing evaluated; combined
+             with the statement's own outermost operation being an
+             assign, that's exactly the shape of name(sym)=val (or a
+             +=/-=/etc. compound). Confirmed this distinguishes it from
+             a bare read used as someone else's rvalue or argument --
+             e.g. x=global(y) postfixes as "x y global[1|0|1]
+             assign[2|0|1]*", where global(y)'s own argument "y" sits
+             at index 1, not 0, because "x" was pushed first. */
+          isassign=false;
+          if(gkidx==-1 :then
+            lasttok=at(toks size(toks)-1);
+            if(index(lasttok "assign[2|")!=nil :then isassign=true));
+
+          if(isassign && name=="global" :then
+            /* a fresh assign always un-clears the name, whether or
+               not it was already in globalnames from an earlier
+               declaration -- otherwise a clear/redeclare/clear-again
+               cycle would leave a stale clearedglobal entry no later
+               assign ever removes */
+            gcidx=index(clearedglobal gname);
+            if(gcidx!=nil :then at(clearedglobal gcidx :del));
+            if(index(globalnames gname)==nil :then
+              globalnames=globalnames,gname;
+              globallines=globallines,stmtline));
+          if(isassign && name=="local" :then
+            if(index(localnames gname)==nil :then
+              localnames=localnames,gname)))));
 
     if(isdotcall :then continue);
 

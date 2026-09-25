@@ -11,24 +11,44 @@
 run("./testlib.comt")
 ok=true
 
-// --- test 1: a plain global(name)=... write, and every name a
-//     multi-arg global(a b) declares, all get flagged ---
-out1=*$$open("comterp run ../../scripts/comlint comlint_gs_positive.comt 2>&1 | tr \"\\n\" \" \"" :pipe)
+/* the subprocess below needs comlint's path and the fixtures' path,
+   both relative to whatever comterp's own cwd happens to be -- this
+   script runs both ways (registered in run_all.comt, whose cwd is
+   this directory, and standalone from the repo root per the doc
+   comment above), so probe for the layout actually in effect rather
+   than assuming one. open() returns nil for a path that doesn't
+   exist, so it doubles as an existence check without ever reading the
+   file. */
+if(open("../../scripts/comlint" "r")!=nil :then
+  comlintpath="../../scripts/comlint";fixtureprefix=""
+  :else
+  comlintpath="src/scripts/comlint";fixtureprefix="src/comterp_/tests/")
+
+// --- test 1: a plain global(name)=... write, a write inside
+//     obj.func(...) (a method named "func", not the func(...)
+//     closure-literal builtin), and a name re-declared after a clear
+//     all get flagged ---
+out1=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
+  comlintpath fixtureprefix "comlint_gs_positive.comt" :str) :pipe)
 flagp=index(out1 "declares gs_p global here" :substr)
-flagm1=index(out1 "declares gs_m1 global here" :substr)
-flagm2=index(out1 "declares gs_m2 global here" :substr)
-ok=ok&&(flagp!=nil)&&(flagm1!=nil)&&(flagm2!=nil)
-print("1 comlint flags global(gs_p)=...;gs_p=... and global(gs_m1 gs_m2)'s\n    both names (expect true true true): %v %v %v\n\n"
-  (flagp!=nil) (flagm1!=nil) (flagm2!=nil))
+flagdotfunc=index(out1 "declares gs_dotfunc global here" :substr)
+flagreclear=index(out1 "declares gs_reclear global here" :substr)
+ok=ok&&(flagp!=nil)&&(flagdotfunc!=nil)&&(flagreclear!=nil)
+print("1 comlint flags global(gs_p)=...;gs_p=..., the write inside\n    obj.func(gs_dotfunc=...), and gs_reclear after a clear+redeclare\n    (expect true true true): %v %v %v\n\n"
+  (flagp!=nil) (flagdotfunc!=nil) (flagreclear!=nil))
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: a dot-called global(), a local()-shadowed name, a write
-//     inside a func(...) body, and a global(:clear)ed name are all
-//     left unflagged ---
-out2=*$$open("comterp run ../../scripts/comlint comlint_gs_negative.comt 2>&1 | tr \"\\n\" \" \"" :pipe)
+//     inside a func(...) body, a name cleared once (and one cleared
+//     twice in a row), a bare multi-name global(a b) (registers
+//     neither name), a bare global(name) read used only as someone
+//     else's rvalue, and a global() call passing more than one
+//     positional argument are all left unflagged ---
+out2=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
+  comlintpath fixtureprefix "comlint_gs_negative.comt" :str) :pipe)
 falsepos=index(out2 "declares" :substr)
 ok=ok&&(falsepos==nil)
-print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, and a global(:clear)ed write flags none\n    (expect nil): %v\n\n" falsepos)
+print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, single- and double-cleared writes, a bare\n    global(a b), a bare read used as an rvalue, and a multi-arg\n    global() call flags none (expect nil): %v\n\n" falsepos)
 prev_ok=check_fail(:ok ok)
 
 print("\ncomlint_globalshadow: %v\n" ok)

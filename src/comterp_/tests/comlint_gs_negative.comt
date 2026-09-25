@@ -2,8 +2,14 @@
 // directly (never registered in run_all.comt). Every bare write below
 // is a case the global-shadow check must NOT flag: a dot-called
 // global() (a method call, not the declaration), a name shadowed by
-// local(), a write inside a func(...) literal's own frame, and a name
-// cleared via global(:clear).
+// local(), a write inside a func(...) literal's own frame, a name
+// cleared via global(:clear) (including one cleared twice in a row --
+// re-clearing is a no-op, not a re-registration), a bare multi-name
+// global(a b) (which never actually registers either name -- confirmed
+// against a real run), a bare global(name) read used only as someone
+// else's rvalue (never the lvalue-assign form itself), and a global()
+// call passing more than one positional argument (never the assign
+// form either).
 
 obj.global(gs_dot)
 gs_dot=1
@@ -18,3 +24,18 @@ f=func(gs_func=2; 0)
 global(gs_clear)=1
 global(gs_clear :clear)
 gs_clear=2
+
+global(gs_doubleclear)=1
+global(gs_doubleclear :clear)
+global(gs_doubleclear :clear)
+gs_doubleclear=2
+
+global(gs_m1 gs_m2)
+gs_m1=1
+gs_m2=2
+
+v=global(gs_read)
+gs_read=1
+
+global(gs_nested symadd(dynamic))
+gs_nested=1

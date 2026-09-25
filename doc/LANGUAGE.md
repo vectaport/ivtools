@@ -498,21 +498,32 @@ object rather than to the bare name.
 
 **Global-shadow write check** flags a bare write (`name=value` or a
 compound form) to a name already declared global earlier in the same
-script via `global(name)` — the bare write lands in that same global
-rather than a fresh local, per the rule that a bare write mirrors a
-bare read. `global(a b)` and other multi-name forms declare every name
-they list. The check is suppressed — deliberately, to avoid a false
-positive, even at the cost of occasionally missing a real one — once
-any of the following is true for that name: a `global(name :clear)`
-call was seen (the declaration was withdrawn); a `local(name)` call was
-seen anywhere in the script (`local()` shadows `global()` in ComTerp's
-own local → global lookup order, so a bare write after either reaches
-the local, not the global — confirmed by running
-`global(x)=1;local(x)=2;x=3;global(x)`, which still reads `1`); or the
-write sits inside a `func(...)` literal's body, which always writes to
-that call's own frame, whether or not the function is ever called
-(confirmed by running `global(x)=1;f=func(x=2;0);f();global(x)`, which
-still reads `1`). A dot-called `global()`/`local()` (`obj.global(x)`)
+script via `global(name)=value` — the bare write lands in that same
+global rather than a fresh local, per the rule that a bare write
+mirrors a bare read. Only that lvalue/assign form actually creates the
+binding: a bare read `global(name)` (with no `=value`), including the
+multi-name form `global(a b)`, never does — confirmed by running
+`global(x);x=2;global(x)`, which reads `nil` afterward, and
+`global(a b);a=1;b=2;global(a);global(b)`, which reads `nil nil`
+(`global(a b)=value` is not even valid syntax, since one value can't
+assign to a list of names). The check is suppressed — deliberately, to
+avoid a false positive, even at the cost of occasionally missing a real
+one — once any of the following is true for that name: a `global(name
+:clear)` call was seen (the declaration was withdrawn — a later
+`global(name)=value` un-clears it again, matching the real table,
+confirmed by running
+`global(x)=1;global(x :clear);global(x)=2;x=3;global(x)`, which reads
+`3`); a `local(name)=value` call was seen anywhere in the script
+(`local()` shadows `global()` in ComTerp's own local → global lookup
+order, so a bare write after either reaches the local, not the global —
+confirmed by running `global(x)=1;local(x)=2;x=3;global(x)`, which
+still reads `1`); or the write sits inside a `func(...)` literal's
+body, which always writes to that call's own frame, whether or not the
+function is ever called (confirmed by running
+`global(x)=1;f=func(x=2;0);f();global(x)`, which still reads `1`) —
+this last suppression checks for a literal, undotted `func(...)`, so a
+method call named `func` on some object (`obj.func(x=1)`) is never
+mistaken for it. A dot-called `global()`/`local()` (`obj.global(x)`)
 is a method call on `obj`, not the declaration, and is never treated as
 one. Not yet checked: `x++`/`--x` against a declared global, and a
 `global()`/`local()` appearing later in the same multi-line statement
