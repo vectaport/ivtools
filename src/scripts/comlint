@@ -38,7 +38,7 @@ if(program==nil :then program="comterp")
 
 if(program!="comterp" && arg(3)!="direct" :then
   /* comdraw/drawserv's -runfile has no argv-forwarding to arg(n) the
-     way comterp's `run` subcommand does (#530), so this same script
+     way comterp's `run` subcommand does, so this same script
      can't just be invoked under $program directly and see its own
      positional arguments the normal way. Instead, shell out
      (shell()/open(:pipe) both exist in ComTerp) to $program with a
@@ -95,7 +95,7 @@ if(program!="comterp" && arg(3)!="direct" :then
 
   /* tmppath is only somewhat unpredictable (time + a random suffix)
      in shared /tmp, with no atomic-create primitive available from
-     ComTerp (open() has no :excl/O_EXCL equivalent -- see #533), so
+     ComTerp (open() has no :excl/O_EXCL equivalent), so
      this is a best-effort mitigation against guessing, not a real
      fix for the underlying TOCTOU/symlink race */
   selfpath=arg(0);
@@ -189,13 +189,13 @@ clearedglobal=list();localnames=list()
    postfix() once balanced back to zero, joined with '\n' exactly as it
    appeared in the source. postfix() (like eval()/help() elsewhere in
    this script) parses without ever firing the statement, so buffering
-   never risks executing target script code (#521-safe) -- PROVIDED the
+   never risks executing target script code -- PROVIDED the
    depth never goes negative mid-statement: a premature ')' would close
    this script's own postfix(%s) wrapper early, and anything after it up
    to the next ';' becomes a second, independently-executed top-level
    statement once eval() sees the interpolated string. stmtbad latches
    that condition so the whole statement is rejected outright, whatever
-   its FINAL balance settles to (#609-security). ';' itself needs no
+   its FINAL balance settles to. ';' itself needs no
    special casing: it's ComTerp's own sequencing operator, so a line
    with balanced parens containing one is already a single complete,
    checkable statement -- postfix() reads "x=1;y=2" as one seq[...] node
@@ -280,7 +280,7 @@ while((srcline=gets(fp))!=nil
   /* flag a plain assignment (name=value, or a +=/-=/etc. compound form)
      to a symbol name that also names a registered command -- assigning
      to it this way either warns and no-ops (a bare command, no args)
-     or silently rebinds it out from under every later call, per #536.
+     or silently rebinds it out from under every later call.
      A pure text scan of stmt: only the raw '=' and the identifier
      immediately before it matter, so no postfix() token is needed.
      Dot-attribute assignment (a.name=...) is excluded by requiring the
@@ -502,9 +502,9 @@ while((srcline=gets(fp))!=nil
       nmi=nmi+1);
 
     /* a bare write to a name already established global earlier in this
-       script lands in that same global rather than a fresh local (#561's
-       bare-write-mirrors-bare-read rule) -- flag it once per name, at its
-       first bare-write site after the global() that declared it (#562).
+       script lands in that same global rather than a fresh local (a bare
+       write mirrors a bare read) -- flag it once per name, at its
+       first bare-write site after the global() that declared it.
        Suppressed when the name was later global(:clear)ed, was ever named
        in a local() call (local() shadows global() per comterp.c's lookup
        order), or this write sits inside a func(...) body (its own frame,
@@ -518,7 +518,7 @@ while((srcline=gets(fp))!=nil
       flaggedglobal=flaggedglobal,name;
       gline=at(globallines gidx);
       print("%s:%v: global(%s) declares %s global here\n" target gline name name);
-      print("%s:%v: %s=...: writes it bare -- lands in the same global (see #561), not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is\n"
+      print("%s:%v: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is\n"
         target stmtline name name name);
       nflagged=nflagged+1);
 
@@ -734,7 +734,7 @@ while((srcline=gets(fp))!=nil
       required=required+1);
 
     if(obsnarg<required :then
-      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse (#521/#265-class); check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
+      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
         target stmtline name obsnarg name required);
       nflagged=nflagged+1)))
 
