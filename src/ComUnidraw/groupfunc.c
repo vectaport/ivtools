@@ -33,6 +33,8 @@
 #include <Unidraw/iterator.h>
 #include <iostream.h>
 
+using std::cerr;
+
 /*****************************************************************************/
 
 GrowGroupFunc::GrowGroupFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
@@ -239,11 +241,30 @@ BackSelectionFunc::BackSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc
 void BackSelectionFunc::execute() {
     ComValue grval(stack_arg(0));
     reset_stack();
-    
+
     OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
 
+    // an explicit argument must be a component view, the same gate
+    // GrowGroupFunc/TrimGroupFunc apply above, before it's safe to cast
+    // obj_val() and hand the result to a Clipboard.
+    if (grval.is_known() && !grval.object_compview()) {
+	cerr << "WARNING: back()'s argument is not a graphic -- line "
+	     << funcstate()->linenum() << "\n";
+	push_stack(ComValue::nullval());
+	return;
+    }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
     OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+    // a view can outlive the comp it represented; treat a subjectless
+    // view as gone instead of appending it to the Clipboard, since
+    // BackCmd::Execute() dereferences every entry unconditionally.
+    if (grview && !grcomp) {
+	cerr << "WARNING: back()'s argument's subject is already gone"
+		" (stale graphic reference) -- line "
+	     << funcstate()->linenum() << "\n";
+	push_stack(ComValue::nullval());
+	return;
+    }
 
     Clipboard* cb = new Clipboard();
     if (grval.is_known())
@@ -267,11 +288,30 @@ FrontSelectionFunc::FrontSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFu
 void FrontSelectionFunc::execute() {
     ComValue grval(stack_arg(0));
     reset_stack();
-    
+
     OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
 
+    // an explicit argument must be a component view, the same gate
+    // GrowGroupFunc/TrimGroupFunc apply above, before it's safe to cast
+    // obj_val() and hand the result to a Clipboard.
+    if (grval.is_known() && !grval.object_compview()) {
+	cerr << "WARNING: front()'s argument is not a graphic -- line "
+	     << funcstate()->linenum() << "\n";
+	push_stack(ComValue::nullval());
+	return;
+    }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
     OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+    // a view can outlive the comp it represented; treat a subjectless
+    // view as gone instead of appending it to the Clipboard, since
+    // FrontCmd::Execute() dereferences every entry unconditionally.
+    if (grview && !grcomp) {
+	cerr << "WARNING: front()'s argument's subject is already gone"
+		" (stale graphic reference) -- line "
+	     << funcstate()->linenum() << "\n";
+	push_stack(ComValue::nullval());
+	return;
+    }
 
     Clipboard* cb = new Clipboard();
     if (grval.is_known())
