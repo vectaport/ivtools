@@ -42,6 +42,13 @@
 // each import(:popen) result and switches per photo, so the example and
 // its regression test behave the same with or without a live network.
 //
+// Each of the initial 5 visible photos is placed into its slot and shown
+// (update()) as soon as it arrives, so the deck fills in one photo at a
+// time rather than appearing all at once after every fetch completes.
+// The remaining library photos (not yet part of the visible deck) are
+// moved off-canvas the moment they're imported (park(), below) instead
+// of sitting at whatever position import() happened to paste them at.
+//
 // trans()'s scale factors apply to a graphic's own native pixel geometry,
 // not to its slot's target size directly -- a photo's native width/height
 // varies with whatever the fetch returned, so a scale of exactly (target
@@ -72,37 +79,6 @@ offX0=(0-330); offX1=(0-180); offX2=0; offX3=180; offX4=330
 sc0=0.42; sc1=0.65; sc2=1.0; sc3=0.65; sc4=0.42
 lift0=40; lift1=20; lift2=0; lift3=20; lift4=40
 
-// photo library: n photos, each fetched live via curl or, on failure,
-// a solid-color 1x1 stand-in (see fetchphoto below); libw/libh hold each
-// photo's own native pixel size (see header), captured immediately after
-// import via mbr() (l,b,r,t) before any trans() call establishes a
-// placement -- a 1x1 stand-in's own mbr() naturally yields 1,1, so the
-// same capture and the same trans() scaling below apply unchanged to
-// either kind of photo, no separate case needed.
-n=7
-photocolors=0xd94f4f,0xd9a54f,0xd9d24f,0x6fd94f,0x4fb8d9,0x6f4fd9,0xd94fbb
-
-// fetchphoto(idx) -- live-fetch library photo idx via curl; if that
-// import fails (no network, endpoint unreachable, empty/unrecognized
-// output), fall back to library slot idx's solid-color stand-in instead.
-fetchphoto=func(
-  idx=arg(0);
-  url="curl -s --max-time 3 --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x="+print(100+idx :str)+"\"";
-  img=import(url :popen);
-  img=if(img==nil :then raster(0,0,1,1 :rgb 1,1, at(photocolors idx)) :else img);
-  img)
-
-img0lib=fetchphoto(0);
-b0=mbr(img0lib); pw0=at(b0 2)-at(b0 0); ph0=at(b0 3)-at(b0 1);
-imgs=img0lib; libw=pw0; libh=ph0;
-for(i=1 i<n i=i+1
-  imgi=fetchphoto(i);
-  bi=mbr(imgi); pwi=at(bi 2)-at(bi 0); phi=at(bi 3)-at(bi 1);
-  imgs=imgs,imgi;
-  libw=libw,pwi;
-  libh=libh,phi)
-print("carousel: built %v photos\n" n)
-
 // slotw/sloth/slotcx/slotcy(j) -- the (w,h,centerx,centery) a photo takes
 // on when it sits in slot j (0=leftmost/farthest .. 4=rightmost/farthest,
 // 2=center/frontmost)
@@ -127,13 +103,11 @@ slotcy=func(
   cy=CENTERY-l;
   cy)
 
-// place(img j libidx) -- move img to slot j's position/scale, absolute
-// (trans :set); libidx is img's library index, used to look up its native
-// pixel size in libw/libh so the scale factor is relative to that, not to
-// the slot's target size directly (see header)
+// place(img j pw ph) -- move img to slot j's position/scale, absolute
+// (trans :set); pw/ph is img's own native pixel size, so the scale factor
+// is relative to that, not to the slot's target size directly (see header)
 place=func(
-  img=arg(0); j=arg(1); libidx=arg(2);
-  pw=at(libw libidx); ph=at(libh libidx);
+  img=arg(0); j=arg(1); pw=arg(2); ph=arg(3);
   w=slotw(j); h=sloth(j); cx=slotcx(j); cy=slotcy(j);
   sx=w/pw; sy=h/ph;
   hw=w/2; hh=h/2;
@@ -148,6 +122,55 @@ exfromw=slotw(0); exfromh=sloth(0); exfromcx=slotcx(0); exfromcy=slotcy(0)
 extow=42; extoh=28; extocx=(0-480); extocy=CENTERY-60
 enfromw=25; enfromh=17; enfromcx=CENTERX+(CENTERX-extocx); enfromcy=CENTERY-60
 entow=slotw(4); entoh=sloth(4); entocx=slotcx(4); entocy=slotcy(4)
+
+// park(img pw ph) -- move img to the entrance-staging spot (the same
+// off-canvas position carousel.next()'s entrant animation starts from,
+// "further back than slot 4") -- where a library photo not yet part of
+// the visible 5-slot deck sits until next() spins it in, instead of
+// wherever import() happened to paste it; pw/ph is img's own native
+// pixel size
+park=func(
+  img=arg(0); pw=arg(1); ph=arg(2);
+  sx=enfromw/pw; sy=enfromh/ph;
+  hw=enfromw/2; hh=enfromh/2;
+  tx=enfromcx-hw; ty=enfromcy-hh;
+  trans(img sx,0,0,sy,tx,ty :set);
+  nil)
+
+// fetchphoto(idx) -- live-fetch library photo idx via curl; if that
+// import fails (no network, endpoint unreachable, empty/unrecognized
+// output), fall back to library slot idx's solid-color stand-in instead.
+photocolors=0xd94f4f,0xd9a54f,0xd9d24f,0x6fd94f,0x4fb8d9,0x6f4fd9,0xd94fbb
+fetchphoto=func(
+  idx=arg(0);
+  url="curl -s --max-time 3 --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x="+print(100+idx :str)+"\"";
+  img=import(url :popen);
+  img=if(img==nil :then raster(0,0,1,1 :rgb 1,1, at(photocolors idx)) :else img);
+  img)
+
+// photo library: n photos, each fetched live via curl or, on failure, a
+// solid-color 1x1 stand-in (see fetchphoto above); libw/libh hold each
+// photo's own native pixel size (see header), captured immediately after
+// import via mbr() (l,b,r,t) before any trans() call establishes a
+// placement -- a 1x1 stand-in's own mbr() naturally yields 1,1, so the
+// same capture and the same trans() scaling apply unchanged to either
+// kind of photo, no separate case needed. The first 5 (the initial
+// visible deck) are placed into their slot and shown via update() as
+// each one arrives; the rest are parked off-canvas immediately instead
+// of appearing at import()'s own paste position.
+n=7
+img0lib=fetchphoto(0);
+b0=mbr(img0lib); pw0=at(b0 2)-at(b0 0); ph0=at(b0 3)-at(b0 1);
+imgs=img0lib; libw=pw0; libh=ph0;
+place(img0lib 0 pw0 ph0); update();
+for(i=1 i<n i=i+1
+  imgi=fetchphoto(i);
+  bi=mbr(imgi); pwi=at(bi 2)-at(bi 0); phi=at(bi 3)-at(bi 1);
+  imgs=imgs,imgi;
+  libw=libw,pwi;
+  libh=libh,phi;
+  if(i<5 :then place(imgi i pwi phi); update() :else park(imgi pwi phi)))
+print("carousel: built %v photos\n" n)
 
 // carousel -- the deck (which library photo, by index, occupies each of
 // the 5 slots, and which library photo spins in next) plus the one method
@@ -217,7 +240,8 @@ carousel=(
     nil)
 )
 
-place(carousel.img0 0 carousel.d0); place(carousel.img1 1 carousel.d1); place(carousel.img2 2 carousel.d2); place(carousel.img3 3 carousel.d3); place(carousel.img4 4 carousel.d4)
+// slots were already placed and shown one at a time during the library
+// loop above; this only fixes the final depth order (center topmost)
 front(carousel.img0); front(carousel.img4); front(carousel.img1); front(carousel.img3); front(carousel.img2)
 print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
 update()
