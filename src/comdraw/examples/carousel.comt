@@ -28,20 +28,33 @@
 // building this: nesting the animation's own for/while in one more outer
 // for() hangs comterp's postfix re-evaluation -- see the PR description.)
 //
-// Photos here are solid-color 1x1 rasters, scaled up by trans() -- stand-
-// ins so the demo needs nothing beyond what's already in the tree. Real
-// photos come from import(path); JPEG/PNG/GIF import shells out to
-// djpeg/pngtopnm/giftopnm (see OvImportCmd::Import), so those need to be
-// on PATH. Swap the photocolors/raster() lines below for a loop of
-// import() calls over a real photo directory to use real images -- the
-// slot geometry and animation are unchanged either way, since both are
-// just OverlayComp's manipulated by trans()/front().
+// Photos are fetched live via curl, one per library slot, each with a
+// distinct cache-busting x= value so the same random-photo endpoint
+// doesn't hand back the same image twice (see the library loop below).
+// The cache-busting counter starts at 100 rather than 0 so a later
+// import(:next) call never needs to carry a digit past the field's
+// current width -- see issue #612 for what goes wrong when it does.
+// JPEG/PNG/GIF import shells out to djpeg/pngtopnm/giftopnm (see
+// OvImportCmd::Import), so those need to be on PATH.
 //
-// trans()'s tuple argument must be bare variables, not inline expressions,
-// parenthesized sub-expressions, or function calls -- any of those make it
-// silently fall back to its getter instead of setting (see the PR
-// description). Every trans() call below stages its six values into plain
-// variables first for exactly that reason.
+// trans()'s scale factors apply to a graphic's own native pixel geometry,
+// not to its slot's target size directly -- a photo's native width/height
+// varies with whatever the fetch returned, so a scale of exactly (target
+// width, target height) would only be correct by coincidence. libw/libh
+// (captured once per library photo, right after import, via mbr() before
+// any trans() call ever runs) hold each photo's native size; every trans()
+// call below divides the slot's target width/height by the occupying
+// photo's native width/height to get the actual scale factor. (This also
+// means a plain 1x1-raster stand-in still works unmodified if libw/libh
+// are seeded with 1,1 for it -- scale reduces to the old literal-size
+// behavior exactly.)
+//
+// trans()'s six-value tuple argument must be bare variables, not inline
+// expressions, parenthesized sub-expressions, or function calls -- any of
+// those make it silently fall back to its getter instead of setting (see
+// the PR description for carousel's original version). Every trans() call
+// below stages its six values into plain variables first for exactly that
+// reason.
 
 CENTERX=427; CENTERY=550
 BASEW=240; BASEH=160
@@ -54,14 +67,22 @@ offX0=(0-330); offX1=(0-180); offX2=0; offX3=180; offX4=330
 sc0=0.42; sc1=0.65; sc2=1.0; sc3=0.65; sc4=0.42
 lift0=40; lift1=20; lift2=0; lift3=20; lift4=40
 
-// photo library: 7 solid-color stand-ins (see header for real photos)
-photocolors=0xd94f4f,0xd9a54f,0xd9d24f,0x6fd94f,0x4fb8d9,0x6f4fd9,0xd94fbb
-n=size(photocolors)
-c0=at(photocolors 0)
-imgs=raster(0,0,1,1 :rgb 1,1, c0)
+// photo library: n real photos fetched via curl, each with a distinct
+// cache-busting x= value; libw/libh hold each photo's own native pixel
+// size (see header), captured immediately after import via mbr() (l,b,r,t)
+// before any trans() call establishes a placement
+n=7
+url0="curl -s --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x=100\"";
+img0lib=import(url0 :popen);
+b0=mbr(img0lib); pw0=at(b0 2)-at(b0 0); ph0=at(b0 3)-at(b0 1);
+imgs=img0lib; libw=pw0; libh=ph0;
 for(i=1 i<n i=i+1
-  ci=at(photocolors i);
-  imgs=imgs,raster(0,0,1,1 :rgb 1,1, ci))
+  urli="curl -s --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x="+print(100+i :str)+"\"";
+  imgi=import(urli :popen);
+  bi=mbr(imgi); pwi=at(bi 2)-at(bi 0); phi=at(bi 3)-at(bi 1);
+  imgs=imgs,imgi;
+  libw=libw,pwi;
+  libh=libh,phi)
 print("carousel: built %v photos\n" n)
 
 // slotw/sloth/slotcx/slotcy(j) -- the (w,h,centerx,centery) a photo takes
@@ -88,13 +109,18 @@ slotcy=func(
   cy=CENTERY-l;
   cy)
 
-// place(img j) -- move img to slot j's position/scale, absolute (trans :set)
+// place(img j libidx) -- move img to slot j's position/scale, absolute
+// (trans :set); libidx is img's library index, used to look up its native
+// pixel size in libw/libh so the scale factor is relative to that, not to
+// the slot's target size directly (see header)
 place=func(
-  img=arg(0); j=arg(1);
+  img=arg(0); j=arg(1); libidx=arg(2);
+  pw=at(libw libidx); ph=at(libh libidx);
   w=slotw(j); h=sloth(j); cx=slotcx(j); cy=slotcy(j);
+  sx=w/pw; sy=h/ph;
   hw=w/2; hh=h/2;
   tx=cx-hw; ty=cy-hh;
-  trans(img w,0,0,h,tx,ty :set);
+  trans(img sx,0,0,sy,tx,ty :set);
   nil)
 
 // fixed endpoints for the exit (past slot 0, off to the left) and entrance
@@ -120,6 +146,8 @@ carousel=(
   :next func(
     exiting=img0;
     entrant=at(imgs nextlib);
+    expw=at(libw d0); exph=at(libh d0);
+    enpw=at(libw nextlib); enph=at(libh nextlib);
 
     for(f=1 f<=FR f=f+1
       t=f/float(FR);
@@ -129,12 +157,15 @@ carousel=(
       while(s<4
         src=s+1;
         im=if(src==1 :then img1 :else if(src==2 :then img2 :else if(src==3 :then img3 :else img4)));
+        srcidx=if(src==1 :then d1 :else if(src==2 :then d2 :else if(src==3 :then d3 :else d4)));
+        pw=at(libw srcidx); ph=at(libh srcidx);
         fw=slotw(src); fh=sloth(src); fcx=slotcx(src); fcy=slotcy(src);
         tw=slotw(s); th=sloth(s); tcx=slotcx(s); tcy=slotcy(s);
         w=fw+(tw-fw)*t; h=fh+(th-fh)*t;
         cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
+        sx=w/pw; sy=h/ph;
         hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
-        trans(im w,0,0,h,tx,ty :set);
+        trans(im sx,0,0,sy,tx,ty :set);
         if(s==1 :then leftw=w);
         if(s==2 :then centerw=w; centerimg=im);
         s=s+1);
@@ -147,14 +178,16 @@ carousel=(
       // the exiting photo continues receding past the back
       ew=exfromw+(extow-exfromw)*t; eh=exfromh+(extoh-exfromh)*t;
       ecx=exfromcx+(extocx-exfromcx)*t; ecy=exfromcy+(extocy-exfromcy)*t;
+      esx=ew/expw; esy=eh/exph;
       ehw=ew/2; ehh=eh/2; etx=ecx-ehw; ety=ecy-ehh;
-      trans(exiting ew,0,0,eh,etx,ety :set);
+      trans(exiting esx,0,0,esy,etx,ety :set);
 
       // the entrant spins in from further back into slot 4
       nw=enfromw+(entow-enfromw)*t; nh=enfromh+(entoh-enfromh)*t;
       ncx=enfromcx+(entocx-enfromcx)*t; ncy=enfromcy+(entocy-enfromcy)*t;
+      nsx=nw/enpw; nsy=nh/enph;
       nhw=nw/2; nhh=nh/2; ntx=ncx-nhw; nty=ncy-nhh;
-      trans(entrant nw,0,0,nh,ntx,nty :set);
+      trans(entrant nsx,0,0,nsy,ntx,nty :set);
 
       update(USEC));
 
@@ -166,7 +199,7 @@ carousel=(
     nil)
 )
 
-place(carousel.img0 0); place(carousel.img1 1); place(carousel.img2 2); place(carousel.img3 3); place(carousel.img4 4)
+place(carousel.img0 0 carousel.d0); place(carousel.img1 1 carousel.d1); place(carousel.img2 2 carousel.d2); place(carousel.img3 3 carousel.d3); place(carousel.img4 4 carousel.d4)
 front(carousel.img0); front(carousel.img4); front(carousel.img1); front(carousel.img3); front(carousel.img2)
 print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
 update()

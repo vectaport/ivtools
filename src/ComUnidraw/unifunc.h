@@ -140,20 +140,21 @@ public:
 };
 
 //: command to import a graphic file
-// compview=import(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen
-// (:next imports next in numeric series).
+// compview=import(pathname :popen :next :centered) -- import graphic file from pathname or URL, or from a command if :popen
+// (:next imports next in numeric series; :centered translates the result so its own bounding-box center lands at the origin).
 class ImportFunc : public UnidrawFunc {
 public:
     ImportFunc(ComTerp*,Editor*);
-    OvImportCmd* import(const char* path, boolean popen=false, AttributeList* al=nil);
+    OvImportCmd* import(const char* path, boolean popen=false, AttributeList* al=nil, boolean centered=false);
     // helper method to import from path
     virtual void execute();
-    virtual const char* docstring() { 
-	return "compview=%s(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen\n(:next imports next in numeric series)"; }
+    virtual const char* docstring() {
+	return "compview=%s(pathname :popen :next :centered) -- import graphic file from pathname or URL, or from a command if :popen\n(:next imports next in numeric series; :centered centers the result on the origin)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":popen     open as pipe",
 	":next      import next in numeric series",
+	":centered  translate result so its bounding-box center is the origin",
 	nil
       };
       return keys;

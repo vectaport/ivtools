@@ -310,7 +310,7 @@ void SaveFileFunc::execute() {
 ImportFunc::ImportFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-OvImportCmd* ImportFunc::import(const char* path, boolean popen, AttributeList* al) {
+OvImportCmd* ImportFunc::import(const char* path, boolean popen, AttributeList* al, boolean centered) {
   OvImportCmd* cmd = new OvImportCmd(editor());
   cmd->pathname(path, popen);
   cmd->SetAttributeList(al);
@@ -325,6 +325,12 @@ OvImportCmd* ImportFunc::import(const char* path, boolean popen, AttributeList* 
     ((OverlayComp*)cmd->component())->SetAttributeList(al);
     ((OverlayComp*)cmd->component())->SetPathName(path);
     ((OverlayComp*)cmd->component())->SetByPathnameFlag(!popen);
+    if (centered) {
+      Graphic* gr = ((OverlayComp*)cmd->component())->GetGraphic();
+      float l, b, r, t;
+      gr->GetBounds(l, b, r, t);
+      gr->Translate(-(l+r)/2, -(b+t)/2);
+    }
   }
   return cmd;
 }
@@ -337,6 +343,8 @@ void ImportFunc::execute() {
     boolean popen_flag = stack_key(popen_symid).is_true();
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
+    static int centered_symid = symbol_add("centered");
+    boolean centered_flag = stack_key(centered_symid).is_true();
 
     // Acknowledge remote peers; fd 0 identifies the local console.
     if (comterp() && comterp()->handler() && comterp()->handler()->wrfptr() &&
@@ -374,8 +382,8 @@ void ImportFunc::execute() {
     if (!pathnamev.is_array()) {
       if (nargs()==1 || next_flag) {
         reset_stack();
-	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
-			  popen_flag, al)) && cmd->component()) {
+	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(),
+			  popen_flag, al, centered_flag)) && cmd->component()) {
 	  ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
 			   ((OverlayComp*)cmd->component())->classid());
 	  delete cmd;
@@ -384,7 +392,7 @@ void ImportFunc::execute() {
 	  push_stack(ComValue::nullval());
       } else {
 	for (int i=0; i<(nargs()-nkeys()); i++) 
-	  if ((cmd = import(stack_arg(i).string_ptr(), popen_flag, al))!=NULL &&
+	  if ((cmd = import(stack_arg(i).string_ptr(), popen_flag, al, centered_flag))!=NULL &&
 	      cmd->component()!=NULL) {
 	    ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
 			     ((OverlayComp*)cmd->component())->classid());
@@ -404,7 +412,7 @@ void ImportFunc::execute() {
       Iterator it;
       inlist->First(it);
       while(!inlist->Done(it)) {
-	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag);
+	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag, nil, centered_flag);
 	((OverlayComp*)cmd->component())->SetAttributeList(al);
 	ComValue* val = new ComValue(new OverlayViewRef((OverlayComp*)cmd->component()),
 				     ((OverlayComp*)cmd->component())->classid());
