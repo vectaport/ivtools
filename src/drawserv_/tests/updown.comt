@@ -1776,7 +1776,7 @@ transform_test=func(
        not by port occupancy -- kill_port's lsof-by-port lookup can match
        an unrelated process that later bound the same port, or (once a
        socket() connects below) this test runner's own client socket. */
-    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
     return(false));
   print("transform: ds1 up on %d\n" ds1_port :err);
 
@@ -1791,8 +1791,8 @@ transform_test=func(
   while(!global(drawserv_uptf2) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_uptf2) :then
     print("transform: FAIL ds2 did not come up\n" :err);
-    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
-    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
   print("transform: ds2 up on %d\n" ds2_port :err);
 
@@ -1802,8 +1802,8 @@ transform_test=func(
     print("transform: FAIL could not connect to both nodes\n" :err);
     if(sock1 :then close(sock1));
     if(sock2 :then close(sock2));
-    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str));
-    shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
 
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
