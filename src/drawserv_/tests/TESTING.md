@@ -220,6 +220,33 @@ instead, the same idempotent wire form `LinkTransformCmd` uses. Position is
 checked with `trans(grid(id))` rather than a position embedded in the
 graphic's own serialized form, since a move does not touch that.
 
+### transform
+
+**What:** ds1 creates one circle, then applies `move()`, a uniform `scale()`,
+a non-uniform `scale()`, and `rotate()` on it in sequence; after each op,
+confirms ds2's copy converges on the SAME resulting transform ds1 itself now
+reports. Lives in `updown.comt` alongside `move`, not `gstests.comt`, for the
+same reason.
+
+**Checks:**
+- the circle reaches ds2
+- after each of the four ops, `trans(grid(id))` on ds2 matches `trans(grid(id))`
+  read back from ds1 (not a hand-computed matrix)
+
+**Purpose:** `scale()`/`rotate()` had no `DrawServCmd` counterpart before
+`LinkScaleCmd`/`LinkRotateCmd` joined `LinkMoveCmd` (issue #376). Unlike
+`move()`'s delta, a scale or rotation's resulting transform depends on each
+comp's own alignment/center point, so rather than reproduce that geometry in
+the test (or in `dist_script()` itself), `LinkScaleCmd`/`LinkRotateCmd` read
+back each relayable comp's now-current transform after `Execute()` has
+already applied it (see `linkcmd.h`), and the test checks against ds1's own
+`trans()` output rather than an independently computed expectation. The
+non-uniform `scale()` step exercises the same `LinkScaleCmd` relay the
+interactive Stretch tool goes through -- Stretch builds a plain `ScaleCmd`
+with unequal sx/sy and a corner alignment rather than a distinct command
+class, and `LinkScaleCmd::dist_script()` is alignment-agnostic, so there is
+no separate `LinkStretchCmd`.
+
 ### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is

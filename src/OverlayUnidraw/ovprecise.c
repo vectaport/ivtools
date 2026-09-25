@@ -140,9 +140,9 @@ void OvPreciseScaleCmd::Execute () {
       float xscale = 0.0, yscale = 0.0;
       in >> xscale >> yscale;
       if (xscale !=0.0 && yscale != 0.0) {
-	ScaleCmd* scaleCmd = new ScaleCmd(GetEditor(), xscale, yscale);
-	scaleCmd->Execute();
-	scaleCmd->Log();
+	Editor* ed = GetEditor();
+	ScaleCmd* scaleCmd = ed->MakeScaleCmd(xscale, yscale);
+	((OverlayEditor*)ed)->ExecuteCmd(scaleCmd);
       }
       delete default_scalestr;
       default_scalestr = scalestr;
@@ -178,9 +178,9 @@ void OvPreciseRotateCmd::Execute () {
       float angle = 0.0;
       in >> angle;
       if (angle!=0.0) {
-	RotateCmd* rotateCmd = new RotateCmd(GetEditor(), angle);
-	rotateCmd->Execute();
-	rotateCmd->Log();
+	Editor* ed = GetEditor();
+	RotateCmd* rotateCmd = ed->MakeRotateCmd(angle);
+	((OverlayEditor*)ed)->ExecuteCmd(rotateCmd);
       }
       delete default_rotatestr;
       default_rotatestr = rotatestr;
