@@ -290,7 +290,23 @@ while((srcline=gets(fp))!=nil
      next '\n' -- stmt can join several source lines) is never scanned
      as code. */
   schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;slcmt=0;
-  parenisfunc=list();funcdepthcount=0;
+  /* one entry per currently open '(' -- kind is "func", "scope" (a
+     global(/local( call), or "other"; scopename/argtext/argok are
+     only meaningful for a "scope" entry, but every open paren pushes
+     one of each so the stacks stay in lockstep and a plain ')' can
+     always pop by position regardless of kind. argtext accumulates
+     this frame's argument text char-by-char as the SAME loop that
+     already tracks strings/comments/escapes below visits it (so a
+     quoted ')' or a '// comment' inside the argument is handled by
+     the one correct implementation, not a second one); argok goes
+     false the moment a nested '(' opens within it, since global(sym)/
+     local(sym)'s one argument is only ever recognizable as a
+     declaration when it's a bare symbol (optionally "sym :clear") --
+     anything built from a nested call (global(symadd(dynamic)), a
+     real, valid call per a real run) can't be resolved to a name
+     statically, so it's left unregistered rather than guessed at. */
+  parenkind=list();parenscopename=list();parenargtext=list();parenargok=list();
+  funcdepthcount=0;
   while(ssi<ssz
     sc=at(schars ssi);
     ssi=ssi+1;
@@ -321,89 +337,109 @@ while((srcline=gets(fp))!=nil
        no other stack-pop primitive); a non-func paren's close is a
        no-op on the count. */
     if(sc=='(' :then
+      /* the identifier immediately before '(' may have whitespace
+         between it and the paren (confirmed valid: global (x)=1 still
+         registers x for a real global(x) read afterward), and a
+         dot-call's '.' may have whitespace after it too (confirmed:
+         postfix(obj. global(x)) still tags dot[2|0|1]*) -- so skip
+         whitespace on both sides of the identifier before checking
+         either boundary. */
       fbpos=ssi-2;
+      while(fbpos>=0 && index(wschars at(schars fbpos))!=nil
+        fbpos=fbpos-1);
+      fbnameend=fbpos;
       while(fbpos>=0 && index(idchars at(schars fbpos))!=nil
         fbpos=fbpos-1);
       fbname="";fbi=fbpos+1;
-      while(fbi<=ssi-2
+      while(fbi<=fbnameend
         fbname=fbname+at(schars fbi);
         fbi=fbi+1);
+      dotpos=fbpos;
+      while(dotpos>=0 && index(wschars at(schars dotpos))!=nil
+        dotpos=dotpos-1);
       /* obj.func(...)/obj.global(...)/obj.local(...) call a method on
          obj -- unrelated to the same-named builtin -- so an identifier
          match alone isn't enough; require it not be a dot-call by
-         checking the character right before it isn't '.' */
-      fbisdot=(fbpos>=0 && at(schars fbpos)=='.');
+         checking the nearest non-whitespace character before it isn't
+         '.' */
+      fbisdot=(dotpos>=0 && at(schars dotpos)=='.');
       fbisfunc=(fbname=="func" && !fbisdot);
 
       /* global(sym)/local(sym) (optionally "sym :clear") are the only
          forms that touch the table -- see the comment by globalnames
-         above -- and their one argument is always a bare symbol, per
-         their own docstring signature, never a nested call. So rather
-         than reconstruct this from postfix() (whose trailing '*' marks
+         above. Their argument is read as raw text (rather than
+         reconstructed from postfix(), whose trailing '*' marks
          post-eval status, not a statement boundary -- confirmed via a
          real run showing list(1)'s own call token is starred exactly
-         like assign's, which broke an earlier postfix-token-scanning
-         version of this check on any RHS or argument built from a
-         post-eval command such as list()), read the argument text
-         directly: scan forward to this paren's matching close (depth-
-         tracked, though a symbol argument never nests one), then check
-         whether a bare '=' (not '==') follows. */
+         like assign's) by the SAME char-by-char loop this whole
+         function already runs, via the parenkind/parenargtext stacks
+         below -- not a separate scan -- so a quoted ')' or a
+         '// comment' inside the argument is handled by the one
+         string/comment-aware implementation this loop already has,
+         and an embedded '=' deeper in the argument (e.g.
+         local(symadd("y"+print(x=2 :str)))=3) still reaches the
+         bare-write check below instead of being skipped over. */
       isscopecall=((fbname=="global"||fbname=="local") && !fbisdot);
-      if(isscopecall :then
-        scopedepth=1;argtext="";sci=ssi;
-        while(sci<ssz && scopedepth>0
-          scc=at(schars sci);
-          sci=sci+1;
-          if(scc=='(' :then scopedepth=scopedepth+1;argtext=argtext+scc;continue);
-          if(scc==')' :then
-            scopedepth=scopedepth-1;
-            if(scopedepth==0 :then continue);
-            argtext=argtext+scc;continue);
-          argtext=argtext+scc);
-
-        wsi=sci;
-        while(wsi<ssz && index(wschars at(schars wsi))!=nil
-          wsi=wsi+1);
-        isassigncall=false;
-        if(wsi<ssz && at(schars wsi)=='=' :then
-          wnc=' ';
-          if(wsi+1<ssz :then wnc=at(schars wsi+1));
-          if(wnc!='=' :then isassigncall=true));
-
-        argtoks=split(argtext :tokstr);
-        gname=nil;isclear=false;
-        if(size(argtoks)>=1 :then gname=at(argtoks 0));
-        if(size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
-
-        /* global(x :clear)=val is itself malformed -- confirmed via a
-           real run that it warns "assignment to something other than
-           a symbol ... ignored" and does nothing beyond the clear --
-           so isclear (an unambiguous, self-contained effect) always
-           wins over a trailing '=' that never actually lands */
-        if(isclear && fbname=="global" :then
-          if(index(clearedglobal gname)==nil :then
-            clearedglobal=clearedglobal,gname));
-        if(!isclear && isassigncall && size(argtoks)==1 && gname!=nil :then
-          if(fbname=="global" :then
-            gcidx=index(clearedglobal gname);
-            if(gcidx!=nil :then at(clearedglobal gcidx :del));
-            if(index(globalnames gname)==nil :then
-              globalnames=globalnames,gname;
-              globallines=globallines,stmtline));
-          if(fbname=="local" :then
-            if(index(localnames gname)==nil :then
-              localnames=localnames,gname)));
-
-        ssi=sci;continue);
-
-      parenisfunc=parenisfunc,fbisfunc;
+      parenkind=parenkind,if(fbisfunc :then "func" :else if(isscopecall :then "scope" :else "other"));
+      parenscopename=parenscopename,if(isscopecall :then fbname :else "");
+      parenargtext=parenargtext,"";
+      parenargok=parenargok,true;
       if(fbisfunc :then funcdepthcount=funcdepthcount+1);
       continue);
     if(sc==')' :then
-      if(size(parenisfunc)>0 :then
-        wasfunc=at(parenisfunc nil :del);
-        if(wasfunc :then funcdepthcount=funcdepthcount-1));
+      if(size(parenkind)>0 :then
+        wasfunc=at(parenkind nil :del);
+        wasscopename=at(parenscopename nil :del);
+        wasargtext=at(parenargtext nil :del);
+        wasargok=at(parenargok nil :del);
+        if(wasfunc=="func" :then funcdepthcount=funcdepthcount-1);
+        if(wasfunc=="scope" :then
+          wsi=ssi;
+          while(wsi<ssz && index(wschars at(schars wsi))!=nil
+            wsi=wsi+1);
+          isassigncall=false;
+          if(wsi<ssz && at(schars wsi)=='=' :then
+            wnc=' ';
+            if(wsi+1<ssz :then wnc=at(schars wsi+1));
+            if(wnc!='=' :then isassigncall=true));
+
+          argtoks=split(wasargtext :tokstr);
+          gname=nil;isclear=false;
+          if(wasargok && size(argtoks)>=1 :then gname=at(argtoks 0));
+          if(wasargok && size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
+
+          /* global(x :clear)=val is itself malformed -- confirmed via
+             a real run that it warns "assignment to something other
+             than a symbol ... ignored" and does nothing beyond the
+             clear -- so isclear (an unambiguous, self-contained
+             effect) always wins over a trailing '=' that never
+             actually lands */
+          if(wasargok && isclear && wasscopename=="global" :then
+            if(index(clearedglobal gname)==nil :then
+              clearedglobal=clearedglobal,gname));
+          if(wasargok && !isclear && isassigncall && size(argtoks)==1 && gname!=nil :then
+            if(wasscopename=="global" :then
+              gcidx=index(clearedglobal gname);
+              if(gcidx!=nil :then at(clearedglobal gcidx :del));
+              if(index(globalnames gname)==nil :then
+                globalnames=globalnames,gname;
+                globallines=globallines,stmtline));
+            if(wasscopename=="local" :then
+              if(index(localnames gname)==nil :then
+                localnames=localnames,gname)))));
+      /* a nested '(' inside a still-open scope-call's argument means
+         that argument isn't a bare symbol (e.g. global(symadd(dyn)),
+         a real, valid call per a real run) -- mark it unrecognizable
+         rather than guess at the name it might resolve to; done here,
+         after the pop above, against whatever is now the new top (the
+         frame this ')' actually closed already popped off) */
+      if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
+        at(parenargok size(parenargok)-1 :set false));
       continue);
+
+    if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
+      attop=at(parenargtext nil);
+      at(parenargtext size(parenargtext)-1 :set attop+sc));
 
     if(sc!='=' :then continue);
 

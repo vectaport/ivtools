@@ -13,12 +13,23 @@
 // (joined with ';') with a later expression, a bare global() read
 // nested as an argument inside another call whose own postfix token
 // happens to be tagged like assign's (list(), a post-eval command),
-// and a global(name :clear)=val compound -- confirmed by a real run to
+// a global(name :clear)=val compound -- confirmed by a real run to
 // warn and leave the value assignment a no-op, but the clear itself
-// still lands, so a later bare write is not a global write either.
+// still lands, so a later bare write is not a global write either --
+// a dot-call whose '.' has whitespace after it before "global(" (still
+// parses as a dot-call, confirmed against a real postfix() run), and
+// a local(symadd(...)) call whose argument is built from a nested call
+// rather than a bare symbol -- not statically resolvable to a name, so
+// left unregistered rather than guessed at.
 
 obj.global(gs_dot)
 gs_dot=1
+
+obj. global(gs_dotws)
+gs_dotws=1
+
+local(symadd("y"))=1
+y=2
 
 global(gs_local)=1
 local(gs_local)=2

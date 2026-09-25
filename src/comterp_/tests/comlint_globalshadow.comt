@@ -27,9 +27,11 @@ if(open("../../scripts/comlint" "r")!=nil :then
 // --- test 1: a plain global(name)=... write, a write inside
 //     obj.func(...) (a method named "func", not the func(...)
 //     closure-literal builtin), a name re-declared after a clear, a
-//     declaration joined with a later expression via ';', and a
-//     declaration whose value is itself a post-eval call (list(1))
-//     all get flagged ---
+//     declaration joined with a later expression via ';', a
+//     declaration whose value is itself a post-eval call (list(1)),
+//     a declaration with whitespace before its own '(', a declaration
+//     with a '//' comment inside its parens, and a bare write nested
+//     inside another call's own argument list all get flagged ---
 out1=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
   comlintpath fixtureprefix "comlint_gs_positive.comt" :str) :pipe)
 flagp=index(out1 "declares gs_p global here" :substr)
@@ -37,9 +39,13 @@ flagdotfunc=index(out1 "declares gs_dotfunc global here" :substr)
 flagreclear=index(out1 "declares gs_reclear global here" :substr)
 flagjoined=index(out1 "declares gs_joined global here" :substr)
 flagnestedrhs=index(out1 "declares gs_nestedrhs global here" :substr)
-ok=ok&&(flagp!=nil)&&(flagdotfunc!=nil)&&(flagreclear!=nil)&&(flagjoined!=nil)&&(flagnestedrhs!=nil)
-print("1 comlint flags global(gs_p)=...;gs_p=..., the write inside\n    obj.func(gs_dotfunc=...), gs_reclear after a clear+redeclare,\n    gs_joined's ';'-joined declaration, and gs_nestedrhs's\n    list(1)-valued declaration (expect true x5): %v %v %v %v %v\n\n"
-  (flagp!=nil) (flagdotfunc!=nil) (flagreclear!=nil) (flagjoined!=nil) (flagnestedrhs!=nil))
+flagwsparen=index(out1 "declares gs_wsparen global here" :substr)
+flagcmtparen=index(out1 "declares gs_cmtparen global here" :substr)
+flagembedded=index(out1 "declares gs_embedded global here" :substr)
+ok=ok&&(flagp!=nil)&&(flagdotfunc!=nil)&&(flagreclear!=nil)&&(flagjoined!=nil)&&(flagnestedrhs!=nil)&&(flagwsparen!=nil)&&(flagcmtparen!=nil)&&(flagembedded!=nil)
+print("1 comlint flags global(gs_p)=...;gs_p=..., the write inside\n    obj.func(gs_dotfunc=...), gs_reclear after a clear+redeclare,\n    gs_joined's ';'-joined declaration, gs_nestedrhs's\n    list(1)-valued declaration, gs_wsparen's whitespace-before-'('\n    declaration, gs_cmtparen's comment-inside-parens declaration, and\n    gs_embedded's write nested inside another call's argument\n    (expect true x8): %v %v %v %v %v %v %v %v\n\n"
+  (flagp!=nil) (flagdotfunc!=nil) (flagreclear!=nil) (flagjoined!=nil) (flagnestedrhs!=nil)
+  (flagwsparen!=nil) (flagcmtparen!=nil) (flagembedded!=nil))
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: a dot-called global(), a local()-shadowed name, a write
@@ -49,13 +55,15 @@ prev_ok=check_fail(:ok ok)
 //     else's rvalue, a global() call passing more than one positional
 //     argument, a local()=val declaration joined with a later
 //     expression via ';', a bare global() read nested as an argument
-//     inside a post-eval call (list()), and a malformed
-//     global(name :clear)=val compound are all left unflagged ---
+//     inside a post-eval call (list()), a malformed
+//     global(name :clear)=val compound, a dot-call with whitespace
+//     after the '.', and a local(symadd(...)) declaration whose
+//     argument isn't a bare symbol are all left unflagged ---
 out2=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
   comlintpath fixtureprefix "comlint_gs_negative.comt" :str) :pipe)
 falsepos=index(out2 "declares" :substr)
 ok=ok&&(falsepos==nil)
-print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, single- and double-cleared writes, a bare\n    global(a b), a bare read used as an rvalue, a multi-arg global()\n    call, a ';'-joined local() declaration, a global() read nested in\n    a post-eval call's arguments, and a global(:clear)=val compound\n    flags none (expect nil): %v\n\n" falsepos)
+print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, single- and double-cleared writes, a bare\n    global(a b), a bare read used as an rvalue, a multi-arg global()\n    call, a ';'-joined local() declaration, a global() read nested in\n    a post-eval call's arguments, a global(:clear)=val compound, a\n    whitespace-after-'.' dot-call, and a local(symadd(...))\n    non-bare-symbol declaration flags none (expect nil): %v\n\n" falsepos)
 prev_ok=check_fail(:ok ok)
 
 print("\ncomlint_globalshadow: %v\n" ok)

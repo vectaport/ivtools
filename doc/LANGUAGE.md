@@ -531,8 +531,21 @@ regardless of where it sits in a multi-line or `;`-joined statement
 value expression is, including one built from another call
 (`global(x)=list(1)`); a bare `global(name)` read nested as an argument
 inside some other call is never mistaken for a declaration either
-(`y=print(list() global(x) :str)` registers nothing). Not yet checked:
-`x++`/`--x` against a declared global.
+(`y=print(list() global(x) :str)` registers nothing). Whitespace around
+the declaration is tolerated the same way ComTerp itself tolerates it:
+a space before the call's own `(` (`global (x)=1`) still registers, and
+a space after a dot before `global(`/`local(` (`obj. global(x)`) is
+still recognized as a dot-call, not a declaration, since ComTerp itself
+still parses it as one (confirmed against `postfix()`). A `//` comment
+inside the declaration's parens, before the close, is skipped rather
+than read as part of the argument. When the argument isn't a bare
+symbol — built from a nested call, e.g. `local(symadd(dynamic))`, a
+real, valid call per a real run — it can't be resolved to a name
+statically, so nothing is registered rather than guessed at; that
+nested call's own parens don't stop the scan from also reaching a bare
+write elsewhere in the same argument list (`local(symadd("y"+
+print(x=2 :str)))=3` still flags `x=2` when `x` is already a declared
+global). Not yet checked: `x++`/`--x` against a declared global.
 
 ## Arguments: Fixed Before Keywords — Always
 

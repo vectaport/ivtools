@@ -12,7 +12,17 @@
 // declaration's value is itself a call (list(1)), a post-eval command
 // whose own postfix token is tagged just like assign's -- still
 // recognized as the lvalue form, not mistaken for the whole
-// declaration's end.
+// declaration's end; gs_wsparen is declared with whitespace between
+// "global" and its '(' -- still valid ComTerp syntax (confirmed
+// against a real run) and still recognized; gs_cmtparen's declaration
+// has a '//' comment inside the parens, before the close -- the
+// comment is skipped by the same string/comment-aware scan the rest
+// of the statement gets, not misread as part of the argument;
+// gs_embedded's bare write sits nested inside another call's own
+// argument list (a local(symadd(...)) call whose argument text
+// contains "gs_embedded=..."), so it isn't skipped over just because
+// it's inside a paren the scan is also using to look for a
+// declaration.
 
 global(gs_p)=1
 gs_p=2
@@ -30,3 +40,13 @@ gs_joined=2
 
 global(gs_nestedrhs)=list(1)
 gs_nestedrhs=2
+
+global (gs_wsparen)=1
+gs_wsparen=2
+
+global(gs_cmtparen // trailing comment
+)=1
+gs_cmtparen=2
+
+global(gs_embedded)=1
+local(symadd("y"+print(gs_embedded=2 :str)))=3
