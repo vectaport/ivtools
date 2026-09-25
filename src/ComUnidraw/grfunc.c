@@ -109,7 +109,7 @@ Transformer* CreateGraphicFunc::get_transformer(AttributeList* al) {
     avl->Next(it); a21=avl->GetAttrVal(it)->float_val();
     rel = new Transformer(a00, a01, a10, a11, a20, a21);
   } else {
-    rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
+    rel = ((OverlayViewer*)_ed->GetViewer())->ComputeGravityRel();
     if (rel != nil) {
       rel = new Transformer(rel);
       rel->Invert();
