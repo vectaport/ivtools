@@ -545,7 +545,12 @@ statically, so nothing is registered rather than guessed at; that
 nested call's own parens don't stop the scan from also reaching a bare
 write elsewhere in the same argument list (`local(symadd("y"+
 print(x=2 :str)))=3` still flags `x=2` when `x` is already a declared
-global). Not yet checked: `x++`/`--x` against a declared global.
+global). A quoted or single-quoted argument's contents count toward
+the argument's token total the same as unquoted text would
+(`global(x "s")=1` is a two-positional-argument call — confirmed by a
+real run that it's rejected without creating a binding — so it's left
+unregistered rather than mistaken for the bare one-symbol form). Not
+yet checked: `x++`/`--x` against a declared global.
 
 ## Arguments: Fixed Before Keywords — Always
 

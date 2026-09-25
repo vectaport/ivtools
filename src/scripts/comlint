@@ -310,18 +310,40 @@ while((srcline=gets(fp))!=nil
   while(ssi<ssz
     sc=at(schars ssi);
     ssi=ssi+1;
+    /* whether this char lands inside a still-open scope-call's argument,
+       decided from the stack state left by prior iterations -- computed
+       once up front so every early-continue branch below (string/char
+       literal content, an escaped char) can still append its character
+       to that frame's argtext before skipping the rest of the loop body,
+       instead of only the fallthrough case at the bottom reaching it;
+       a quoted argument's content (e.g. the "s" in global(x "s")=1) is
+       argument text like any other and must count toward its token
+       total, same as an unquoted one -- only true comment text (already
+       excluded by the slcmt check above) and this frame's own enclosing
+       parens are not part of the argument. */
+    inscopearg=(size(parenkind)>0 && at(parenkind nil)=="scope");
     if(sc=='\n' :then slcmt=0;continue);
     if(slcmt>0 :then continue);
-    if(sescape>0 :then sescape=0;continue);
-    if(sc=='\\' :then sescape=1;continue);
+    if(sescape>0 :then sescape=0;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
+    if(sc=='\\' :then sescape=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
     if(sinstr>0 :then
       if(sc=='"' :then sinstr=0);
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
       continue);
     if(sinchr>0 :then
       if(sc=='\'' :then sinchr=0);
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
       continue);
-    if(sc=='"' :then sinstr=1;continue);
-    if(sc=='\'' :then sinchr=1;continue);
+    if(sc=='"' :then sinstr=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
+    if(sc=='\'' :then sinchr=1;
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+      continue);
     if(sc=='/' :then
       snc=' ';
       if(ssi<ssz :then snc=at(schars ssi));
@@ -437,9 +459,8 @@ while((srcline=gets(fp))!=nil
         at(parenargok size(parenargok)-1 :set false));
       continue);
 
-    if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
-      attop=at(parenargtext nil);
-      at(parenargtext size(parenargtext)-1 :set attop+sc));
+    if(inscopearg :then
+      at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
 
     if(sc!='=' :then continue);
 

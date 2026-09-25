@@ -20,7 +20,11 @@
 // parses as a dot-call, confirmed against a real postfix() run), and
 // a local(symadd(...)) call whose argument is built from a nested call
 // rather than a bare symbol -- not statically resolvable to a name, so
-// left unregistered rather than guessed at.
+// left unregistered rather than guessed at -- and a global()/local()
+// call passing a quoted second positional argument, which the runtime
+// rejects (confirmed via a real run) rather than establishing a
+// binding, so the quoted text must still count toward the argument's
+// token total instead of vanishing from the scan.
 
 obj.global(gs_dot)
 gs_dot=1
@@ -30,6 +34,9 @@ gs_dotws=1
 
 local(symadd("y"))=1
 y=2
+
+global(gs_quoted "s")=1
+gs_quoted=2
 
 global(gs_local)=1
 local(gs_local)=2

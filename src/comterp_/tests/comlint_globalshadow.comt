@@ -57,8 +57,9 @@ prev_ok=check_fail(:ok ok)
 //     expression via ';', a bare global() read nested as an argument
 //     inside a post-eval call (list()), a malformed
 //     global(name :clear)=val compound, a dot-call with whitespace
-//     after the '.', and a local(symadd(...)) declaration whose
-//     argument isn't a bare symbol are all left unflagged ---
+//     after the '.', a local(symadd(...)) declaration whose argument
+//     isn't a bare symbol, and a global()/local() call with a quoted
+//     second positional argument are all left unflagged ---
 out2=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
   comlintpath fixtureprefix "comlint_gs_negative.comt" :str) :pipe)
 falsepos=index(out2 "declares" :substr)
