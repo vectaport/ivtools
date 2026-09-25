@@ -1,0 +1,47 @@
+// src/comdraw/tests/frontback.comt -- front()/back() reject an invalid
+// graphic argument instead of corrupting the Clipboard.
+//
+// An explicit argument must be a component-view-tagged value with a live
+// subject; a wrong-typed argument or a view whose comp is already gone
+// (e.g. after delete()) now warns and returns nil rather than reaching
+// FrontCmd/BackCmd::Execute(), which dereferences every clipboard entry
+// unconditionally.
+//
+// Run from inside comdraw:
+//   run("src/comdraw/tests/frontback.comt")
+
+ok=true
+
+// --- test 1: front()/back() on a non-graphic argument -- refused ---
+r1=front(5)
+ok=ok&&(r1==nil)
+print("1 front(5), wrong type (expect nil): %v\n" r1)
+
+r2=back("hello")
+ok=ok&&(r2==nil)
+print("2 back(\"hello\"), wrong type (expect nil): %v\n" r2)
+
+// --- test 2: front()/back() on a view whose comp is already gone --
+//             refused, not a crash ---
+g=rect(0,0,10,10)
+delete(g)
+r3=front(g)
+ok=ok&&(r3==nil)
+print("3 front(deleted graphic) (expect nil): %v\n" r3)
+
+r4=back(g)
+ok=ok&&(r4==nil)
+print("4 back(deleted graphic) (expect nil): %v\n" r4)
+
+// --- test 3: a live graphic still works normally after the above ---
+h=rect(20,20,30,30)
+r5=front(h)
+ok=ok&&(r5!=nil)
+print("5 front(live graphic) (expect non-nil): %v\n" r5)
+
+r6=back(h)
+ok=ok&&(r6!=nil)
+print("6 back(live graphic) (expect non-nil): %v\n" r6)
+
+print("frontback: %v\n" ok)
+ok

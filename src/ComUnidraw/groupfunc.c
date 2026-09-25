@@ -255,9 +255,8 @@ void BackSelectionFunc::execute() {
     }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
     OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-    // a view can outlive the comp it represented; treat a subjectless
-    // view as gone instead of appending it to the Clipboard, since
-    // BackCmd::Execute() dereferences every entry unconditionally.
+    // a view can outlive the comp it represented; a subjectless view is
+    // treated as gone rather than handed to the Clipboard.
     if (grview && !grcomp) {
 	cerr << "WARNING: back()'s argument's subject is already gone"
 		" (stale graphic reference) -- line "
@@ -302,9 +301,8 @@ void FrontSelectionFunc::execute() {
     }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
     OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-    // a view can outlive the comp it represented; treat a subjectless
-    // view as gone instead of appending it to the Clipboard, since
-    // FrontCmd::Execute() dereferences every entry unconditionally.
+    // a view can outlive the comp it represented; a subjectless view is
+    // treated as gone rather than handed to the Clipboard.
     if (grview && !grcomp) {
 	cerr << "WARNING: front()'s argument's subject is already gone"
 		" (stale graphic reference) -- line "
