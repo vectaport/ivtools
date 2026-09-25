@@ -9,11 +9,15 @@
 // the back; prev() is its exact mirror, exiting past the front and
 // spinning the previous library photo in from the front.
 //
-// Start it like this, with -comt so the welcome banner's example lines
-// land in the scrollable inline pane -- ctrl-p up to one and hit return
-// to run it, same as etchasketch.comt/spirograph.comt:
+// Start it like this, with -comt taking THIS file directly (not -runfile,
+// which would run it against the editor's own interpreter and print
+// straight to the terminal instead): -comt's own bootstrap load
+// (ComTextEditor::runfile(), ComGlyph/comtextedit.c) captures the script's
+// output and pastes it into the pane itself, so the welcome banner's
+// example lines land in the scrollable inline pane -- ctrl-p up to one
+// and hit return to run it, same as etchasketch.comt/spirograph.comt:
 //
-//     comdraw -comt -runfile src/comdraw/examples/carousel.comt
+//     comdraw -comt src/comdraw/examples/carousel.comt
 //
 // Then try:   carousel.help()
 //
