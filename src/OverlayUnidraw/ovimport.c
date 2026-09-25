@@ -1152,7 +1152,10 @@ void OvImportCmd::Execute () {
 	}
         unidraw->Update();
     } else {
-      if (!from_dialog && !empty) {
+      /* the acknowledgement dialog needs a user present to click it, so
+	 only the interactive chooser path (from_dialog) posts one -- a
+	 scripted or piped import just fails silently back to its caller. */
+      if (from_dialog && !empty) {
 	Window* w = GetEditor()->GetWindow();
 	w->cursor(defaultCursor);
 	GAcknowledgeDialog::post(w, "import failed", nil, "import failed");

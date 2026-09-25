@@ -28,14 +28,19 @@
 // building this: nesting the animation's own for/while in one more outer
 // for() hangs comterp's postfix re-evaluation -- see the PR description.)
 //
-// Photos are fetched live via curl, one per library slot, each with a
-// distinct cache-busting x= value so the same random-photo endpoint
-// doesn't hand back the same image twice (see the library loop below).
-// The cache-busting counter starts at 100 rather than 0 so a later
-// import(:next) call never needs to carry a digit past the field's
-// current width -- see issue #612 for what goes wrong when it does.
-// JPEG/PNG/GIF import shells out to djpeg/pngtopnm/giftopnm (see
-// OvImportCmd::Import), so those need to be on PATH.
+// Each library photo is fetched live via curl when the network is
+// reachable, each with a distinct cache-busting x= value so the same
+// random-photo endpoint doesn't hand back the same image twice (see
+// fetchphoto below). The cache-busting counter starts at 100 rather than
+// 0 so a later import(:next) call never needs to carry a digit past the
+// field's current width -- see issue #612 for what goes wrong when it
+// does. JPEG/PNG/GIF import shells out to djpeg/pngtopnm/giftopnm (see
+// OvImportCmd::Import), so those need to be on PATH for the live path.
+//
+// A photo whose fetch fails (no network, endpoint unreachable, etc.)
+// falls back to a solid-color 1x1 raster stand-in -- fetchphoto() checks
+// each import(:popen) result and switches per photo, so the example and
+// its regression test behave the same with or without a live network.
 //
 // trans()'s scale factors apply to a graphic's own native pixel geometry,
 // not to its slot's target size directly -- a photo's native width/height
@@ -67,18 +72,31 @@ offX0=(0-330); offX1=(0-180); offX2=0; offX3=180; offX4=330
 sc0=0.42; sc1=0.65; sc2=1.0; sc3=0.65; sc4=0.42
 lift0=40; lift1=20; lift2=0; lift3=20; lift4=40
 
-// photo library: n real photos fetched via curl, each with a distinct
-// cache-busting x= value; libw/libh hold each photo's own native pixel
-// size (see header), captured immediately after import via mbr() (l,b,r,t)
-// before any trans() call establishes a placement
+// photo library: n photos, each fetched live via curl or, on failure,
+// a solid-color 1x1 stand-in (see fetchphoto below); libw/libh hold each
+// photo's own native pixel size (see header), captured immediately after
+// import via mbr() (l,b,r,t) before any trans() call establishes a
+// placement -- a 1x1 stand-in's own mbr() naturally yields 1,1, so the
+// same capture and the same trans() scaling below apply unchanged to
+// either kind of photo, no separate case needed.
 n=7
-url0="curl -s --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x=100\"";
-img0lib=import(url0 :popen);
+photocolors=0xd94f4f,0xd9a54f,0xd9d24f,0x6fd94f,0x4fb8d9,0x6f4fd9,0xd94fbb
+
+// fetchphoto(idx) -- live-fetch library photo idx via curl; if that
+// import fails (no network, endpoint unreachable, empty/unrecognized
+// output), fall back to library slot idx's solid-color stand-in instead.
+fetchphoto=func(
+  idx=arg(0);
+  url="curl -s --max-time 3 --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x="+print(100+idx :str)+"\"";
+  img=import(url :popen);
+  img=if(img==nil :then raster(0,0,1,1 :rgb 1,1, at(photocolors idx)) :else img);
+  img)
+
+img0lib=fetchphoto(0);
 b0=mbr(img0lib); pw0=at(b0 2)-at(b0 0); ph0=at(b0 3)-at(b0 1);
 imgs=img0lib; libw=pw0; libh=ph0;
 for(i=1 i<n i=i+1
-  urli="curl -s --output - -L \"https://api.sourcesplash.com/i/random?q=beach?x="+print(100+i :str)+"\"";
-  imgi=import(urli :popen);
+  imgi=fetchphoto(i);
   bi=mbr(imgi); pwi=at(bi 2)-at(bi 0); phi=at(bi 3)-at(bi 1);
   imgs=imgs,imgi;
   libw=libw,pwi;
