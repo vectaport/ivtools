@@ -155,7 +155,6 @@ void OverlayUnidraw::Run () {
 	    long elapsed_usec = elapsedMicroseconds(start, now);
 	    
 	    remaining_usec = target_usec - elapsed_usec;
-	    // fprintf(stderr, "AFTER NO EVENT remaining_usec %ld\n", remaining_usec);
 	    if ( remaining_usec > 0 ) continue;
 	    break;
 	  }
