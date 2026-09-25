@@ -349,6 +349,11 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
       running(old_runflag);
       return -1;
     }
+    /* unbuffered: this fd can be inherited by a child a script command
+       forks (e.g. import(cmd :popen)); glibc's fclose() on that child's
+       copy seeks the shared underlying offset back to what the child
+       had consumed, rewinding ours if we'd buffered ahead of it. */
+    setvbuf(ifptr, NULL, _IONBF, 0);
     /* line buffer grows on demand (doubling) for long lines,
        replacing the old fixed BUFSIZ*BUFSIZ buffer. */
     int inbufsiz = _linesize;
