@@ -31,6 +31,7 @@
 
 #include <InterViews/input.h>
 #include <Unidraw/enter-scope.h>
+#include <IV-2_6/InterViews/alignment.h>
 
 #include <InterViews/_enter.h>
 
@@ -40,6 +41,8 @@ class KeyMap;
 class Interactor;
 class ManagedWindow;
 class MoveCmd;
+class ScaleCmd;
+class RotateCmd;
 class Selection;
 class StateVar;
 class Tool;
@@ -86,6 +89,16 @@ public:
     // factory for the Command an interactive move manipulator builds;
     // overridden where a richer editor must substitute a distributing
     // subclass (see OverlayEditor::MakeMoveCmd).
+    virtual ScaleCmd* MakeScaleCmd(float sx, float sy, Alignment = 4);
+    // 4 is Center (IV-2_6/InterViews/alignment.h) spelled as a literal --
+    // the bare name collides with the "current" IV library's own Center
+    // under this translation unit's naming mode at this point in the file.
+    // factory for the Command an interactive scale or stretch manipulator
+    // builds; see MakeMoveCmd. The Stretch tool's non-uniform sx/sy and
+    // corner Alignment go through this same factory, not a separate one.
+    virtual RotateCmd* MakeRotateCmd(float angle);
+    // factory for the Command an interactive rotate manipulator builds;
+    // see MakeMoveCmd.
 protected:
     Editor();
     void Insert(Interactor*);

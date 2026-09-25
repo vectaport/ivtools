@@ -69,5 +69,14 @@ e=export(r :string :percomp)
 ok=ok&&(index(e "4,0,0,4,7,8" :substr)!=nil)
 print("7 the imposed transform reaches export (expect a position): %v\n" index(e "4,0,0,4,7,8" :substr))
 
+// --- test 8: bare trans() with no args returns the viewer's current
+//             window-to-drawing transform -- the same one a graphic just
+//             drawn with no explicit :transform gets ---
+t8=trans()
+ok=ok&&(size(t8)==6)
+u=rect(20,20,40,40)
+ok=ok&&(t8==trans(u))
+print("8 bare trans() matches a freshly drawn graphic's own transform (expect true): %v\n" (t8==trans(u)))
+
 print("trans: %v\n" ok)
 ok
