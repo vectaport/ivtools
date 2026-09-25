@@ -1,0 +1,20 @@
+// fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Every bare write below
+// is a case the global-shadow check must NOT flag: a dot-called
+// global() (a method call, not the declaration), a name shadowed by
+// local(), a write inside a func(...) literal's own frame, and a name
+// cleared via global(:clear).
+
+obj.global(gs_dot)
+gs_dot=1
+
+global(gs_local)=1
+local(gs_local)=2
+gs_local=3
+
+global(gs_func)=1
+f=func(gs_func=2; 0)
+
+global(gs_clear)=1
+global(gs_clear :clear)
+gs_clear=2

@@ -1,0 +1,11 @@
+// fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Every bare write below
+// is a real global write with nothing shadowing/clearing it in the
+// way, so comlint should flag all three names.
+
+global(gs_p)=1
+gs_p=2
+
+global(gs_m1 gs_m2)
+gs_m1=1
+gs_m2=2

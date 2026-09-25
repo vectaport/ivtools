@@ -496,6 +496,28 @@ index-assignment (`obj@name=...`) are excluded by checking the
 character before the identifier itself, since both assign through the
 object rather than to the bare name.
 
+**Global-shadow write check** flags a bare write (`name=value` or a
+compound form) to a name already declared global earlier in the same
+script via `global(name)` — the bare write lands in that same global
+rather than a fresh local, per the rule that a bare write mirrors a
+bare read. `global(a b)` and other multi-name forms declare every name
+they list. The check is suppressed — deliberately, to avoid a false
+positive, even at the cost of occasionally missing a real one — once
+any of the following is true for that name: a `global(name :clear)`
+call was seen (the declaration was withdrawn); a `local(name)` call was
+seen anywhere in the script (`local()` shadows `global()` in ComTerp's
+own local → global lookup order, so a bare write after either reaches
+the local, not the global — confirmed by running
+`global(x)=1;local(x)=2;x=3;global(x)`, which still reads `1`); or the
+write sits inside a `func(...)` literal's body, which always writes to
+that call's own frame, whether or not the function is ever called
+(confirmed by running `global(x)=1;f=func(x=2;0);f();global(x)`, which
+still reads `1`). A dot-called `global()`/`local()` (`obj.global(x)`)
+is a method call on `obj`, not the declaration, and is never treated as
+one. Not yet checked: `x++`/`--x` against a declared global, and a
+`global()`/`local()` appearing later in the same multi-line statement
+as the write it should affect (both left for a future pass).
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by

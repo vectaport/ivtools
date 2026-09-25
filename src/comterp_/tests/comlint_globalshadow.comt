@@ -1,0 +1,35 @@
+// src/comterp_/tests/comlint_globalshadow.comt -- regression test for
+// comlint's #562 global-shadow check: asserts its exact diagnostic
+// output on two fixture scripts, rather than only that comlint runs
+// without crashing -- a false positive or false negative here is
+// silent (comlint just prints nothing extra and exits 0), so the
+// fixtures' content is the thing actually under test.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/comlint_globalshadow.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a plain global(name)=... write, and every name a
+//     multi-arg global(a b) declares, all get flagged ---
+out1=*$$open("comterp run ../../scripts/comlint comlint_gs_positive.comt 2>&1 | tr \"\\n\" \" \"" :pipe)
+flagp=index(out1 "declares gs_p global here" :substr)
+flagm1=index(out1 "declares gs_m1 global here" :substr)
+flagm2=index(out1 "declares gs_m2 global here" :substr)
+ok=ok&&(flagp!=nil)&&(flagm1!=nil)&&(flagm2!=nil)
+print("1 comlint flags global(gs_p)=...;gs_p=... and global(gs_m1 gs_m2)'s\n    both names (expect true true true): %v %v %v\n\n"
+  (flagp!=nil) (flagm1!=nil) (flagm2!=nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: a dot-called global(), a local()-shadowed name, a write
+//     inside a func(...) body, and a global(:clear)ed name are all
+//     left unflagged ---
+out2=*$$open("comterp run ../../scripts/comlint comlint_gs_negative.comt 2>&1 | tr \"\\n\" \" \"" :pipe)
+falsepos=index(out2 "declares" :substr)
+ok=ok&&(falsepos==nil)
+print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, and a global(:clear)ed write flags none\n    (expect nil): %v\n\n" falsepos)
+prev_ok=check_fail(:ok ok)
+
+print("\ncomlint_globalshadow: %v\n" ok)
+ok

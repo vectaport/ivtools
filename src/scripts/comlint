@@ -18,9 +18,12 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
     print("Flags a call passing fewer positional arguments than the\n");
     print("command requires, a :keyword the command doesn't declare in\n");
-    print("its own signature or dockeys(), or a plain assignment (name=\n");
+    print("its own signature or dockeys(), a plain assignment (name=\n");
     print("value, or a compound += form) to a name that also names a\n");
-    print("registered command. Never executes the target script.\n\n");
+    print("registered command, or a bare write to a name already\n");
+    print("declared global() earlier in the script (see doc/LANGUAGE.md\n");
+    print("for how local()/func() scoping and global(:clear) narrow\n");
+    print("this last check). Never executes the target script.\n\n");
     print("A call using a keyword skips the positional-arity check (an\n");
     print("alternate calling convention it can't validate) but still gets\n");
     print("its keyword names checked. Statements spanning multiple lines\n");
@@ -159,8 +162,19 @@ wschars=" \t"
    read global(name), or an lvalue global(name)=... -- both register the
    same global binding per #561/#562), and the line each was first seen;
    flaggedglobal is the subset already reported, so a name bare-written
-   many times after its global() only gets one finding */
+   many times after its global() only gets one finding. clearedglobal is
+   the subset later cleared via global(name :clear) -- once cleared, a
+   name is never flagged again even if it reappears in globalnames,
+   trading a possible missed re-declaration for no false positive
+   (conservative by design, like localnames below). localnames is the
+   set ever named in a local(name) call (any form but :clear) anywhere
+   in the script -- local() searches before global() (see comterp.c's
+   "func scope -> local -> global" order), so a later bare write to a
+   name in localnames lands in the local table, not the global one,
+   whatever global() also declared -- suppressed permanently once seen,
+   the same conservative trade-off as clearedglobal. */
 globalnames=list();globallines=list();flaggedglobal=list()
+clearedglobal=list();localnames=list()
 
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
@@ -269,6 +283,7 @@ while((srcline=gets(fp))!=nil
      next '\n' -- stmt can join several source lines) is never scanned
      as code. */
   schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;slcmt=0;
+  parenisfunc=list();funcdepthcount=0;
   while(ssi<ssz
     sc=at(schars ssi);
     ssi=ssi+1;
@@ -288,6 +303,33 @@ while((srcline=gets(fp))!=nil
       snc=' ';
       if(ssi<ssz :then snc=at(schars ssi));
       if(snc=='/' :then slcmt=1;continue));
+
+    /* a bare write inside a func(...) literal's body lands in that
+       call's own frame, never in a same-named global, however outer
+       code declared it (confirmed against a real global(x)=1;
+       f=func(x=2;0);f(); run -- global(x) still reads 1 afterward) --
+       so track paren depth here too, tagging each '(' with whether the
+       identifier immediately before it is "func", and count how many
+       still-open parens are func-tagged. Popped with at(:del) (list has
+       no other stack-pop primitive); a non-func paren's close is a
+       no-op on the count. */
+    if(sc=='(' :then
+      fbpos=ssi-2;
+      while(fbpos>=0 && index(idchars at(schars fbpos))!=nil
+        fbpos=fbpos-1);
+      fbname="";fbi=fbpos+1;
+      while(fbi<=ssi-2
+        fbname=fbname+at(schars fbi);
+        fbi=fbi+1);
+      parenisfunc=parenisfunc,(fbname=="func");
+      if(fbname=="func" :then funcdepthcount=funcdepthcount+1);
+      continue);
+    if(sc==')' :then
+      if(size(parenisfunc)>0 :then
+        wasfunc=at(parenisfunc nil :del);
+        if(wasfunc :then funcdepthcount=funcdepthcount-1));
+      continue);
+
     if(sc!='=' :then continue);
 
     /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
@@ -330,9 +372,17 @@ while((srcline=gets(fp))!=nil
     /* a bare write to a name already established global earlier in this
        script lands in that same global rather than a fresh local (#561's
        bare-write-mirrors-bare-read rule) -- flag it once per name, at its
-       first bare-write site after the global() that declared it (#562) */
+       first bare-write site after the global() that declared it (#562).
+       Suppressed when the name was later global(:clear)ed, was ever named
+       in a local() call (local() shadows global() per comterp.c's lookup
+       order), or this write sits inside a func(...) body (its own frame,
+       never the global) -- see the comments by clearedglobal/localnames
+       and funcdepthcount above for why each is a permanent, one-way
+       suppression rather than a precise re-enable. */
     gidx=index(globalnames name);
-    if(gidx!=nil && index(flaggedglobal name)==nil :then
+    if(gidx!=nil && index(clearedglobal name)==nil &&
+      index(localnames name)==nil && funcdepthcount==0 &&
+      index(flaggedglobal name)==nil :then
       flaggedglobal=flaggedglobal,name;
       gline=at(globallines gidx);
       print("%s:%v: global(%s) declares %s global here\n" target gline name name);
@@ -384,30 +434,63 @@ while((srcline=gets(fp))!=nil
     obsnarg=int(at(ctoks 0));
     obsnkey=int(at(ctoks 1));
 
-    /* global(name) (bare read or lvalue -- both tag identically, see
-       #562) establishes name as global from here on; record its first
-       sighting so a later bare write to the same name can be checked
-       against it. ti was already advanced past this token, so ti-2 is
-       the token immediately before it -- global's own single positional
-       argument, per postfix's left-to-right argument order. */
-    if(name=="global" && obsnarg>=1 :then
-      gtok=at(toks ti-2);
-      glb=index(gtok "[");
-      gname=gtok;
-      if(glb!=nil :then gname=substr(gtok "["));
-      if(size(gname)>0 && index(globalnames gname)==nil :then
-        globalnames=globalnames,gname;
-        globallines=globallines,stmtline));
-
     /* dot-attribute access (a.name(...)) resolves to whatever a.name
-       is bound to, not the same-named global command -- postfix still
-       labels the call with the global command's arity, but tags it
-       with an immediately-following dot[...] token (postfix(a.b(1)) is
-       "a 1 b[1|0|1]* dot[2|0|1]*"), so skip only THIS occurrence
-       rather than searching stmt as a whole -- an unrelated bare call
+       is bound to, not the same-named global/local command -- postfix
+       still labels the call with the target command's arity, but tags
+       it with an immediately-following dot[...] token (postfix(a.b(1))
+       is "a 1 b[1|0|1]* dot[2|0|1]*"), so a dot-called global()/local()
+       (e.g. obj.global(x), a real method call, not the declaration --
+       confirmed via postfix(x.global(a)) tagging it dot[2|0|1]*) never
+       registers a declaration below, and is skipped for the
+       arity/keyword checks further down too -- an unrelated bare call
        of the same name elsewhere in the statement still gets checked */
     nexttok=at(toks ti);
-    if(substr(nexttok 4)=="dot[" :then continue);
+    isdotcall=(substr(nexttok 4)=="dot[");
+
+    /* global(a b ... :clear) and local(a b ... :clear) each accept more
+       than the one name their docstring shows (confirmed:
+       postfix(global(a b)) tags obsnarg=2) -- walk back obsnarg tokens
+       collecting every one as a declared/local name, first stepping
+       back over this call's own obsnkey keyword-marker tokens (tagged
+       "name(argcount)", e.g. ":clear(0)") the same way the
+       unrecognized-keyword walk-back below does, since keywords sort
+       nearer the call in postfix's left-to-right argument order than
+       positionals do. */
+    if((name=="global" || name=="local") && obsnarg>=1 && !isdotcall :then
+      gkidx=ti-2;gkfound=0;isclear=false;
+      while(gkfound<obsnkey && gkidx>=0
+        gktok=at(toks gkidx);
+        gkidx=gkidx-1;
+        if(substr(gktok 1)!=":" :then continue);
+        gkp=index(gktok "(");
+        if(gkp==nil :then continue);
+        gkname=substr(gktok "(");
+        if(size(gkname)<=1 :then continue);
+        gkfound=gkfound+1;
+        if(gkname==":clear" :then isclear=true));
+
+      gpidx=gkidx;gpfound=0;
+      while(gpfound<obsnarg && gpidx>=0
+        gtok=at(toks gpidx);
+        gpidx=gpidx-1;
+        glb=index(gtok "[");
+        gname=gtok;
+        if(glb!=nil :then gname=substr(gtok "["));
+        if(size(gname)==0 :then continue);
+        gpfound=gpfound+1;
+
+        if(name=="global" && isclear :then
+          if(index(clearedglobal gname)==nil :then
+            clearedglobal=clearedglobal,gname));
+        if(name=="global" && !isclear :then
+          if(index(globalnames gname)==nil :then
+            globalnames=globalnames,gname;
+            globallines=globallines,stmtline));
+        if(name=="local" && !isclear :then
+          if(index(localnames gname)==nil :then
+            localnames=localnames,gname))));
+
+    if(isdotcall :then continue);
 
     nchecked=nchecked+1;
 
