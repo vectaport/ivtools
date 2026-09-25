@@ -37,6 +37,10 @@ if(run("./globalscope.comt")
   :then print("pass: globalscope\n")
   :else print("FAIL: globalscope\n");topok=false)
 
+if(run("./comlint_globalshadow.comt")
+  :then print("pass: comlint_globalshadow\n")
+  :else print("FAIL: comlint_globalshadow\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)

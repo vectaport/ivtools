@@ -1,0 +1,76 @@
+// fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Every bare write below
+// is a case the global-shadow check must NOT flag: a dot-called
+// global() (a method call, not the declaration), a name shadowed by
+// local(), a write inside a func(...) literal's own frame, a name
+// cleared via global(:clear) (including one cleared twice in a row --
+// re-clearing is a no-op, not a re-registration), a bare multi-name
+// global(a b) (which never actually registers either name -- confirmed
+// against a real run), a bare global(name) read used only as someone
+// else's rvalue (never the lvalue-assign form itself), a global()
+// call passing more than one positional argument (never the assign
+// form either), a local()=val declaration that shares a statement
+// (joined with ';') with a later expression, a bare global() read
+// nested as an argument inside another call whose own postfix token
+// happens to be tagged like assign's (list(), a post-eval command),
+// a global(name :clear)=val compound -- confirmed by a real run to
+// warn and leave the value assignment a no-op, but the clear itself
+// still lands, so a later bare write is not a global write either --
+// a dot-call whose '.' has whitespace after it before "global(" (still
+// parses as a dot-call, confirmed against a real postfix() run), and
+// a local(symadd(...)) call whose argument is built from a nested call
+// rather than a bare symbol -- not statically resolvable to a name, so
+// left unregistered rather than guessed at -- and a global()/local()
+// call passing a quoted second positional argument, which the runtime
+// rejects (confirmed via a real run) rather than establishing a
+// binding, so the quoted text must still count toward the argument's
+// token total instead of vanishing from the scan.
+
+obj.global(gs_dot)
+gs_dot=1
+
+obj. global(gs_dotws)
+gs_dotws=1
+
+local(symadd("y"))=1
+y=2
+
+global(gs_quoted "s")=1
+gs_quoted=2
+
+global(gs_local)=1
+local(gs_local)=2
+gs_local=3
+
+global(gs_func)=1
+f=func(gs_func=2; 0)
+
+global(gs_clear)=1
+global(gs_clear :clear)
+gs_clear=2
+
+global(gs_doubleclear)=1
+global(gs_doubleclear :clear)
+global(gs_doubleclear :clear)
+gs_doubleclear=2
+
+global(gs_m1 gs_m2)
+gs_m1=1
+gs_m2=2
+
+v=global(gs_read)
+gs_read=1
+
+global(gs_nested symadd(dynamic))
+gs_nested=1
+
+global(gs_joinedlocal)=1
+local(gs_joinedlocal)=2;print(0)
+gs_joinedlocal=3
+
+gs_argread=print(list() global(gs_argread) :str)
+gs_argread=1
+
+global(gs_clearassign)=1
+global(gs_clearassign :clear)=99
+gs_clearassign=2

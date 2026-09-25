@@ -496,6 +496,62 @@ index-assignment (`obj@name=...`) are excluded by checking the
 character before the identifier itself, since both assign through the
 object rather than to the bare name.
 
+**Global-shadow write check** flags a bare write (`name=value` or a
+compound form) to a name already declared global earlier in the same
+script via `global(name)=value` — the bare write lands in that same
+global rather than a fresh local, per the rule that a bare write
+mirrors a bare read. Only that lvalue/assign form actually creates the
+binding: a bare read `global(name)` (with no `=value`), including the
+multi-name form `global(a b)`, never does — confirmed by running
+`global(x);x=2;global(x)`, which reads `nil` afterward, and
+`global(a b);a=1;b=2;global(a);global(b)`, which reads `nil nil`
+(`global(a b)=value` is not even valid syntax, since one value can't
+assign to a list of names). The check is suppressed — deliberately, to
+avoid a false positive, even at the cost of occasionally missing a real
+one — once any of the following is true for that name: a `global(name
+:clear)` call was seen (the declaration was withdrawn — a later
+`global(name)=value` un-clears it again, matching the real table,
+confirmed by running
+`global(x)=1;global(x :clear);global(x)=2;x=3;global(x)`, which reads
+`3`); a `local(name)=value` call was seen anywhere in the script
+(`local()` shadows `global()` in ComTerp's own local → global lookup
+order, so a bare write after either reaches the local, not the global —
+confirmed by running `global(x)=1;local(x)=2;x=3;global(x)`, which
+still reads `1`); or the write sits inside a `func(...)` literal's
+body, which always writes to that call's own frame, whether or not the
+function is ever called (confirmed by running
+`global(x)=1;f=func(x=2;0);f();global(x)`, which still reads `1`) —
+this last suppression checks for a literal, undotted `func(...)`, so a
+method call named `func` on some object (`obj.func(x=1)`) is never
+mistaken for it. A dot-called `global()`/`local()` (`obj.global(x)`)
+is a method call on `obj`, not the declaration, and is never treated as
+one. A `global(name)`/`local(name)` declaration is recognized as such
+regardless of where it sits in a multi-line or `;`-joined statement
+(`global(x)=1;print(0)` still registers `x`) and regardless of what its
+value expression is, including one built from another call
+(`global(x)=list(1)`); a bare `global(name)` read nested as an argument
+inside some other call is never mistaken for a declaration either
+(`y=print(list() global(x) :str)` registers nothing). Whitespace around
+the declaration is tolerated the same way ComTerp itself tolerates it:
+a space before the call's own `(` (`global (x)=1`) still registers, and
+a space after a dot before `global(`/`local(` (`obj. global(x)`) is
+still recognized as a dot-call, not a declaration, since ComTerp itself
+still parses it as one (confirmed against `postfix()`). A `//` comment
+inside the declaration's parens, before the close, is skipped rather
+than read as part of the argument. When the argument isn't a bare
+symbol — built from a nested call, e.g. `local(symadd(dynamic))`, a
+real, valid call per a real run — it can't be resolved to a name
+statically, so nothing is registered rather than guessed at; that
+nested call's own parens don't stop the scan from also reaching a bare
+write elsewhere in the same argument list (`local(symadd("y"+
+print(x=2 :str)))=3` still flags `x=2` when `x` is already a declared
+global). A quoted or single-quoted argument's contents count toward
+the argument's token total the same as unquoted text would
+(`global(x "s")=1` is a two-positional-argument call — confirmed by a
+real run that it's rejected without creating a binding — so it's left
+unregistered rather than mistaken for the bare one-symbol form). Not
+yet checked: `x++`/`--x` against a declared global.
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by
