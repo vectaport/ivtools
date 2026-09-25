@@ -5,7 +5,7 @@
 // converges back to the same target geometry regardless of which photo
 // now occupies it.
 //
-// funcs: carousel.next carousel.prev place park slotw sloth slotcx slotcy
+// funcs: carousel.next carousel.prev carousel.zoomin carousel.zoomout place park slotw sloth slotcx slotcy
 run("../examples/carousel.comt")
 
 ok=true
@@ -92,6 +92,28 @@ carousel.prev()
 ok=ok&&(carousel.d0==5)&&(carousel.d1==6)&&(carousel.d2==0)&&(carousel.d3==1)&&(carousel.d4==2)&&(carousel.nextlib==3)
 ok=ok&&mbrsclose(mbr(carousel.img2) m2)
 print("6 prev() undoes an advance (expect 5 6 0 1 2, nextlib 3): %v %v %v %v %v nextlib=%v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4 carousel.nextlib)
+
+// --- test 7: zoomin() grows the center photo to fill the canvas, and
+//             zoomout() is its exact mirror; repeating either while
+//             already in that state is a no-op (full doesn't toggle
+//             or drift on a redundant call) ---
+h2=at(m2 3)-at(m2 1)
+m2_before_zoom=mbr(carousel.img2)
+carousel.zoomin()
+ok=ok&&(carousel.full==1)
+m2_full=mbr(carousel.img2)
+w_full=at(m2_full 2)-at(m2_full 0); h_full=at(m2_full 3)-at(m2_full 1)
+ok=ok&&(w_full>w2)&&(h_full>h2)
+print("7 zoomin() grows the center photo (expect wider/taller than %v,%v): %v,%v\n" w2 h2 w_full h_full)
+carousel.zoomin()
+ok=ok&&(carousel.full==1)&&mbrsclose(mbr(carousel.img2) m2_full)
+print("7b redundant zoomin() is a no-op (expect full=1, same geometry): full=%v\n" carousel.full)
+carousel.zoomout()
+ok=ok&&(carousel.full==0)&&mbrsclose(mbr(carousel.img2) m2_before_zoom)
+print("7c zoomout() exactly reverses zoomin() (expect %v): %v\n" m2_before_zoom mbr(carousel.img2))
+carousel.zoomout()
+ok=ok&&(carousel.full==0)&&mbrsclose(mbr(carousel.img2) m2_before_zoom)
+print("7d redundant zoomout() is a no-op (expect full=0, same geometry): full=%v\n" carousel.full)
 
 print("carousel: %v\n" ok)
 ok

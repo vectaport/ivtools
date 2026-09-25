@@ -86,6 +86,9 @@ prevhandles=handles(:get); handles(0)
 
 CENTERX=427; CENTERY=550
 BASEW=240; BASEH=160
+// carousel.zoomin()'s fullscreen target size, same aspect ratio as the
+// center slot (BASEW:BASEH) scaled up to fill most of the canvas
+FULLW=700; FULLH=467
 // each carousel.next() walks 6 interpolated steps from a slot's starting
 // position to its ending position, paced by update() at 24fps (usec=1e6/24)
 FR=6
@@ -212,6 +215,7 @@ print("carousel: built %v photos\n" n)
 carousel=(
   :d0 0 :d1 1 :d2 2 :d3 3 :d4 4 :nextlib 5
   :img0 at(imgs 0) :img1 at(imgs 1) :img2 at(imgs 2) :img3 at(imgs 3) :img4 at(imgs 4)
+  :full 0
 
   // carousel.next() -- advance by one photo: the front photo exits past
   // the back, everything else slides one slot forward, and the next
@@ -327,6 +331,42 @@ carousel=(
     front(img0); front(img4); front(img1); front(img3); front(img2);
     nil)
 
+  // carousel.zoomin() -- grow the center photo to fill the canvas, in the
+  // same FR interpolated steps as next()/prev(). A no-op while already
+  // full, so repeated SHIFT-UP presses in drive() don't restart the walk.
+  :zoomin func(
+    if(full :then return(nil));
+    pw=at(libw d2); ph=at(libh d2);
+    fw=slotw(2); fh=sloth(2); fcx=slotcx(2); fcy=slotcy(2);
+    front(img2);
+    for(f=1 f<=FR f=f+1
+      t=f/float(FR);
+      w=fw+(FULLW-fw)*t; h=fh+(FULLH-fh)*t;
+      cx=fcx+(CENTERX-fcx)*t; cy=fcy+(CENTERY-fcy)*t;
+      sx=w/pw; sy=h/ph;
+      hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+      trans(img2 sx,0,0,sy,tx,ty :set);
+      update(USEC));
+    full=1;
+    nil)
+
+  // carousel.zoomout() -- exact mirror of zoomin(): shrink the fullscreen
+  // photo back down to its normal center-slot size and position.
+  :zoomout func(
+    if(!full :then return(nil));
+    pw=at(libw d2); ph=at(libh d2);
+    tw=slotw(2); th=sloth(2); tcx=slotcx(2); tcy=slotcy(2);
+    for(f=1 f<=FR f=f+1
+      t=f/float(FR);
+      w=FULLW+(tw-FULLW)*t; h=FULLH+(th-FULLH)*t;
+      cx=CENTERX+(tcx-CENTERX)*t; cy=CENTERY+(tcy-CENTERY)*t;
+      sx=w/pw; sy=h/ph;
+      hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+      trans(img2 sx,0,0,sy,tx,ty :set);
+      update(USEC));
+    full=0;
+    nil)
+
   // carousel.help() -- remind me how to spin it (same idiom as
   // etchasketch's etchhelp()/spirograph's spirohelp() -- short enough to
   // fit the -comt pane with no scrolling)
@@ -334,20 +374,22 @@ carousel=(
     print("*** CAROUSEL HELP ***\n");
     print("carousel.next()       -- spin forward one photo\n");
     print("carousel.prev()       -- spin backward one photo\n");
+    print("carousel.zoomin()     -- grow the center photo full screen\n");
+    print("carousel.zoomout()    -- shrink it back down to the carousel\n");
     print("carousel.drive([n])   -- drive with the keyboard, default n=1000 polls:\n");
     print("                         hold Shift or turn Caps Lock on, then LEFT/RIGHT\n");
-    print("                         arrow to spin; Esc stops\n"))
+    print("                         to spin, UP/DOWN to zoom; Esc stops\n"))
 
   // carousel.drive([n]) -- drive the carousel with the keyboard: hold Shift
-  // (or turn Caps Lock on) and press left/right arrow to spin it, the same
-  // shift-capture convention etchasketch.comt's keydrive() uses so plain
-  // arrows keep panning the viewer normally. Esc stops early.
+  // (or turn Caps Lock on) and press an arrow key, the same shift-capture
+  // convention etchasketch.comt's keydrive() uses so plain arrows keep
+  // panning the viewer normally. Esc stops early.
   :drive func(
     n=arg(0);
     if(n==nil :then n=1000);
     lastkey(:shiftcapture true);
     print("CAROUSEL DRIVE -- hold Shift or turn Caps Lock on,\n");
-    print("then LEFT/RIGHT arrow to spin.  Esc stops.\n");
+    print("LEFT/RIGHT to spin, UP/DOWN to zoom.  Esc stops.\n");
     done=0;
     for(fi=0 (fi<n)&&(done==0) fi=fi+1
       k=lastkey();
@@ -355,6 +397,8 @@ carousel=(
         if((k=="Esc")||(k=="ESC") :then done=1);
         if(k=="RIGHT" :then carousel.next());
         if(k=="LEFT" :then carousel.prev());
+        if(k=="UP" :then carousel.zoomin());
+        if(k=="DOWN" :then carousel.zoomout());
         k=lastkey());
       update(30000));
     lastkey(:shiftcapture false);
