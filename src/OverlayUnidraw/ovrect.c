@@ -318,13 +318,13 @@ Command* RectOvView::InterpretManipulator (Manipulator* m) {
         ScalingLineList* sll = (ScalingLineList*) dm->GetRubberband();
         float sxy = sll->CurrentScaling();
 
-        cmd = new ScaleCmd(ed, sxy, sxy);
+        cmd = ed->MakeScaleCmd(sxy, sxy);
 
     } else if (tool->IsA(ROTATE_TOOL)) {
         RotatingLineList* rll = (RotatingLineList*) dm->GetRubberband();
         float angle = rll->CurrentAngle() - rll->OriginalAngle();
 
-        cmd = new RotateCmd(ed, angle);
+        cmd = ed->MakeRotateCmd(angle);
 
     } else {
         cmd = OverlayView::InterpretManipulator(m);
