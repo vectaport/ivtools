@@ -5,7 +5,7 @@
 // photo in) while every slot converges back to the same target geometry
 // regardless of which photo now occupies it.
 //
-// funcs: carousel.next place slotw sloth slotcx slotcy
+// funcs: carousel.next place park slotw sloth slotcx slotcy
 run("../examples/carousel.comt")
 
 ok=true
@@ -14,6 +14,26 @@ ok=true
 ok=ok&&(n==7)
 ok=ok&&(size(imgs)==7)
 print("1 size(imgs) (expect 7): %v\n" size(imgs))
+
+// tuplesclose(a b) -- true when two 6-element trans() tuples match within
+// a fraction of a pixel (see test 2's note on float rounding)
+tuplesclose=func(
+  ta=arg(0); tb=arg(1);
+  d0=abs(at(ta 0)-at(tb 0)); d1=abs(at(ta 1)-at(tb 1)); d2=abs(at(ta 2)-at(tb 2));
+  d3=abs(at(ta 3)-at(tb 3)); d4=abs(at(ta 4)-at(tb 4)); d5=abs(at(ta 5)-at(tb 5));
+  (d0<0.01)&&(d1<0.01)&&(d2<0.01)&&(d3<0.01)&&(d4<0.01)&&(d5<0.01))
+
+// --- test 1b: the two library photos not in the initial 5-slot deck (5,6)
+//              are parked at the entrance-staging spot, not left at
+//              whatever position import() happened to paste them ---
+pw5=at(libw 5); ph5=at(libh 5); pw6=at(libw 6); ph6=at(libh 6)
+parktrans=func(
+  pw=arg(0); ph=arg(1);
+  sx=enfromw/pw; sy=enfromh/ph; tx=enfromcx-enfromw/2; ty=enfromcy-enfromh/2;
+  sx,0,0,sy,tx,ty)
+t5=trans(at(imgs 5)); t6=trans(at(imgs 6))
+ok=ok&&tuplesclose(t5 parktrans(pw5 ph5))&&tuplesclose(t6 parktrans(pw6 ph6))
+print("1b photos 5,6 parked off-canvas (expect %v %v): %v %v\n" parktrans(pw5 ph5) parktrans(pw6 ph6) t5 t6)
 
 // --- test 2: front slot (2) is centered and largest; side slots shrink
 //             symmetrically outward, matching sc0..sc4/offX0..offX4.

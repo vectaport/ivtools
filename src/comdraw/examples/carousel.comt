@@ -169,7 +169,17 @@ for(i=1 i<n i=i+1
   imgs=imgs,imgi;
   libw=libw,pwi;
   libh=libh,phi;
-  if(i<5 :then place(imgi i pwi phi); update() :else park(imgi pwi phi)))
+  // each newly placed photo pastes on top of the stack, so slots 1 and 3
+  // (adjacent to center) briefly cover slot 2 until re-fronted here in
+  // the same depth order (center topmost) the final deck settles into
+  if(i<5 :then
+    place(imgi i pwi phi);
+    if(4<=i :then front(at(imgs 4)));
+    if(1<=i :then front(at(imgs 1)));
+    if(3<=i :then front(at(imgs 3)));
+    if(2<=i :then front(at(imgs 2)));
+    update()
+   :else park(imgi pwi phi)))
 print("carousel: built %v photos\n" n)
 
 // carousel -- the deck (which library photo, by index, occupies each of
@@ -240,8 +250,7 @@ carousel=(
     nil)
 )
 
-// slots were already placed and shown one at a time during the library
-// loop above; this only fixes the final depth order (center topmost)
-front(carousel.img0); front(carousel.img4); front(carousel.img1); front(carousel.img3); front(carousel.img2)
+// slots were already placed, shown, and re-fronted into depth order one at
+// a time during the library loop above
 print("carousel: initial deck %v %v %v %v %v\n" carousel.d0 carousel.d1 carousel.d2 carousel.d3 carousel.d4)
 update()
