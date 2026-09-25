@@ -1151,9 +1151,6 @@ void WindowRep::resize(Window* w, unsigned int xwidth, unsigned int xheight) {
 	    canvas_->pwidth(), canvas_->pheight()
 	);
     }
-    if (resized_) {
-	glyph_->undraw();
-    }
     glyph_->allocate(canvas_, allocation_, ext);
     resized_ = true;
     if (trace_resize_enabled()) {
