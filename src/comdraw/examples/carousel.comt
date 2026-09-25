@@ -334,32 +334,32 @@ carousel=(
     print("*** CAROUSEL HELP ***\n");
     print("carousel.next()       -- spin forward one photo\n");
     print("carousel.prev()       -- spin backward one photo\n");
-    print("carouseldrive([n])    -- drive with the keyboard, default n=1000 polls:\n");
+    print("carousel.drive([n])   -- drive with the keyboard, default n=1000 polls:\n");
     print("                         hold Shift or turn Caps Lock on, then LEFT/RIGHT\n");
     print("                         arrow to spin; Esc stops\n"))
-)
 
-// carouseldrive([n]) -- drive the carousel with the keyboard: hold Shift
-// (or turn Caps Lock on) and press left/right arrow to spin it, the same
-// shift-capture convention etchasketch.comt's keydrive() uses so plain
-// arrows keep panning the viewer normally. Esc stops early.
-carouseldrive=func(
-  n=arg(0);
-  if(n==nil :then n=1000);
-  lastkey(:shiftcapture true);
-  print("CAROUSEL DRIVE -- hold Shift or turn Caps Lock on,\n");
-  print("then LEFT/RIGHT arrow to spin.  Esc stops.\n");
-  done=0;
-  for(fi=0 (fi<n)&&(done==0) fi=fi+1
-    k=lastkey();
-    while((k!=nil)&&(done==0)
-      if((k=="Esc")||(k=="ESC") :then done=1);
-      if(k=="RIGHT" :then carousel.next());
-      if(k=="LEFT" :then carousel.prev());
-      k=lastkey());
-    update(30000));
-  lastkey(:shiftcapture false);
-  print("Done driving.\n"))
+  // carousel.drive([n]) -- drive the carousel with the keyboard: hold Shift
+  // (or turn Caps Lock on) and press left/right arrow to spin it, the same
+  // shift-capture convention etchasketch.comt's keydrive() uses so plain
+  // arrows keep panning the viewer normally. Esc stops early.
+  :drive func(
+    n=arg(0);
+    if(n==nil :then n=1000);
+    lastkey(:shiftcapture true);
+    print("CAROUSEL DRIVE -- hold Shift or turn Caps Lock on,\n");
+    print("then LEFT/RIGHT arrow to spin.  Esc stops.\n");
+    done=0;
+    for(fi=0 (fi<n)&&(done==0) fi=fi+1
+      k=lastkey();
+      while((k!=nil)&&(done==0)
+        if((k=="Esc")||(k=="ESC") :then done=1);
+        if(k=="RIGHT" :then carousel.next());
+        if(k=="LEFT" :then carousel.prev());
+        k=lastkey());
+      update(30000));
+    lastkey(:shiftcapture false);
+    print("Done driving.\n"))
+)
 
 // slots were already placed, shown, and re-fronted into depth order one at
 // a time during the library loop above
@@ -378,6 +378,6 @@ print("   5 photos are on stage, center one full-size.\n")
 print("   Try typing:\n")
 print("       carousel.next()\n")
 print("       carousel.prev()\n")
-print("       carouseldrive()   // hold Shift/CapsLock, LEFT/RIGHT to spin, Esc stops\n")
+print("       carousel.drive()  // hold Shift/CapsLock, LEFT/RIGHT to spin, Esc stops\n")
 print("       carousel.help()   // shows all the magic words\n")
 print("=================================================\n")
