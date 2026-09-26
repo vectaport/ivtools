@@ -162,5 +162,17 @@ ok=ok&&(r16a==2)&&(r16b==2)&&(r16c==2)
 print("16 t1=1; f16=func(temp(t1)=t1; t1=t1+1; t1); f16() f16() t1=99 f16() (expect 2 2 2): %v %v %v\n\n" r16a r16b r16c)
 prev_ok=check_fail(:ok ok)
 
+// --- test 17: temp(x)=x+1 -- a read of x nested inside the RHS expression
+//     (not a bare temp(x)=x) is still pre-escape and still captured at
+//     declaration time ---
+x17=1
+f17=func(temp(x17)=x17+1; x17)
+r17a=f17()
+x17=99
+r17b=f17()
+ok=ok&&(r17a==2)&&(r17b==2)
+print("17 x17=1; f17=func(temp(x17)=x17+1; x17); f17() x17=99 f17() (expect 2 2): %v %v\n\n" r17a r17b)
+prev_ok=check_fail(:ok ok)
+
 print("\ntemp: %v\n" ok)
 ok
