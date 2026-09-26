@@ -69,10 +69,8 @@ static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid,
 
 static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncObjVarScan::Kind kind, int pos) {
     for (int i = 0; i < n; i++) {
-        /* pos stays at the first occurrence's position -- later repeats of
-           temp(x) (e.g. inside a loop body) don't move the boundary that
-           separates x's pre-escape (capture-worthy) reads from its
-           post-escape (temp-frame) ones */
+        /* pos stays at the first occurrence -- a repeat temp(x) doesn't
+           move the pre/post-escape boundary (see temp_escape_pos below) */
         if (recs[i].symid == symid) { recs[i].kind = kind; return; }
     }
     if (n == cap) {
@@ -89,11 +87,9 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncOb
     n++;
 }
 
-/* true, with *pos set, iff symid has an EscapingTemp record -- the token
-   index of temp(symid)'s own command, the boundary before which a plain
-   occurrence of symid is a capture-worthy reference to the enclosing
-   scope's variable, and at or after which it resolves against the call's
-   temp frame instead (see the classify() occurrence loops below). */
+/* true, with *pos set, iff symid has an EscapingTemp record -- pos is the
+   token index of temp(symid)'s own command, the pre/post-escape boundary
+   the classify() occurrence loops below test against. */
 static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos) {
     for (int i = 0; i < n; i++) {
         if (escapes[i].symid == symid && escapes[i].kind == FuncObjVarScan::EscapingTemp) {
@@ -283,11 +279,9 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (!span_is_plain_var(operand, is_plain_var)) continue;
             int varsymid = toks[operand.start].v.symbolid;
 
-            /* an occurrence at or after temp(varsymid)'s own token resolves
-               against the call's temp frame, not the enclosing scope --
-               excluding it here (rather than after aggregating into recs[])
-               keeps an earlier, genuinely capture-worthy occurrence of the
-               same symbol intact */
+            /* an occurrence at/after temp(varsymid)'s token resolves against
+               the temp frame, not the enclosing scope -- exclude it here so
+               an earlier, genuinely capture-worthy occurrence stays intact */
             int tpos;
             if (temp_escape_pos(escapes, nescapes, varsymid, &tpos) && operand.start >= tpos) continue;
 
@@ -321,11 +315,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nrecs; i++) {
         if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
-        /* recs[] already excludes any occurrence at or after its symbol's
-           temp() escape (see the occurrence loops above), so what remains
-           here is only pre-escape usage -- a genuinely capture-worthy
-           reference to the enclosing scope, exactly like a symbol with no
-           temp() escape at all. */
+        /* recs[] already excludes post-escape occurrences (see above), so
+           what remains is ordinary, capture-worthy pre-escape usage. */
         Kind kind;
         if (recs[i].first_event == EvWrite) {
             kind = WriteBeforeRead;
@@ -346,10 +337,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             }
         }
         if (already_plain) continue;
-        /* a pre-escape occurrence may have already added this symid above
-           (e.g. read once before its temp() creation, captured, then
-           temp()'d) -- OR the escape bit in rather than overwriting it, so
-           both facts about the symbol survive in its one result entry. */
+        /* OR the escape bit in rather than overwriting: a pre-escape read
+           may have already added a capture kind for this symid above. */
         int combined = (int)escapes[i].kind;
         AttributeValue* existing = result->find(escapes[i].symid);
         if (existing) combined |= existing->int_val();
