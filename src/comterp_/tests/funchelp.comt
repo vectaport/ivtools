@@ -273,11 +273,14 @@ check_fail(:ok ok)
 
 // --- test 19: help() on a dotted attribute that is NOT a FuncObj still
 // falls through to dot's own docstring, unchanged from before -- only the
-// FuncObj case is special-cased ---
+// FuncObj case is special-cased. Compared against help(dot) itself, since
+// registered docstring text differs (GrDotFunc vs. DotFunc, e.g. under
+// comdraw/drawserv) ---
 dh.n=5
 r19=help(dh.n)
-ok=ok&&(index(r19 "dot (.) makes compound variables")==0)
-print("19 dh.n=5; help(dh.n) still shows dot's own docstring (expect true): %v\n\n" (index(r19 "dot (.) makes compound variables")==0))
+r19dot=help(dot)
+ok=ok&&(r19==r19dot)
+print("19 dh.n=5; help(dh.n) still shows dot's own docstring (expect true): %v\n\n" (r19==r19dot))
 check_fail(:ok ok)
 
 // --- test 20: firing "dh.f" to answer help() has no side effects -- the
