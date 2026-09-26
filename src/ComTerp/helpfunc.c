@@ -29,6 +29,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <ComTerp/comvalue.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/iterator.h>
@@ -188,6 +189,27 @@ void HelpFunc::execute() {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
+	static int dot_symid = symbol_add("dot");
+	if (val.command_symid()==dot_symid && val.narg()==2) {
+	  /* help(a.f) -- fire the pending "dot" call via stack_arg_post_eval(),
+	     the same mechanism dot's own nested lookups use, and describe
+	     whatever it returns. symbol=true keeps the raw dotted-pair
+	     Attribute so a FuncObj there is labeled by its field name;
+	     anything else falls through to dot's own docstring below. */
+	  ComValue evalval = stack_arg_post_eval(i, true);
+	  FuncObj* fo = nil;
+	  if (evalval.class_symid()==Attribute::class_symid()) {
+	    Attribute* attr = (Attribute*) evalval.obj_val();
+	    if (attr->Value()->is_object(FuncObj::class_symid())) {
+	      fo = (FuncObj*) attr->Value()->obj_val();
+	      command_ids[i] = attr->SymbolId();
+	    }
+	  } else if (evalval.is_object(FuncObj::class_symid())) {
+	    fo = (FuncObj*) evalval.obj_val();
+	  }
+	  if (fo != nil)
+	    funcobj_help[i] = comterp()->describe_funcobj(fo);
+	}
       } else if (val.is_type(AttributeValue::StringType)) {
  	void *vptr = nil;
 	comterp()->localtable()->find(vptr, val.string_val());
