@@ -152,11 +152,13 @@ public:
     // than being written back through 'val', because firing can realloc
     // _stack and invalidate any reference taken before the call.  A
     // non-funcobj 'val' passes through unchanged.
-    ComValue describe_funcobj(FuncObj* fo);
+    ComValue describe_funcobj(FuncObj* fo, boolean raw=false);
     // the IO-contract signature for help(f) on a bare, unfired FuncObj:
     // a StringType rendering positionals and keywords as
-    // "(arg0 arg1 :key1 :key2)", with any escaping variables in a trailing
-    // "-- escapes: name->scope" annotation.  Never runs fo's body.
+    // "(arg0 arg1 :key1 :key2)".  'raw' adds a trailing
+    // "-- escapes: name->scope" annotation naming every local()/global()/
+    // temp() scratch name the body declares -- compile-time facts about the
+    // body, not state, so omitted unless asked for.  Never runs fo's body.
 
     AttributeValue* lookup_symval(ComValue*, boolean freeze=true);
     // look up a pointer to an AttributeValue associated with a symbol

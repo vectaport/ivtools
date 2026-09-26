@@ -121,11 +121,14 @@ ok=ok&&(r12==nil)
 print("12 for() body has no func frame either: temp(ftmp)=7 (expect nil + WARNING): %v\n\n" r12)
 prev_ok=check_fail(:ok ok)
 
-// --- test 13: help() shows a temp()-escaped variable, not a captured keyword ---
+// --- test 13: help(:raw) shows a temp()-escaped variable, not a captured
+//     keyword -- omitted from the default (non-:raw) signature, since it's
+//     compile-time scratch rather than state that persists between calls ---
 f13=func(temp(x)=5 x)
 hs13=help(f13)
-ok=ok&&(index(hs13 "x->temp" :substr)>=0)
-print("13 help(f2-shaped func) reports the escape, not a :x capture (expect substring found): %v\n\n" hs13)
+hs13raw=help(f13 :raw)
+ok=ok&&(index(hs13raw "x->temp" :substr)>=0)&&(index(hs13 "x->temp" :substr)==nil)
+print("13 help(f13) vs help(f13 :raw) reports the escape, not a :x capture (expect nil, substring found): %v %v\n\n" hs13 hs13raw)
 prev_ok=check_fail(:ok ok)
 
 // --- test 14: a read before a symbol's own temp() creation still captures

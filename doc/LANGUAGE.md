@@ -1459,13 +1459,16 @@ so `f` reaches it completely unfired — the same non-firing read
 a computed index). Keywords show only the ones a caller can meaningfully
 supply — read-only and read-before-write free variables — since
 write-before-read is local scratch a keyword would just be clobbering,
-not a genuine input. Escaping (`local()`/`global()`) variables are
-reported in a trailing annotation instead, since they're not part of the
-func's own frame:
+not a genuine input. Escaping (`local()`/`global()`/`temp()`) names are
+compile-time facts about the body rather than state that persists
+between calls, so they're left out of the default signature; passing
+`:raw` reports them in a trailing annotation instead, since they're not
+part of the func's own frame:
 
 ```
 f=func(local(w)=1)
-help(f)              // "()  -- escapes: w->local"
+help(f)              // "()"
+help(f :raw)         // "()  -- escapes: w->local"
 ```
 
 **Defaults are shown too, in both of the senses that turn out to

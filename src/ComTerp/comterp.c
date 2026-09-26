@@ -323,7 +323,7 @@ static void render_comvalue(ComValue& v, char* out, size_t outsize) {
    pinned down statically.  Keywords are read-only plus read-before-write;
    write-before-read is local scratch, not an input.  Escaping local()/global()
    vars go in a trailing annotation rather than the parens. */
-ComValue ComTerp::describe_funcobj(FuncObj* fo) {
+ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
   boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
   AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
   ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
@@ -404,17 +404,19 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   }
   append_bounded(buf, sizeof(buf), pos, ")");
 
-  boolean any_escape = false;
-  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
-    Attribute* attr = classification->GetAttr(cit);
-    int kind = attr->Value()->int_val();
-    if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
-                FuncObjVarScan::EscapingTemp)) {
-      const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
-                             kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
-      append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
-                      symbol_pntr(attr->SymbolId()), escname);
-      any_escape = true;
+  if (raw) {
+    boolean any_escape = false;
+    for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+      Attribute* attr = classification->GetAttr(cit);
+      int kind = attr->Value()->int_val();
+      if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
+                  FuncObjVarScan::EscapingTemp)) {
+        const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
+                               kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
+        append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                        symbol_pntr(attr->SymbolId()), escname);
+        any_escape = true;
+      }
     }
   }
 

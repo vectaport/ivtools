@@ -14,9 +14,12 @@
 // Signature shape: "name(arg0 arg1 :key1 :key2)", derived from
 // FuncObjVarScan's read-only/read-before-write/write-before-read/escaping
 // classification (#310's classifier, reused here per its own comment) and
-// a new arg(n) positional scanner.  Escaping (local()/global()) variables
-// are reported in a trailing "  -- escapes: name->scope" annotation
-// instead of the parens, since they're not part of the func's own frame.
+// a new arg(n) positional scanner.  Escaping (local()/global()/temp())
+// variables are compile-time facts about the body rather than state that
+// persists between calls, so they're omitted from the default signature;
+// passing :raw reports them in a trailing "  -- escapes: name->scope"
+// annotation instead of the parens, since they're not part of the func's
+// own frame.
 // A positional count that can't be pinned down statically (narg() usage,
 // or a computed arg(i) index) renders as "(...)".
 //
@@ -71,18 +74,21 @@ ok=ok&&(r4=="f4(:y)")
 print("4 f4=func(y=y+1; y); help(f4) -- y read before its own write, still a genuine input (expect \"f4(:y)\"): %v\n\n" r4)
 check_fail(:ok ok)
 
-// --- test 5: escaping local() reported in the trailer, not the parens ---
+// --- test 5: an escaping local() name is compile-time scratch, not state,
+// so it's omitted from help()'s default output; :raw opts back in ---
 f5=func(local(w)=1)
 r5=help(f5)
-ok=ok&&(r5=="f5()  -- escapes: w->local")
-print("5 f5=func(local(w)=1); help(f5) (expect \"f5()  -- escapes: w->local\"): %v\n\n" r5)
+r5raw=help(f5 :raw)
+ok=ok&&(r5=="f5()")&&(r5raw=="f5()  -- escapes: w->local")
+print("5 f5=func(local(w)=1); help(f5) vs help(f5 :raw) (expect \"f5()\" \"f5()  -- escapes: w->local\"): %v %v\n\n" r5 r5raw)
 check_fail(:ok ok)
 
-// --- test 6: escaping global() reported the same way ---
+// --- test 6: escaping global() reported the same way, :raw-only ---
 f6=func(global(g)=1)
 r6=help(f6)
-ok=ok&&(r6=="f6()  -- escapes: g->global")
-print("6 f6=func(global(g)=1); help(f6) (expect \"f6()  -- escapes: g->global\"): %v\n\n" r6)
+r6raw=help(f6 :raw)
+ok=ok&&(r6=="f6()")&&(r6raw=="f6()  -- escapes: g->global")
+print("6 f6=func(global(g)=1); help(f6) vs help(f6 :raw) (expect \"f6()\" \"f6()  -- escapes: g->global\"): %v %v\n\n" r6 r6raw)
 check_fail(:ok ok)
 
 // --- test 7: dynamic positional count via narg() ---
@@ -104,8 +110,9 @@ check_fail(:ok ok)
 x=nil;y=nil   // prime -- see test 3's note
 mix=func(a=x; b=y; b=b+1; z=5; z=z+1; local(w)=1; a+b+z)
 r9=help(mix)
-ok=ok&&(r9=="mix(:x :y)  -- escapes: w->local")
-print("9 mix(:help) -- x read-only, y read-before-write, z excluded, w escapes (expect \"mix(:x :y)  -- escapes: w->local\"): %v\n\n" r9)
+r9raw=help(mix :raw)
+ok=ok&&(r9=="mix(:x :y)")&&(r9raw=="mix(:x :y)  -- escapes: w->local")
+print("9 mix(:help) vs mix(:help :raw) -- x read-only, y read-before-write, z excluded, w escapes (expect \"mix(:x :y)\" \"mix(:x :y)  -- escapes: w->local\"): %v %v\n\n" r9 r9raw)
 check_fail(:ok ok)
 
 // --- test 10: help(f) never runs the body -- no side effects at all ---
