@@ -492,21 +492,19 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* Persist read-before-write captures, including keyword overrides;
-     read-only overrides remain local to this call. */
-  if (callee_fo->persistable().is_object(AttributeList::class_symid())) {
+  /* Persist every capture's post-call value, keyword overrides included --
+     temp() is the opt-out for call-local scratch. */
+  if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
-    AttributeList* persistable = (AttributeList*)callee_fo->persistable().obj_val();
     ALIterator cit;
-    for (persistable->First(cit); !persistable->Done(cit); persistable->Next(cit)) {
-      Attribute* pattr = persistable->GetAttr(cit);
-      Attribute* capattr = caps->GetAttr(pattr->SymbolId());
-      Attribute* cur = al->GetAttr(pattr->SymbolId());
+    for (caps->First(cit); !caps->Done(cit); caps->Next(cit)) {
+      Attribute* capattr = caps->GetAttr(cit);
+      Attribute* cur = al->GetAttr(capattr->SymbolId());
       /* a :posteval call's keyword can still be an unresolved
          FuncObjPendingArg if the body never read it -- that object is
          deleted just below, so persisting it here would leave captures()
          holding a dangling pointer; skip it and keep the prior default. */
-      if (capattr && cur && !cur->Value()->is_object(FuncObjPendingArg::class_symid()))
+      if (cur && !cur->Value()->is_object(FuncObjPendingArg::class_symid()))
         *capattr->Value() = *cur->Value();
     }
   }
