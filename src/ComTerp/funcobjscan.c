@@ -268,11 +268,9 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int* dotroots = nil;
     int ndotroots = 0, dotroots_cap = 0;
 
-    /* temp(x)=val: val is read via ordinary lookup before this assign
-       creates x's temp-frame entry, so the escape doesn't take effect
-       until the assign's own token, not temp(x)'s earlier one -- found
-       in a pre-pass so it's already resolved before the main pass below
-       classifies any read nested in val (temp(x)=x, temp(x)=x+1, ...). */
+    /* temp(x)=val's escape takes effect at this assign's token, not
+       temp(x)'s earlier one -- resolved in a pre-pass so a read nested
+       in val (temp(x)=x+1) is classified against the right boundary. */
     TempBoundary* tempbounds = nil;
     int ntempbounds = 0, tempbounds_cap = 0;
     {
