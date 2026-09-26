@@ -34,8 +34,18 @@ if(open("../../scripts/comlint" "r")!=nil :then
 //     inside another call's own argument list, and a write left
 //     standing because a local(name "s") quoted-argument shadow
 //     attempt was rejected by the runtime all get flagged ---
-out1=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
+/* drained one line at a time rather than piped through `tr` into one
+   long line and read with a single `*` pull -- that single pull is
+   capped at libc's BUFSIZ per read, silently truncating any output
+   longer than that (confirmed: a small BUFSIZ, common on macOS, cuts
+   this fixture's real output mid-message; glibc's larger default just
+   happens to be big enough here). A per-line loop has no such cap. */
+pipe1=$$open(print("comterp run %s %s%s 2>&1"
   comlintpath fixtureprefix "comlint_gs_positive.comt" :str) :pipe)
+out1="";linev1=*pipe1
+while(linev1!=nil
+  out1=out1+linev1+" ";
+  linev1=*pipe1)
 flagp=index(out1 "declares gs_p global here" :substr)
 flagdotfunc=index(out1 "declares gs_dotfunc global here" :substr)
 flagreclear=index(out1 "declares gs_reclear global here" :substr)
@@ -63,8 +73,12 @@ prev_ok=check_fail(:ok ok)
 //     after the '.', a local(symadd(...)) declaration whose argument
 //     isn't a bare symbol, and a global()/local() call with a quoted
 //     second positional argument are all left unflagged ---
-out2=*$$open(print("comterp run %s %s%s 2>&1 | tr \"\\n\" \" \""
+pipe2=$$open(print("comterp run %s %s%s 2>&1"
   comlintpath fixtureprefix "comlint_gs_negative.comt" :str) :pipe)
+out2="";linev2=*pipe2
+while(linev2!=nil
+  out2=out2+linev2+" ";
+  linev2=*pipe2)
 falsepos=index(out2 "declares" :substr)
 ok=ok&&(falsepos==nil)
 print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, single- and double-cleared writes, a bare\n    global(a b), a bare read used as an rvalue, a multi-arg global()\n    call, a ';'-joined local() declaration, a global() read nested in\n    a post-eval call's arguments, a global(:clear)=val compound, a\n    whitespace-after-'.' dot-call, and a local(symadd(...))\n    non-bare-symbol declaration flags none (expect nil): %v\n\n" falsepos)
