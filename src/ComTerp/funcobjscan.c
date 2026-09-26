@@ -44,7 +44,9 @@ struct VarRecord {
 
 struct EscapeRecord {
     int symid;
-    boolean is_global;
+    FuncObjVarScan::Kind kind;  // EscapingLocal, EscapingGlobal, or EscapingTemp
+    int pos;                    // token index of the escaping command itself
+                                 // (temp(x)=...), set on first occurrence only
 };
 
 static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid, boolean* is_new) {
@@ -65,9 +67,11 @@ static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid,
     return &recs[n-1];
 }
 
-static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, boolean is_global) {
+static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncObjVarScan::Kind kind, int pos) {
     for (int i = 0; i < n; i++) {
-        if (recs[i].symid == symid) { recs[i].is_global = is_global; return; }
+        /* pos stays at the first occurrence -- a repeat temp(x) doesn't
+           move the pre/post-escape boundary (see temp_escape_pos below) */
+        if (recs[i].symid == symid) { recs[i].kind = kind; return; }
     }
     if (n == cap) {
         int newcap = cap ? cap * 2 : 8;
@@ -78,8 +82,22 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, boolea
         cap = newcap;
     }
     recs[n].symid = symid;
-    recs[n].is_global = is_global;
+    recs[n].kind = kind;
+    recs[n].pos = pos;
     n++;
+}
+
+/* true, with *pos set, iff symid has an EscapingTemp record -- pos is the
+   token index of temp(symid)'s own command, the pre/post-escape boundary
+   the classify() occurrence loops below test against. */
+static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos) {
+    for (int i = 0; i < n; i++) {
+        if (escapes[i].symid == symid && escapes[i].kind == FuncObjVarScan::EscapingTemp) {
+            *pos = escapes[i].pos;
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Records a plain-var occurrence's event -- called once per occurrence, in
@@ -201,6 +219,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int assign_symid = symbol_add("assign");
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
+    static int temp_symid = symbol_add("temp");
     static int dot_symid = symbol_add("dot");
     /* compound-assign symids: first operand is read-then-written,
        unlike plain assign's pure write */
@@ -230,11 +249,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         int symid = toks[i].v.symbolid;
         int nconsumed = walk.consumed_count();
 
-        if ((symid == local_symid || symid == global_symid) && nconsumed == 1) {
+        if ((symid == local_symid || symid == global_symid || symid == temp_symid) &&
+            nconsumed == 1) {
             PostfixSpanWalk::Span arg = walk.consumed(0);
             if (span_is_plain_var(arg, is_plain_var)) {
+                Kind esc_kind = symid == global_symid ? EscapingGlobal :
+                                 symid == temp_symid ? EscapingTemp : EscapingLocal;
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
-                            symid == global_symid);
+                            esc_kind, i);
             }
             continue;
         }
@@ -257,6 +279,12 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (!span_is_plain_var(operand, is_plain_var)) continue;
             int varsymid = toks[operand.start].v.symbolid;
 
+            /* an occurrence at/after temp(varsymid)'s token resolves against
+               the temp frame, not the enclosing scope -- exclude it here so
+               an earlier, genuinely capture-worthy occurrence stays intact */
+            int tpos;
+            if (temp_escape_pos(escapes, nescapes, varsymid, &tpos) && operand.start >= tpos) continue;
+
             if (k == 0 && symid == assign_symid) {
                 note_event(recs, nrecs, recs_cap, varsymid, EvWrite);
             } else if (k == 0 && is_compound_assign) {
@@ -273,6 +301,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         PostfixSpanWalk::Span span = walk.remaining(k);
         if (!span_is_plain_var(span, is_plain_var)) continue;
         int symid = toks[span.start].v.symbolid;
+        int tpos;
+        if (temp_escape_pos(escapes, nescapes, symid, &tpos) && span.start >= tpos) continue;
         boolean is_new;
         find_or_add_var(recs, nrecs, recs_cap, symid, &is_new);
         if (is_new) {
@@ -285,6 +315,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nrecs; i++) {
         if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
+        /* recs[] already excludes post-escape occurrences (see above), so
+           what remains is ordinary, capture-worthy pre-escape usage. */
         Kind kind;
         if (recs[i].first_event == EvWrite) {
             kind = WriteBeforeRead;
@@ -299,12 +331,18 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nescapes; i++) {
         boolean already_plain = false;
-        for (int j = 0; j < nrecs; j++) {
-            if (recs[j].symid == escapes[i].symid) { already_plain = true; break; }
+        if (escapes[i].kind != EscapingTemp) {
+            for (int j = 0; j < nrecs; j++) {
+                if (recs[j].symid == escapes[i].symid) { already_plain = true; break; }
+            }
         }
         if (already_plain) continue;
-        Kind kind = escapes[i].is_global ? EscapingGlobal : EscapingLocal;
-        AttributeValue kindval((int)kind, AttributeValue::IntType);
+        /* OR the escape bit in rather than overwriting: a pre-escape read
+           may have already added a capture kind for this symid above. */
+        int combined = (int)escapes[i].kind;
+        AttributeValue* existing = result->find(escapes[i].symid);
+        if (existing) combined |= existing->int_val();
+        AttributeValue kindval(combined, AttributeValue::IntType);
         result->add_attr(escapes[i].symid, kindval);
     }
 

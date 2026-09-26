@@ -31,8 +31,8 @@ class ComTerp;
 
 // FuncObjVarScan: classifies every distinct symbol referenced in a FuncObj
 // body's token span as read-only, read-before-write, write-before-read, or
-// escaping (local()/global()).  One classifier, two consumers: declaration-
-// time capture for func() closures, and help-contract derivation.
+// escaping (local()/global()/temp()).  One classifier, two consumers:
+// declaration-time capture for func() closures, and help-contract derivation.
 //
 // Built on PostfixSpanWalk for the traversal.  It does no symbol-table lookup
 // and needs no ComTerp access: the caller has already resolved each token's
@@ -40,7 +40,12 @@ class ComTerp;
 // result in as is_plain_var[], so this stays a pure structural pass.
 class FuncObjVarScan {
 public:
-    enum Kind { ReadOnly, ReadBeforeWrite, WriteBeforeRead, EscapingLocal, EscapingGlobal };
+    // bit flags, not a sequential id: a symbol can carry one read/write
+    // pattern bit together with one escape bit at once (e.g. ReadOnly|EscapingTemp).
+    enum Kind {
+        ReadOnly = 1<<0, ReadBeforeWrite = 1<<1, WriteBeforeRead = 1<<2,
+        EscapingLocal = 1<<3, EscapingGlobal = 1<<4, EscapingTemp = 1<<5
+    };
 
     // is_plain_var[i] must be true iff toks[i] is a bare, zero-arg symbol
     // reference (TOK_COMMAND, narg==0, nkey==0) resolving to an ordinary

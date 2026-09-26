@@ -317,7 +317,7 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-17 of 57 scripts declare coverage (four more are scored table-only, marked
+18 of 58 scripts declare coverage (four more are scored table-only, marked
 with a dagger). The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
@@ -329,6 +329,7 @@ not gaps in testing -- do not read `—` as untested.
 | string.comt               | index substr split join eq size print(+:str) +        |      78 |    97 |  80% |
 | global.comt               | global                                                |      17 |    18 |  94% |
 | local.comt                | local                                                 |      14 |    15 |  93% |
+| temp.comt                 | temp                                                  |      15 |    16 |  94% |
 | assignops.comt            | mod_assign mpy_assign add_assign sub_assign div_assi… |      33 |    53 |  62% |
 | attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      56 |    68 |  82% |
 | listat.comt               | at  list  size                                        |       — |     — |    — |

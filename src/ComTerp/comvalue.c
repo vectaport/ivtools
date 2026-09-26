@@ -175,6 +175,7 @@ int ComValue::nids() const {
 int ComValue::bquote() const { return _ext3 & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _ext3 & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _ext3 & COMVALUE_LOCAL_FLAG; }
+int ComValue::temp_flag() const { return _ext3 & COMVALUE_TEMP_FLAG; }
 int ComValue::coloned() const { return _ext3 & COMVALUE_COLONED_FLAG; }
 int ComValue::sliced() const { return _ext3 & COMVALUE_SLICED_FLAG; }
 int ComValue::sliceoff() const { return _ext1; }
