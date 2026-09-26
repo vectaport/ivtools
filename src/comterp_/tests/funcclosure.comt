@@ -144,5 +144,20 @@ ok=ok&&(r15==6)&&(r16==7)
 print("10 setit2=func(nope2=nope2+1; nope2); setit2(:nope2 5) then setit2() (expect 6 7): %v %v\n\n" r15 r16)
 check_fail(:ok ok)
 
+// --- test 11: a :posteval func's explicit keyword for a capture that the
+// body never actually reads (an untaken branch) stays an unresolved
+// pending argument -- persisting it as-is would leave captures() holding
+// a dangling pointer once cleanup frees that argument, corrupting or
+// crashing a later bare call. The declaration-time default must survive
+// untouched instead ---
+z18=1
+f18=func(if(false :then z18=z18+9); z18 :posteval)
+r17 = f18(:z18 999)
+r18 = f18()
+r19 = f18()
+ok=ok&&(r17==999)&&(r18==1)&&(r19==1)&&(z18==1)
+print("11 z18=1; f18=func(if(false :then z18=z18+9); z18 :posteval); f18(:z18 999) then f18() f18() (expect 999 1 1, z18 untouched): %v %v %v\n\n" r17 r18 r19)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

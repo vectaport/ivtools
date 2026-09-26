@@ -492,11 +492,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* a read-before-write capture's value -- whether it got there by the
-     body's own writes or by an explicit :x override at this call site --
-     becomes this closure's new default for its next bare call.  A ReadOnly
-     capture is never in persistable(), so an override on one of those
-     stays local to this call. */
+  /* Persist read-before-write captures, including keyword overrides;
+     read-only overrides remain local to this call. */
   if (callee_fo->persistable().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     AttributeList* persistable = (AttributeList*)callee_fo->persistable().obj_val();
@@ -505,7 +502,12 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       Attribute* pattr = persistable->GetAttr(cit);
       Attribute* capattr = caps->GetAttr(pattr->SymbolId());
       Attribute* cur = al->GetAttr(pattr->SymbolId());
-      if (capattr && cur) *capattr->Value() = *cur->Value();
+      /* a :posteval call's keyword can still be an unresolved
+         FuncObjPendingArg if the body never read it -- that object is
+         deleted just below, so persisting it here would leave captures()
+         holding a dangling pointer; skip it and keep the prior default. */
+      if (capattr && cur && !cur->Value()->is_object(FuncObjPendingArg::class_symid()))
+        *capattr->Value() = *cur->Value();
     }
   }
   /* free any FuncObjPendingArg markers still standing at invocation
