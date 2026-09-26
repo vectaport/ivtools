@@ -42,13 +42,14 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%s([command] [command...] :all :posteval :top :key name) -- help for commands"; }
+      return "%s([command] [command...] :all :posteval :top :key name :raw) -- help for commands"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":all       return help on every command",
 	":posteval  return help on commands that post evaluate arguments",
 	":top       return help on top-level commands specific to this program",
 	":key name  return one keyword's own dockeys() description for the first command argument (true if declared but undocumented, nil if unrecognized)",
+	":raw       for a bare FuncObj argument, also list its local()/global()/temp() escape names -- compile-time facts about the body, omitted by default since none of them are state that persists between calls",
 	nil
       };
       return keys;

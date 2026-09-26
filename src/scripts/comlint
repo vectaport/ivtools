@@ -518,7 +518,7 @@ while((srcline=gets(fp))!=nil
       flaggedglobal=flaggedglobal,name;
       gline=at(globallines gidx);
       print("%s:%v: global(%s) declares %s global here\n" target gline name name);
-      print("%s:%v: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is\n"
+      print("%s:%v: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is intentional\n"
         target stmtline name name name);
       nflagged=nflagged+1);
 

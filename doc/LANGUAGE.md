@@ -1115,7 +1115,14 @@ it runs changed, only *when* a free variable's value gets read:
 - **Read-only or read-before-write** — a name the body reads without
   ever writing it first (`func(y)`), or reads and only *then* locally
   reassigns (`func(y=y+1)`) — is a genuine input, and is captured once,
-  at declaration time, exactly as above.
+  at declaration time, exactly as above. A read-before-write capture is
+  real per-closure state, not just a frozen snapshot: if the body writes
+  a new value to it, that value becomes the capture's new default for
+  the *next* call to that same `FuncObj` instance -- private to that one
+  closure, invisible to any other `func()` value and to the outer
+  variable it was first read from (which stays whatever it already was).
+  A read-only name can never trigger this, since by definition the body
+  never writes it.
 - **Write-before-read** — a name the body assigns before it's ever read,
   even to `nil` (`func(y=nil; y)`) — is pure local scratch. It never
   touches the outer scope at all, capture or otherwise; this is the way
@@ -1138,19 +1145,41 @@ f()                // 42 -- the capture
 f(:y 7)             // 7 -- an explicit keyword always wins
 ```
 
+**A read-before-write capture persists across calls, private to that
+closure -- an explicit keyword override persists too.** `y` above is
+read-only, so it has nothing to persist -- every call reads the same
+frozen 42. A name the body also writes is different: whatever value it
+holds when the call returns, whether that's from the body's own
+assignment or from a one-off keyword override, becomes the capture's
+default for the next bare call:
+
+```
+c=10
+inc=func(c=c+1)
+inc()               // 11 -- first call starts from the declaration-time value
+inc()               // 12 -- second call continues from what the first left
+inc(:c 100)         // 101 -- explicit override for just this call...
+inc()               // 102 -- ...and the next bare call continues from it
+c                    // 10 -- the outer variable was only ever read once, at declaration
+```
+
+`help(inc)` reflects the same live default it just used, not just the
+declaration-time one: `"inc(:c [102])"` after the calls above.
+
 **A different tool for a different job: `eval()`'s own `:alist` keyword.**
-Declaration-time capture above snapshots a *value* — good for an
-ordinary closure, but the snapshot is frozen the moment `func()` runs,
-same as any other language's captured-by-value locals. When what's
-wanted instead is a *live, shared, mutable* binding — several callers all
-seeing each other's writes — reach for `eval(cmdstr|funcobj :alist
-attrlist)`, which runs its argument with the func-local scope (`_alist`)
-set to the given attrlist first, the same lookup tier a func's own
-keyword args live in, just supplied explicitly instead of by the caller
-passing keywords. Attrlists are mutable reference objects (`al.x=99`
-already mutates the same object a caller holds — see *Writing through a
-reference* above), so this supports genuine, *persisting, mutating* state
-across calls, not just a frozen snapshot:
+Declaration-time capture, even with the persistence above, is *private*
+to one `FuncObj` instance — nobody else can see or share that state; a
+second `func()` with the same body gets its own independent copy. When
+what's wanted instead is a *shared* binding — several distinct callers,
+or several distinct `FuncObj`s, all seeing each other's writes to the
+same live storage — reach for `eval(cmdstr|funcobj :alist attrlist)`,
+which runs its argument with the func-local scope (`_alist`) set to the
+given attrlist first, the same lookup tier a func's own keyword args live
+in, just supplied explicitly instead of by the caller passing keywords.
+Attrlists are mutable reference objects (`al.x=99` already mutates the
+same object a caller holds — see *Writing through a reference* above), so
+this supports several independent `func()` values, or several separate
+`eval()` calls, all mutating one shared attrlist directly:
 
 ```
 y=42
@@ -1181,11 +1210,12 @@ any attrlist via `:alist`. No private/protected keywords, the same way
 plenty of dynamic languages (Python, JavaScript, Lua) leave access control
 to convention rather than enforcement. Built entirely from existing
 pieces — attrlist literals, `func()`, dot access, `eval()`'s `:alist` —
-no new mechanism required. A single-method object built this way is a
-closure with the field-vs-snapshot tradeoff made explicit and visible:
-the data field is a real, shared binding every caller can see and mutate,
-where declaration-time capture above gives each `func()` its own private,
-frozen copy instead.
+no new mechanism required. A single-method object built this way makes
+the field-vs-capture tradeoff explicit and visible: `counter.n` is a
+field on a shared object, directly readable and writable by anyone
+holding `counter`, where a plain `inc=func(c=c+1)` above gives each
+`FuncObj` its own state, persisting across that one closure's calls but
+invisible to everything else.
 
 One rule carried over from everywhere else in this doc: the method reference
 (`counter.incr`, or a plain `func(...)`) must be constructed or
@@ -1431,13 +1461,16 @@ so `f` reaches it completely unfired — the same non-firing read
 a computed index). Keywords show only the ones a caller can meaningfully
 supply — read-only and read-before-write free variables — since
 write-before-read is local scratch a keyword would just be clobbering,
-not a genuine input. Escaping (`local()`/`global()`) variables are
-reported in a trailing annotation instead, since they're not part of the
-func's own frame:
+not a genuine input. Escaping (`local()`/`global()`/`temp()`) names are
+compile-time facts about the body rather than state that persists
+between calls, so they're left out of the default signature; passing
+`:raw` reports them in a trailing annotation instead, since they're not
+part of the func's own frame:
 
 ```
 f=func(local(w)=1)
-help(f)              // "()  -- escapes: w->local"
+help(f)              // "()"
+help(f :raw)         // "()  -- escapes: w->local"
 ```
 
 **Defaults are shown too, in both of the senses that turn out to
@@ -1480,10 +1513,12 @@ This isn't a bug or a special case worth working around — it's the same
 fact the earlier closures section already establishes (a func's
 free-variable reads resolve to whatever was true *when `func()` ran*,
 not whatever's true when it's called), surfaced in text instead of
-staying implicit. A captured value is simple, stable, and constant once
-the func exists, which is exactly what makes it worth `help()` showing
-rather than leaving to be discovered by firing the func and being
-surprised.
+staying implicit. `w` above is read-only, so its capture really is
+constant for the func's whole life; a read-before-write capture the body
+writes to instead evolves call by call (see *Closures* above), and
+`help()` always shows its *current* default, not just the
+declaration-time one — either way it's worth showing rather than leaving
+to be discovered by firing the func and being surprised.
 
 None of this is fully perfected — return-kind isn't derived yet, output
 is one line rather than column-aligned, and there's no way yet to feed a
@@ -1757,11 +1792,16 @@ f()                    // {99,2} -- frame shadow vs explicit outer read
 
 Note the RHS is `local(count)`, not bare `count` — `local()` on the lvalue
 side alone does not exempt a bare rvalue mention of the same name from
-declaration-time capture (see *Closures* above): a bare, never-locally-
-written `count` here would still count as a genuine free-variable read,
-captured once when `bump` is declared, so every call would recompute
-`0+1` instead of reading the live outer value. Wrapping both sides in
-`local()` keeps the read genuinely live on every call.
+declaration-time capture (see *Closures* above): a bare `count=count+1`
+here would still count as a genuine read-before-write free variable,
+captured once when `bump` is declared -- and per *Closures* above, would
+then persist and accumulate on its own, private to `bump`'s one `FuncObj`
+instance, entirely disconnected from the outer `count` this example is
+publishing through. Wrapping both sides in `local()` instead keeps the
+read genuinely live against the *shared* table on every call, which is
+the point here: several distinct funcs, or several distinct callers,
+all need to see the same outer `count`, not each accumulate their own
+private copy of it.
 
 In a single-interpreter session `local()` and `global()` differ only in
 which table they touch; in a multi-session server they are session
