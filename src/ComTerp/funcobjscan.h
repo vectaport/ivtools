@@ -40,7 +40,14 @@ class ComTerp;
 // result in as is_plain_var[], so this stays a pure structural pass.
 class FuncObjVarScan {
 public:
-    enum Kind { ReadOnly, ReadBeforeWrite, WriteBeforeRead, EscapingLocal, EscapingGlobal, EscapingTemp };
+    // bit flags, not a sequential id: a symbol can carry one of the first
+    // three (its aggregate read/write pattern) together with one of the
+    // last three (an escape) at once -- e.g. a pre-escape read captured as
+    // ReadOnly, later temp()'d, is ReadOnly|EscapingTemp in one result entry.
+    enum Kind {
+        ReadOnly = 1<<0, ReadBeforeWrite = 1<<1, WriteBeforeRead = 1<<2,
+        EscapingLocal = 1<<3, EscapingGlobal = 1<<4, EscapingTemp = 1<<5
+    };
 
     // is_plain_var[i] must be true iff toks[i] is a bare, zero-arg symbol
     // reference (TOK_COMMAND, narg==0, nkey==0) resolving to an ordinary

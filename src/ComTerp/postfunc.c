@@ -458,7 +458,7 @@ void FuncObjFunc::execute() {
     for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
       Attribute* attr = classification->GetAttr(cit);
       int kind = attr->Value()->int_val();
-      if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+      if (kind & (FuncObjVarScan::ReadOnly | FuncObjVarScan::ReadBeforeWrite)) {
 	if (!captures) captures = new AttributeList();
 	/* use the ComValue& overload, not lookup_symval(int), for the
 	   full _alist/localtable/globaltable fallthrough */

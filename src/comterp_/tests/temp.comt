@@ -1,6 +1,6 @@
 // src/comterp_/tests/temp.comt -- test temp() command
 //
-// coverage: 13/14 (93%)
+// coverage: 15/16 (94%)
 // funcs: temp
 // missing: ~temp(lvalue-return-type) -- in temp(sym)=val the return value belongs
 //          to the assign operator, not temp(); untestable in isolation for temp() alone
@@ -126,6 +126,24 @@ f13=func(temp(x)=5 x)
 hs13=help(f13)
 ok=ok&&(index(hs13 "x->temp" :substr)>=0)
 print("13 help(f2-shaped func) reports the escape, not a :x capture (expect substring found): %v\n\n" hs13)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: a read before a symbol's own temp() creation still captures
+//     the enclosing scope's declaration-time value -- the temp() escape only
+//     governs occurrences at or after its own creation point, not ones before it ---
+gx14=1
+f14=func(temp(y14)=gx14; temp(gx14)=2; y14)
+gx14=3
+r14=f14()
+ok=ok&&(r14==1)
+print("14 gx14=1; f14=func(temp(y14)=gx14;temp(gx14)=2;y14); gx14=3; f14() -- pre-escape read captures declaration-time gx14 (expect 1): %v\n\n" r14)
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: reading temp() outside any func call warns and returns nil,
+//     matching the write path (test 7) ---
+r15=temp(zz15)
+ok=ok&&(r15==nil)
+print("15 temp(zz15) read at top level, no func frame (expect nil + WARNING): %v\n\n" r15)
 prev_ok=check_fail(:ok ok)
 
 print("\ntemp: %v\n" ok)

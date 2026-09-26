@@ -791,11 +791,8 @@ TempSymbolFunc::TempSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TempSymbolFunc::execute() {
-  /* names a variable private to the current func call's temp frame -- see
-     ComTerp::get_tempframe() and run_funcobj_body().  Only the assignment
-     that creates the variable needs the temp() wrapper; lookup_symval()
-     checks the temp frame ahead of the func's own attrlist on every bare
-     reference afterward, for the life of this call. */
+  /* names a variable private to this call's temp frame (see
+     ComTerp::get_tempframe()) -- only the creating assignment needs temp(). */
   int numargs = nargs();
   if (!numargs) {
     reset_stack();
@@ -832,6 +829,13 @@ void TempSymbolFunc::execute() {
 
   AttributeList* tempframe = comterp()->get_tempframe();
 
+  if (!tempframe && !assign_next) {
+    cout << "WARNING:  temp() used outside any func call -- line "
+	 << funcstate()->linenum() << "\n";
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   if (numargs>1) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
@@ -841,7 +845,7 @@ void TempSymbolFunc::execute() {
 	av->temp_flag(true);
 	av->bquote(1);
       } else {
-	AttributeValue* tval = tempframe ? tempframe->find(symbol_ids[i]) : nil;
+	AttributeValue* tval = tempframe->find(symbol_ids[i]);
 	if (tval && !tval->is_unknown())
 	  *av = *tval;
 	else
@@ -857,7 +861,7 @@ void TempSymbolFunc::execute() {
       retval.bquote(1);
       push_stack(retval);
     } else {
-      AttributeValue* tval = tempframe ? tempframe->find(symbol_ids[0]) : nil;
+      AttributeValue* tval = tempframe->find(symbol_ids[0]);
       if (tval && !tval->is_unknown())
 	push_stack(*tval);
       else

@@ -626,11 +626,9 @@ ComValue ComTerpServ::run_funcobj_body(FuncObj* fo) {
     ComValue result;
     int offset = 0;
 
-    /* a fresh temp() frame per invocation, isolating this call's temp()
-       variables from any re-entrant call sharing the same _alist (e.g. a
-       dot-bound method invoked again while this one is suspended inside
-       update()).  Saved/restored around the whole body so a nested call
-       from within a span gets its own frame and this one's survives. */
+    /* fresh temp() frame per call, isolating it from a reentrant call
+       sharing this func's attrlist -- see doc/LANGUAGE.md's "Per-call
+       privacy: temp()" */
     AttributeList* old_tempframe = get_tempframe();
     Resource::ref(old_tempframe);
     set_tempframe(new AttributeList());

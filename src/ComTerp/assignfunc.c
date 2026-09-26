@@ -102,10 +102,8 @@ void AssignFunc::execute() {
 	    }
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
 	} else if (operand1.temp_flag()) {
-	    /* temp() lvalue: write the current call's own frame, invisible to
-	       any other invocation sharing this func's attrlist -- the
-	       re-entrancy escape. add_attribute() replaces by symid, so this
-	       covers both the creating write and any later temp(x)=val. */
+	    /* temp() lvalue: write the call's own temp frame -- add_attribute()
+	       replaces by symid, so a later temp(x)=val on x just updates it. */
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    if (!tempframe) {
 	      cout << "WARNING:  temp() used outside any func call -- line "
@@ -119,10 +117,9 @@ void AssignFunc::execute() {
 	    tempframe->add_attribute(attr);
 	} else if (comterp()->get_tempframe() &&
 		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
-	    /* bare write to a name already created via temp(): mirrors the
-	       usual bare-write rule (write where a bare read would find it)
-	       so a loop can reassign a temp() variable without re-wrapping
-	       every iteration -- only the creating write needs temp(). */
+	    /* bare write to an existing temp() name: mirrors bare-write's usual
+	       rule (write where a bare read would find it) -- only the
+	       creating write needs temp(). */
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);

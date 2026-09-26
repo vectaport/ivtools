@@ -45,6 +45,8 @@ struct VarRecord {
 struct EscapeRecord {
     int symid;
     FuncObjVarScan::Kind kind;  // EscapingLocal, EscapingGlobal, or EscapingTemp
+    int pos;                    // token index of the escaping command itself
+                                 // (temp(x)=...), set on first occurrence only
 };
 
 static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid, boolean* is_new) {
@@ -65,8 +67,12 @@ static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid,
     return &recs[n-1];
 }
 
-static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncObjVarScan::Kind kind) {
+static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncObjVarScan::Kind kind, int pos) {
     for (int i = 0; i < n; i++) {
+        /* pos stays at the first occurrence's position -- later repeats of
+           temp(x) (e.g. inside a loop body) don't move the boundary that
+           separates x's pre-escape (capture-worthy) reads from its
+           post-escape (temp-frame) ones */
         if (recs[i].symid == symid) { recs[i].kind = kind; return; }
     }
     if (n == cap) {
@@ -79,7 +85,23 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncOb
     }
     recs[n].symid = symid;
     recs[n].kind = kind;
+    recs[n].pos = pos;
     n++;
+}
+
+/* true, with *pos set, iff symid has an EscapingTemp record -- the token
+   index of temp(symid)'s own command, the boundary before which a plain
+   occurrence of symid is a capture-worthy reference to the enclosing
+   scope's variable, and at or after which it resolves against the call's
+   temp frame instead (see the classify() occurrence loops below). */
+static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos) {
+    for (int i = 0; i < n; i++) {
+        if (escapes[i].symid == symid && escapes[i].kind == FuncObjVarScan::EscapingTemp) {
+            *pos = escapes[i].pos;
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Records a plain-var occurrence's event -- called once per occurrence, in
@@ -238,7 +260,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
                 Kind esc_kind = symid == global_symid ? EscapingGlobal :
                                  symid == temp_symid ? EscapingTemp : EscapingLocal;
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
-                            esc_kind);
+                            esc_kind, i);
             }
             continue;
         }
@@ -261,6 +283,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (!span_is_plain_var(operand, is_plain_var)) continue;
             int varsymid = toks[operand.start].v.symbolid;
 
+            /* an occurrence at or after temp(varsymid)'s own token resolves
+               against the call's temp frame, not the enclosing scope --
+               excluding it here (rather than after aggregating into recs[])
+               keeps an earlier, genuinely capture-worthy occurrence of the
+               same symbol intact */
+            int tpos;
+            if (temp_escape_pos(escapes, nescapes, varsymid, &tpos) && operand.start >= tpos) continue;
+
             if (k == 0 && symid == assign_symid) {
                 note_event(recs, nrecs, recs_cap, varsymid, EvWrite);
             } else if (k == 0 && is_compound_assign) {
@@ -277,6 +307,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         PostfixSpanWalk::Span span = walk.remaining(k);
         if (!span_is_plain_var(span, is_plain_var)) continue;
         int symid = toks[span.start].v.symbolid;
+        int tpos;
+        if (temp_escape_pos(escapes, nescapes, symid, &tpos) && span.start >= tpos) continue;
         boolean is_new;
         find_or_add_var(recs, nrecs, recs_cap, symid, &is_new);
         if (is_new) {
@@ -289,19 +321,11 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nrecs; i++) {
         if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
-        /* temp(x)=val followed by a bare x elsewhere is the intended idiom
-           (only the creating write needs the wrapper) -- the bare occurrence
-           must not shadow the escape with an ordinary, declaration-time-
-           captured classification, unlike local()/global() where a bare
-           occurrence names a genuinely different variable. */
-        boolean escaping_temp = false;
-        for (int j = 0; j < nescapes; j++) {
-            if (escapes[j].symid == recs[i].symid && escapes[j].kind == EscapingTemp) {
-                escaping_temp = true;
-                break;
-            }
-        }
-        if (escaping_temp) continue;
+        /* recs[] already excludes any occurrence at or after its symbol's
+           temp() escape (see the occurrence loops above), so what remains
+           here is only pre-escape usage -- a genuinely capture-worthy
+           reference to the enclosing scope, exactly like a symbol with no
+           temp() escape at all. */
         Kind kind;
         if (recs[i].first_event == EvWrite) {
             kind = WriteBeforeRead;
@@ -322,8 +346,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             }
         }
         if (already_plain) continue;
-        Kind kind = escapes[i].kind;
-        AttributeValue kindval((int)kind, AttributeValue::IntType);
+        /* a pre-escape occurrence may have already added this symid above
+           (e.g. read once before its temp() creation, captured, then
+           temp()'d) -- OR the escape bit in rather than overwriting it, so
+           both facts about the symbol survive in its one result entry. */
+        int combined = (int)escapes[i].kind;
+        AttributeValue* existing = result->find(escapes[i].symid);
+        if (existing) combined |= existing->int_val();
+        AttributeValue kindval(combined, AttributeValue::IntType);
         result->add_attr(escapes[i].symid, kindval);
     }
 

@@ -362,7 +362,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
-    if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+    if (kind & (FuncObjVarScan::ReadOnly | FuncObjVarScan::ReadBeforeWrite)) {
       AttributeValue* defval = defaults->find(attr->SymbolId());
       /* a declaration-time capture can shadow the coded default,
          making it unreachable -- say so */
@@ -408,10 +408,10 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
-    if (kind == FuncObjVarScan::EscapingLocal || kind == FuncObjVarScan::EscapingGlobal ||
-        kind == FuncObjVarScan::EscapingTemp) {
-      const char* escname = kind == FuncObjVarScan::EscapingGlobal ? "global" :
-                             kind == FuncObjVarScan::EscapingTemp ? "temp" : "local";
+    if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
+                FuncObjVarScan::EscapingTemp)) {
+      const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
+                             kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
       append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
                       symbol_pntr(attr->SymbolId()), escname);
       any_escape = true;
