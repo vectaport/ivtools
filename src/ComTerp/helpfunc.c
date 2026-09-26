@@ -191,21 +191,11 @@ void HelpFunc::execute() {
 	str_flags[i] = false;
 	static int dot_symid = symbol_add("dot");
 	if (val.command_symid()==dot_symid && val.narg()==2) {
-	  /* help(a.f) -- a pending, unfired "dot" call. Fire it the same way
-	     dot's own nested-field lookups do -- stack_arg_post_eval() pushes
-	     its tokens, runs it, and leaves one finalized result -- and use
-	     whatever comes back as the help query. Gated to "dot" specifically:
-	     it's the only command whose pending result is a dotted-pair
-	     Attribute worth unwrapping for a field's own name; any other
-	     pending command still resolves to its own docstring below.
-	     symbol=true keeps the result as the raw dotted-pair Attribute
-	     (name + value) instead of auto-unwrapping to the bare value, so a
-	     FuncObj found there can be labeled with its field name ("f"),
-	     matching how help(h) labels with h's own name below. A bare
-	     func() assigned onto a dotlist field is never auto-fired, so
-	     evaluating "a.f" yields the FuncObj itself, same as typing "a.f"
-	     bare at the prompt. Anything that isn't a FuncObj falls through
-	     to dot's own docstring, unchanged. */
+	  /* help(a.f) -- fire the pending "dot" call via stack_arg_post_eval(),
+	     the same mechanism dot's own nested lookups use, and describe
+	     whatever it returns. symbol=true keeps the raw dotted-pair
+	     Attribute so a FuncObj there is labeled by its field name;
+	     anything else falls through to dot's own docstring below. */
 	  ComValue evalval = stack_arg_post_eval(i, true);
 	  FuncObj* fo = nil;
 	  if (evalval.class_symid()==Attribute::class_symid()) {
