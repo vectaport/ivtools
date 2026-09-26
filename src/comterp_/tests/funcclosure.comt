@@ -6,9 +6,14 @@
 // A func() body's free variables (read-only or read-before-write, per
 // #170's taxonomy) are captured once, at declaration time, instead of
 // resolved dynamically at call time -- turning func() into a real
-// closure.  Explicit keyword args still override a capture.  A body that
-// writes a name before ever reading it (even to nil) opts that name out
-// of capture entirely -- pure local scratch, untouched by any of this.
+// closure.  A read-before-write capture is live state, not a frozen
+// snapshot: a body write to it updates that FuncObj's own captures list,
+// so the next bare call sees the value the previous call left, private to
+// that one closure instance (test 8).  A one-off explicit keyword arg
+// still overrides a capture for just that call, without updating the
+// persisted default (test 3, test 9).  A body that writes a name before
+// ever reading it (even to nil) opts that name out of capture entirely --
+// pure local scratch, reset every call, untouched by any of this (test 4).
 // local()/global() stay fully dynamic, unaffected.
 //
 // Run from inside comterp, comdraw, or drawserv (cd to this dir first):
@@ -98,18 +103,19 @@ print("7 factor=10; obj2.scale=func(val=val*factor); factor=999; obj2's val stay
 check_fail(:ok ok)
 
 // --- test 8: a self-bound method's own capture of a genuine free
-// variable (never on the object) must stay frozen every call, never
-// accumulate into a permanent field on the object -- Greptile P1 catch,
-// obj=(:x 1); obj.bump=func(c=c+1) once returned 11,12,13 and leaked a
-// :c field instead of 11,11,11 every time ---
+// variable (never on the object) is real closure state -- it persists
+// across calls to that one bound method, private to the closure, never
+// spilling onto the object as a permanent field of its own.  c's
+// declaration-time value (10) only seeds the first call; obj3 keeps its
+// original single field (:y) throughout, and the outer c is untouched ---
 c=10
 obj3=(:y 1)
 obj3.bump = func(c=c+1)
 r11 = obj3.bump()
 r12 = obj3.bump()
 r13 = obj3.bump()
-ok=ok&&(r11==11)&&(r12==11)&&(r13==11)&&(obj3.y==1)
-print("8 c=10; obj3.bump=func(c=c+1) called 3x, c never on obj3 (expect 11 11 11, no leaked :c): %v %v %v\n\n" r11 r12 r13)
+ok=ok&&(r11==11)&&(r12==12)&&(r13==13)&&(obj3.y==1)&&(size(obj3)==2)&&(c==10)
+print("8 c=10; obj3.bump=func(c=c+1) called 3x, c persists as the closure's own state (expect 11 12 13, obj3 keeps just :y/:bump, outer c untouched): %v %v %v\n\n" r11 r12 r13)
 check_fail(:ok ok)
 
 // --- test 9: a name that's both a genuine capture and an explicit
