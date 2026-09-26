@@ -162,8 +162,6 @@ void HelpFunc::execute() {
   static int key_symid = symbol_add("key");
   ComValue keyval(stack_key(key_symid, true));
 
-  static int dot_symid = symbol_add("dot");
-
   boolean noargs = !nargs() && !nkeys();
   ComFunc** comfuncs= nil;
   int* command_ids = nil;
@@ -191,26 +189,37 @@ void HelpFunc::execute() {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
-	if (command_ids[i]==dot_symid && val.narg()==2) {
-	  /* help(a.f) -- "a.f" is still a pending, unfired dot expression.
-	     Evaluate it the same way any post_eval command's own argument
-	     gets evaluated -- stack_arg_post_eval() pushes its tokens, runs
-	     it, and leaves one finalized result. symbol=true keeps the
-	     result as the raw dotted-pair Attribute (name + value) instead
-	     of auto-unwrapping to the bare value, so a FuncObj found there
-	     can be labeled with its field name ("f"), matching how
-	     help(h) labels with h's own name below. A bare func() assigned
-	     onto a dotlist field is never auto-fired, so evaluating "a.f"
-	     yields the FuncObj itself, same as typing "a.f" bare at the
-	     prompt. */
-	  ComValue dotval = stack_arg_post_eval(i, true);
-	  if (dotval.class_symid()==Attribute::class_symid()) {
-	    Attribute* attr = (Attribute*) dotval.obj_val();
+	if (val.narg()>0 || val.nkey()>0) {
+	  /* help(<expr>) where <expr> is more than a bare symbol or bare
+	     command reference -- it's still a pending, unfired call (e.g.
+	     "a.f", but any post_eval command works the same way). Evaluate
+	     it the same way any post_eval command's own argument gets
+	     evaluated -- stack_arg_post_eval() pushes its tokens, runs it,
+	     and leaves one finalized result -- and use whatever comes back
+	     as the help query. symbol=true keeps a dot expression's result
+	     as the raw dotted-pair Attribute (name + value) instead of
+	     auto-unwrapping to the bare value, so a FuncObj found there can
+	     be labeled with its field name ("f"), matching how help(h)
+	     labels with h's own name below; any other expression's result
+	     is checked directly, labeled by the command that produced it.
+	     A bare func() assigned onto a dotlist field is never
+	     auto-fired, so evaluating "a.f" yields the FuncObj itself, same
+	     as typing "a.f" bare at the prompt. Anything that isn't a
+	     FuncObj falls through to this pending command's own docstring,
+	     unchanged. */
+	  ComValue evalval = stack_arg_post_eval(i, true);
+	  FuncObj* fo = nil;
+	  if (evalval.class_symid()==Attribute::class_symid()) {
+	    Attribute* attr = (Attribute*) evalval.obj_val();
 	    if (attr->Value()->is_object(FuncObj::class_symid())) {
-	      funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)attr->Value()->obj_val());
+	      fo = (FuncObj*) attr->Value()->obj_val();
 	      command_ids[i] = attr->SymbolId();
 	    }
+	  } else if (evalval.is_object(FuncObj::class_symid())) {
+	    fo = (FuncObj*) evalval.obj_val();
 	  }
+	  if (fo != nil)
+	    funcobj_help[i] = comterp()->describe_funcobj(fo);
 	}
       } else if (val.is_type(AttributeValue::StringType)) {
  	void *vptr = nil;

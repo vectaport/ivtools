@@ -287,5 +287,17 @@ ok=ok&&(r20==12)
 print("20 dh.f(3 4) after help(dh.f) inspected it (expect 12): %v\n\n" r20)
 check_fail(:ok ok)
 
+// --- test 21: help() also evaluates a pending expression that isn't a dot
+// access at all -- any post_eval command whose result is a FuncObj gets
+// described, labeled by the command that produced it, not just "a.f" ---
+mk=func(func(arg(0)+arg(1)))
+r21=help(mk())
+ok=ok&&(r21=="mk(arg0 arg1)")
+g21=mk()
+r21b=g21(3 4)
+ok=ok&&(r21b==7)
+print("21 mk=func(func(arg(0)+arg(1))); help(mk()) describes the FuncObj it\n   returns, labeled \"mk\" (expect \"mk(arg0 arg1)\" 7): %v %v\n\n" r21 r21b)
+check_fail(:ok ok)
+
 print("funchelp: %v\n" ok)
 ok
