@@ -40,17 +40,25 @@
 //
 // Every scratch variable inside next()/prev()/zoomin()/zoomout()/drive()
 // (the loop counters and interpolation math -- everything except d0..d4,
-// nextlib, img0..img4, full) is created with temp(), not a bare write:
-// a self-bound method's bare writes land on carousel itself the same way
-// d0..d4 do, so without temp() a call suspended mid-animation inside
-// update() and re-entered by another call to the same method would have
-// its own scratch state overwritten out from under it on resume. temp()
-// gives each invocation its own frame for these, discarded when that
-// call returns; only the first, creating assignment needs the wrapper,
-// since a bare reference later in the same call resolves against the
-// temp frame automatically (see doc/LANGUAGE.md's "Per-call privacy:
-// temp()"). The persistent fields still use bare writes on purpose --
-// that's what makes them persist.
+// nextlib, img0..img4, full, busy) is created with temp(), not a bare
+// write: a self-bound method's bare writes land on carousel itself the
+// same way d0..d4 do, so without temp() a call suspended mid-animation
+// inside update() and re-entered by another call to the same method
+// would have its own scratch state overwritten out from under it on
+// resume. temp() gives each invocation its own frame for these,
+// discarded when that call returns; only the first, creating assignment
+// needs the wrapper, since a bare reference later in the same call
+// resolves against the temp frame automatically (see doc/LANGUAGE.md's
+// "Per-call privacy: temp()"). The persistent fields still use bare
+// writes on purpose -- that's what makes them persist.
+//
+// temp() only isolates each call's own scratch math -- it can't protect
+// d0..d4/img0..img4/full themselves, since those are meant to be shared
+// and read/written across calls by design. busy is the guard for that:
+// set for the duration of whichever of next()/prev()/zoomin()/zoomout()
+// is running, checked at the top of all four, so an overlapping call
+// into any of them while one is mid-animation just no-ops instead of
+// racing it for the same deck fields.
 //
 // Each library photo is fetched live via curl when the network is
 // reachable, each with a distinct cache-busting x= value so the same
@@ -231,6 +239,15 @@ carousel=(
   :img0 at(imgs 0) :img1 at(imgs 1) :img2 at(imgs 2) :img3 at(imgs 3) :img4 at(imgs 4)
   :full 0
 
+  // busy guards d0..d4/img0..img4/full themselves, which temp() can't --
+  // they're meant to be shared and live across calls, so two overlapping
+  // next()/prev()/zoomin()/zoomout() calls could otherwise still each read
+  // and rewrite them mid-animation. Set for the duration of whichever of
+  // the four methods is running; any of the other three no-ops (same
+  // silent skip as the full/!full guards above) rather than queuing, so a
+  // second key hit while one is still animating is just dropped.
+  :busy 0
+
   // carousel.next() -- advance by one photo: the front photo exits past
   // the back, everything else slides one slot forward, and the next
   // library photo spins in from the back to fill the gap. A no-op while
@@ -239,6 +256,8 @@ carousel=(
   // full screen; zoomout() first to rotate.
   :next func(
     if(full :then return(nil));
+    if(busy :then return(nil));
+    busy=1;
     temp(exiting)=img0;
     temp(entrant)=at(imgs nextlib);
     temp(expw)=at(libw d0); temp(exph)=at(libh d0);
@@ -290,6 +309,7 @@ carousel=(
     img0=img1; img1=img2; img2=img3; img3=img4; img4=entrant;
     nextlib=mod(d4+1 n);
     front(img0); front(img4); front(img1); front(img3); front(img2);
+    busy=0;
     nil)
 
   // carousel.prev() -- spin the other way: the back photo exits past the
@@ -299,6 +319,8 @@ carousel=(
   // including the zoomed-in no-op.
   :prev func(
     if(full :then return(nil));
+    if(busy :then return(nil));
+    busy=1;
     temp(exiting)=img4;
     temp(entlib)=mod(d0-1+n n);
     temp(entrant)=at(imgs entlib);
@@ -349,6 +371,7 @@ carousel=(
     img4=img3; img3=img2; img2=img1; img1=img0; img0=entrant;
     nextlib=mod(d4+1 n);
     front(img0); front(img4); front(img1); front(img3); front(img2);
+    busy=0;
     nil)
 
   // carousel.zoomin() -- grow the center photo to fill the canvas, in the
@@ -356,6 +379,8 @@ carousel=(
   // full, so repeated SHIFT-UP presses in drive() don't restart the walk.
   :zoomin func(
     if(full :then return(nil));
+    if(busy :then return(nil));
+    busy=1;
     temp(pw)=at(libw d2); temp(ph)=at(libh d2);
     temp(fw)=slotw(2); temp(fh)=sloth(2); temp(fcx)=slotcx(2); temp(fcy)=slotcy(2);
     front(img2);
@@ -368,12 +393,15 @@ carousel=(
       trans(img2 sx,0,0,sy,tx,ty :set);
       update(USEC));
     full=1;
+    busy=0;
     nil)
 
   // carousel.zoomout() -- exact mirror of zoomin(): shrink the fullscreen
   // photo back down to its normal center-slot size and position.
   :zoomout func(
     if(!full :then return(nil));
+    if(busy :then return(nil));
+    busy=1;
     temp(pw)=at(libw d2); temp(ph)=at(libh d2);
     temp(tw)=slotw(2); temp(th)=sloth(2); temp(tcx)=slotcx(2); temp(tcy)=slotcy(2);
     for(temp(f)=1 f<=FR f=f+1
@@ -385,6 +413,7 @@ carousel=(
       trans(img2 sx,0,0,sy,tx,ty :set);
       update(USEC));
     full=0;
+    busy=0;
     nil)
 
   // carousel.help() -- remind me how to spin it (same idiom as
