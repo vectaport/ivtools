@@ -149,5 +149,18 @@ ok=ok&&(r15==nil)
 print("15 temp(zz15) read at top level, no func frame (expect nil + WARNING): %v\n\n" r15)
 prev_ok=check_fail(:ok ok)
 
+// --- test 16: temp(x)=x -- a self-referential creation still reads its
+//     RHS before the escape takes effect, so the enclosing x is captured
+//     at declaration time rather than tracked live off the outer scope ---
+t1=1
+f16=func(temp(t1)=t1; t1=t1+1; t1)
+r16a=f16()
+r16b=f16()
+t1=99
+r16c=f16()
+ok=ok&&(r16a==2)&&(r16b==2)&&(r16c==2)
+print("16 t1=1; f16=func(temp(t1)=t1; t1=t1+1; t1); f16() f16() t1=99 f16() (expect 2 2 2): %v %v %v\n\n" r16a r16b r16c)
+prev_ok=check_fail(:ok ok)
+
 print("\ntemp: %v\n" ok)
 ok

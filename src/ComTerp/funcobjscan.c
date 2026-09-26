@@ -45,8 +45,9 @@ struct VarRecord {
 struct EscapeRecord {
     int symid;
     FuncObjVarScan::Kind kind;  // EscapingLocal, EscapingGlobal, or EscapingTemp
-    int pos;                    // token index of the escaping command itself
-                                 // (temp(x)=...), set on first occurrence only
+    int pos;                    // token index marking when the escape takes
+                                 // effect, set on first occurrence only;
+                                 // see temp_escape_pos() below
 };
 
 static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid, boolean* is_new) {
@@ -88,8 +89,10 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncOb
 }
 
 /* true, with *pos set, iff symid has an EscapingTemp record -- pos is the
-   token index of temp(symid)'s own command, the pre/post-escape boundary
-   the classify() occurrence loops below test against. */
+   pre/post-escape boundary the classify() occurrence loops below test
+   against: temp(symid)'s own command token, or, when that call is the
+   target of an assign (temp(symid)=val), the assign's own token, since
+   val is read before the assign creates the temp-frame entry. */
 static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos) {
     for (int i = 0; i < n; i++) {
         if (escapes[i].symid == symid && escapes[i].kind == FuncObjVarScan::EscapingTemp) {
@@ -276,6 +279,22 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
         for (int k = 0; k < nconsumed; k++) {
             PostfixSpanWalk::Span operand = walk.consumed(k);
+
+            if (k == 0 && symid == assign_symid && !span_is_plain_var(operand, is_plain_var)) {
+                /* temp(x)=val: val is read via ordinary lookup before this
+                   assign creates x's temp-frame entry, so the escape only
+                   takes effect here, not at temp(x)'s own earlier token --
+                   move the boundary so a self-referential val (temp(x)=x)
+                   still sees its pre-escape value. */
+                int lhs_end = operand.start + operand.count - 1;
+                for (int e = 0; e < nescapes; e++) {
+                    if (escapes[e].kind == EscapingTemp && escapes[e].pos == lhs_end) {
+                        escapes[e].pos = i;
+                        break;
+                    }
+                }
+            }
+
             if (!span_is_plain_var(operand, is_plain_var)) continue;
             int varsymid = toks[operand.start].v.symbolid;
 
