@@ -216,6 +216,15 @@ class FuncObj {
   boolean posteval() { return _posteval; }
   void posteval(boolean p) { _posteval = p; }
 
+  // Subset of captures() (an AttributeList mapping symid to ComValue::trueval())
+  // whose body assigns the variable itself (FuncObjVarScan::ReadBeforeWrite) --
+  // an explicit keyword override on one of these becomes the closure's new
+  // default, the same as a bare assignment in the body would.  A ReadOnly
+  // capture is never in this set, so overriding it for one call stays local
+  // to that call: nothing in the body ever writes it back.  UnknownType
+  // (the ComValue default) means none, same convention as captures().
+  ComValue& persistable() { return _persistable; }
+
   CLASS_SYMID("FuncObj");
 
  protected:
@@ -224,6 +233,7 @@ class FuncObj {
   int* _spanlens;
   int _nspans;
   ComValue _captures;
+  ComValue _persistable;
   boolean _posteval;
 };
 

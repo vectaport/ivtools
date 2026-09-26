@@ -1146,23 +1146,25 @@ f(:y 7)             // 7 -- an explicit keyword always wins
 ```
 
 **A read-before-write capture persists across calls, private to that
-closure.** `y` above is read-only, so it has nothing to persist -- every
-call reads the same frozen 42. A name the body also writes is different:
-the value it leaves behind becomes the capture's default for the next
-bare call, and a one-off keyword override never disturbs that:
+closure -- an explicit keyword override persists too.** `y` above is
+read-only, so it has nothing to persist -- every call reads the same
+frozen 42. A name the body also writes is different: whatever value it
+holds when the call returns, whether that's from the body's own
+assignment or from a one-off keyword override, becomes the capture's
+default for the next bare call:
 
 ```
 c=10
 inc=func(c=c+1)
 inc()               // 11 -- first call starts from the declaration-time value
 inc()               // 12 -- second call continues from what the first left
-inc(:c 100)         // 101 -- explicit override for just this call
-inc()               // 13 -- the override never touched the persisted state
+inc(:c 100)         // 101 -- explicit override for just this call...
+inc()               // 102 -- ...and the next bare call continues from it
 c                    // 10 -- the outer variable was only ever read once, at declaration
 ```
 
 `help(inc)` reflects the same live default it just used, not just the
-declaration-time one: `"inc(:c [13])"` after the calls above.
+declaration-time one: `"inc(:c [102])"` after the calls above.
 
 **A different tool for a different job: `eval()`'s own `:alist` keyword.**
 Declaration-time capture, even with the persistence above, is *private*

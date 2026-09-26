@@ -441,11 +441,6 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       al->add_attr(capattr->SymbolId(), *capattr->Value());
     }
   }
-  /* names this call supplied explicitly as a keyword -- excluded below from
-     writing an updated capture back, so a one-off :x override never becomes
-     the closure's new persisted default */
-  ComValue explicit_keys_owner(AttributeList::class_symid(), (void*)(new AttributeList()));
-  AttributeList* explicit_keys = (AttributeList*)explicit_keys_owner.obj_val();
   if (extra_keys) {
     /* caller built the keyword list some other way; copy its entries into al,
        after captures, so an explicit :x val still overrides one */
@@ -453,13 +448,11 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
     for (extra_keys->First(ekit); !extra_keys->Done(ekit); extra_keys->Next(ekit)) {
       Attribute* ekattr = extra_keys->GetAttr(ekit);
       al->add_attr(ekattr->SymbolId(), *ekattr->Value());
-      explicit_keys->add_attr(ekattr->SymbolId(), ComValue::trueval());
     }
   } else if (!lazy_posvals) {
     for(int i=0; i<val.nkey(); i++) {
       ComValue keyv(pop_stack());
       int knarg = keyv.keynarg_val();
-      explicit_keys->add_attr(keyv.keyid_val(), ComValue::trueval());
       if (knarg==0) {
 	al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
       } else {
@@ -499,17 +492,20 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* a read-before-write capture's value, possibly mutated by the body just
-     run, becomes this closure's new default for its next bare call -- a
-     one-off keyword override (explicit_keys) never overwrites it */
-  if (callee_fo->captures().is_object(AttributeList::class_symid())) {
+  /* a read-before-write capture's value -- whether it got there by the
+     body's own writes or by an explicit :x override at this call site --
+     becomes this closure's new default for its next bare call.  A ReadOnly
+     capture is never in persistable(), so an override on one of those
+     stays local to this call. */
+  if (callee_fo->persistable().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
+    AttributeList* persistable = (AttributeList*)callee_fo->persistable().obj_val();
     ALIterator cit;
-    for (caps->First(cit); !caps->Done(cit); caps->Next(cit)) {
-      Attribute* capattr = caps->GetAttr(cit);
-      if (explicit_keys->GetAttr(capattr->SymbolId())) continue;
-      Attribute* cur = al->GetAttr(capattr->SymbolId());
-      if (cur) *capattr->Value() = *cur->Value();
+    for (persistable->First(cit); !persistable->Done(cit); persistable->Next(cit)) {
+      Attribute* pattr = persistable->GetAttr(cit);
+      Attribute* capattr = caps->GetAttr(pattr->SymbolId());
+      Attribute* cur = al->GetAttr(pattr->SymbolId());
+      if (capattr && cur) *capattr->Value() = *cur->Value();
     }
   }
   /* free any FuncObjPendingArg markers still standing at invocation
