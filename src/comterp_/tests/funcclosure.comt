@@ -6,10 +6,17 @@
 // A func() body's free variables (read-only or read-before-write, per
 // #170's taxonomy) are captured once, at declaration time, instead of
 // resolved dynamically at call time -- turning func() into a real
-// closure.  Explicit keyword args still override a capture.  A body that
-// writes a name before ever reading it (even to nil) opts that name out
-// of capture entirely -- pure local scratch, untouched by any of this.
-// local()/global() stay fully dynamic, unaffected.
+// closure.  A read-before-write capture is live state, not a frozen
+// snapshot: a body write to it, OR an explicit keyword override at any
+// call site, updates that FuncObj's own captures list, so the next bare
+// call sees whichever value the previous call left, private to that one
+// closure instance (test 8, test 9, test 10).  A purely read-only capture
+// (never assigned anywhere in the body) has nothing to write back, so a
+// one-off keyword override on one of those stays local to that call
+// (test 3).  A body that writes a name before ever reading it (even to
+// nil) opts that name out of capture entirely -- pure local scratch,
+// reset every call, untouched by any of this (test 4).  local()/global()
+// stay fully dynamic, unaffected.
 //
 // Run from inside comterp, comdraw, or drawserv (cd to this dir first):
 //   run("./funcclosure.comt")
@@ -39,15 +46,18 @@ ok=ok&&(r1==99)
 print("2 x=nil; ini=func(if(x==nil :then 99 :else x)); x=5; ini() still sees captured nil (expect 99): %v\n\n" r1)
 check_fail(:ok ok)
 
-// --- test 3: an explicit keyword always overrides a capture, whether
-// the variable is captured or not ---
+// --- test 3: an explicit keyword always overrides a capture for that one
+// call; a purely read-only capture (never assigned in the body) has no
+// write to persist, so the next bare call still sees the declaration-time
+// value ---
 c=10
 g=func(c)
 c=999
 r2=g()
 r3=g(:c 55)
-ok=ok&&(r2==10)&&(r3==55)
-print("3 c=10; g=func(c); c=999; g() vs g(:c 55) (expect 10 55): %v %v\n\n" r2 r3)
+r3b=g()
+ok=ok&&(r2==10)&&(r3==55)&&(r3b==10)
+print("3 c=10; g=func(c); c=999; g() vs g(:c 55) vs g() again (expect 10 55 10): %v %v %v\n\n" r2 r3 r3b)
 check_fail(:ok ok)
 
 // --- test 4: write-before-read opts a name out of capture entirely --
@@ -98,18 +108,19 @@ print("7 factor=10; obj2.scale=func(val=val*factor); factor=999; obj2's val stay
 check_fail(:ok ok)
 
 // --- test 8: a self-bound method's own capture of a genuine free
-// variable (never on the object) must stay frozen every call, never
-// accumulate into a permanent field on the object -- Greptile P1 catch,
-// obj=(:x 1); obj.bump=func(c=c+1) once returned 11,12,13 and leaked a
-// :c field instead of 11,11,11 every time ---
+// variable (never on the object) is real closure state -- it persists
+// across calls to that one bound method, private to the closure, never
+// spilling onto the object as a permanent field of its own.  c's
+// declaration-time value (10) only seeds the first call; obj3 keeps its
+// original single field (:y) throughout, and the outer c is untouched ---
 c=10
 obj3=(:y 1)
 obj3.bump = func(c=c+1)
 r11 = obj3.bump()
 r12 = obj3.bump()
 r13 = obj3.bump()
-ok=ok&&(r11==11)&&(r12==11)&&(r13==11)&&(obj3.y==1)
-print("8 c=10; obj3.bump=func(c=c+1) called 3x, c never on obj3 (expect 11 11 11, no leaked :c): %v %v %v\n\n" r11 r12 r13)
+ok=ok&&(r11==11)&&(r12==12)&&(r13==13)&&(obj3.y==1)&&(size(obj3)==2)&&(c==10)
+print("8 c=10; obj3.bump=func(c=c+1) called 3x, c persists as the closure's own state (expect 11 12 13, obj3 keeps just :y/:bump, outer c untouched): %v %v %v\n\n" r11 r12 r13)
 check_fail(:ok ok)
 
 // --- test 9: a name that's both a genuine capture and an explicit
@@ -120,6 +131,17 @@ obj4=(:setit func(nope=nope+1; nope))
 r14 = obj4.setit(:nope 5)
 ok=ok&&(r14==6)&&(obj4.nope==6)
 print("9 obj4.setit(:nope 5) with nope both captured and keyword-supplied (expect 6, obj4.nope==6): %v %v\n\n" r14 obj4.nope)
+check_fail(:ok ok)
+
+// --- test 10: a plain (non-dot) func's read-before-write capture persists
+// an explicit keyword override too, the same as a bare body write does --
+// a subsequent bare call continues from the override, not from the
+// declaration-time value ---
+setit2=func(nope2=nope2+1; nope2)
+r15 = setit2(:nope2 5)
+r16 = setit2()
+ok=ok&&(r15==6)&&(r16==7)
+print("10 setit2=func(nope2=nope2+1; nope2); setit2(:nope2 5) then setit2() (expect 6 7): %v %v\n\n" r15 r16)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)

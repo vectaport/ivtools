@@ -323,7 +323,7 @@ static void render_comvalue(ComValue& v, char* out, size_t outsize) {
    pinned down statically.  Keywords are read-only plus read-before-write;
    write-before-read is local scratch, not an input.  Escaping local()/global()
    vars go in a trailing annotation rather than the parens. */
-ComValue ComTerp::describe_funcobj(FuncObj* fo) {
+ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
   boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
   AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
   ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
@@ -404,17 +404,19 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   }
   append_bounded(buf, sizeof(buf), pos, ")");
 
-  boolean any_escape = false;
-  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
-    Attribute* attr = classification->GetAttr(cit);
-    int kind = attr->Value()->int_val();
-    if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
-                FuncObjVarScan::EscapingTemp)) {
-      const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
-                             kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
-      append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
-                      symbol_pntr(attr->SymbolId()), escname);
-      any_escape = true;
+  if (raw) {
+    boolean any_escape = false;
+    for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+      Attribute* attr = classification->GetAttr(cit);
+      int kind = attr->Value()->int_val();
+      if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
+                  FuncObjVarScan::EscapingTemp)) {
+        const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
+                               kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
+        append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                        symbol_pntr(attr->SymbolId()), escname);
+        any_escape = true;
+      }
     }
   }
 
@@ -490,6 +492,22 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
+  /* a read-before-write capture's value -- whether it got there by the
+     body's own writes or by an explicit :x override at this call site --
+     becomes this closure's new default for its next bare call.  A ReadOnly
+     capture is never in persistable(), so an override on one of those
+     stays local to this call. */
+  if (callee_fo->persistable().is_object(AttributeList::class_symid())) {
+    AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
+    AttributeList* persistable = (AttributeList*)callee_fo->persistable().obj_val();
+    ALIterator cit;
+    for (persistable->First(cit); !persistable->Done(cit); persistable->Next(cit)) {
+      Attribute* pattr = persistable->GetAttr(cit);
+      Attribute* capattr = caps->GetAttr(pattr->SymbolId());
+      Attribute* cur = al->GetAttr(pattr->SymbolId());
+      if (capattr && cur) *capattr->Value() = *cur->Value();
+    }
+  }
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {

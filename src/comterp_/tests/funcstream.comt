@@ -15,11 +15,13 @@
 // drain, seeing the stream and pulling from it with *arg(n) (posteval.comt
 // tests 11/12).  Test 9 below guards that distinction.
 //
-// Firing counts use local() rather than a bare captured variable: #310
-// freezes a read-before-write free variable at declaration time, so a bare
-// counter re-seeds from that snapshot every firing and never accumulates.
+// Firing counts use local() rather than a bare captured variable: a bare
+// read-before-write capture is now real per-closure state (funcclosure.comt
+// test 8), but how it interacts with external stream overdrive -- one
+// funcobj instance fired once per element -- is not yet pinned down here.
 // local() writes through to the default table instead, escaping the func
-// frame (local.comt test 12).
+// frame entirely (local.comt test 12), so it stays the reliable choice for
+// counting firings regardless of that open question.
 //
 // Run from inside comterp, comdraw, or drawserv (cd to this dir first):
 //   run("./funcstream.comt")

@@ -159,6 +159,9 @@ void HelpFunc::execute() {
   static int top_symid = symbol_add("top");
   ComValue topflag(stack_key(top_symid));
 
+  static int raw_symid = symbol_add("raw");
+  ComValue rawflag(stack_key(raw_symid));
+
   static int key_symid = symbol_add("key");
   ComValue keyval(stack_key(key_symid, true));
 
@@ -208,7 +211,7 @@ void HelpFunc::execute() {
 	    fo = (FuncObj*) evalval.obj_val();
 	  }
 	  if (fo != nil)
-	    funcobj_help[i] = comterp()->describe_funcobj(fo);
+	    funcobj_help[i] = comterp()->describe_funcobj(fo, rawflag.is_true());
 	}
       } else if (val.is_type(AttributeValue::StringType)) {
  	void *vptr = nil;
@@ -229,7 +232,7 @@ void HelpFunc::execute() {
 	     so it's safe to check what val names without firing it. */
 	  ComValue resolved(comterp()->lookup_symval(val));
 	  if (resolved.is_object(FuncObj::class_symid()))
-	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val());
+	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val(), rawflag.is_true());
 	}
 	else
 	  command_ids[i] = -1;

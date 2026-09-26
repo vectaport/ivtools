@@ -45,8 +45,9 @@ struct VarRecord {
 struct EscapeRecord {
     int symid;
     FuncObjVarScan::Kind kind;  // EscapingLocal, EscapingGlobal, or EscapingTemp
-    int pos;                    // token index of the escaping command itself
-                                 // (temp(x)=...), set on first occurrence only
+    int pos;                    // token index marking when the escape takes
+                                 // effect, set on first occurrence only;
+                                 // see temp_escape_pos() below
 };
 
 static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid, boolean* is_new) {
@@ -88,8 +89,10 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncOb
 }
 
 /* true, with *pos set, iff symid has an EscapingTemp record -- pos is the
-   token index of temp(symid)'s own command, the pre/post-escape boundary
-   the classify() occurrence loops below test against. */
+   pre/post-escape boundary the classify() occurrence loops below test
+   against: temp(symid)'s own command token, or, when that call is the
+   target of an assign (temp(symid)=val), the assign's own token, since
+   val is read before the assign creates the temp-frame entry. */
 static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos) {
     for (int i = 0; i < n; i++) {
         if (escapes[i].symid == symid && escapes[i].kind == FuncObjVarScan::EscapingTemp) {
@@ -116,6 +119,30 @@ static void note_event(VarRecord*& recs, int& n, int& cap, int symid, VarEvent e
 static boolean symid_in_set(int* set, int n, int symid) {
     for (int i = 0; i < n; i++) if (set[i] == symid) return true;
     return false;
+}
+
+/* maps a temp(...) call's own token index to where its escape actually
+   takes effect, for temp(x)=val sites -- see the comment in classify()
+   where this is built. */
+struct TempBoundary { int temp_pos; int boundary_pos; };
+
+static void note_temp_boundary(TempBoundary*& tb, int& n, int& cap, int temp_pos, int boundary_pos) {
+    if (n == cap) {
+        int newcap = cap ? cap * 2 : 8;
+        TempBoundary* newtb = new TempBoundary[newcap];
+        for (int i = 0; i < n; i++) newtb[i] = tb[i];
+        delete [] tb;
+        tb = newtb;
+        cap = newcap;
+    }
+    tb[n].temp_pos = temp_pos;
+    tb[n].boundary_pos = boundary_pos;
+    n++;
+}
+
+static int temp_boundary_for(TempBoundary* tb, int n, int temp_pos) {
+    for (int i = 0; i < n; i++) if (tb[i].temp_pos == temp_pos) return tb[i].boundary_pos;
+    return temp_pos;
 }
 
 static void add_to_set(int*& set, int& n, int& cap, int symid) {
@@ -241,6 +268,25 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int* dotroots = nil;
     int ndotroots = 0, dotroots_cap = 0;
 
+    /* temp(x)=val's escape takes effect at this assign's token, not
+       temp(x)'s earlier one -- resolved in a pre-pass so a read nested
+       in val (temp(x)=x+1) is classified against the right boundary. */
+    TempBoundary* tempbounds = nil;
+    int ntempbounds = 0, tempbounds_cap = 0;
+    {
+        PostfixSpanWalk prewalk;
+        for (int i = 0; i < ntoks; i++) {
+            prewalk.step(toks, i);
+            if (toks[i].type != TOK_COMMAND || toks[i].v.symbolid != assign_symid) continue;
+            if (prewalk.consumed_count() < 1) continue;
+            PostfixSpanWalk::Span lhs = prewalk.consumed(0);
+            int lhs_end = lhs.start + lhs.count - 1;
+            if (lhs.count < 2 || toks[lhs_end].type != TOK_COMMAND ||
+                toks[lhs_end].v.symbolid != temp_symid) continue;
+            note_temp_boundary(tempbounds, ntempbounds, tempbounds_cap, lhs_end, i);
+        }
+    }
+
     PostfixSpanWalk walk;
     for (int i = 0; i < ntoks; i++) {
         walk.step(toks, i);
@@ -255,8 +301,9 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (span_is_plain_var(arg, is_plain_var)) {
                 Kind esc_kind = symid == global_symid ? EscapingGlobal :
                                  symid == temp_symid ? EscapingTemp : EscapingLocal;
+                int pos = symid == temp_symid ? temp_boundary_for(tempbounds, ntempbounds, i) : i;
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
-                            esc_kind, i);
+                            esc_kind, pos);
             }
             continue;
         }
@@ -349,6 +396,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     delete [] recs;
     delete [] escapes;
     delete [] dotroots;
+    delete [] tempbounds;
 
     return result;
 }

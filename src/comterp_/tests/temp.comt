@@ -121,11 +121,14 @@ ok=ok&&(r12==nil)
 print("12 for() body has no func frame either: temp(ftmp)=7 (expect nil + WARNING): %v\n\n" r12)
 prev_ok=check_fail(:ok ok)
 
-// --- test 13: help() shows a temp()-escaped variable, not a captured keyword ---
+// --- test 13: help(:raw) shows a temp()-escaped variable, not a captured
+//     keyword -- omitted from the default (non-:raw) signature, since it's
+//     compile-time scratch rather than state that persists between calls ---
 f13=func(temp(x)=5 x)
 hs13=help(f13)
-ok=ok&&(index(hs13 "x->temp" :substr)>=0)
-print("13 help(f2-shaped func) reports the escape, not a :x capture (expect substring found): %v\n\n" hs13)
+hs13raw=help(f13 :raw)
+ok=ok&&(index(hs13raw "x->temp" :substr)>=0)&&(index(hs13 "x->temp" :substr)==nil)
+print("13 help(f13) vs help(f13 :raw) reports the escape, not a :x capture (expect nil, substring found): %v %v\n\n" hs13 hs13raw)
 prev_ok=check_fail(:ok ok)
 
 // --- test 14: a read before a symbol's own temp() creation still captures
@@ -144,6 +147,31 @@ prev_ok=check_fail(:ok ok)
 r15=temp(zz15)
 ok=ok&&(r15==nil)
 print("15 temp(zz15) read at top level, no func frame (expect nil + WARNING): %v\n\n" r15)
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: temp(x)=x -- a self-referential creation still reads its
+//     RHS before the escape takes effect, so the enclosing x is captured
+//     at declaration time rather than tracked live off the outer scope ---
+t1=1
+f16=func(temp(t1)=t1; t1=t1+1; t1)
+r16a=f16()
+r16b=f16()
+t1=99
+r16c=f16()
+ok=ok&&(r16a==2)&&(r16b==2)&&(r16c==2)
+print("16 t1=1; f16=func(temp(t1)=t1; t1=t1+1; t1); f16() f16() t1=99 f16() (expect 2 2 2): %v %v %v\n\n" r16a r16b r16c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 17: temp(x)=x+1 -- a read of x nested inside the RHS expression
+//     (not a bare temp(x)=x) is still pre-escape and still captured at
+//     declaration time ---
+x17=1
+f17=func(temp(x17)=x17+1; x17)
+r17a=f17()
+x17=99
+r17b=f17()
+ok=ok&&(r17a==2)&&(r17b==2)
+print("17 x17=1; f17=func(temp(x17)=x17+1; x17); f17() x17=99 f17() (expect 2 2): %v %v\n\n" r17a r17b)
 prev_ok=check_fail(:ok ok)
 
 print("\ntemp: %v\n" ok)
