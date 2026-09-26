@@ -189,24 +189,23 @@ void HelpFunc::execute() {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
-	if (val.narg()>0 || val.nkey()>0) {
-	  /* help(<expr>) where <expr> is more than a bare symbol or bare
-	     command reference -- it's still a pending, unfired call (e.g.
-	     "a.f", but any post_eval command works the same way). Evaluate
-	     it the same way any post_eval command's own argument gets
-	     evaluated -- stack_arg_post_eval() pushes its tokens, runs it,
-	     and leaves one finalized result -- and use whatever comes back
-	     as the help query. symbol=true keeps a dot expression's result
-	     as the raw dotted-pair Attribute (name + value) instead of
-	     auto-unwrapping to the bare value, so a FuncObj found there can
-	     be labeled with its field name ("f"), matching how help(h)
-	     labels with h's own name below; any other expression's result
-	     is checked directly, labeled by the command that produced it.
-	     A bare func() assigned onto a dotlist field is never
-	     auto-fired, so evaluating "a.f" yields the FuncObj itself, same
-	     as typing "a.f" bare at the prompt. Anything that isn't a
-	     FuncObj falls through to this pending command's own docstring,
-	     unchanged. */
+	static int dot_symid = symbol_add("dot");
+	if (val.command_symid()==dot_symid && val.narg()==2) {
+	  /* help(a.f) -- a pending, unfired "dot" call. Fire it the same way
+	     dot's own nested-field lookups do -- stack_arg_post_eval() pushes
+	     its tokens, runs it, and leaves one finalized result -- and use
+	     whatever comes back as the help query. Gated to "dot" specifically:
+	     it's the only command whose pending result is a dotted-pair
+	     Attribute worth unwrapping for a field's own name; any other
+	     pending command still resolves to its own docstring below.
+	     symbol=true keeps the result as the raw dotted-pair Attribute
+	     (name + value) instead of auto-unwrapping to the bare value, so a
+	     FuncObj found there can be labeled with its field name ("f"),
+	     matching how help(h) labels with h's own name below. A bare
+	     func() assigned onto a dotlist field is never auto-fired, so
+	     evaluating "a.f" yields the FuncObj itself, same as typing "a.f"
+	     bare at the prompt. Anything that isn't a FuncObj falls through
+	     to dot's own docstring, unchanged. */
 	  ComValue evalval = stack_arg_post_eval(i, true);
 	  FuncObj* fo = nil;
 	  if (evalval.class_symid()==Attribute::class_symid()) {
