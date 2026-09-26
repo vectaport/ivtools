@@ -270,8 +270,14 @@ public:
     void set_attributes(AttributeList*);
     // set AttributeList to be used as an additional local symbol table.
     AttributeList* get_attributes();
-    // return pointer to AttributeList being used as an additional 
+    // return pointer to AttributeList being used as an additional
     // local symbol table.
+
+    void set_tempframe(AttributeList*);
+    // set AttributeList to be used as the current call's temp() frame.
+    AttributeList* get_tempframe();
+    // return pointer to the current call's temp() frame, nil outside
+    // any func-body invocation.
 
     void handler(ComterpHandler* h );
     // set handler for invoking ComFunc execute methods.
@@ -474,6 +480,7 @@ protected:
     ComValueTable* _localtable; // per interpreter symbol table
     static ComValueTable* _globaltable; // interpreter shared symbol table
     AttributeList* _alist; // extends symbol tables with names in an AttributeList
+    AttributeList* _tempframe; // current func call's temp() variables, nil outside any call, fresh per invocation in run_funcobj_body()
 
     ComFuncState* _fsstack;  // stack of func-status (nargs/nkeys/...) 
     int _fsstack_top;

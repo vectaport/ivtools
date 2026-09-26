@@ -57,7 +57,8 @@ class ComTerp;
 #define COMVALUE_SLICECAP_SHIFT  13
 #define COMVALUE_SLICECAP_BITS   16 // room for growth via append() before reallocating, 0-65535 bytes beyond slicelen() -- bits 13-28
 #define COMVALUE_SLICECAP_MASK   (((1<<COMVALUE_SLICECAP_BITS)-1)<<COMVALUE_SLICECAP_SHIFT)
-#define COMVALUE_SLICECAP_SET_FLAG 0x20000000 // bit 29 -- an explicit slicecap() was requested; distinguishes a deliberate zero-room cap from none requested, where slicecap() alone would read 0 either way. Bits 30-31 stay free.
+#define COMVALUE_SLICECAP_SET_FLAG 0x20000000 // bit 29 -- an explicit slicecap() was requested; distinguishes a deliberate zero-room cap from none requested, where slicecap() alone would read 0 either way.
+#define COMVALUE_TEMP_FLAG       0x40000000 // bit 30 -- set by temp() on its lvalue symbol -- write the call's temp frame, discarded when the call returns. Bit 31 stays free.
 
 class ComValue : public AttributeValue {
 public:
@@ -157,6 +158,11 @@ public:
     // default symbol table, skipping any func frame.
     void local_flag(int flag) { if (flag) _ext3 |= COMVALUE_LOCAL_FLAG; else _ext3 &= ~COMVALUE_LOCAL_FLAG; }
     // set flag that marks a local() lvalue symbol.
+    int temp_flag() const;
+    // return flag that marks a temp() lvalue symbol -- assignment writes the
+    // call's temp frame, discarded when the call returns.
+    void temp_flag(int flag) { if (flag) _ext3 |= COMVALUE_TEMP_FLAG; else _ext3 &= ~COMVALUE_TEMP_FLAG; }
+    // set flag that marks a temp() lvalue symbol.
     int coloned() const;
     // return flag that marks an ArrayType as built by ':' rather than ','.
     void coloned(int flag) { if (flag) _ext3 |= COMVALUE_COLONED_FLAG; else _ext3 &= ~COMVALUE_COLONED_FLAG; }

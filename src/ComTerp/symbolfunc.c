@@ -787,6 +787,89 @@ void LocalSymbolFunc::execute() {
 
 /*****************************************************************************/
 
+TempSymbolFunc::TempSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void TempSymbolFunc::execute() {
+  /* names a variable private to the current func call's temp frame -- see
+     ComTerp::get_tempframe() and run_funcobj_body().  Only the assignment
+     that creates the variable needs the temp() wrapper; lookup_symval()
+     checks the temp frame ahead of the func's own attrlist on every bare
+     reference afterward, for the life of this call. */
+  int numargs = nargs();
+  if (!numargs) {
+    reset_stack();
+    return;
+  }
+  std::vector<int> symbol_ids(numargs);
+  for (int i=0; i<numargs; i++) {
+    ComValue& val = stack_arg(i, true);
+    if (val.is_symbol())
+      symbol_ids[i] = val.symbol_val();
+    else if (val.is_command()) {
+      /* only reachable via an explicit backquote, which
+         suppresses self-invoke but doesn't permit a command name as a variable */
+      cout << "WARNING:  \"" << val.command_name() << "\" is a command"
+		   " -- temp() can't use it as a variable name -- line "
+	    << funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    } else {
+      /* val resolved to neither symbol nor command --
+         fail loudly rather than silently key off a shared, meaningless -1 slot */
+      cout << "WARNING:  temp() argument did not resolve to a symbol"
+		   " (if its name collides with a command, backquote it to"
+		   " confirm) -- line " << funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+  }
+  boolean assign_next = comterp()->stack_top(nargs()+nkeys()).lhs_assign();
+
+  reset_stack();
+
+  AttributeList* tempframe = comterp()->get_tempframe();
+
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++) {
+      ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
+      if (assign_next) {
+	av->temp_flag(true);
+	av->bquote(1);
+      } else {
+	AttributeValue* tval = tempframe ? tempframe->find(symbol_ids[i]) : nil;
+	if (tval && !tval->is_unknown())
+	  *av = *tval;
+	else
+	  av->type(ComValue::UnknownType);
+      }
+      avl->Append(av);
+    }
+    push_stack(retval);
+  } else {
+    if (assign_next) {
+      ComValue retval(symbol_ids[0], AttributeValue::SymbolType);
+      retval.temp_flag(true);
+      retval.bquote(1);
+      push_stack(retval);
+    } else {
+      AttributeValue* tval = tempframe ? tempframe->find(symbol_ids[0]) : nil;
+      if (tval && !tval->is_unknown())
+	push_stack(*tval);
+      else
+	push_stack(ComValue::nullval());
+    }
+  }
+
+}
+
+
+/*****************************************************************************/
+
 SubStrFunc::SubStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

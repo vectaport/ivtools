@@ -625,6 +625,16 @@ ComValue ComTerpServ::run_funcobj_body(FuncObj* fo) {
     int nspans = fo->nspans();
     ComValue result;
     int offset = 0;
+
+    /* a fresh temp() frame per invocation, isolating this call's temp()
+       variables from any re-entrant call sharing the same _alist (e.g. a
+       dot-bound method invoked again while this one is suspended inside
+       update()).  Saved/restored around the whole body so a nested call
+       from within a span gets its own frame and this one's survives. */
+    AttributeList* old_tempframe = get_tempframe();
+    Resource::ref(old_tempframe);
+    set_tempframe(new AttributeList());
+
     for (int i=0; i<nspans; i++) {
         int len = fo->spanlen(i);
         ComValue v(run_one_span(toks+offset, len));
@@ -639,6 +649,10 @@ ComValue ComTerpServ::run_funcobj_body(FuncObj* fo) {
         }
     }
     returnflag(false);
+
+    set_tempframe(old_tempframe);
+    Unref(old_tempframe);
+
     return result;
 }
 

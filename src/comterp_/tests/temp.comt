@@ -1,0 +1,132 @@
+// src/comterp_/tests/temp.comt -- test temp() command
+//
+// coverage: 13/14 (93%)
+// funcs: temp
+// missing: ~temp(lvalue-return-type) -- in temp(sym)=val the return value belongs
+//          to the assign operator, not temp(); untestable in isolation for temp() alone
+//
+// temp() marks a symbol as private to the current func-call invocation:
+// a fresh AttributeList, separate from the func's own attrlist (_alist),
+// allocated when the call starts and discarded when it returns.  Unlike
+// local()/global(), which must be re-wrapped on every access, only the
+// assignment that CREATES a temp variable needs the temp() wrapper --
+// every bare reference to that name later in the same call resolves
+// against the temp frame automatically (ComTerp::lookup_symval() checks
+// the temp frame ahead of _alist).  This is what makes it safe for a
+// dot-bound method's own scratch variables: a re-entrant call to the same
+// method (e.g. one driven by update() from within the method's own body)
+// gets its own fresh frame and can never see or clobber the suspended
+// call's temp variables, even though both calls share the same object's
+// permanent attrlist.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/temp.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: temp() create + explicit read within one call ---
+f1=func(temp(x)=5; temp(x))
+r1=f1()
+ok=ok&&(r1==5)
+print("1 f1=func(temp(x)=5; temp(x)) create+explicit-read (expect 5): %v\n\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: bare read after temp() creation resolves automatically ---
+// (temp()'s defining difference from local()/global(): no re-wrap needed)
+f2=func(temp(x)=5 x)
+r2=f2()
+ok=ok&&(r2==5)
+print("2 f2=func(temp(x)=5 x) bare read auto-resolves, no re-wrap (expect 5): %v\n\n" r2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: bare write to a temp() var stays in the temp frame ---
+f3=func(temp(x)=5 x=x+1 x)
+r3=f3()
+ok=ok&&(r3==6)
+print("3 f3=func(temp(x)=5 x=x+1 x) bare write after create (expect 6): %v\n\n" r3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: no leak between separate (non-nested) calls to the same func ---
+r4a=f3()
+r4b=f3()
+ok=ok&&(r4a==6 && r4b==6)
+print("4 f3() called twice, no leak between calls (expect 6 6): %v %v\n\n" r4a r4b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: unset temp() rvalue returns nil ---
+f5=func(temp(nvr))
+r5=f5()
+ok=ok&&(r5==nil)
+print("5 f5=func(temp(nvr)) unset temp var (expect nil): %v\n\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: multi-arg temp() rvalue returns a list ---
+f6=func(temp(a)=1 temp(b)=2 temp(a b))
+r6=f6()
+ok=ok&&(at(r6 0)==1 && at(r6 1)==2)
+print("6 f6=func(temp(a)=1 temp(b)=2 temp(a b)) multi-arg rvalue (expect {1,2}): %v\n\n" r6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: temp() used outside any func call warns and returns nil ---
+r7=temp(zz)=5
+ok=ok&&(r7==nil)
+print("7 temp(zz)=5 at top level, no func frame (expect nil + WARNING): %v\n\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: temp frame is fully discarded -- no leak onto a dot-bound
+//     object's permanent attrlist after the call returns ---
+obj8=(:n 3 :scratch func(temp(z)=99 z))
+r8=obj8.scratch()
+ok=ok&&(r8==99)
+ok=ok&&(local(z)==nil)
+print("8 obj8.scratch() uses temp(z); z never leaks onto obj8 or local() (expect 99): %v\n\n" r8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: re-entrant/recursive dot-bound calls get separate temp frames ---
+// (the root-cause fix for #619: front()/back() saw a stale/invalid graphic
+// because carousel.comt's scratch vars were shared, un-isolated fields on
+// the receiver's own attrlist -- a nested call driven by update() from
+// within an outer call's body could rewrite them out from under it)
+obj9=(:count func(temp(y)=arg(0) if(arg(0)>0 obj9.count(arg(0)-1)) y))
+r9=obj9.count(3)
+ok=ok&&(r9==3)
+print("9 obj9.count(3) recursing through obj9.count(2,1,0): outer temp(y) survives nested calls (expect 3): %v\n\n" r9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: temp() and local()/global() of the same name stay independent ---
+global(tg10)=1
+local(tl10)=2
+f10=func(temp(tg10)=3 temp(tl10)=4 temp(tg10 tl10))
+r10=f10()
+ok=ok&&(global(tg10)==1 && local(tl10)==2)
+ok=ok&&(at(r10 0)==3 && at(r10 1)==4)
+print("10 temp(tg10)/temp(tl10) independent of same-named global()/local() (expect 1 2, {3,4}): %v %v %v\n\n" global(tg10) local(tl10) r10)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: nested (non-recursive) func call has its own temp frame,
+//     invisible to the outer call even though both run inside one dot call ---
+obj11=(:pair func(temp(x)=1 obj11.helper() x)
+       :helper func(temp(x)=2 x))
+r11=obj11.pair()
+ok=ok&&(r11==1)
+print("11 obj11.pair() calls obj11.helper(), each keeps its own temp(x) (expect 1): %v\n\n" r11)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: temp() inside a for/if body (post-eval, no func frame) warns,
+//     same as top-level -- there is no call to own a temp frame there ---
+r12=nil
+for(i12=0 i12<1 i12++ r12=(temp(ftmp)=7))
+ok=ok&&(r12==nil)
+print("12 for() body has no func frame either: temp(ftmp)=7 (expect nil + WARNING): %v\n\n" r12)
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: help() shows a temp()-escaped variable, not a captured keyword ---
+f13=func(temp(x)=5 x)
+hs13=help(f13)
+ok=ok&&(index(hs13 "x->temp" :substr)>=0)
+print("13 help(f2-shaped func) reports the escape, not a :x capture (expect substring found): %v\n\n" hs13)
+prev_ok=check_fail(:ok ok)
+
+print("\ntemp: %v\n" ok)
+ok

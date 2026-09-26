@@ -38,6 +38,20 @@
 // building this: nesting the animation's own for/while in one more outer
 // for() hangs comterp's postfix re-evaluation -- see the PR description.)
 //
+// Every scratch variable inside next()/prev()/zoomin()/zoomout()/drive()
+// (the loop counters and interpolation math -- everything except d0..d4,
+// nextlib, img0..img4, full) is created with temp(), not a bare write:
+// a self-bound method's bare writes land on carousel itself the same way
+// d0..d4 do, so without temp() a call suspended mid-animation inside
+// update() and re-entered by another call to the same method would have
+// its own scratch state overwritten out from under it on resume. temp()
+// gives each invocation its own frame for these, discarded when that
+// call returns; only the first, creating assignment needs the wrapper,
+// since a bare reference later in the same call resolves against the
+// temp frame automatically (see doc/LANGUAGE.md's "Per-call privacy:
+// temp()"). The persistent fields still use bare writes on purpose --
+// that's what makes them persist.
+//
 // Each library photo is fetched live via curl when the network is
 // reachable, each with a distinct cache-busting x= value so the same
 // random-photo endpoint doesn't hand back the same image twice (see
@@ -225,30 +239,30 @@ carousel=(
   // full screen; zoomout() first to rotate.
   :next func(
     if(full :then return(nil));
-    exiting=img0;
-    entrant=at(imgs nextlib);
-    expw=at(libw d0); exph=at(libh d0);
-    enpw=at(libw nextlib); enph=at(libh nextlib);
+    temp(exiting)=img0;
+    temp(entrant)=at(imgs nextlib);
+    temp(expw)=at(libw d0); temp(exph)=at(libh d0);
+    temp(enpw)=at(libw nextlib); temp(enph)=at(libh nextlib);
 
-    for(f=1 f<=FR f=f+1
-      t=f/float(FR);
+    for(temp(f)=1 f<=FR f=f+1
+      temp(t)=f/float(FR);
 
       // slots 0..3 <- what was in slots 1..4, sliding one slot forward
-      s=0;
+      temp(s)=0;
       while(s<4
-        src=s+1;
-        im=if(src==1 :then img1 :else if(src==2 :then img2 :else if(src==3 :then img3 :else img4)));
-        srcidx=if(src==1 :then d1 :else if(src==2 :then d2 :else if(src==3 :then d3 :else d4)));
-        pw=at(libw srcidx); ph=at(libh srcidx);
-        fw=slotw(src); fh=sloth(src); fcx=slotcx(src); fcy=slotcy(src);
-        tw=slotw(s); th=sloth(s); tcx=slotcx(s); tcy=slotcy(s);
-        w=fw+(tw-fw)*t; h=fh+(th-fh)*t;
-        cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
-        sx=w/pw; sy=h/ph;
-        hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+        temp(src)=s+1;
+        temp(im)=if(src==1 :then img1 :else if(src==2 :then img2 :else if(src==3 :then img3 :else img4)));
+        temp(srcidx)=if(src==1 :then d1 :else if(src==2 :then d2 :else if(src==3 :then d3 :else d4)));
+        temp(pw)=at(libw srcidx); temp(ph)=at(libh srcidx);
+        temp(fw)=slotw(src); temp(fh)=sloth(src); temp(fcx)=slotcx(src); temp(fcy)=slotcy(src);
+        temp(tw)=slotw(s); temp(th)=sloth(s); temp(tcx)=slotcx(s); temp(tcy)=slotcy(s);
+        temp(w)=fw+(tw-fw)*t; temp(h)=fh+(th-fh)*t;
+        temp(cx)=fcx+(tcx-fcx)*t; temp(cy)=fcy+(tcy-fcy)*t;
+        temp(sx)=w/pw; temp(sy)=h/ph;
+        temp(hw)=w/2; temp(hh)=h/2; temp(tx)=cx-hw; temp(ty)=cy-hh;
         trans(im sx,0,0,sy,tx,ty :set);
-        if(s==1 :then leftw=w);
-        if(s==2 :then centerw=w; centerimg=im);
+        if(s==1 :then temp(leftw)=w);
+        if(s==2 :then temp(centerw)=w; temp(centerimg)=im);
         s=s+1);
 
       // bring the growing center-bound photo in front the moment it
@@ -257,17 +271,17 @@ carousel=(
       if(centerw>leftw :then front(centerimg));
 
       // the exiting photo continues receding past the back
-      ew=exfromw+(extow-exfromw)*t; eh=exfromh+(extoh-exfromh)*t;
-      ecx=exfromcx+(extocx-exfromcx)*t; ecy=exfromcy+(extocy-exfromcy)*t;
-      esx=ew/expw; esy=eh/exph;
-      ehw=ew/2; ehh=eh/2; etx=ecx-ehw; ety=ecy-ehh;
+      temp(ew)=exfromw+(extow-exfromw)*t; temp(eh)=exfromh+(extoh-exfromh)*t;
+      temp(ecx)=exfromcx+(extocx-exfromcx)*t; temp(ecy)=exfromcy+(extocy-exfromcy)*t;
+      temp(esx)=ew/expw; temp(esy)=eh/exph;
+      temp(ehw)=ew/2; temp(ehh)=eh/2; temp(etx)=ecx-ehw; temp(ety)=ecy-ehh;
       trans(exiting esx,0,0,esy,etx,ety :set);
 
       // the entrant spins in from further back into slot 4
-      nw=enfromw+(entow-enfromw)*t; nh=enfromh+(entoh-enfromh)*t;
-      ncx=enfromcx+(entocx-enfromcx)*t; ncy=enfromcy+(entocy-enfromcy)*t;
-      nsx=nw/enpw; nsy=nh/enph;
-      nhw=nw/2; nhh=nh/2; ntx=ncx-nhw; nty=ncy-nhh;
+      temp(nw)=enfromw+(entow-enfromw)*t; temp(nh)=enfromh+(entoh-enfromh)*t;
+      temp(ncx)=enfromcx+(entocx-enfromcx)*t; temp(ncy)=enfromcy+(entocy-enfromcy)*t;
+      temp(nsx)=nw/enpw; temp(nsy)=nh/enph;
+      temp(nhw)=nw/2; temp(nhh)=nh/2; temp(ntx)=ncx-nhw; temp(nty)=ncy-nhh;
       trans(entrant nsx,0,0,nsy,ntx,nty :set);
 
       update(USEC));
@@ -285,48 +299,48 @@ carousel=(
   // including the zoomed-in no-op.
   :prev func(
     if(full :then return(nil));
-    exiting=img4;
-    entlib=mod(d0-1+n n);
-    entrant=at(imgs entlib);
-    expw=at(libw d4); exph=at(libh d4);
-    enpw=at(libw entlib); enph=at(libh entlib);
+    temp(exiting)=img4;
+    temp(entlib)=mod(d0-1+n n);
+    temp(entrant)=at(imgs entlib);
+    temp(expw)=at(libw d4); temp(exph)=at(libh d4);
+    temp(enpw)=at(libw entlib); temp(enph)=at(libh entlib);
 
-    for(f=1 f<=FR f=f+1
-      t=f/float(FR);
+    for(temp(f)=1 f<=FR f=f+1
+      temp(t)=f/float(FR);
 
       // slots 4..1 <- what was in slots 3..0, sliding one slot backward
-      s=4;
+      temp(s)=4;
       while(s>0
-        src=s-1;
-        im=if(src==3 :then img3 :else if(src==2 :then img2 :else if(src==1 :then img1 :else img0)));
-        srcidx=if(src==3 :then d3 :else if(src==2 :then d2 :else if(src==1 :then d1 :else d0)));
-        pw=at(libw srcidx); ph=at(libh srcidx);
-        fw=slotw(src); fh=sloth(src); fcx=slotcx(src); fcy=slotcy(src);
-        tw=slotw(s); th=sloth(s); tcx=slotcx(s); tcy=slotcy(s);
-        w=fw+(tw-fw)*t; h=fh+(th-fh)*t;
-        cx=fcx+(tcx-fcx)*t; cy=fcy+(tcy-fcy)*t;
-        sx=w/pw; sy=h/ph;
-        hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+        temp(src)=s-1;
+        temp(im)=if(src==3 :then img3 :else if(src==2 :then img2 :else if(src==1 :then img1 :else img0)));
+        temp(srcidx)=if(src==3 :then d3 :else if(src==2 :then d2 :else if(src==1 :then d1 :else d0)));
+        temp(pw)=at(libw srcidx); temp(ph)=at(libh srcidx);
+        temp(fw)=slotw(src); temp(fh)=sloth(src); temp(fcx)=slotcx(src); temp(fcy)=slotcy(src);
+        temp(tw)=slotw(s); temp(th)=sloth(s); temp(tcx)=slotcx(s); temp(tcy)=slotcy(s);
+        temp(w)=fw+(tw-fw)*t; temp(h)=fh+(th-fh)*t;
+        temp(cx)=fcx+(tcx-fcx)*t; temp(cy)=fcy+(tcy-fcy)*t;
+        temp(sx)=w/pw; temp(sy)=h/ph;
+        temp(hw)=w/2; temp(hh)=h/2; temp(tx)=cx-hw; temp(ty)=cy-hh;
         trans(im sx,0,0,sy,tx,ty :set);
-        if(s==3 :then rightw=w);
-        if(s==2 :then centerw=w; centerimg=im);
+        if(s==3 :then temp(rightw)=w);
+        if(s==2 :then temp(centerw)=w; temp(centerimg)=im);
         s=s-1);
 
       if(centerw>rightw :then front(centerimg));
 
       // the exiting photo (was slot 4) continues receding past the back,
       // now off to the right
-      ew=entow+(revextow-entow)*t; eh=entoh+(revextoh-entoh)*t;
-      ecx=entocx+(revextocx-entocx)*t; ecy=entocy+(revextocy-entocy)*t;
-      esx=ew/expw; esy=eh/exph;
-      ehw=ew/2; ehh=eh/2; etx=ecx-ehw; ety=ecy-ehh;
+      temp(ew)=entow+(revextow-entow)*t; temp(eh)=entoh+(revextoh-entoh)*t;
+      temp(ecx)=entocx+(revextocx-entocx)*t; temp(ecy)=entocy+(revextocy-entocy)*t;
+      temp(esx)=ew/expw; temp(esy)=eh/exph;
+      temp(ehw)=ew/2; temp(ehh)=eh/2; temp(etx)=ecx-ehw; temp(ety)=ecy-ehh;
       trans(exiting esx,0,0,esy,etx,ety :set);
 
       // the entrant spins in from further back on the left into slot 0
-      nw=revenfromw+(exfromw-revenfromw)*t; nh=revenfromh+(exfromh-revenfromh)*t;
-      ncx=revenfromcx+(exfromcx-revenfromcx)*t; ncy=revenfromcy+(exfromcy-revenfromcy)*t;
-      nsx=nw/enpw; nsy=nh/enph;
-      nhw=nw/2; nhh=nh/2; ntx=ncx-nhw; nty=ncy-nhh;
+      temp(nw)=revenfromw+(exfromw-revenfromw)*t; temp(nh)=revenfromh+(exfromh-revenfromh)*t;
+      temp(ncx)=revenfromcx+(exfromcx-revenfromcx)*t; temp(ncy)=revenfromcy+(exfromcy-revenfromcy)*t;
+      temp(nsx)=nw/enpw; temp(nsy)=nh/enph;
+      temp(nhw)=nw/2; temp(nhh)=nh/2; temp(ntx)=ncx-nhw; temp(nty)=ncy-nhh;
       trans(entrant nsx,0,0,nsy,ntx,nty :set);
 
       update(USEC));
@@ -342,15 +356,15 @@ carousel=(
   // full, so repeated SHIFT-UP presses in drive() don't restart the walk.
   :zoomin func(
     if(full :then return(nil));
-    pw=at(libw d2); ph=at(libh d2);
-    fw=slotw(2); fh=sloth(2); fcx=slotcx(2); fcy=slotcy(2);
+    temp(pw)=at(libw d2); temp(ph)=at(libh d2);
+    temp(fw)=slotw(2); temp(fh)=sloth(2); temp(fcx)=slotcx(2); temp(fcy)=slotcy(2);
     front(img2);
-    for(f=1 f<=FR f=f+1
-      t=f/float(FR);
-      w=fw+(FULLW-fw)*t; h=fh+(FULLH-fh)*t;
-      cx=fcx+(CENTERX-fcx)*t; cy=fcy+(CENTERY-fcy)*t;
-      sx=w/pw; sy=h/ph;
-      hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+    for(temp(f)=1 f<=FR f=f+1
+      temp(t)=f/float(FR);
+      temp(w)=fw+(FULLW-fw)*t; temp(h)=fh+(FULLH-fh)*t;
+      temp(cx)=fcx+(CENTERX-fcx)*t; temp(cy)=fcy+(CENTERY-fcy)*t;
+      temp(sx)=w/pw; temp(sy)=h/ph;
+      temp(hw)=w/2; temp(hh)=h/2; temp(tx)=cx-hw; temp(ty)=cy-hh;
       trans(img2 sx,0,0,sy,tx,ty :set);
       update(USEC));
     full=1;
@@ -360,14 +374,14 @@ carousel=(
   // photo back down to its normal center-slot size and position.
   :zoomout func(
     if(!full :then return(nil));
-    pw=at(libw d2); ph=at(libh d2);
-    tw=slotw(2); th=sloth(2); tcx=slotcx(2); tcy=slotcy(2);
-    for(f=1 f<=FR f=f+1
-      t=f/float(FR);
-      w=FULLW+(tw-FULLW)*t; h=FULLH+(th-FULLH)*t;
-      cx=CENTERX+(tcx-CENTERX)*t; cy=CENTERY+(tcy-CENTERY)*t;
-      sx=w/pw; sy=h/ph;
-      hw=w/2; hh=h/2; tx=cx-hw; ty=cy-hh;
+    temp(pw)=at(libw d2); temp(ph)=at(libh d2);
+    temp(tw)=slotw(2); temp(th)=sloth(2); temp(tcx)=slotcx(2); temp(tcy)=slotcy(2);
+    for(temp(f)=1 f<=FR f=f+1
+      temp(t)=f/float(FR);
+      temp(w)=FULLW+(tw-FULLW)*t; temp(h)=FULLH+(th-FULLH)*t;
+      temp(cx)=CENTERX+(tcx-CENTERX)*t; temp(cy)=CENTERY+(tcy-CENTERY)*t;
+      temp(sx)=w/pw; temp(sy)=h/ph;
+      temp(hw)=w/2; temp(hh)=h/2; temp(tx)=cx-hw; temp(ty)=cy-hh;
       trans(img2 sx,0,0,sy,tx,ty :set);
       update(USEC));
     full=0;
@@ -391,14 +405,14 @@ carousel=(
   // convention etchasketch.comt's keydrive() uses so plain arrows keep
   // panning the viewer normally. Esc stops early.
   :drive func(
-    n=arg(0);
+    temp(n)=arg(0);
     if(n==nil :then n=1000);
     lastkey(:shiftcapture true);
     print("CAROUSEL DRIVE -- hold Shift or turn Caps Lock on,\n");
     print("LEFT/RIGHT to spin, UP/DOWN to zoom.  Esc stops.\n");
-    done=0;
-    for(fi=0 (fi<n)&&(done==0) fi=fi+1
-      k=lastkey();
+    temp(done)=0;
+    for(temp(fi)=0 (fi<n)&&(done==0) fi=fi+1
+      temp(k)=lastkey();
       while((k!=nil)&&(done==0)
         if((k=="Esc")||(k=="ESC") :then done=1);
         if(k=="RIGHT" :then carousel.next());

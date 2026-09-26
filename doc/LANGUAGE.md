@@ -1031,12 +1031,20 @@ v=f()              // x is nil, condition is false, returns nil (ivtools-2.2 or 
 
 ### Scoping rules
 
-Variable lookup follows a three-level priority chain:
+Variable lookup follows a three-level priority chain, ahead of which sits
+one more frame checked first but reachable only through `temp()`, never
+by a bare write: a `temp(x)`-created variable resolves before any of the
+three below for the rest of that call (see *Per-call privacy: temp()*
+below), then is discarded when the call returns.
 
 - **func scope** — variables local to this invocation, including any
   `:key val` args set before the body runs.  The frame is an attrlist,
   created for the call and discarded at return — the same structure
-  that carries keyword args and `setattr()` properties everywhere else
+  that carries keyword args and `setattr()` properties everywhere else.
+  For a self-bound method (`obj.m()`), this is *not* a fresh frame: it is
+  `obj`'s own permanent attrlist, so an ordinary bare write here persists
+  on `obj` across calls (see *Dot operator* and *Per-call privacy:
+  temp()*)
 - **local scope** — the interpreter's flat top-level variable table,
   where prompt and `run()` assignments live; `local(x)` reads and
   writes it explicitly (see *Escaping the func scope* below)
@@ -1781,6 +1789,53 @@ effects — so both refuse outright, bare or backquoted, the same
 There is no way to shadow a command through `local()`/`global()`; a
 colliding name simply isn't usable as a variable there, matching the
 rule everywhere else in the language.
+
+### Per-call privacy: temp()
+
+`local()`/`global()` escape *outward*, to a table shared across calls.
+`temp(x)` escapes the opposite direction: it marks `x` as private to
+*this one invocation*, backed by a fresh frame allocated when the call
+starts and discarded when it returns — never the func's own attrlist
+(the ordinary func-scope frame described above), and never the object a
+self-bound method is called on.
+
+This matters most for a self-bound method's own scratch variables.
+Reread *Escaping the func scope* above: a bare write inside `obj.m()`
+lands on `obj` itself and persists there, visible to the next call —
+exactly the mechanism that makes `cnt++` work. A scratch variable that
+happens to use that same mechanism (say, a loop index a photo-carousel
+method uses only to compute an intermediate position) persists the same
+way, whether or not that was intended. If that method calls `update()`
+partway through — handing control to the event loop, which can drive
+another call to the *same* method to completion before the first one
+resumes — the two calls share that one persistent field, and the
+resumed call finds it holding whatever the reentrant call left behind
+rather than what it set. `temp()` closes this: each call gets its own
+frame, so a reentrant call can never see or overwrite another call's
+scratch state, even though both are self-bound to the same object.
+
+```
+obj=(:count func(temp(y)=arg(0) if(arg(0)>0 obj.count(arg(0)-1)) y))
+obj.count(3)            // 3 -- the outer call's temp(y) survives the
+                         //      nested obj.count(2), obj.count(1), obj.count(0)
+```
+
+Only the assignment that *creates* the variable needs the `temp()`
+wrapper — unlike `local()`/`global()`, which must be re-wrapped on every
+access, a bare reference to `x` later in the same call resolves against
+the temp frame automatically:
+
+```
+f=func(temp(x)=5; x=x+1; x)   // temp() once, then x=x+1 and the final x
+f()                            // 6
+f()                            // 6 again -- nothing survives between calls
+```
+
+A multi-arg form reads/writes several names at once and returns a list
+for the rvalue case, the same shape `local()`/`global()` use:
+`temp(a b)` after `temp(a)=1; temp(b)=2` is `{1,2}`. `temp(x)` used where
+no call is active (top level, or inside a `for()`/`while()`/`if()` body,
+none of which have a call frame at all) warns and reads/writes nothing.
 
 ### Multi-value returns
 

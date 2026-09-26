@@ -44,7 +44,7 @@ struct VarRecord {
 
 struct EscapeRecord {
     int symid;
-    boolean is_global;
+    FuncObjVarScan::Kind kind;  // EscapingLocal, EscapingGlobal, or EscapingTemp
 };
 
 static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid, boolean* is_new) {
@@ -65,9 +65,9 @@ static VarRecord* find_or_add_var(VarRecord*& recs, int& n, int& cap, int symid,
     return &recs[n-1];
 }
 
-static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, boolean is_global) {
+static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, FuncObjVarScan::Kind kind) {
     for (int i = 0; i < n; i++) {
-        if (recs[i].symid == symid) { recs[i].is_global = is_global; return; }
+        if (recs[i].symid == symid) { recs[i].kind = kind; return; }
     }
     if (n == cap) {
         int newcap = cap ? cap * 2 : 8;
@@ -78,7 +78,7 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, boolea
         cap = newcap;
     }
     recs[n].symid = symid;
-    recs[n].is_global = is_global;
+    recs[n].kind = kind;
     n++;
 }
 
@@ -201,6 +201,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int assign_symid = symbol_add("assign");
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
+    static int temp_symid = symbol_add("temp");
     static int dot_symid = symbol_add("dot");
     /* compound-assign symids: first operand is read-then-written,
        unlike plain assign's pure write */
@@ -230,11 +231,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         int symid = toks[i].v.symbolid;
         int nconsumed = walk.consumed_count();
 
-        if ((symid == local_symid || symid == global_symid) && nconsumed == 1) {
+        if ((symid == local_symid || symid == global_symid || symid == temp_symid) &&
+            nconsumed == 1) {
             PostfixSpanWalk::Span arg = walk.consumed(0);
             if (span_is_plain_var(arg, is_plain_var)) {
+                Kind esc_kind = symid == global_symid ? EscapingGlobal :
+                                 symid == temp_symid ? EscapingTemp : EscapingLocal;
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
-                            symid == global_symid);
+                            esc_kind);
             }
             continue;
         }
@@ -285,6 +289,19 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nrecs; i++) {
         if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
+        /* temp(x)=val followed by a bare x elsewhere is the intended idiom
+           (only the creating write needs the wrapper) -- the bare occurrence
+           must not shadow the escape with an ordinary, declaration-time-
+           captured classification, unlike local()/global() where a bare
+           occurrence names a genuinely different variable. */
+        boolean escaping_temp = false;
+        for (int j = 0; j < nescapes; j++) {
+            if (escapes[j].symid == recs[i].symid && escapes[j].kind == EscapingTemp) {
+                escaping_temp = true;
+                break;
+            }
+        }
+        if (escaping_temp) continue;
         Kind kind;
         if (recs[i].first_event == EvWrite) {
             kind = WriteBeforeRead;
@@ -299,11 +316,13 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     for (int i = 0; i < nescapes; i++) {
         boolean already_plain = false;
-        for (int j = 0; j < nrecs; j++) {
-            if (recs[j].symid == escapes[i].symid) { already_plain = true; break; }
+        if (escapes[i].kind != EscapingTemp) {
+            for (int j = 0; j < nrecs; j++) {
+                if (recs[j].symid == escapes[i].symid) { already_plain = true; break; }
+            }
         }
         if (already_plain) continue;
-        Kind kind = escapes[i].is_global ? EscapingGlobal : EscapingLocal;
+        Kind kind = escapes[i].kind;
         AttributeValue kindval((int)kind, AttributeValue::IntType);
         result->add_attr(escapes[i].symid, kindval);
     }
