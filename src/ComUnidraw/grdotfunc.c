@@ -56,10 +56,13 @@ void GrDotFunc::execute() {
 
     /* unwrap a ComponentView (or an Attribute wrapping one) to its attr
        list -- dot-dispatch only understands symbols/attributes/attrlists. */
-    if (before_part.is_symbol())
-      lookup_symval(before_part);
-    if (before_part.is_object() && before_part.object_compview()) {
-      ComponentView* compview = (ComponentView*)before_part.obj_val();
+    /* resolved into a copy so before_part stays a raw symbol for
+       execute_core's own lookup, which may need to auto-vivify it. */
+    ComValue before_resolved = before_part;
+    if (before_resolved.is_symbol())
+      lookup_symval(before_resolved);
+    if (before_resolved.is_object() && before_resolved.object_compview()) {
+      ComponentView* compview = (ComponentView*)before_resolved.obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
       if (comp) {
 	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
@@ -71,9 +74,9 @@ void GrDotFunc::execute() {
 	return;
       }
 
-    } else if (before_part.is_object() && before_part.is_attribute() &&
-	       ((Attribute*)before_part.obj_val())->Value()->object_compview()) {
-      AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
+    } else if (before_resolved.is_object() && before_resolved.is_attribute() &&
+	       ((Attribute*)before_resolved.obj_val())->Value()->object_compview()) {
+      AttributeValue* av = ((Attribute*)before_resolved.obj_val())->Value();
       ComponentView* compview = (ComponentView*)av->obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
       if (comp) {

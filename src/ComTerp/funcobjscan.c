@@ -116,11 +116,6 @@ static void note_event(VarRecord*& recs, int& n, int& cap, int symid, VarEvent e
     if (ev == EvWrite || ev == EvReadThenWrite) r->ever_written = true;
 }
 
-static boolean symid_in_set(int* set, int n, int symid) {
-    for (int i = 0; i < n; i++) if (set[i] == symid) return true;
-    return false;
-}
-
 /* maps a temp(...) call's own token index to where its escape actually
    takes effect, for temp(x)=val sites -- see the comment in classify()
    where this is built. */
@@ -143,19 +138,6 @@ static void note_temp_boundary(TempBoundary*& tb, int& n, int& cap, int temp_pos
 static int temp_boundary_for(TempBoundary* tb, int n, int temp_pos) {
     for (int i = 0; i < n; i++) if (tb[i].temp_pos == temp_pos) return tb[i].boundary_pos;
     return temp_pos;
-}
-
-static void add_to_set(int*& set, int& n, int& cap, int symid) {
-    if (symid_in_set(set, n, symid)) return;
-    if (n == cap) {
-        int newcap = cap ? cap * 2 : 8;
-        int* newset = new int[newcap];
-        for (int i = 0; i < n; i++) newset[i] = set[i];
-        delete [] set;
-        set = newset;
-        cap = newcap;
-    }
-    set[n++] = symid;
 }
 
 /* True iff span is exactly one plain-var token, OR a keyword's bound value
@@ -258,7 +240,6 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
     static int temp_symid = symbol_add("temp");
-    static int dot_symid = symbol_add("dot");
     /* compound-assign symids: first operand is read-then-written,
        unlike plain assign's pure write */
     static int compound_assign_symids[] = {
@@ -274,10 +255,6 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
-    /* dot-chain roots (obj.field) are excluded from capture --
-       pre-seeding al[obj] would break DotFunc's outer-scope bleed */
-    int* dotroots = nil;
-    int ndotroots = 0, dotroots_cap = 0;
 
     /* temp(x)=val's escape takes effect at this assign's token, not
        temp(x)'s earlier one -- resolved in a pre-pass so a read nested
@@ -315,14 +292,6 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
                 int pos = symid == temp_symid ? temp_boundary_for(tempbounds, ntempbounds, i) : i;
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
                             esc_kind, pos);
-            }
-            continue;
-        }
-
-        if (symid == dot_symid && nconsumed >= 1) {
-            PostfixSpanWalk::Span root = walk.consumed(0);
-            if (span_is_plain_var(root, toks, is_plain_var)) {
-                add_to_set(dotroots, ndotroots, dotroots_cap, toks[root.start].v.symbolid);
             }
             continue;
         }
@@ -372,7 +341,6 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     AttributeList* result = new AttributeList();
 
     for (int i = 0; i < nrecs; i++) {
-        if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
         /* recs[] already excludes post-escape occurrences (see above), so
            what remains is ordinary, capture-worthy pre-escape usage. */
         Kind kind;
@@ -406,7 +374,6 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     delete [] recs;
     delete [] escapes;
-    delete [] dotroots;
     delete [] tempbounds;
 
     return result;

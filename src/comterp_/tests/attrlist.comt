@@ -20,10 +20,11 @@
 // checks func scope (_alist) before local/global tables, so a param that
 // only lives there is still readable/writable, not shadowed by a
 // same-named outer variable (#292, tests 44-46).  There is no "self"
-// mechanism: a method reaches a sibling by using the enclosing attrlist's
-// own ordinary name and an explicit dot-call, which also means nothing
-// enforces that name still points at the same object across a call
-// (tests 47-48).  dot(name) -- the 1-arg explicit-call form, as opposed to
+// mechanism: a method reaches a sibling via an explicit dot-call on the
+// enclosing attrlist, handed in as a keyword at the call site rather than
+// found by a live lookup of the container's own name -- a dot's lhs is a
+// normal, definition-time capture like any other free variable (#631,
+// tests 47-48).  dot(name) -- the 1-arg explicit-call form, as opposed to
 // the ordinary infix a.b tested throughout -- returns the named variable's
 // attrlist, creating and binding an empty one if it wasn't already one,
 // aliased rather than copied either way (#348, tests 58-60).  Writing a
@@ -129,11 +130,14 @@ ok=ok&&(v==42)
 print("13 f=func(al.val=42); f(:al attrlist()) dot via keyword arg (expect 42): %v\n\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 14: dot on free symbol inside func bleeds to outer scope ---
-// inner.x=99 inside func with no :inner keyword modifies the shared 'inner' symbol
-f=func(inner.x=99)
-f()
-print("14 dot free symbol bleeds to outer scope (expect 99): %v\n\n" inner.x)
+// --- test 14: dot's lhs is a normal ReadBeforeWrite capture -- a bare
+// forward reference to a not-yet-existing name captures its own private
+// nil default at definition time, so the write lands on that private
+// attrlist instead of bleeding into a same-named outer symbol (#631) ---
+al14fn=func(al14inner.x=99)
+al14fn()
+ok=ok&&(al14inner==nil)
+print("14 dot's lhs captures privately, no outer-scope bleed (expect nil): %v\n\n" al14inner)
 prev_ok=check_fail(:ok ok)
 
 // --- test 15: global dot variable shared across uses ---
@@ -144,14 +148,15 @@ ok=ok&&(gobj.count==1)
 print("15 global(gobj); gobj.count++ global dot variable (expect 1): %v\n\n" gobj.count)
 prev_ok=check_fail(:ok ok)
 
-// --- test 16: two funcs sharing same free dot symbol get shared state ---
-// myns.v without :myns keyword arg shares the same outer 'myns' symbol
-f1=func(myns.v=1; myns.v)
-f2=func(myns.v=2; myns.v)
-f1(:dummy 0)
-f2(:dummy 0)
-ok=ok&&(myns.v==2)
-print("16 two funcs share free dot symbol (expect final myns.v=2): %v\n\n" myns.v)
+// --- test 16: two funcs each naming the same not-yet-existing symbol as
+// a dot lhs get their own independent private capture, not a shared
+// outer symbol (#631) ---
+al16fn1=func(al16ns.v=1; al16ns.v)
+al16fn2=func(al16ns.v=2; al16ns.v)
+r16a=al16fn1(:dummy 0)
+r16b=al16fn2(:dummy 0)
+ok=ok&&(r16a==1 && r16b==2 && al16ns==nil)
+print("16 two funcs each get a private dot-lhs capture (expect 1, 2, nil): %v, %v, %v\n\n" r16a r16b al16ns)
 prev_ok=check_fail(:ok ok)
 
 // --- test 17: attrlist() round-trip via dot access ---
@@ -425,33 +430,31 @@ print("46 func-local :al write hits the passed-in object, not outer al (expect a
 prev_ok=check_fail(:ok ok)
 
 // --- test 47: there is no "self" mechanism -- a method reaches a sibling
-// method by using the enclosing attrlist's own (ordinary global) name and
-// an explicit dot-call, exactly like any outside caller would. A bare,
-// argument-taking reference to a sibling by name alone (flash(:things x))
-// would misfire to nil regardless of self-binding; only zoo47.flash(...)
-// reaches it ---
+// method by an explicit dot-call, exactly like any outside caller would.
+// "zoo47" inside report's body is a dot lhs, so it's a normal capture
+// (#631): report is defined before zoo47 itself is bound, so its own
+// default for "zoo47" is nil and a bare zoo47.report() can't reach
+// zoo47.flash -- the caller must hand the target in explicitly, as a
+// keyword, at the self-bound call site ---
 zoo47=(:flash func(things) :report func(zoo47.flash(:things "hello")))
-r47=zoo47.report()
+r47=zoo47.report(:zoo47 zoo47)
 ok=ok&&(r47=="hello")
-print("47 zoo47.report() reaches zoo47.flash(...) via zoo47's own global name, not a language self feature (expect hello): %v\n\n" r47)
+print("47 zoo47.report(:zoo47 zoo47) reaches zoo47.flash(...), not a language self feature (expect hello): %v\n\n" r47)
 prev_ok=check_fail(:ok ok)
 
-// --- test 48: since it's just an ordinary name lookup, nothing enforces
-// that name still points to the object a method was defined on -- slip a
-// different attrlist under the same global name mid-flight and a method
-// still self-bound to the ORIGINAL object reaches the NEW one instead,
-// because its body's reference to "zoo48" resolves fresh, dynamically, at
-// call time, same as any other free variable would. This is the flip side
-// of test 47 working at all: the convenience and the lack of enforcement
-// are the same fact ---
+// --- test 48: since "zoo48" inside report's body is a normal capture,
+// not a live lookup, an explicit keyword binds the method to exactly the
+// object passed in -- slipping a different attrlist under the global
+// "zoo48" name mid-flight has no effect on a call that names its target
+// explicitly, unlike a same-named outer variable would (#631) ---
 zoo48=(:flash func("MINE") :report func(zoo48.flash()))
-r48a=zoo48.report()
+r48a=zoo48.report(:zoo48 zoo48)
 saved48=zoo48
 zoo48=(:flash func("OTHER"))
-r48b=saved48.report()
+r48b=saved48.report(:zoo48 saved48)
 zoo48=saved48
-ok=ok&&(r48a=="MINE" && r48b=="OTHER")
-print("48 slipping a different attrlist under zoo48's name mid-flight redirects saved48.report() too (expect MINE OTHER): %v %v\n\n" r48a r48b)
+ok=ok&&(r48a=="MINE" && r48b=="MINE")
+print("48 explicit :zoo48 keyword always reaches the object passed in, immune to zoo48 being reassigned (expect MINE MINE): %v %v\n\n" r48a r48b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 49: at(al n) (a bare read, no :set) hands back a detached,
