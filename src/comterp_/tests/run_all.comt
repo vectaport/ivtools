@@ -117,6 +117,10 @@ if(run("./stream-info.comt")
   :then print("pass: stream-info\n")
   :else print("FAIL: stream-info\n");topok=false)
 
+if(run("./info-obj.comt")
+  :then print("pass: info-obj\n")
+  :else print("FAIL: info-obj\n");topok=false)
+
 if(run("./stream-argcnt.comt")
   :then print("pass: stream-argcnt\n")
   :else print("FAIL: stream-argcnt\n");topok=false)
