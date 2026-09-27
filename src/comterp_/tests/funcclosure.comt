@@ -445,5 +445,17 @@ ok=ok&&(r92==10)&&(r93==9)
 print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(), f56.w56 (expect 10 9 -- the bare read sees the direct write that ran just before it, but a read alone doesn't persist a new default): %v %v\n\n" r92 r93)
 check_fail(:ok ok)
 
+// --- test 20i: an alias obtained via dot(f) before a self-bound call
+// stays subject to the seal for the whole call -- writing a nonexistent
+// name through it is rejected exactly as a direct dot-write would be ---
+g57=func(arg(0).z57=1)
+f57=func(g57 w57)
+a57=dot(f57)
+r94=f57.g57(a57)
+r95=size(dot(f57))
+ok=ok&&(r94==nil)&&(r95==2)
+print("20i g57=func(arg(0).z57=1);f57=func(g57 w57);a57=dot(f57); f57.g57(a57), size(dot(f57)) (expect nil 2 -- a saved alias can't grow the sealed list mid-call either): %v %v\n\n" r94 r95)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

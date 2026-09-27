@@ -506,16 +506,15 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* a sealed attrlist must not gain a new permanent entry through the
-         method's own capture/keyword injection -- unseal the real list for
-         the call so injection and any nested writes share one object with
-         normal last-write-wins order, then strip whatever names weren't
-         there before the call. */
+      /* dispatch straight at the real list -- add_attr() never consults
+         sealed() itself, so the seal stays true (and correctly rejects a
+         nested named-field write, even through an alias) for the whole
+         call; only strip whatever names the method's own capture/keyword
+         injection left behind that weren't there before the call. */
       boolean was_sealed = al && al->sealed();
       int npresymids = 0;
       int* presymids = nil;
       if (was_sealed) {
-	al->sealed(false);
 	npresymids = al->Number();
 	if (npresymids>0) presymids = new int[npresymids];
 	ALIterator pit;
@@ -540,7 +539,6 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  al->Remove(newattrs[i]);
 	delete [] newattrs;
 	delete [] presymids;
-	al->sealed(true);
       }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
