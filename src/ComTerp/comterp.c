@@ -430,10 +430,13 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      positional count is narg minus keyword values consumed, not narg-nkey */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
-  /* symids this call injected as a bare flag, gating bareflag() below
-     since a write can copy the tag into an unrelated capture (other=flag) */
-  int nbareflags = 0;
-  int* bareflags = val.nkey()>0 ? new int[val.nkey()] : nil;
+  /* symids this call supplied by keyword, gating kwoverride() below since
+     a write can copy the tag into an unrelated capture (other=flag) --
+     extra_keys carries its own count, since callers routing keywords
+     through it (NilFunc) zero val.nkey() first */
+  int nkwoverrides = 0;
+  int max_kwoverrides = extra_keys ? extra_keys->Number() : val.nkey();
+  int* kwoverride_symids = max_kwoverrides>0 ? new int[max_kwoverrides] : nil;
   /* seed al from this funcobj's declaration-time captures first,
      so an explicit :x val overrides one via add_attr's replace-by-symid */
   FuncObj* callee_fo = (FuncObj*)val.obj_val();
@@ -447,29 +450,36 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   }
   if (extra_keys) {
     /* caller built the keyword list some other way; copy its entries into al,
-       after captures, so an explicit :x val still overrides one */
+       after captures, tagged kwoverride() same as an inline :x val below */
     ALIterator ekit;
     for (extra_keys->First(ekit); !extra_keys->Done(ekit); extra_keys->Next(ekit)) {
       Attribute* ekattr = extra_keys->GetAttr(ekit);
-      al->add_attr(ekattr->SymbolId(), *ekattr->Value());
+      ComValue ekval(*ekattr->Value());
+      ekval.kwoverride(1);
+      al->add_attr(ekattr->SymbolId(), ekval);
+      kwoverride_symids[nkwoverrides++] = ekattr->SymbolId();
     }
   } else if (!lazy_posvals) {
     for(int i=0; i<val.nkey(); i++) {
       ComValue keyv(pop_stack());
       int knarg = keyv.keynarg_val();
       if (knarg==0) {
-	/* :flag => flag true; bareflag() tags this call's synthesized
-	   value so persistence below can tell it apart from a real write */
+	/* :flag => flag true, tagged kwoverride() like any other
+	   keyword-supplied value below */
 	ComValue bareflagval(ComValue::trueval());
-	bareflagval.bareflag(1);
+	bareflagval.kwoverride(1);
 	al->add_attr(keyv.keyid_val(), bareflagval);
-	bareflags[nbareflags++] = keyv.keyid_val();
+	kwoverride_symids[nkwoverrides++] = keyv.keyid_val();
       } else {
 	/* knarg is 0 or 1 by construction, so knarg>1 is unreachable;
 	   this loop is general only for form's sake */
 	for(int j=0; j<knarg; j++) {
 	  ComValue valv(pop_stack());
+	  /* kwoverride() tags this call's keyword value so persistence
+	     below can tell it apart from a body write of the same value */
+	  valv.kwoverride(1);
 	  al->add_attr(keyv.keyid_val(), valv);
+	  kwoverride_symids[nkwoverrides++] = keyv.keyid_val();
 	  npos--;   /* a post-keyword value, not a fixed positional */
 	}
       }
@@ -501,8 +511,9 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* Persist every capture's post-call value, keyword overrides included --
-     temp() is the opt-out for call-local scratch. */
+  /* Persist every capture's post-call value; a keyword override persists
+     only once the body itself writes to it -- temp() is the separate
+     opt-out for call-local scratch, written or not. */
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     ALIterator cit;
@@ -515,16 +526,16 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
          holding a dangling pointer; skip it and keep the prior default. */
       if (!cur || cur->Value()->is_object(FuncObjPendingArg::class_symid()))
         continue;
-      /* an untouched bare flag skips persistence; gated by symid since a
-         write can copy the tag into another capture (other=flag) */
-      boolean is_this_capture_bare = false;
-      for (int k=0; k<nbareflags; k++)
-        if (bareflags[k]==capattr->SymbolId()) { is_this_capture_bare = true; break; }
-      if (is_this_capture_bare && ((ComValue*)cur->Value())->bareflag()) continue;
+      /* an untouched keyword override skips persistence; gated by symid
+         since a write can copy the tag into another capture (other=flag) */
+      boolean is_this_capture_kwoverride = false;
+      for (int k=0; k<nkwoverrides; k++)
+        if (kwoverride_symids[k]==capattr->SymbolId()) { is_this_capture_kwoverride = true; break; }
+      if (is_this_capture_kwoverride && ((ComValue*)cur->Value())->kwoverride()) continue;
       *capattr->Value() = *cur->Value();
     }
   }
-  delete [] bareflags;
+  delete [] kwoverride_symids;
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {

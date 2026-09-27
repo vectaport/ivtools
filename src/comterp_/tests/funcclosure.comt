@@ -6,15 +6,16 @@
 // A func() body's free variables (read-only or read-before-write, per
 // #170's taxonomy) are captured once, at declaration time, instead of
 // resolved dynamically at call time -- turning func() into a real
-// closure.  Either kind is live state, not a frozen snapshot: a body
-// write to it, OR an explicit keyword override at any call site, updates
-// that FuncObj's own captures list, so the next bare call sees whichever
-// value the previous call left, private to that one closure instance
-// (test 3, test 8, test 9, test 10) -- read-only names persist a keyword
-// override the same way even though the body itself never writes them.
-// A body that writes a name before ever reading it (even to nil) opts
-// that name out of capture entirely -- pure local scratch, reset every
-// call, untouched by any of this (test 4).  local()/global() stay fully
+// closure.  A body write to a captured name updates that FuncObj's own
+// captures list, so the next bare call sees whichever value the previous
+// call left, private to that one closure instance (test 1, test 8, test
+// 9, test 10).  An explicit keyword override at a call site applies for
+// that one call only, and does NOT become the new default unless the
+// body itself writes to that name during the same call -- merely
+// reading the override isn't enough (test 3, test 14, test 16b).  A body
+// that writes a name before ever reading it (even to nil) opts that name
+// out of capture entirely -- pure local scratch, reset every call,
+// untouched by any of this (test 4).  local()/global() stay fully
 // dynamic, unaffected.
 //
 // Run from inside comterp, comdraw, or drawserv (cd to this dir first):
@@ -46,16 +47,16 @@ print("2 x=nil; ini=func(if(x==nil :then 99 :else x)); x=5; ini() still sees cap
 check_fail(:ok ok)
 
 // --- test 3: an explicit keyword override on a read-only capture (the
-// body never assigns it) persists as the new default too, the same as a
-// read-before-write capture's body-driven write would ---
+// body never assigns it) applies for that call only -- with nothing ever
+// written, the capture's default doesn't change ---
 c=10
 g=func(c)
 c=999
 r2=g()
 r3=g(:c 55)
 r3b=g()
-ok=ok&&(r2==10)&&(r3==55)&&(r3b==55)
-print("3 c=10; g=func(c); c=999; g() vs g(:c 55) vs g() again (expect 10 55 55): %v %v %v\n\n" r2 r3 r3b)
+ok=ok&&(r2==10)&&(r3==55)&&(r3b==10)
+print("3 c=10; g=func(c); c=999; g() vs g(:c 55) vs g() again (expect 10 55 10 -- the override doesn't persist since the body never writes c): %v %v %v\n\n" r2 r3 r3b)
 check_fail(:ok ok)
 
 // --- test 4: write-before-read opts a name out of capture entirely --
@@ -132,9 +133,9 @@ print("9 obj4.setit(:nope 5) with nope both captured and keyword-supplied (expec
 check_fail(:ok ok)
 
 // --- test 10: a plain (non-dot) func's read-before-write capture persists
-// an explicit keyword override too, the same as a bare body write does --
-// a subsequent bare call continues from the override, not from the
-// declaration-time value ---
+// because the body writes it during the call -- the keyword just seeds
+// that write's starting value; a subsequent bare call continues from
+// what the write left, not from the declaration-time value ---
 setit2=func(nope2=nope2+1; nope2)
 r15 = setit2(:nope2 5)
 r16 = setit2()
@@ -191,19 +192,17 @@ print("13 d=10; g20=func(attrlist(:x d)); help(g20) then d=999;g20().x (expect \
 check_fail(:ok ok)
 
 // --- test 14: a self-bound method's keyword override on a read-only
-// capture persists as the new default too, the same as a plain (non-dot)
-// func() call already does -- the dot-bound call path applies such an
-// override through the same ephemeral-keyword mechanism as an ordinary
-// keyword, so it needs its own persist step back into the closure's
-// captures rather than reverting the override away entirely ---
+// capture applies for that call only, matching a plain (non-dot) func()
+// call -- since the body never writes x30, the override never reaches
+// the closure's own captures ---
 x30=5
 obj30=(:y 1)
 obj30.m = func(x30)
 r30=obj30.m()
 r31=obj30.m(:x30 7)
 r32=obj30.m()
-ok=ok&&(r30==5)&&(r31==7)&&(r32==7)
-print("14 x30=5; obj30.m=func(x30); obj30.m() vs obj30.m(:x30 7) vs obj30.m() again (expect 5 7 7): %v %v %v\n\n" r30 r31 r32)
+ok=ok&&(r30==5)&&(r31==7)&&(r32==5)
+print("14 x30=5; obj30.m=func(x30); obj30.m() vs obj30.m(:x30 7) vs obj30.m() again (expect 5 7 5 -- the override doesn't persist since the body never writes x30): %v %v %v\n\n" r30 r31 r32)
 check_fail(:ok ok)
 
 // --- test 15: a keyword bound to a compound expression, not a bare
@@ -219,8 +218,7 @@ check_fail(:ok ok)
 
 // --- test 16: a bare flag keyword (:flag, no value) synthesizes true for
 // that one call only -- persisting it would force the capture true forever
-// after a single bare use, defeating the point of an optional flag.  An
-// explicit value (:flag true/:flag false) still persists as usual. ---
+// after a single bare use, defeating the point of an optional flag. ---
 f32=func(if(flag!=nil :then 1 :else 0))
 r34=f32()
 r35=f32(:flag)
@@ -229,12 +227,15 @@ ok=ok&&(r34==0)&&(r35==1)&&(r36==0)
 print("16 f32=func(if(flag!=nil :then 1 :else 0)); f32() vs f32(:flag) vs f32() again (expect 0 1 0 -- bare flag doesn't persist): %v %v %v\n\n" r34 r35 r36)
 check_fail(:ok ok)
 
+// --- test 16b: an explicit-valued keyword override behaves the same as
+// a bare flag -- it applies for that call only, unless the body itself
+// writes to the name (test 17) ---
 f33=func(if(flag!=nil :then 1 :else 0))
 r37=f33()
 r38=f33(:flag true)
 r39=f33()
-ok=ok&&(r37==0)&&(r38==1)&&(r39==1)
-print("16b f33(:flag true) with an explicit value still persists (expect 0 1 1): %v %v %v\n\n" r37 r38 r39)
+ok=ok&&(r37==0)&&(r38==1)&&(r39==0)
+print("16b f33=func(if(flag!=nil :then 1 :else 0)); f33() vs f33(:flag true) vs f33() again (expect 0 1 0 -- a valued override doesn't persist either, without a body write): %v %v %v\n\n" r37 r38 r39)
 check_fail(:ok ok)
 
 // --- test 17: a body write to a bare-flag capture, during the very call
@@ -289,8 +290,7 @@ check_fail(:ok ok)
 
 // --- test 18d: a bare keyword nested inside a positional argument's own
 // sub-expression (if()'s :err) must not be mistaken for the method's own
-// bare flag -- scanning raw tokens instead of top-level spans would
-// misattribute it and overrun the method's own bareflag bookkeeping ---
+// bare flag ---
 obj38=(:m func(if(flag!=nil :then 1 :else 0)))
 r52=obj38.m(if(true :err))
 r53=obj38.m(if(true :err) :flag)
@@ -320,14 +320,23 @@ print("19b obj39.m=func(x=other; if(flag!=nil :then other=flag); other); obj39.m
 check_fail(:ok ok)
 
 // --- test 19c: a nested bare keyword sharing a name with the method's
-// own explicit-valued keyword must not make that valued keyword look
-// bare -- persistence is gated on this call's actual keyword occurrence,
-// not a name-only match against anything found in the arguments ---
+// own explicit-valued keyword must not be confused with it -- and since
+// the body only reads err, the override still doesn't persist ---
 obj40=(:m func(err))
 r61=obj40.m(if(true :err) :err 7)
 r62=obj40.m()
-ok=ok&&(r61==7)&&(r62==7)
-print("19c obj40.m=func(err); obj40.m(if(true :err) :err 7) then obj40.m() (expect 7 7 -- the method's own :err 7 persists despite a same-named nested bare :err): %v %v\n\n" r61 r62)
+ok=ok&&(r61==7)&&(r62==nil)
+print("19c obj40.m=func(err); obj40.m(if(true :err) :err 7) then obj40.m() (expect 7 nil -- the override doesn't persist since err is never written, despite a same-named nested bare :err): %v %v\n\n" r61 r62)
+check_fail(:ok ok)
+
+// --- test 19d: same nested-vs-valued-keyword shape, but the body writes
+// err -- persistence still happens correctly despite the same-named
+// nested bare keyword ---
+obj41=(:m func(err=err+1; err))
+r63=obj41.m(if(true :err) :err 7)
+r64=obj41.m()
+ok=ok&&(r63==8)&&(r64==9)
+print("19d obj41.m=func(err=err+1; err); obj41.m(if(true :err) :err 7) then obj41.m() (expect 8 9 -- the body's write persists despite the same-named nested bare :err): %v %v\n\n" r63 r64)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)

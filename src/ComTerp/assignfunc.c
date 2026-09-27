@@ -81,6 +81,9 @@ void AssignFunc::execute() {
 #else
     if (operand2->is_attribute()) lookup_symval(*operand2);
 #endif
+    /* clear any kwoverride() tag an operator's copy-constructed result
+       carried over from an operand -- an assignment's RHS is always fresh */
+    operand2->kwoverride(0);
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
 	/* global() lvalue tested before func-frame branch; old-value cleanup reads

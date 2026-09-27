@@ -24,7 +24,6 @@
 
 #include <ComTerp/dotfunc.h>
 #include <ComTerp/comvalue.h>
-#include <ComTerp/postfixspan.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/postfunc.h>
@@ -158,25 +157,6 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   AttributeValueList* poslist = nil;
   AttributeList* kwlist = nil;
   int npos = 0;
-  /* PostfixSpanWalk isolates the method's own top-level bare keywords,
-     so one nested in a positional argument (if(true :err)) is excluded. */
-  int nbareflags = 0;
-  int* bareflag_symids = method_nkey>0 ? new int[method_nkey] : nil;
-  if (method_nkey>0) {
-    PostfixSpanWalk walk;
-    for (int t=0; t<nargtoks; t++) {
-      walk.step(argtoks, t);
-      if (t!=nargtoks-1) continue;
-      int nconsumed = walk.consumed_count();
-      for (int k=nconsumed-method_nkey; k<nconsumed; k++) {
-        if (k<0) continue;
-        PostfixSpanWalk::Span sp = walk.consumed(k);
-        int markeridx = sp.start + sp.count - 1;
-        if (argtoks[markeridx].type==TOK_KEYWORD && argtoks[markeridx].narg==0)
-          bareflag_symids[nbareflags++] = argtoks[markeridx].v.symbolid;
-      }
-    }
-  }
   if (method_narg>0 || method_nkey>0) {
     static int echo_symid = symbol_add("echo");
     method_tok.v.symbolid = echo_symid;
@@ -257,8 +237,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 	singleton->First(it);
 	Attribute* a = singleton->GetAttr(it);
 	ComValue kwval(*a->Value());
-	for (int k=0; k<nbareflags; k++)
-	  if (bareflag_symids[k]==a->SymbolId()) { kwval.bareflag(1); break; }
+	kwval.kwoverride(1);
 	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     } else if (kwlist) {
@@ -267,8 +246,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       for (kwlist->First(it); !kwlist->Done(it); kwlist->Next(it), i++) {
 	Attribute* a = kwlist->GetAttr(it);
 	ComValue kwval(*a->Value());
-	for (int k=0; k<nbareflags; k++)
-	  if (bareflag_symids[k]==a->SymbolId()) { kwval.bareflag(1); break; }
+	kwval.kwoverride(1);
 	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     }
@@ -300,18 +278,14 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     if (fo_captures && !kwpending[i].existed) {
       Attribute* capattr = fo_captures->GetAttr(kwpending[i].symid);
       Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
-      /* an untouched bare flag skips persistence; gated by symid since a
-         write can copy the tag into another capture (other=flag) */
-      boolean is_this_kw_bare = false;
-      for (int k=0; k<nbareflags; k++)
-        if (bareflag_symids[k]==kwpending[i].symid) { is_this_kw_bare = true; break; }
-      if (now && !(is_this_kw_bare && ((ComValue*)now->Value())->bareflag()))
+      /* an untouched keyword override skips persistence -- kwoverride()
+         is cleared by any ordinary write, this call's own included */
+      if (now && !((ComValue*)now->Value())->kwoverride())
         *capattr->Value() = *now->Value();
     }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   }
   delete [] kwpending;
-  delete [] bareflag_symids;
 
   for (int i=0; i<ncap; i++)
     restore_capture(al, cappending[i], fo_captures);
