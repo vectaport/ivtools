@@ -357,5 +357,30 @@ ok=ok&&(r65==42)&&(r66==7)&&(r67==42)&&(r68==7)&&(r69==7)&&(r70==nil)&&(r71==nil
 print("20 f50=func(y); f50.y, f50(:y 7), f50(), f50.y=7, f50(), f50.z, f50.z=1, size(dot(f50)) (expect 42 7 42 7 7 nil nil 1): %v %v %v %v %v %v %v %v\n\n" r65 r66 r67 r68 r69 r70 r71 r72)
 check_fail(:ok ok)
 
+// --- test 20b: dot(f)@0 gives the first capture as a singleton attrlist,
+// and a func with no captures at all behaves the same way with an empty
+// locked list -- nothing to read, nothing addable ---
+r73=print(dot(f50)@0 :str)
+nocap=func(1+1)
+r74=nocap.anything
+r75=(nocap.anything=1)
+r76=size(dot(nocap))
+r77=nocap()
+ok=ok&&(r73=="(:y 7)")&&(r74==nil)&&(r75==nil)&&(r76==0)&&(r77==2)
+print("20b dot(f50)@0, nocap=func(1+1); nocap.anything, nocap.anything=1, size(dot(nocap)), nocap() (expect (:y 7) nil nil 0 2): %v %v %v %v %v\n\n" r73 r74 r75 r76 r77)
+check_fail(:ok ok)
+
+// --- test 20c: a func-valued capture, called through the outer func's own
+// locked dot target, still sees its own captures and any keyword supplied
+// at the call -- the lock on the outer func's list doesn't leak into the
+// inner call's scope ---
+z=0
+g51=func(z)
+f51=func(g51)
+r78=f51.g51(:z 3)
+r79=g51()
+print("20c z=0;g51=func(z);f51=func(g51); f51.g51(:z 3) then g51() (expect 3 0 -- g51's own capture is untouched by the call-site keyword): %v %v\n\n" r78 r79)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

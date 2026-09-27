@@ -485,7 +485,14 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+      /* a func's own captures are private data, not shared object state --
+         dispatch through a growable scratch copy so the callee's own
+         capture/keyword injection has somewhere to write; ref/unref frees
+         it regardless of which return path fire_attrlist_method takes. */
+      AttributeList* dispatch_al = (al && !al->growable()) ? new AttributeList(al) : al;
+      if (dispatch_al != al) Resource::ref(dispatch_al);
+      fire_attrlist_method(this, comterp(), dispatch_al, argtoks, nargtoks);
+      if (dispatch_al != al) Resource::unref(dispatch_al);
     } else if (force_named_field || nargs()>1) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
