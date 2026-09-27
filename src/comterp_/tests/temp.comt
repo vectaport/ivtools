@@ -105,12 +105,15 @@ print("10 temp(tg10)/temp(tl10) independent of same-named global()/local() (expe
 prev_ok=check_fail(:ok ok)
 
 // --- test 11: nested (non-recursive) func call has its own temp frame,
-//     invisible to the outer call even though both run inside one dot call ---
+//     invisible to the outer call even though both run inside one dot call.
+//     "obj11" is a dot lhs inside both methods, so it's a normal capture
+//     (#631) -- pair() must pass its own receiver in explicitly, as
+//     dot(obj11), for its nested obj11.helper() call to reach it too ---
 obj11=(:pair func(temp(x)=1 obj11.helper() x)
        :helper func(temp(x)=2 x))
-r11=obj11.pair()
+r11=obj11.pair(:obj11 dot(obj11))
 ok=ok&&(r11==1)
-print("11 obj11.pair() calls obj11.helper(), each keeps its own temp(x) (expect 1): %v\n\n" r11)
+print("11 obj11.pair(:obj11 dot(obj11)) calls obj11.helper(), each keeps its own temp(x) (expect 1): %v\n\n" r11)
 prev_ok=check_fail(:ok ok)
 
 // --- test 12: temp() inside a for/if body (post-eval, no func frame) warns,
