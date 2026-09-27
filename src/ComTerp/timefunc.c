@@ -317,10 +317,8 @@ ComValue timeobj_to_colonlist(TimeObj* timeobj) {
     ComValue secval((int)sec);
     avl->Append(new AttributeValue(secval));
   } else {
-    /* the date/tz fields are always emitted, even for a dateless instant
-       (year()/month()/day() then read the epoch sentinel and tzoff() 0) --
-       a bare hr:min:sec list is colonlist_to_timeobj()'s duration grammar,
-       so omitting them would turn this instant into a duration on re-parse. */
+    /* date/tz are always included, even when dateless: a bare hr:min:sec
+       list is colonlist_to_timeobj()'s duration grammar. */
     int yr = timeobj->year();
     int mon = timeobj->month();
     int day = timeobj->day();
