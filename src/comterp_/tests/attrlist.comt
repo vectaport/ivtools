@@ -35,8 +35,8 @@
 // 61-65).  Dot-assigning onto a fired sub-expression (e.g.
 // (list@n).field=val) used to segfault on a null-deref in the
 // interpreter's core postfix stepper, unrelated to dot itself; it now
-// evaluates cleanly, binding the field onto a global variable named for
-// the symbol value rather than the list element (test 66).
+// evaluates cleanly, binding the field onto a variable named for the
+// symbol value rather than the list element (test 66).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -648,8 +648,8 @@ prev_ok=check_fail(:ok ok)
 // Now it evaluates cleanly.  Since a computed symbol value and an
 // unresolved bare name share the same representation, dot's own
 // before-variable lookup still treats the computed value as if it were
-// a name -- it binds/creates a global variable under that symbol
-// (here `sym66zval), leaving l66 itself untouched. ---
+// a name -- it binds/creates a variable under that symbol (here
+// `sym66zval), leaving l66 itself untouched. ---
 l66=`aaa66,`bbb66,`sym66zval
 r66=(l66@2).xx=4
 ok=ok&&(r66==4)
