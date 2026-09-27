@@ -432,17 +432,21 @@ ok=ok&&(r90==nil)&&(print(r91 :str)=="(:y55 1)")
 print("20g y55=1;f55=func(y55); f55.empty() vs (f55.)@0 (expect nil (:y55 1) -- a real .empty() call isn't confused with a blank rhs): %v %v\n\n" r90 r91)
 check_fail(:ok ok)
 
-// --- test 20h: a nested dot expression that writes straight to a sealed
-// capture during a self-bound call (naming the outer func explicitly,
-// not going through the swapped scope) and a later bare read of that same
-// capture in the same call see one shared value, in call order ---
+// --- test 20h: a dot's lhs is a normal capture (#631), so h56's own
+// default for "f56" is nil (h56 is defined before f56 exists) -- reaching
+// f56 requires an explicit :f56 keyword at the call site, passed as
+// dot(f56) rather than the bare FuncObj (a bare FuncObj argument
+// auto-fires). Once f56 is captured this way, a nested dot expression
+// writing straight to it during the self-bound call, and a later bare
+// read of that same capture in the same call, still see one shared
+// value, in call order ---
 w56=0
 h56=func(f56.w56=9; w56+1)
 f56=func(h56 w56)
-r92=f56.h56()
+r92=f56.h56(:f56 dot(f56))
 r93=f56.w56
 ok=ok&&(r92==10)&&(r93==9)
-print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(), f56.w56 (expect 10 9 -- the bare read sees the direct write that ran just before it, but a read alone doesn't persist a new default): %v %v\n\n" r92 r93)
+print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(:f56 dot(f56)), f56.w56 (expect 10 9 -- the bare read sees the direct write that ran just before it, but a read alone doesn't persist a new default): %v %v\n\n" r92 r93)
 check_fail(:ok ok)
 
 // --- test 20i: an alias obtained via dot(f) before a self-bound call
