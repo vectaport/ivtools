@@ -759,6 +759,12 @@ Use `setattr()` to stamp many facts in one call; the dot for one at a
 time.  The mutation rides the comp reference, so it works from inside a
 func even though the symbol binding is frame-local (see *Scoping rules*).
 
+The dot's lhs need not be a bare name — any expression that evaluates to
+a **symbol** or a **funcobj** works, e.g. `(cond :then f :else g).x` or
+`mk().y`; the dot fires that expression first, then dots into whatever
+it returns.  A funcobj lhs dots into its own captures (see *Rewriting a
+default deliberately* below); anything else is a type error.
+
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.
 
