@@ -409,5 +409,28 @@ ok=ok&&(r84==r85)&&(print(r86 :str)=="(:y53 1)")
 print("20e y53=1;f53=func(y53); (f53.)==dot(f53), (f53.)@0 (expect equal, (:y53 1)): %v %v\n\n" (r84==r85) r86)
 check_fail(:ok ok)
 
+// --- test 20f: a self-bound call through a sealed dot target must not gain
+// a permanent new field -- a keyword the callee writes as its own capture
+// is ephemeral to the dispatch copy, never reaching the sealed original ---
+g54=func(newcap=newcap+1; newcap)
+f54=func(g54)
+r87=f54.g54(:newcap 5)
+r88=size(dot(f54))
+r89=print(dot(f54) :str)
+ok=ok&&(r87==6)&&(r88==1)&&(r89=="(:g54 <FuncObj>)")
+print("20f g54=func(newcap=newcap+1;newcap);f54=func(g54); f54.g54(:newcap 5), size(dot(f54)), dot(f54) (expect 6 1 (:g54 <FuncObj>) -- newcap never joins f54's sealed captures): %v %v %v\n\n" r87 r88 r89)
+check_fail(:ok ok)
+
+// --- test 20g: a genuine call to a method literally named "empty" is not
+// swallowed by the blank-rhs shortcut -- it's treated like any other
+// nonexistent dot method (a func has no :empty capture here) ---
+y55=1
+f55=func(y55)
+r90=f55.empty()
+r91=(f55.)@0
+ok=ok&&(r90==nil)&&(print(r91 :str)=="(:y55 1)")
+print("20g y55=1;f55=func(y55); f55.empty() vs (f55.)@0 (expect nil (:y55 1) -- a real .empty() call isn't confused with a blank rhs): %v %v\n\n" r90 r91)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

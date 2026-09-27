@@ -114,11 +114,15 @@ static AttributeList* funcobj_dot_attrlist(AttributeValue* funcval) {
 }
 
 /* the parser's placeholder for "nothing here" (e.g. a trailing dot with no
-   field after it) -- DotFunc treats it as if the rhs were simply absent. */
+   field after it) -- DotFunc treats it as if the rhs were simply absent.
+   nids()==0 tells this apart from a genuine call to the "empty" command
+   with no args (e.g. "f.empty()"): the placeholder's token is emitted with
+   a literal 0 there (_parser.c), while an actual parsed call always gets
+   a nonzero nids. */
 static boolean is_blank_rhs(ComValue& after_raw) {
   static int empty_symid = symbol_add("empty");
   return after_raw.is_command() && after_raw.command_symid()==empty_symid &&
-    after_raw.narg()==0 && after_raw.nkey()==0;
+    after_raw.narg()==0 && after_raw.nkey()==0 && after_raw.nids()==0;
 }
 
 /* the counterpart for captures rather than keywords: a capture was never
@@ -502,7 +506,24 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+      /* a sealed attrlist must not gain a new permanent entry through the
+         method's own capture/keyword injection -- dispatch through a
+         growable scratch copy, then write back only fields al already
+         had, so an existing shared field's mutation still persists but a
+         genuinely new one never reaches the sealed original. */
+      boolean via_copy = al && al->sealed();
+      AttributeList* dispatch_al = via_copy ? new AttributeList(al) : al;
+      if (via_copy) Resource::ref(dispatch_al);
+      fire_attrlist_method(this, comterp(), dispatch_al, argtoks, nargtoks);
+      if (via_copy) {
+	ALIterator it;
+	for (al->First(it); !al->Done(it); al->Next(it)) {
+	  Attribute* real_attr = al->GetAttr(it);
+	  Attribute* copy_attr = dispatch_al->GetAttr(real_attr->SymbolId());
+	  if (copy_attr) *real_attr->Value() = *copy_attr->Value();
+	}
+	Resource::unref(dispatch_al);
+      }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
