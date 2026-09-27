@@ -98,7 +98,7 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
-/* a FuncObj used as a dot target exposes its own captures as a locked
+/* a FuncObj used as a dot target exposes its own captures as a sealed
    attrlist: existing entries read/write, no new ones can be added. */
 static AttributeList* funcobj_dot_attrlist(AttributeValue* funcval) {
   FuncObj* fo = (FuncObj*) funcval->obj_val();
@@ -109,8 +109,16 @@ static AttributeList* funcobj_dot_attrlist(AttributeValue* funcval) {
     caps = new AttributeList();
     fo->captures() = ComValue(AttributeList::class_symid(), (void*)caps);
   }
-  caps->growable(false);
+  caps->sealed(true);
   return caps;
+}
+
+/* the parser's placeholder for "nothing here" (e.g. a trailing dot with no
+   field after it) -- DotFunc treats it as if the rhs were simply absent. */
+static boolean is_blank_rhs(ComValue& after_raw) {
+  static int empty_symid = symbol_add("empty");
+  return after_raw.is_command() && after_raw.command_symid()==empty_symid &&
+    after_raw.narg()==0 && after_raw.nkey()==0;
 }
 
 /* the counterpart for captures rather than keywords: a capture was never
@@ -429,8 +437,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     /* lookup value of before variable */
     void* vptr = nil;
     AttributeList* al = nil;
+    boolean al_from_funcobj = false;
     if (before_part.is_object(FuncObj::class_symid())) {
       al = funcobj_dot_attrlist(&before_part);
+      al_from_funcobj = true;
     } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
@@ -441,9 +451,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (fsval) {
 	if (fsval->is_attributelist())
 	  al = (AttributeList*) fsval->obj_val();
-	else if (fsval->is_object(FuncObj::class_symid()))
+	else if (fsval->is_object(FuncObj::class_symid())) {
 	  al = funcobj_dot_attrlist(fsval);
-	else {
+	  al_from_funcobj = true;
+	} else {
 	  al = new AttributeList();
 	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
 	  *fsval = newval;
@@ -459,6 +470,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
 	} else if (vptr && ((ComValue*) vptr)->is_object(FuncObj::class_symid())) {
 	  al = funcobj_dot_attrlist((ComValue*) vptr);
+	  al_from_funcobj = true;
 	} else {
 	  al = new AttributeList();
 	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
@@ -479,29 +491,27 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else
       al = (AttributeList*) before_part.obj_val();
 
-    if (after_nids!=-1 && nargs()>1) {
+    /* a funcobj's dot with a blank rhs (e.g. "(f.)", the parser's "empty"
+       placeholder for a closing delimiter with nothing before it) acts as
+       if the rhs weren't there at all -- fall through to the bare form. */
+    boolean blank_rhs = al_from_funcobj && is_blank_rhs(after_raw);
+
+    if (!blank_rhs && after_nids!=-1 && nargs()>1) {
       /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval runs
          before reset_stack(); nargs()>1 + after_nids excludes dot(name) */
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* a func's own captures are private data, not shared object state --
-         dispatch through a growable scratch copy so the callee's own
-         capture/keyword injection has somewhere to write; ref/unref frees
-         it regardless of which return path fire_attrlist_method takes. */
-      AttributeList* dispatch_al = (al && !al->growable()) ? new AttributeList(al) : al;
-      if (dispatch_al != al) Resource::ref(dispatch_al);
-      fire_attrlist_method(this, comterp(), dispatch_al, argtoks, nargtoks);
-      if (dispatch_al != al) Resource::unref(dispatch_al);
-    } else if (force_named_field || nargs()>1) {
+      fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+    } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
         symbol_reference(after_symid);
       }
       reset_stack();
       Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
-      if (!attr && al && !al->growable()) {
-	/* a locked attrlist (e.g. a func's own captures via dot) names no
+      if (!attr && al && al->sealed()) {
+	/* a sealed attrlist (e.g. a func's own captures via dot) names no
 	   such entry -- report nil rather than growing the list. */
 	ComValue retval(ComValue::nullval());
 	retval.lhs_assign(1);

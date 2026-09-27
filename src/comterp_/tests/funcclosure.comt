@@ -340,7 +340,7 @@ print("19d obj41.m=func(err=err+1; err); obj41.m(if(true :err) :err 7) then obj4
 check_fail(:ok ok)
 
 // --- test 20: a plain func's name is a dot target onto its own captures --
-// dot(f) is a locked attrlist (existing entries read/write, none addable);
+// dot(f) is a sealed attrlist (existing entries read/write, none addable);
 // f.y reads/writes the y capture directly, becoming the new default; a
 // non-existent name reads or writes as nil without growing the list ---
 y=42
@@ -359,7 +359,7 @@ check_fail(:ok ok)
 
 // --- test 20b: dot(f)@0 gives the first capture as a singleton attrlist,
 // and a func with no captures at all behaves the same way with an empty
-// locked list -- nothing to read, nothing addable ---
+// sealed list -- nothing to read, nothing addable ---
 r73=print(dot(f50)@0 :str)
 nocap=func(1+1)
 r74=nocap.anything
@@ -371,15 +371,42 @@ print("20b dot(f50)@0, nocap=func(1+1); nocap.anything, nocap.anything=1, size(d
 check_fail(:ok ok)
 
 // --- test 20c: a func-valued capture, called through the outer func's own
-// locked dot target, still sees its own captures and any keyword supplied
-// at the call -- the lock on the outer func's list doesn't leak into the
+// sealed dot target, still sees its own captures and any keyword supplied
+// at the call -- the seal on the outer func's list doesn't leak into the
 // inner call's scope ---
 z=0
 g51=func(z)
 f51=func(g51)
 r78=f51.g51(:z 3)
 r79=g51()
+ok=ok&&(r78==3)&&(r79==0)
 print("20c z=0;g51=func(z);f51=func(g51); f51.g51(:z 3) then g51() (expect 3 0 -- g51's own capture is untouched by the call-site keyword): %v %v\n\n" r78 r79)
+check_fail(:ok ok)
+
+// --- test 20d: a self-bound call through a sealed dot target still mutates
+// a field it shares with the outer func's own captures -- the seal blocks
+// adding a name, never writing one both funcs already capture ---
+w=0
+h52=func(w=w+1; w)
+f52=func(h52 w)
+r80=f52.h52()
+r81=f52.w
+r82=f52.h52()
+r83=f52.w
+ok=ok&&(r80==1)&&(r81==1)&&(r82==2)&&(r83==2)
+print("20d w=0;h52=func(w=w+1;w);f52=func(h52 w); f52.h52(), f52.w, f52.h52(), f52.w (expect 1 1 2 2 -- the shared w persists across calls): %v %v %v %v\n\n" r80 r81 r82 r83)
+check_fail(:ok ok)
+
+// --- test 20e: a blank rhs on a funcobj dot ("(f.)", the parser's "empty"
+// placeholder for nothing between the dot and the closing paren) acts as if
+// the rhs weren't there -- same as dot(f) itself ---
+y53=1
+f53=func(y53)
+r84=print((f53.) :str)
+r85=print(dot(f53) :str)
+r86=(f53.)@0
+ok=ok&&(r84==r85)&&(print(r86 :str)=="(:y53 1)")
+print("20e y53=1;f53=func(y53); (f53.)==dot(f53), (f53.)@0 (expect equal, (:y53 1)): %v %v\n\n" (r84==r85) r86)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)
