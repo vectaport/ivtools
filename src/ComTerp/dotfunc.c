@@ -508,21 +508,32 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       reset_stack();
       /* a sealed attrlist must not gain a new permanent entry through the
          method's own capture/keyword injection -- dispatch through a
-         growable scratch copy, then write back only fields al already
-         had, so an existing shared field's mutation still persists but a
-         genuinely new one never reaches the sealed original. */
+         growable scratch copy, so injection has somewhere to write that
+         isn't the sealed original.  A pristine second copy, taken at the
+         same moment, tells a field the swapped-scope call itself mutated
+         (propagate the copy's new value back) apart from one a nested
+         dot expression wrote straight to the real al during the call
+         (e.g. the method body itself says "f.w=9") -- there the live
+         write already landed and must not be overwritten by the copy's
+         now-stale value. */
       boolean via_copy = al && al->sealed();
       AttributeList* dispatch_al = via_copy ? new AttributeList(al) : al;
-      if (via_copy) Resource::ref(dispatch_al);
+      AttributeList* pristine = via_copy ? new AttributeList(al) : nil;
+      if (via_copy) { Resource::ref(dispatch_al); Resource::ref(pristine); }
       fire_attrlist_method(this, comterp(), dispatch_al, argtoks, nargtoks);
       if (via_copy) {
 	ALIterator it;
 	for (al->First(it); !al->Done(it); al->Next(it)) {
 	  Attribute* real_attr = al->GetAttr(it);
+	  Attribute* pristine_attr = pristine->GetAttr(real_attr->SymbolId());
 	  Attribute* copy_attr = dispatch_al->GetAttr(real_attr->SymbolId());
-	  if (copy_attr) *real_attr->Value() = *copy_attr->Value();
+	  boolean touched_directly = !pristine_attr ||
+	    !values_equal(comterp(), *real_attr->Value(), *pristine_attr->Value());
+	  if (!touched_directly && copy_attr)
+	    *real_attr->Value() = *copy_attr->Value();
 	}
 	Resource::unref(dispatch_al);
+	Resource::unref(pristine);
       }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
