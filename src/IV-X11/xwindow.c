@@ -2024,10 +2024,9 @@ void DisplayRep::set_dpi(Coord& pixel) {
  * of subwindows, it is possible to get an event for a subwindow after
  * the main window has been unmapped.  We must ignore such events.
  *
- * Damaged windows are repaired before the next event is read rather
- * than only once the input queue drains, so repaint can't be starved by
- * a continuous stream of ConfigureNotify events during an interactive
- * resize.
+ * Damaged windows are repaired before the next event is read, so a
+ * continuous stream of ConfigureNotify events during an interactive
+ * resize can't starve repaint.
  */
 
 boolean Display::get(Event& event) {
