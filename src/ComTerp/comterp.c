@@ -456,10 +456,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       int knarg = keyv.keynarg_val();
       if (knarg==0) {
 	al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
-	/* a bare flag's synthesized true is a this-call toggle, not a
-	   value the caller actually chose -- persisting it would force
-	   the capture true forever after one bare use, unlike :flag true
-	   which is an explicit, intentional value */
+	/* a bare flag's synthesized true is this call's toggle, not a
+	   value to persist -- unless the body itself overwrites it */
 	if (nbareflags==nbareflags_cap) {
 	  int newcap = nbareflags_cap ? nbareflags_cap*2 : 4;
 	  int* newset = new int[newcap];
@@ -513,17 +511,21 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
     ALIterator cit;
     for (caps->First(cit); !caps->Done(cit); caps->Next(cit)) {
       Attribute* capattr = caps->GetAttr(cit);
-      boolean is_bare_flag = false;
-      for (int k=0; k<nbareflags; k++)
-        if (bareflags[k]==capattr->SymbolId()) { is_bare_flag = true; break; }
-      if (is_bare_flag) continue;
       Attribute* cur = al->GetAttr(capattr->SymbolId());
       /* a :posteval call's keyword can still be an unresolved
          FuncObjPendingArg if the body never read it -- that object is
          deleted just below, so persisting it here would leave captures()
          holding a dangling pointer; skip it and keep the prior default. */
-      if (cur && !cur->Value()->is_object(FuncObjPendingArg::class_symid()))
-        *capattr->Value() = *cur->Value();
+      if (!cur || cur->Value()->is_object(FuncObjPendingArg::class_symid()))
+        continue;
+      /* a bare flag's synthesized true skips persistence, unless the
+         body itself overwrote it with a real value of its own */
+      boolean is_untouched_bare_flag = false;
+      if (cur->Value()->is_boolean() && cur->Value()->is_true())
+        for (int k=0; k<nbareflags; k++)
+          if (bareflags[k]==capattr->SymbolId()) { is_untouched_bare_flag = true; break; }
+      if (is_untouched_bare_flag) continue;
+      *capattr->Value() = *cur->Value();
     }
   }
   delete [] bareflags;

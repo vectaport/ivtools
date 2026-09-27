@@ -237,5 +237,16 @@ ok=ok&&(r37==0)&&(r38==1)&&(r39==1)
 print("16b f33(:flag true) with an explicit value still persists (expect 0 1 1): %v %v %v\n\n" r37 r38 r39)
 check_fail(:ok ok)
 
+// --- test 17: a body write to a bare-flag capture, during the very call
+// that set the flag, still persists -- only an untouched bare-flag true
+// is excluded, not the variable itself ---
+f34=func(if(flag!=nil :then flag=8); flag)
+r40=f34()
+r41=f34(:flag)
+r42=f34()
+ok=ok&&(r40==nil)&&(r41==8)&&(r42==8)
+print("17 f34=func(if(flag!=nil :then flag=8); flag); f34() vs f34(:flag) vs f34() again (expect nil 8 8 -- body's own write during the bare-flag call persists): %v %v %v\n\n" r40 r41 r42)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
