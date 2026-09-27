@@ -175,6 +175,13 @@ void AssignFunc::execute() {
       atfunc.exec(3, 1);
       ComValue result(pop_stack());
       *operand2 = result;
+    } else if (operand1.unknown() && operand1.lhs_assign()) {
+      /* a locked attrlist's dot lookup found no such entry -- the write
+         never happens, and the expression reports nil, not the RHS. */
+      delete operand2;
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
     } else {
         cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
           symbol_pntr(operand1.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";

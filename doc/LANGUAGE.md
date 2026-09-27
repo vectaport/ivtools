@@ -759,6 +759,12 @@ Use `setattr()` to stamp many facts in one call; the dot for one at a
 time.  The mutation rides the comp reference, so it works from inside a
 func even though the symbol binding is frame-local (see *Scoping rules*).
 
+The dot's lhs need not be a bare name — any expression that evaluates to
+a **symbol** or a **funcobj** works, e.g. `(cond :then f :else g).x` or
+`mk().y`; the dot fires that expression first, then dots into whatever
+it returns.  A funcobj lhs dots into its own captures (see *Rewriting a
+default deliberately* below); anything else is a type error.
+
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.
 
@@ -1178,6 +1184,35 @@ above never gets a new default this way -- `help(f)` still shows
 since its body never writes `y`. `temp()` is the separate opt-out for
 when even a body's own write should stay call-local instead of
 persisting.
+
+**Rewriting a default deliberately: dot into the func itself.** A
+dot-bound method already has an unambiguous way to change a default
+outside of any call -- write straight to the object's own field
+(`obj.field=val`). A plain func gets the same escape hatch by using its
+own name as a dot target: `dot(f)` (or `f.name`) exposes `f`'s captures
+as a *sealed* attrlist -- existing entries can be read or reassigned,
+but the list can never grow:
+
+```
+y=42
+f=func(y)
+f.y                 // 42 -- reads the current default directly
+f.y=7               // 7 -- an explicit write, unlike a call-site keyword,
+                     //      does rewrite the default
+f()                 // 7 -- the next bare call sees it
+f.nope              // nil -- no such capture; nothing is added
+f.nope=1            // nil -- the write is refused, and reports nil, not 1
+size(dot(f))        // 1 -- still just the one capture, y
+```
+
+`dot(f)` alone (no field after it) returns the sealed attrlist itself,
+so the usual attrlist operations work on it too -- `dot(f)@0` gives the
+first capture as a one-entry attrlist, the same as `@` on any other
+attrlist. `(f.)` -- a dot with nothing between it and a closing
+delimiter -- behaves the same as `dot(f)`, not as a method call named
+"nothing". A func with no captures at all behaves the same way as a
+populated one, just with an empty sealed list: every field reads and
+writes as nil.
 
 **A different tool for a different job: `eval()`'s own `:alist` keyword.**
 Declaration-time capture, even with the persistence above, is *private*
