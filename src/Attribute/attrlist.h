@@ -117,6 +117,13 @@ public:
     // merge the contents of another AttributeList into this one,
     // replicating the AttributeValue as needed.
 
+    boolean growable() { return _growable; }
+    // true (the default) if add_attr() may insert a new entry.
+
+    void growable(boolean flag) { _growable = flag; }
+    // set whether add_attr() may insert a new entry; an existing entry can
+    // still be read or reassigned either way.
+
     static void print_attrlist(AttributeList* al);
     // print AttributeList to stdout
 
@@ -164,6 +171,7 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+    boolean _growable;
 
     CLASS_SYMID("AttributeList");
 

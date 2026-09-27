@@ -60,6 +60,7 @@ AttributeList::AttributeList (AttributeList* s) {
 #endif
     _alist = new AList;
     _count = 0;
+    _growable = true;
     if (s != nil) {
         ALIterator i;
 
@@ -121,6 +122,13 @@ int AttributeList::add_attr(Attribute* attr) {
 	    old_attr->Value(attr->Value());
 	    return -1;
 	}
+    }
+    /* an ungrowable list rejects a genuinely new entry -- the caller's
+       cleanup path (attr->valueptr=nil; unref) needs 'attr' intact. */
+    if (!_growable) {
+	delete attr->valueptr;
+	attr->valueptr = nil;
+	return -1;
     }
     InsertBefore(i, attr);
     Resource::ref(attr);

@@ -339,5 +339,23 @@ ok=ok&&(r63==8)&&(r64==9)
 print("19d obj41.m=func(err=err+1; err); obj41.m(if(true :err) :err 7) then obj41.m() (expect 8 9 -- the body's write persists despite the same-named nested bare :err): %v %v\n\n" r63 r64)
 check_fail(:ok ok)
 
+// --- test 20: a plain func's name is a dot target onto its own captures --
+// dot(f) is a locked attrlist (existing entries read/write, none addable);
+// f.y reads/writes the y capture directly, becoming the new default; a
+// non-existent name reads or writes as nil without growing the list ---
+y=42
+f50=func(y)
+r65=f50.y
+r66=(f50(:y 7))
+r67=f50()
+r68=(f50.y=7)
+r69=f50()
+r70=f50.z
+r71=(f50.z=1)
+r72=size(dot(f50))
+ok=ok&&(r65==42)&&(r66==7)&&(r67==42)&&(r68==7)&&(r69==7)&&(r70==nil)&&(r71==nil)&&(r72==1)
+print("20 f50=func(y); f50.y, f50(:y 7), f50(), f50.y=7, f50(), f50.z, f50.z=1, size(dot(f50)) (expect 42 7 42 7 7 nil nil 1): %v %v %v %v %v %v %v %v\n\n" r65 r66 r67 r68 r69 r70 r71 r72)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

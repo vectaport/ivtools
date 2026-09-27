@@ -98,6 +98,21 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
+/* a FuncObj used as a dot target exposes its own captures as a locked
+   attrlist: existing entries read/write, no new ones can be added. */
+static AttributeList* funcobj_dot_attrlist(AttributeValue* funcval) {
+  FuncObj* fo = (FuncObj*) funcval->obj_val();
+  AttributeList* caps;
+  if (fo->captures().is_object(AttributeList::class_symid()))
+    caps = (AttributeList*) fo->captures().obj_val();
+  else {
+    caps = new AttributeList();
+    fo->captures() = ComValue(AttributeList::class_symid(), (void*)caps);
+  }
+  caps->growable(false);
+  return caps;
+}
+
 /* the counterpart for captures rather than keywords: a capture was never
    something the caller passed at this call site, so its injected entry
    always reverts or is removed from obj -- it never leaves a permanent
@@ -356,7 +371,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	!(before_part.is_attribute() &&
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
-	!before_part.is_attributelist()) {
+	!before_part.is_attributelist() &&
+	!before_part.is_object(FuncObj::class_symid())) {
 
       /* a list before "." is common (e.g. zoo.who("Ellie").moves) --
          give a specific error, not the generic type-mismatch one below */
@@ -413,7 +429,9 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     /* lookup value of before variable */
     void* vptr = nil;
     AttributeList* al = nil;
-    if (!before_part.is_attribute() && !before_part.is_attributelist()) {
+    if (before_part.is_object(FuncObj::class_symid())) {
+      al = funcobj_dot_attrlist(&before_part);
+    } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
       /* func scope (_alist) is checked before local/global, same order
@@ -423,6 +441,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (fsval) {
 	if (fsval->is_attributelist())
 	  al = (AttributeList*) fsval->obj_val();
+	else if (fsval->is_object(FuncObj::class_symid()))
+	  al = funcobj_dot_attrlist(fsval);
 	else {
 	  al = new AttributeList();
 	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
@@ -437,6 +457,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	}
 	if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
 	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
+	} else if (vptr && ((ComValue*) vptr)->is_object(FuncObj::class_symid())) {
+	  al = funcobj_dot_attrlist((ComValue*) vptr);
 	} else {
 	  al = new AttributeList();
 	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
@@ -471,6 +493,14 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       }
       reset_stack();
       Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
+      if (!attr && al && !al->growable()) {
+	/* a locked attrlist (e.g. a func's own captures via dot) names no
+	   such entry -- report nil rather than growing the list. */
+	ComValue retval(ComValue::nullval());
+	retval.lhs_assign(1);
+	push_stack(retval);
+	return;
+      }
       if (!attr) {
 	attr = new Attribute(after_symid, new AttributeValue());
 	al->add_attribute(attr);

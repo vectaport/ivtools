@@ -1179,6 +1179,32 @@ since its body never writes `y`. `temp()` is the separate opt-out for
 when even a body's own write should stay call-local instead of
 persisting.
 
+**Rewriting a default deliberately: dot into the func itself.** A
+dot-bound method already has an unambiguous way to change a default
+outside of any call -- write straight to the object's own field
+(`obj.field=val`). A plain func gets the same escape hatch by using its
+own name as a dot target: `dot(f)` (or `f.name`) exposes `f`'s captures
+as a *locked* attrlist -- existing entries can be read or reassigned,
+but the list can never grow:
+
+```
+y=42
+f=func(y)
+f.y                 // 42 -- reads the current default directly
+f.y=7               // 7 -- an explicit write, unlike a call-site keyword,
+                     //      does rewrite the default
+f()                 // 7 -- the next bare call sees it
+f.nope              // nil -- no such capture; nothing is added
+f.nope=1            // nil -- the write is refused, and reports nil, not 1
+size(dot(f))        // 1 -- still just the one capture, y
+```
+
+`dot(f)` alone (no field after it) returns the locked attrlist itself,
+so the usual attrlist operations work on it too -- `dot(f)@0` gives the
+first capture as a one-entry attrlist, the same as `@` on any other
+attrlist. A func with no captures at all behaves the same way, just
+with an empty locked list: every field reads and writes as nil.
+
 **A different tool for a different job: `eval()`'s own `:alist` keyword.**
 Declaration-time capture, even with the persistence above, is *private*
 to one `FuncObj` instance — nobody else can see or share that state; a
