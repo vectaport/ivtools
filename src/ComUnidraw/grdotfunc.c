@@ -55,11 +55,9 @@ void GrDotFunc::execute() {
     peek_and_fire(before_part, after_part, after_nids, before_expr_text, after_expr_text);
 
     /* unwrap a ComponentView (or an Attribute wrapping one) to its attr
-       list -- dot-dispatch only understands symbols/attributes/attrlists.
-       Resolve into a copy: before_part itself must stay a raw symbol when
-       it isn't a compview, so execute_core's own lookup (which may need to
-       auto-vivify a nil-valued capture) still sees the symbol, not a value
-       already resolved and discarded here. */
+       list -- dot-dispatch only understands symbols/attributes/attrlists. */
+    /* resolved into a copy so before_part stays a raw symbol for
+       execute_core's own lookup, which may need to auto-vivify it. */
     ComValue before_resolved = before_part;
     if (before_resolved.is_symbol())
       lookup_symval(before_resolved);
