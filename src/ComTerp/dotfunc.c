@@ -158,13 +158,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   AttributeValueList* poslist = nil;
   AttributeList* kwlist = nil;
   int npos = 0;
-  /* a bare keyword token (narg==0) loses its bareness once echo folds it
-     into a value -- record its symid here, before that happens, so its
-     injected value can be tagged with bareflag() below.  PostfixSpanWalk
-     (not a raw token scan) is required to get only the method's own
-     top-level keywords -- a positional argument's own sub-expression
-     (if(true :err)) can carry keywords of its own, and a raw scan would
-     misattribute those to the method and overrun bareflag_symids. */
+  /* PostfixSpanWalk isolates the method's own top-level bare keywords,
+     so one nested in a positional argument (if(true :err)) is excluded. */
   int nbareflags = 0;
   int* bareflag_symids = method_nkey>0 ? new int[method_nkey] : nil;
   if (method_nkey>0) {
