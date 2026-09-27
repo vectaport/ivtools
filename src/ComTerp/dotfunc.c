@@ -236,14 +236,18 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 	ALIterator it;
 	singleton->First(it);
 	Attribute* a = singleton->GetAttr(it);
-	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+	ComValue kwval(*a->Value());
+	kwval.kwoverride(1);
+	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     } else if (kwlist) {
       ALIterator it;
       int i = 0;
       for (kwlist->First(it); !kwlist->Done(it); kwlist->Next(it), i++) {
 	Attribute* a = kwlist->GetAttr(it);
-	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+	ComValue kwval(*a->Value());
+	kwval.kwoverride(1);
+	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     }
   }
@@ -265,11 +269,24 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   comterp->set_attributes(old_alist);
   Unref(old_alist);
 
-  for (int i=0; i<nkw; i++)
+  /* a keyword that also names a capture persists here, bypassing the
+     ephemeral-keyword revert below; !existed excludes a name that is a
+     real pre-existing field on obj rather than pure closure state. */
+  AttributeList* fo_captures = fo->captures().is_object(AttributeList::class_symid()) ?
+    (AttributeList*) fo->captures().obj_val() : nil;
+  for (int i=0; i<nkw; i++) {
+    if (fo_captures && !kwpending[i].existed) {
+      Attribute* capattr = fo_captures->GetAttr(kwpending[i].symid);
+      Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
+      /* an untouched keyword override skips persistence -- kwoverride()
+         is cleared by any ordinary write, this call's own included */
+      if (now && !((ComValue*)now->Value())->kwoverride())
+        *capattr->Value() = *now->Value();
+    }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
+  }
   delete [] kwpending;
 
-  AttributeList* fo_captures = (AttributeList*) fo->captures().obj_val();
   for (int i=0; i<ncap; i++)
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;

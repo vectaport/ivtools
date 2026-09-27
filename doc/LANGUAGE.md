@@ -1115,14 +1115,16 @@ it runs changed, only *when* a free variable's value gets read:
 - **Read-only or read-before-write** — a name the body reads without
   ever writing it first (`func(y)`), or reads and only *then* locally
   reassigns (`func(y=y+1)`) — is a genuine input, and is captured once,
-  at declaration time, exactly as above. A read-before-write capture is
-  real per-closure state, not just a frozen snapshot: if the body writes
-  a new value to it, that value becomes the capture's new default for
-  the *next* call to that same `FuncObj` instance -- private to that one
+  at declaration time, exactly as above. Either kind is real per-closure
+  state, not just a frozen snapshot: whatever value the body itself
+  *writes* during a call becomes the capture's new default for the
+  *next* call to that same `FuncObj` instance -- private to that one
   closure, invisible to any other `func()` value and to the outer
   variable it was first read from (which stays whatever it already was).
-  A read-only name can never trigger this, since by definition the body
-  never writes it.
+  A keyword override seeds that call's starting value, but on its own
+  doesn't change the default -- only a body write does, so a purely
+  read-only name (the body never writes it) never gets a new default no
+  matter how it's called.
 - **Write-before-read** — a name the body assigns before it's ever read,
   even to `nil` (`func(y=nil; y)`) — is pure local scratch. It never
   touches the outer scope at all, capture or otherwise; this is the way
@@ -1145,26 +1147,37 @@ f()                // 42 -- the capture
 f(:y 7)             // 7 -- an explicit keyword always wins
 ```
 
-**A read-before-write capture persists across calls, private to that
-closure -- an explicit keyword override persists too.** `y` above is
-read-only, so it has nothing to persist -- every call reads the same
-frozen 42. A name the body also writes is different: whatever value it
-holds when the call returns, whether that's from the body's own
-assignment or from a one-off keyword override, becomes the capture's
-default for the next bare call:
+**A capture persists across calls only via a body write -- a keyword
+override, by itself, applies to just that one call.** Whatever value a
+capture's own body assigns during a call becomes that capture's default
+for the next bare call. A keyword override seeds that call's starting
+value, but if the body only reads it, nothing changes for the capture's
+stored default -- reading is not writing:
 
 ```
 c=10
 inc=func(c=c+1)
 inc()               // 11 -- first call starts from the declaration-time value
 inc()               // 12 -- second call continues from what the first left
-inc(:c 100)         // 101 -- explicit override for just this call...
-inc()               // 102 -- ...and the next bare call continues from it
+inc(:c 100)         // 101 -- keyword seeds this call's c, and the body's own
+                     //        write persists it
+inc()               // 102 -- ...the next bare call continues from it
 c                    // 10 -- the outer variable was only ever read once, at declaration
+
+y=42
+f=func(y)
+f(:y 7)             // 7 -- this call sees the override
+f()                 // 42 -- but the override didn't persist -- the body never
+                     //       wrote y, only read it
 ```
 
 `help(inc)` reflects the same live default it just used, not just the
-declaration-time one: `"inc(:c [102])"` after the calls above.
+declaration-time one: `"inc(:c [102])"` after the calls above. `f`
+above never gets a new default this way -- `help(f)` still shows
+`"f(:y [42])"` no matter how many overrides it's been called with,
+since its body never writes `y`. `temp()` is the separate opt-out for
+when even a body's own write should stay call-local instead of
+persisting.
 
 **A different tool for a different job: `eval()`'s own `:alist` keyword.**
 Declaration-time capture, even with the persistence above, is *private*
@@ -1513,12 +1526,14 @@ This isn't a bug or a special case worth working around — it's the same
 fact the earlier closures section already establishes (a func's
 free-variable reads resolve to whatever was true *when `func()` ran*,
 not whatever's true when it's called), surfaced in text instead of
-staying implicit. `w` above is read-only, so its capture really is
-constant for the func's whole life; a read-before-write capture the body
-writes to instead evolves call by call (see *Closures* above), and
-`help()` always shows its *current* default, not just the
-declaration-time one — either way it's worth showing rather than leaving
-to be discovered by firing the func and being surprised.
+staying implicit. `w` above is read-only, so nothing — not even an
+explicit keyword override — ever changes its capture; `help(f)` keeps
+showing `"(:w [42])"` no matter how `f` is called. A read-before-write
+capture the body writes to is different: each call's write becomes the
+next call's default, and `help()` shows that live value, not just the
+declaration-time one (see *Closures* above) — either way it's worth
+showing rather than leaving to be discovered by firing the func and
+being surprised.
 
 None of this is fully perfected — return-kind isn't derived yet, output
 is one line rather than column-aligned, and there's no way yet to feed a

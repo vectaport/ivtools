@@ -158,11 +158,22 @@ static void add_to_set(int*& set, int& n, int& cap, int symid) {
     set[n++] = symid;
 }
 
-/* True iff span is exactly one plain-var token -- the shape a symbol-level
-   operand of assign/local/global must have to be classifiable at all (see
-   funcobjscan.h: anything else, e.g. a dot-chain target, is out of scope
-   and simply produces no event). */
-static boolean span_is_plain_var(PostfixSpanWalk::Span span, boolean* is_plain_var) {
+/* True iff span is exactly one plain-var token, OR a keyword's bound value
+   is exactly one plain-var token -- PostfixSpanWalk::step's TOK_KEYWORD
+   case bundles a keyword marker together with its bound value into one
+   span (span.start stays the value's own token), so a bare variable
+   passed as `:key var` needs unwrapping here to be classifiable at all.
+   Requiring span.count==2 (value token + marker) rather than merely >1
+   excludes a compound bound value such as `:key local(x)`, whose span
+   also starts at x's token even though the read actually goes through
+   local(), not a direct capture-eligible reference.  A bare flag keyword
+   (no value, span.count==1) still names no variable.  Anything else, e.g.
+   a dot-chain target, is out of scope and simply produces no event. */
+static boolean span_is_plain_var(PostfixSpanWalk::Span span, postfix_token* toks,
+                                  boolean* is_plain_var) {
+    int last = span.start + span.count - 1;
+    if (toks[last].type == TOK_KEYWORD)
+        return span.count == 2 && is_plain_var[span.start];
     return span.count == 1 && is_plain_var[span.start];
 }
 
@@ -298,7 +309,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         if ((symid == local_symid || symid == global_symid || symid == temp_symid) &&
             nconsumed == 1) {
             PostfixSpanWalk::Span arg = walk.consumed(0);
-            if (span_is_plain_var(arg, is_plain_var)) {
+            if (span_is_plain_var(arg, toks, is_plain_var)) {
                 Kind esc_kind = symid == global_symid ? EscapingGlobal :
                                  symid == temp_symid ? EscapingTemp : EscapingLocal;
                 int pos = symid == temp_symid ? temp_boundary_for(tempbounds, ntempbounds, i) : i;
@@ -310,7 +321,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
         if (symid == dot_symid && nconsumed >= 1) {
             PostfixSpanWalk::Span root = walk.consumed(0);
-            if (span_is_plain_var(root, is_plain_var)) {
+            if (span_is_plain_var(root, toks, is_plain_var)) {
                 add_to_set(dotroots, ndotroots, dotroots_cap, toks[root.start].v.symbolid);
             }
             continue;
@@ -323,7 +334,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
         for (int k = 0; k < nconsumed; k++) {
             PostfixSpanWalk::Span operand = walk.consumed(k);
-            if (!span_is_plain_var(operand, is_plain_var)) continue;
+            if (!span_is_plain_var(operand, toks, is_plain_var)) continue;
             int varsymid = toks[operand.start].v.symbolid;
 
             /* an occurrence at/after temp(varsymid)'s token resolves against
@@ -346,7 +357,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
        is_plain_var token -- local()/global() consume theirs via `continue` */
     for (int k = 0; k < walk.remaining_count(); k++) {
         PostfixSpanWalk::Span span = walk.remaining(k);
-        if (!span_is_plain_var(span, is_plain_var)) continue;
+        if (!span_is_plain_var(span, toks, is_plain_var)) continue;
         int symid = toks[span.start].v.symbolid;
         int tpos;
         if (temp_escape_pos(escapes, nescapes, symid, &tpos) && span.start >= tpos) continue;

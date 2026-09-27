@@ -231,8 +231,9 @@ print("15 ini2=func(if(y==nil :then int(rand(0,10)) :else y)); help(ini2) -- com
 check_fail(:ok ok)
 
 // --- test 16: a keyword with no default idiom at all, and truly nothing
-// captured (z primed to nil), is unaffected; the default rendering also
-// doesn't change how a DIFFERENT func (ini) actually fires ---
+// captured (z primed to nil), is unaffected; a DIFFERENT func's (ini)
+// explicit keyword override applies for that call only, since x is
+// read-only and ini's body never writes it ---
 z=nil   // prime -- see test 3's note
 plain=func(z+1)
 r16=help(plain)
@@ -240,7 +241,7 @@ ok=ok&&(r16=="plain(:z)")
 r16b=ini(:x 5)
 r16c=ini()
 ok=ok&&(r16b==5)&&(r16c==99)
-print("16 plain=func(z+1); help(plain)=%v (expect \"plain(:z)\"); ini(:x 5)=%v ini()=%v -- firing unaffected by default rendering (expect 5 99): %v %v %v\n\n" r16 r16b r16c r16 r16b r16c)
+print("16 plain=func(z+1); help(plain)=%v (expect \"plain(:z)\"); ini(:x 5)=%v ini()=%v -- override on a read-only capture doesn't persist (expect 5 99): %v %v %v\n\n" r16 r16b r16c r16 r16b r16c)
 check_fail(:ok ok)
 
 // --- test 16b: the flip side of test 16 -- no coded default idiom, but

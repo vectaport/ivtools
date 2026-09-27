@@ -58,7 +58,8 @@ class ComTerp;
 #define COMVALUE_SLICECAP_BITS   16 // room for growth via append() before reallocating, 0-65535 bytes beyond slicelen() -- bits 13-28
 #define COMVALUE_SLICECAP_MASK   (((1<<COMVALUE_SLICECAP_BITS)-1)<<COMVALUE_SLICECAP_SHIFT)
 #define COMVALUE_SLICECAP_SET_FLAG 0x20000000 // bit 29 -- an explicit slicecap() was requested; distinguishes a deliberate zero-room cap from none requested, where slicecap() alone would read 0 either way.
-#define COMVALUE_TEMP_FLAG       0x40000000 // bit 30 -- set by temp() on its lvalue symbol -- write the call's temp frame, discarded when the call returns. Bit 31 stays free.
+#define COMVALUE_TEMP_FLAG       0x40000000 // bit 30 -- set by temp() on its lvalue symbol -- write the call's temp frame, discarded when the call returns.
+#define COMVALUE_KWOVERRIDE_FLAG ((int)0x80000000) // bit 31 -- marks a call's keyword-supplied value; an ordinary assignment overwrites the whole ComValue with a freshly built one, clearing the bit, so its presence at call end means the body never touched the capture.
 
 class ComValue : public AttributeValue {
 public:
@@ -163,6 +164,10 @@ public:
     // call's temp frame, discarded when the call returns.
     void temp_flag(int flag) { if (flag) _ext3 |= COMVALUE_TEMP_FLAG; else _ext3 &= ~COMVALUE_TEMP_FLAG; }
     // set flag that marks a temp() lvalue symbol.
+    int kwoverride() const;
+    // return flag that marks a capture's call-supplied keyword value.
+    void kwoverride(int flag) { if (flag) _ext3 |= COMVALUE_KWOVERRIDE_FLAG; else _ext3 &= ~COMVALUE_KWOVERRIDE_FLAG; }
+    // set flag that marks a capture's call-supplied keyword value.
     int coloned() const;
     // return flag that marks an ArrayType as built by ':' rather than ','.
     void coloned(int flag) { if (flag) _ext3 |= COMVALUE_COLONED_FLAG; else _ext3 &= ~COMVALUE_COLONED_FLAG; }
