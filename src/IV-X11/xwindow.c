@@ -1044,6 +1044,9 @@ void WindowRep::resize(Window* w, unsigned int xwidth, unsigned int xheight) {
     allocation_.allot(Dimension_Y, Allotment(oy, ysize, oy / ysize));
     Extension ext;
     ext.clear();
+    if (resized_) {
+        glyph_->undraw();
+    }
     init_renderer(w);
     glyph_->allocate(canvas_, allocation_, ext);
     resized_ = true;
