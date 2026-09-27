@@ -299,5 +299,36 @@ ok=ok&&(r52==0)&&(r53==1)&&(r54==0)
 print("18d obj38.m(if(true :err)) vs obj38.m(if(true :err) :flag) vs obj38.m(if(true :err)) again (expect 0 1 0 -- nested :err doesn't corrupt the method's own bare-flag tracking): %v %v %v\n\n" r52 r53 r54)
 check_fail(:ok ok)
 
+// --- test 19: a body write that copies a bare flag's synthesized value
+// into a different, unrelated capture must still persist that capture --
+// the tag marks only the specific symid the bare keyword injected, not
+// any capture whose value happens to be a copy of it ---
+f35=func(x=other; if(flag!=nil :then other=flag); other)
+r55=f35()
+r56=f35(:flag)
+r57=f35()
+ok=ok&&(r55==nil)&&(r56==true)&&(r57==true)
+print("19 f35=func(x=other; if(flag!=nil :then other=flag); other); f35() vs f35(:flag) vs f35() again (expect nil true true -- other's own copy of flag's value still persists): %v %v %v\n\n" r55 r56 r57)
+check_fail(:ok ok)
+
+obj39=(:m func(x=other; if(flag!=nil :then other=flag); other))
+r58=obj39.m()
+r59=obj39.m(:flag)
+r60=obj39.m()
+ok=ok&&(r58==nil)&&(r59==true)&&(r60==true)
+print("19b obj39.m=func(x=other; if(flag!=nil :then other=flag); other); obj39.m() vs obj39.m(:flag) vs obj39.m() again (expect nil true true -- same on a dot-bound call): %v %v %v\n\n" r58 r59 r60)
+check_fail(:ok ok)
+
+// --- test 19c: a nested bare keyword sharing a name with the method's
+// own explicit-valued keyword must not make that valued keyword look
+// bare -- persistence is gated on this call's actual keyword occurrence,
+// not a name-only match against anything found in the arguments ---
+obj40=(:m func(err))
+r61=obj40.m(if(true :err) :err 7)
+r62=obj40.m()
+ok=ok&&(r61==7)&&(r62==7)
+print("19c obj40.m=func(err); obj40.m(if(true :err) :err 7) then obj40.m() (expect 7 7 -- the method's own :err 7 persists despite a same-named nested bare :err): %v %v\n\n" r61 r62)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

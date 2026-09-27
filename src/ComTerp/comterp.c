@@ -430,6 +430,12 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      positional count is narg minus keyword values consumed, not narg-nkey */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
+  /* symids this call injected as a bare flag -- bareflag() alone isn't
+     enough to gate persistence, since a body write can copy a bare
+     flag's tagged value into an unrelated capture (other=flag) and
+     that capture must still persist on its own merits */
+  int nbareflags = 0;
+  int* bareflags = val.nkey()>0 ? new int[val.nkey()] : nil;
   /* seed al from this funcobj's declaration-time captures first,
      so an explicit :x val overrides one via add_attr's replace-by-symid */
   FuncObj* callee_fo = (FuncObj*)val.obj_val();
@@ -459,6 +465,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
 	ComValue bareflagval(ComValue::trueval());
 	bareflagval.bareflag(1);
 	al->add_attr(keyv.keyid_val(), bareflagval);
+	bareflags[nbareflags++] = keyv.keyid_val();
       } else {
 	/* knarg is 0 or 1 by construction, so knarg>1 is unreachable;
 	   this loop is general only for form's sake */
@@ -511,11 +518,18 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       if (!cur || cur->Value()->is_object(FuncObjPendingArg::class_symid()))
         continue;
       /* a bare flag's synthesized true skips persistence, unless the
-         body itself overwrote it with a real value of its own */
-      if (((ComValue*)cur->Value())->bareflag()) continue;
+         body itself overwrote it with a real value of its own -- gated
+         on this capture's own symid, not just the tag, since a body
+         write can copy a bare flag's tagged value into another capture
+         (other=flag) that must still persist on its own merits */
+      boolean is_this_capture_bare = false;
+      for (int k=0; k<nbareflags; k++)
+        if (bareflags[k]==capattr->SymbolId()) { is_this_capture_bare = true; break; }
+      if (is_this_capture_bare && ((ComValue*)cur->Value())->bareflag()) continue;
       *capattr->Value() = *cur->Value();
     }
   }
+  delete [] bareflags;
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {

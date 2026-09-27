@@ -306,8 +306,15 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       Attribute* capattr = fo_captures->GetAttr(kwpending[i].symid);
       Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
       /* a bare flag's synthesized true skips persistence, unless the
-         body itself overwrote it with a real value of its own */
-      if (now && !((ComValue*)now->Value())->bareflag()) *capattr->Value() = *now->Value();
+         body itself overwrote it with a real value of its own -- gated
+         on this keyword's own symid, not just the tag, since a body
+         write can copy a bare flag's tagged value into another capture
+         (other=flag) that must still persist on its own merits */
+      boolean is_this_kw_bare = false;
+      for (int k=0; k<nbareflags; k++)
+        if (bareflag_symids[k]==kwpending[i].symid) { is_this_kw_bare = true; break; }
+      if (now && !(is_this_kw_bare && ((ComValue*)now->Value())->bareflag()))
+        *capattr->Value() = *now->Value();
     }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   }
