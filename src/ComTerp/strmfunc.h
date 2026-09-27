@@ -125,8 +125,10 @@ public:
 // attrlst=info(fileobj)    -- (:filename :mode :open).
 // attrlst=info(pipeobj)    -- (:command :pid).
 // attrlst=info(sockobj)    -- (:host :port).
-// Date/Time are left out -- their own print() is already their
-// round-trippable colon-list form, so there's no missing-inspection gap.
+// list=info(dateobj|timeobj) -- the coloned year:mon:day[:hr:min:sec...]
+//                             list printOn() already renders as text, but
+//                             as a live value -- printOn() has no other way
+//                             to hand it back out.
 class InfoFunc : public StrmFunc {
 public:
     InfoFunc(ComTerp*);

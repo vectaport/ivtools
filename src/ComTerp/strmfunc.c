@@ -29,6 +29,7 @@
 #include <ComTerp/iofunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
+#include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
@@ -1256,6 +1257,18 @@ void InfoFunc::execute() {
     al->add_attr(nspans_sym, nspansv);
     al->add_attr(posteval_sym, postevalv);
     ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(DateObj::class_symid())) {
+    ComValue retval(dateobj_to_colonlist((DateObj*)streamv.obj_val()));
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(TimeObj::class_symid())) {
+    ComValue retval(timeobj_to_colonlist((TimeObj*)streamv.obj_val()));
     push_stack(retval);
     return;
   }
