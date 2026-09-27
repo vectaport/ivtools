@@ -331,7 +331,7 @@ not gaps in testing -- do not read `—` as untested.
 | local.comt                | local                                                 |      14 |    15 |  93% |
 | temp.comt                 | temp                                                  |      15 |    16 |  94% |
 | assignops.comt            | mod_assign mpy_assign add_assign sub_assign div_assi… |      33 |    53 |  62% |
-| attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      56 |    68 |  82% |
+| attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      64 |    76 |  84% |
 | listat.comt               | at  list  size                                        |       — |     — |    — |
 | stackkey.comt             | at  list                                              |       — |     — |    — |
 | colonlist.comt            | colonlist at size                                     |       — |     — |    — |

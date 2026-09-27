@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 63/75 (84%)
+// coverage: 64/76 (84%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          -(empty-rhs)
