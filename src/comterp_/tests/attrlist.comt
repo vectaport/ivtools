@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 63/75 (84%)
+// coverage: 64/76 (84%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          -(empty-rhs)
@@ -32,7 +32,11 @@
 // self-bound on al -- is refused, nil, with a warning to stderr, if the
 // value being written already reaches the attrlist itself, directly or
 // nested arbitrarily deep through other lists/attrlists (#341, tests
-// 61-65).
+// 61-65).  Dot-assigning onto a fired sub-expression (e.g.
+// (list@n).field=val) used to segfault on a null-deref in the
+// interpreter's core postfix stepper, unrelated to dot itself; it now
+// evaluates cleanly, binding the field onto a variable named for the
+// symbol value rather than the list element (test 66).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -632,6 +636,26 @@ al65.setself=func(newfield=al65)
 al65.setself()
 ok=ok&&(al65.newfield==nil)
 print("65 self-bound bare-symbol write of al65 into itself refused (expect al65.newfield nil): %v\n\n" al65.newfield)
+prev_ok=check_fail(:ok ok)
+
+// --- test 66: dot-assign on a fired sub-expression whose value is a
+// SymbolType, not an unresolved bare name -- (l66@2) has to be evaluated
+// (peek_and_fire fires it, since it's a pending command, not a bare
+// symbol token) before dot ever sees it.  Evaluating it used to segfault:
+// ComTerp::post_eval_expr's blank-slot "list as 1st tuple operand" check
+// called lookup_symval() and dereferenced the result unconditionally,
+// with no nil check for a symbol that isn't a bound variable (#630).
+// Now it evaluates cleanly.  Since a computed symbol value and an
+// unresolved bare name share the same representation, dot's own
+// before-variable lookup still treats the computed value as if it were
+// a name -- it binds/creates a variable under that symbol (here
+// `sym66zval), leaving l66 itself untouched. ---
+l66=`aaa66,`bbb66,`sym66zval
+r66=(l66@2).xx=4
+ok=ok&&(r66==4)
+ok=ok&&(l66==(`aaa66,`bbb66,`sym66zval))
+ok=ok&&(sym66zval.xx==4)
+print("66 (l66@2).xx=4 no longer crashes (expect 4, l66 untouched, sym66zval.xx=4): %v %v %v\n\n" r66 l66 sym66zval.xx)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

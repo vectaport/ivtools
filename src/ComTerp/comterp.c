@@ -1056,7 +1056,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	      stack_top(0).array_val()->nested_insert(true);
 	    } else if (stack_top(0).is_symbol()) {
 	      AttributeValue* av = lookup_symval(&stack_top(0), false);
-	      if (av->is_array()) av->array_val()->nested_insert(true);
+	      if (av && av->is_array()) av->array_val()->nested_insert(true);
 	    }
 	  }
 	}
