@@ -506,11 +506,9 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* dispatch straight at the real list -- add_attr() never consults
-         sealed() itself, so the seal stays true (and correctly rejects a
-         nested named-field write, even through an alias) for the whole
-         call; only strip whatever names the method's own capture/keyword
-         injection left behind that weren't there before the call. */
+      /* add_attr() never consults sealed() -- dispatch straight at the
+         real list, seal untouched, so a nested named-field write (even
+         through an alias) still rejects for the whole call. */
       boolean was_sealed = al && al->sealed();
       int npresymids = 0;
       int* presymids = nil;
@@ -523,6 +521,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  presymids[pi++] = al->GetAttr(pit)->SymbolId();
       }
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+      /* strip any name the call's capture/keyword injection left behind
+         that wasn't already there before it. */
       if (was_sealed) {
 	Attribute** newattrs = new Attribute*[al->Number()];
 	int nnewattrs = 0;
