@@ -3702,6 +3702,22 @@ point.x=10
 point.y=20
 ```
 
+The dot's lhs need not be a bare name — it can be any expression that
+*evaluates to* a symbol, such as a list element:
+
+```
+l=`x,`y,`z
+(l@0).fff=300   // l@0 evaluates to the symbol x
+l               // {x,y,z} -- unchanged
+x               // (:fff 300) -- the symbol's own compound variable, same as x.fff=300
+```
+
+Dot doesn't distinguish "a bare name written directly before `.`" from
+"a symbol value produced by evaluating the lhs" — both go through the
+same lookup-or-create logic, keyed on the symbol itself. So this binds
+the compound variable to whatever symbol the expression evaluated to
+(`x` here), not to the list element it was read from.
+
 ### Enumerating an attrlist
 
 Use `size()`, `at()`, `attrname()`, and `attrval()` to enumerate:
