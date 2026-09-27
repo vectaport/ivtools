@@ -433,16 +433,16 @@ print("20g y55=1;f55=func(y55); f55.empty() vs (f55.)@0 (expect nil (:y55 1) -- 
 check_fail(:ok ok)
 
 // --- test 20h: a nested dot expression that writes straight to a sealed
-// capture during a self-bound call (not through the swapped-scope body,
-// but by naming the outer func explicitly) must not be clobbered by the
-// dispatch copy's stale value once the call returns ---
+// capture during a self-bound call (naming the outer func explicitly,
+// not going through the swapped scope) and a later bare read of that same
+// capture in the same call see one shared value, in call order ---
 w56=0
 h56=func(f56.w56=9; w56+1)
 f56=func(h56 w56)
 r92=f56.h56()
 r93=f56.w56
-ok=ok&&(r92==1)&&(r93==9)
-print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(), f56.w56 (expect 1 9 -- the direct write during the call isn't overwritten by the dispatch copy's stale value): %v %v\n\n" r92 r93)
+ok=ok&&(r92==10)&&(r93==9)
+print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(), f56.w56 (expect 10 9 -- the bare read sees the direct write that ran just before it, but a read alone doesn't persist a new default): %v %v\n\n" r92 r93)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)

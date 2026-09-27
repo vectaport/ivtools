@@ -507,33 +507,40 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
       /* a sealed attrlist must not gain a new permanent entry through the
-         method's own capture/keyword injection -- dispatch through a
-         growable scratch copy, so injection has somewhere to write that
-         isn't the sealed original.  A pristine second copy, taken at the
-         same moment, tells a field the swapped-scope call itself mutated
-         (propagate the copy's new value back) apart from one a nested
-         dot expression wrote straight to the real al during the call
-         (e.g. the method body itself says "f.w=9") -- there the live
-         write already landed and must not be overwritten by the copy's
-         now-stale value. */
-      boolean via_copy = al && al->sealed();
-      AttributeList* dispatch_al = via_copy ? new AttributeList(al) : al;
-      AttributeList* pristine = via_copy ? new AttributeList(al) : nil;
-      if (via_copy) { Resource::ref(dispatch_al); Resource::ref(pristine); }
-      fire_attrlist_method(this, comterp(), dispatch_al, argtoks, nargtoks);
-      if (via_copy) {
+         method's own capture/keyword injection -- unseal the real list for
+         the call so injection and any nested writes share one object with
+         normal last-write-wins order, then strip whatever names weren't
+         there before the call. */
+      boolean was_sealed = al && al->sealed();
+      int npresymids = 0;
+      int* presymids = nil;
+      if (was_sealed) {
+	al->sealed(false);
+	npresymids = al->Number();
+	if (npresymids>0) presymids = new int[npresymids];
+	ALIterator pit;
+	int pi = 0;
+	for (al->First(pit); !al->Done(pit); al->Next(pit))
+	  presymids[pi++] = al->GetAttr(pit)->SymbolId();
+      }
+      fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+      if (was_sealed) {
+	Attribute** newattrs = new Attribute*[al->Number()];
+	int nnewattrs = 0;
 	ALIterator it;
 	for (al->First(it); !al->Done(it); al->Next(it)) {
-	  Attribute* real_attr = al->GetAttr(it);
-	  Attribute* pristine_attr = pristine->GetAttr(real_attr->SymbolId());
-	  Attribute* copy_attr = dispatch_al->GetAttr(real_attr->SymbolId());
-	  boolean touched_directly = !pristine_attr ||
-	    !values_equal(comterp(), *real_attr->Value(), *pristine_attr->Value());
-	  if (!touched_directly && copy_attr)
-	    *real_attr->Value() = *copy_attr->Value();
+	  Attribute* attr = al->GetAttr(it);
+	  int symid = attr->SymbolId();
+	  boolean was_present = false;
+	  for (int i=0; i<npresymids; i++)
+	    if (presymids[i]==symid) { was_present = true; break; }
+	  if (!was_present) newattrs[nnewattrs++] = attr;
 	}
-	Resource::unref(dispatch_al);
-	Resource::unref(pristine);
+	for (int i=0; i<nnewattrs; i++)
+	  al->Remove(newattrs[i]);
+	delete [] newattrs;
+	delete [] presymids;
+	al->sealed(true);
       }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
