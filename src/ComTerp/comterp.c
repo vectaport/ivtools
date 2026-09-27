@@ -430,6 +430,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      positional count is narg minus keyword values consumed, not narg-nkey */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
+  int* bareflags = nil; int nbareflags = 0; int nbareflags_cap = 0;
   /* seed al from this funcobj's declaration-time captures first,
      so an explicit :x val overrides one via add_attr's replace-by-symid */
   FuncObj* callee_fo = (FuncObj*)val.obj_val();
@@ -455,6 +456,19 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       int knarg = keyv.keynarg_val();
       if (knarg==0) {
 	al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
+	/* a bare flag's synthesized true is a this-call toggle, not a
+	   value the caller actually chose -- persisting it would force
+	   the capture true forever after one bare use, unlike :flag true
+	   which is an explicit, intentional value */
+	if (nbareflags==nbareflags_cap) {
+	  int newcap = nbareflags_cap ? nbareflags_cap*2 : 4;
+	  int* newset = new int[newcap];
+	  for (int k=0; k<nbareflags; k++) newset[k] = bareflags[k];
+	  delete [] bareflags;
+	  bareflags = newset;
+	  nbareflags_cap = newcap;
+	}
+	bareflags[nbareflags++] = keyv.keyid_val();
       } else {
 	/* knarg is 0 or 1 by construction, so knarg>1 is unreachable;
 	   this loop is general only for form's sake */
@@ -499,6 +513,10 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
     ALIterator cit;
     for (caps->First(cit); !caps->Done(cit); caps->Next(cit)) {
       Attribute* capattr = caps->GetAttr(cit);
+      boolean is_bare_flag = false;
+      for (int k=0; k<nbareflags; k++)
+        if (bareflags[k]==capattr->SymbolId()) { is_bare_flag = true; break; }
+      if (is_bare_flag) continue;
       Attribute* cur = al->GetAttr(capattr->SymbolId());
       /* a :posteval call's keyword can still be an unresolved
          FuncObjPendingArg if the body never read it -- that object is
@@ -508,6 +526,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
         *capattr->Value() = *cur->Value();
     }
   }
+  delete [] bareflags;
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {

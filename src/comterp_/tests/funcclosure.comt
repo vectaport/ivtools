@@ -217,5 +217,25 @@ ok=ok&&(r33=="f31()")
 print("15 x31=5; f31=func(attrlist(:k local(x31))); help(f31) (expect \"f31()\", no spurious :x31 capture): %v\n\n" r33)
 check_fail(:ok ok)
 
+// --- test 16: a bare flag keyword (:flag, no value) synthesizes true for
+// that one call only -- persisting it would force the capture true forever
+// after a single bare use, defeating the point of an optional flag.  An
+// explicit value (:flag true/:flag false) still persists as usual. ---
+f32=func(if(flag!=nil :then 1 :else 0))
+r34=f32()
+r35=f32(:flag)
+r36=f32()
+ok=ok&&(r34==0)&&(r35==1)&&(r36==0)
+print("16 f32=func(if(flag!=nil :then 1 :else 0)); f32() vs f32(:flag) vs f32() again (expect 0 1 0 -- bare flag doesn't persist): %v %v %v\n\n" r34 r35 r36)
+check_fail(:ok ok)
+
+f33=func(if(flag!=nil :then 1 :else 0))
+r37=f33()
+r38=f33(:flag true)
+r39=f33()
+ok=ok&&(r37==0)&&(r38==1)&&(r39==1)
+print("16b f33(:flag true) with an explicit value still persists (expect 0 1 1): %v %v %v\n\n" r37 r38 r39)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
