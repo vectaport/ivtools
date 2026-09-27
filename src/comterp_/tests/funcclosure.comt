@@ -287,5 +287,17 @@ ok=ok&&(r49==nil)&&(r50==true)&&(r51==true)
 print("18c obj37.m=func(if(flag!=nil :then flag=true); flag); obj37.m() vs obj37.m(:flag) vs obj37.m() again (expect nil true true -- body's own write of true still persists on a dot-bound call): %v %v %v\n\n" r49 r50 r51)
 check_fail(:ok ok)
 
+// --- test 18d: a bare keyword nested inside a positional argument's own
+// sub-expression (if()'s :err) must not be mistaken for the method's own
+// bare flag -- scanning raw tokens instead of top-level spans would
+// misattribute it and overrun the method's own bareflag bookkeeping ---
+obj38=(:m func(if(flag!=nil :then 1 :else 0)))
+r52=obj38.m(if(true :err))
+r53=obj38.m(if(true :err) :flag)
+r54=obj38.m(if(true :err))
+ok=ok&&(r52==0)&&(r53==1)&&(r54==0)
+print("18d obj38.m(if(true :err)) vs obj38.m(if(true :err) :flag) vs obj38.m(if(true :err)) again (expect 0 1 0 -- nested :err doesn't corrupt the method's own bare-flag tracking): %v %v %v\n\n" r52 r53 r54)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

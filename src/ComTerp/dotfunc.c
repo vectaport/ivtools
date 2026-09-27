@@ -24,6 +24,7 @@
 
 #include <ComTerp/dotfunc.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/postfixspan.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/postfunc.h>
@@ -159,12 +160,28 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   int npos = 0;
   /* a bare keyword token (narg==0) loses its bareness once echo folds it
      into a value -- record its symid here, before that happens, so its
-     injected value can be tagged with bareflag() below */
+     injected value can be tagged with bareflag() below.  PostfixSpanWalk
+     (not a raw token scan) is required to get only the method's own
+     top-level keywords -- a positional argument's own sub-expression
+     (if(true :err)) can carry keywords of its own, and a raw scan would
+     misattribute those to the method and overrun bareflag_symids. */
   int nbareflags = 0;
   int* bareflag_symids = method_nkey>0 ? new int[method_nkey] : nil;
-  for (int t=0; t<nargtoks-1; t++)
-    if (argtoks[t].type==TOK_KEYWORD && argtoks[t].narg==0)
-      bareflag_symids[nbareflags++] = argtoks[t].v.symbolid;
+  if (method_nkey>0) {
+    PostfixSpanWalk walk;
+    for (int t=0; t<nargtoks; t++) {
+      walk.step(argtoks, t);
+      if (t!=nargtoks-1) continue;
+      int nconsumed = walk.consumed_count();
+      for (int k=nconsumed-method_nkey; k<nconsumed; k++) {
+        if (k<0) continue;
+        PostfixSpanWalk::Span sp = walk.consumed(k);
+        int markeridx = sp.start + sp.count - 1;
+        if (argtoks[markeridx].type==TOK_KEYWORD && argtoks[markeridx].narg==0)
+          bareflag_symids[nbareflags++] = argtoks[markeridx].v.symbolid;
+      }
+    }
+  }
   if (method_narg>0 || method_nkey>0) {
     static int echo_symid = symbol_add("echo");
     method_tok.v.symbolid = echo_symid;
