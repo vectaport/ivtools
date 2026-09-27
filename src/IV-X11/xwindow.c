@@ -788,6 +788,12 @@ ApplicationWindow::ApplicationWindow(Glyph* g, const char* display)
 
 ApplicationWindow::~ApplicationWindow() { }
 
+void ApplicationWindow::set_attributes() {
+    Style& s = *style();
+    s.alias("ApplicationWindow");
+    ManagedWindow::set_attributes();
+}
+
 void ApplicationWindow::compute_geometry() {
     WindowRep& wr = *Window::rep();
     CanvasRep& c = *wr.canvas_->rep();
@@ -1038,10 +1044,10 @@ void WindowRep::resize(Window* w, unsigned int xwidth, unsigned int xheight) {
     allocation_.allot(Dimension_Y, Allotment(oy, ysize, oy / ysize));
     Extension ext;
     ext.clear();
-    init_renderer(w);
     if (resized_) {
-	glyph_->undraw();
+        glyph_->undraw();
     }
+    init_renderer(w);
     glyph_->allocate(canvas_, allocation_, ext);
     resized_ = true;
 }
@@ -2017,6 +2023,10 @@ void DisplayRep::set_dpi(Coord& pixel) {
  * if the window is known and is valid.  Because we don't keep track
  * of subwindows, it is possible to get an event for a subwindow after
  * the main window has been unmapped.  We must ignore such events.
+ *
+ * Damaged windows are repaired before the next event is read, so a
+ * continuous stream of ConfigureNotify events during an interactive
+ * resize can't starve repaint.
  */
 
 boolean Display::get(Event& event) {
@@ -2025,7 +2035,7 @@ boolean Display::get(Event& event) {
     e.display_ = this;
     XDisplay* dpy = d->display_;
     XEvent& xe = e.xevent_;
-    if (d->damaged_->count() != 0 && QLength(dpy) == 0) {
+    if (d->damaged_->count() != 0) {
 	repair();
     }
     if (!XPending(dpy)) {
