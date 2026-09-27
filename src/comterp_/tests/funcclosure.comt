@@ -157,5 +157,38 @@ ok=ok&&(r17==999)&&(r18==1)&&(r19==1)&&(z18==1)
 print("11 z18=1; f18=func(if(false :then z18=z18+9); z18 :posteval); f18(:z18 999) then f18() f18() (expect 999 1 1, z18 untouched): %v %v %v\n\n" r17 r18 r19)
 check_fail(:ok ok)
 
+// --- test 12: a variable that appears ONLY as a keyword's own bound
+// value (if()'s :then/:else branches) is still captured at declaration
+// time, exactly as an ordinary positional read would be -- it must not
+// silently fall through to live dynamic lookup ---
+a=true
+b=100
+c=100
+f20=func(if(a :then b :else c))
+r20=help(f20)
+ok=ok&&(r20=="f20(:a [true] :b [100] :c [100])")
+b=999
+r21=f20()
+ok=ok&&(r21==100)
+print("12 a=true;b=100;c=100;f20=func(if(a :then b :else c)); help(f20) then b=999;f20() (expect \"f20(:a [true] :b [100] :c [100])\" 100): %v %v\n\n" r20 r21)
+check_fail(:ok ok)
+
+// --- test 13: same gap, general form -- a variable passed as `:key var`
+// to any command (not just if()'s :then/:else) is captured too; a bare
+// flag keyword with no bound value at all (:err below) must not crash or
+// falsely capture anything ---
+d=10
+g20=func(attrlist(:x d))
+r22=help(g20)
+ok=ok&&(r22=="g20(:d [10])")
+d=999
+r23=g20()
+ok=ok&&(r23.x==10)
+j20=func(if(true :err))
+r24=help(j20)
+ok=ok&&(r24=="j20()")
+print("13 d=10; g20=func(attrlist(:x d)); help(g20) then d=999;g20().x (expect \"g20(:d [10])\" 10); j20=func(if(true :err)); help(j20) (expect \"j20()\"): %v %v %v\n\n" r22 r23.x r24)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
