@@ -430,10 +430,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      positional count is narg minus keyword values consumed, not narg-nkey */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
-  /* symids this call injected as a bare flag -- bareflag() alone isn't
-     enough to gate persistence, since a body write can copy a bare
-     flag's tagged value into an unrelated capture (other=flag) and
-     that capture must still persist on its own merits */
+  /* symids this call injected as a bare flag, gating bareflag() below
+     since a write can copy the tag into an unrelated capture (other=flag) */
   int nbareflags = 0;
   int* bareflags = val.nkey()>0 ? new int[val.nkey()] : nil;
   /* seed al from this funcobj's declaration-time captures first,
@@ -517,11 +515,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
          holding a dangling pointer; skip it and keep the prior default. */
       if (!cur || cur->Value()->is_object(FuncObjPendingArg::class_symid()))
         continue;
-      /* a bare flag's synthesized true skips persistence, unless the
-         body itself overwrote it with a real value of its own -- gated
-         on this capture's own symid, not just the tag, since a body
-         write can copy a bare flag's tagged value into another capture
-         (other=flag) that must still persist on its own merits */
+      /* an untouched bare flag skips persistence; gated by symid since a
+         write can copy the tag into another capture (other=flag) */
       boolean is_this_capture_bare = false;
       for (int k=0; k<nbareflags; k++)
         if (bareflags[k]==capattr->SymbolId()) { is_this_capture_bare = true; break; }
