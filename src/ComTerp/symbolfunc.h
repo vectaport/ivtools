@@ -231,6 +231,24 @@ public:
 };
 
 
+//: command to create a scratch variable private to the current func call
+// sym=temp(sym)|temp(sym)=val -- mark a symbol as belonging to the current
+// invocation's own temp frame, not the func's shared attrlist.  Needed only
+// once, at the assignment that creates the variable; every bare reference
+// to sym afterward, within the same call, resolves against the temp frame
+// automatically.  The frame is fresh per call and discarded when the call
+// returns, so a re-entrant call (e.g. one driven by update() from within
+// this call's own body) never sees or clobbers this call's temp variables.
+class TempSymbolFunc : public ComFunc {
+public:
+    TempSymbolFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "sym=%s(sym)|temp(sym)=val -- designate a symbol instance as private to the current func call"; }
+};
+
+
 //: command to extract a sub string
 // str=substr(str n :after :before) -- extract characters from a string
 class SubStrFunc : public ComFunc {

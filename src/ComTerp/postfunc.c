@@ -454,21 +454,28 @@ void FuncObjFunc::execute() {
     delete [] is_plain_var;
 
     AttributeList* captures = nil;
+    AttributeList* persistable = nil;
     ALIterator cit;
     for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
       Attribute* attr = classification->GetAttr(cit);
       int kind = attr->Value()->int_val();
-      if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+      if (kind & (FuncObjVarScan::ReadOnly | FuncObjVarScan::ReadBeforeWrite)) {
 	if (!captures) captures = new AttributeList();
 	/* use the ComValue& overload, not lookup_symval(int), for the
 	   full _alist/localtable/globaltable fallthrough */
 	ComValue symval(attr->SymbolId(), ComValue::SymbolType);
 	ComValue curval(comterp()->lookup_symval(symval));
 	captures->add_attr(attr->SymbolId(), curval);
+	if (kind & FuncObjVarScan::ReadBeforeWrite) {
+	  if (!persistable) persistable = new AttributeList();
+	  persistable->add_attr(attr->SymbolId(), ComValue::trueval());
+	}
       }
     }
     if (captures)
       tokbufobj->captures() = ComValue(AttributeList::class_symid(), (void*)captures);
+    if (persistable)
+      tokbufobj->persistable() = ComValue(AttributeList::class_symid(), (void*)persistable);
 
     ComValue retval(FuncObj::class_symid(), (void*)tokbufobj);
     retval.comterp(comterp());

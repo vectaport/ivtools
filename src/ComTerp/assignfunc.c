@@ -58,6 +58,7 @@ void AssignFunc::execute() {
         // set lhs_assign on its ComValue to distinguish lhs from rhs context
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
+        static int temp_symid = symbol_add("temp");
         static int at_symid = symbol_add("at");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();
@@ -69,7 +70,7 @@ void AssignFunc::execute() {
         if (startval.is_type(ComValue::CommandType)) {
             ComFunc* func = (ComFunc*)startval.obj_val();
             if (func->funcid() == global_symid || func->funcid() == local_symid ||
-                func->funcid() == at_symid)
+                func->funcid() == temp_symid || func->funcid() == at_symid)
                 startval.lhs_assign(1);
         }
         operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
@@ -100,6 +101,28 @@ void AssignFunc::execute() {
 	      delete oldval;
 	    }
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
+	} else if (operand1.temp_flag()) {
+	    /* temp() lvalue: write the call's own temp frame -- add_attribute()
+	       replaces by symid, so a later temp(x)=val on x just updates it. */
+	    AttributeList* tempframe = comterp()->get_tempframe();
+	    if (!tempframe) {
+	      cout << "WARNING:  temp() used outside any func call -- line "
+		   << funcstate()->linenum() << "\n";
+	      delete operand2;
+	      reset_stack();
+	      push_stack(ComValue::nullval());
+	      return;
+	    }
+	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
+	    tempframe->add_attribute(attr);
+	} else if (comterp()->get_tempframe() &&
+		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
+	    /* bare write to an existing temp() name: mirrors bare-write's usual
+	       rule (write where a bare read would find it) -- only the
+	       creating write needs temp(). */
+	    AttributeList* tempframe = comterp()->get_tempframe();
+	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
+	    tempframe->add_attribute(attr);
 	} else if (attrlist) {
 	    if (value_contains_container(*operand2, (void*)attrlist, true)) {
 	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",

@@ -29,6 +29,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <ComTerp/comvalue.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/iterator.h>
@@ -158,6 +159,9 @@ void HelpFunc::execute() {
   static int top_symid = symbol_add("top");
   ComValue topflag(stack_key(top_symid));
 
+  static int raw_symid = symbol_add("raw");
+  ComValue rawflag(stack_key(raw_symid));
+
   static int key_symid = symbol_add("key");
   ComValue keyval(stack_key(key_symid, true));
 
@@ -188,6 +192,27 @@ void HelpFunc::execute() {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
+	static int dot_symid = symbol_add("dot");
+	if (val.command_symid()==dot_symid && val.narg()==2) {
+	  /* help(a.f) -- fire the pending "dot" call via stack_arg_post_eval(),
+	     the same mechanism dot's own nested lookups use, and describe
+	     whatever it returns. symbol=true keeps the raw dotted-pair
+	     Attribute so a FuncObj there is labeled by its field name;
+	     anything else falls through to dot's own docstring below. */
+	  ComValue evalval = stack_arg_post_eval(i, true);
+	  FuncObj* fo = nil;
+	  if (evalval.class_symid()==Attribute::class_symid()) {
+	    Attribute* attr = (Attribute*) evalval.obj_val();
+	    if (attr->Value()->is_object(FuncObj::class_symid())) {
+	      fo = (FuncObj*) attr->Value()->obj_val();
+	      command_ids[i] = attr->SymbolId();
+	    }
+	  } else if (evalval.is_object(FuncObj::class_symid())) {
+	    fo = (FuncObj*) evalval.obj_val();
+	  }
+	  if (fo != nil)
+	    funcobj_help[i] = comterp()->describe_funcobj(fo, rawflag.is_true());
+	}
       } else if (val.is_type(AttributeValue::StringType)) {
  	void *vptr = nil;
 	comterp()->localtable()->find(vptr, val.string_val());
@@ -207,7 +232,7 @@ void HelpFunc::execute() {
 	     so it's safe to check what val names without firing it. */
 	  ComValue resolved(comterp()->lookup_symval(val));
 	  if (resolved.is_object(FuncObj::class_symid()))
-	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val());
+	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val(), rawflag.is_true());
 	}
 	else
 	  command_ids[i] = -1;

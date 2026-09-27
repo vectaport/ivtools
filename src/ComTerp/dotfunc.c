@@ -98,13 +98,20 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
-/* the unconditional counterpart for captures rather than keywords: a capture
-   was never something the caller passed at this call site, so it reverts every
-   time, written or not, and never leaves a permanent field on obj.  Otherwise
-   obj.bump=func(c=c+1) on a never-before-seen c leaves a :c field behind that
-   accumulates across calls instead of restarting from the capture. */
-static void restore_capture(AttributeList* al, KwPending& pending) {
+/* the counterpart for captures rather than keywords: a capture was never
+   something the caller passed at this call site, so its injected entry
+   always reverts or is removed from obj -- it never leaves a permanent
+   field there.  Otherwise obj.bump=func(c=c+1) on a never-before-seen c
+   leaves a :c field behind on obj instead of staying private to the
+   closure.  Before reverting, the body's possibly-mutated value is written
+   back into the FuncObj's own captures list, so the closure's next call
+   starts from wherever this call left it. */
+static void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captures) {
   Attribute* now = al->GetAttr(pending.symid);
+  if (now) {
+    Attribute* capattr = captures->GetAttr(pending.symid);
+    if (capattr) *capattr->Value() = *now->Value();
+  }
   if (!now) return;
   if (pending.existed)
     *now->Value() = pending.oldval;
@@ -262,8 +269,9 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   delete [] kwpending;
 
+  AttributeList* fo_captures = (AttributeList*) fo->captures().obj_val();
   for (int i=0; i<ncap; i++)
-    restore_capture(al, cappending[i]);
+    restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
 
   self->push_stack(result);

@@ -2417,13 +2417,7 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
 {
   int pipe1[2], pipe2[2];
 
-  if (filter)
-    cerr << "input filtered by " << filter << "\n";
-  else
-    cerr << "internally supported format, no filter required\n";
-
-
-  if (pipe(pipe1)==-1) 
+  if (pipe(pipe1)==-1)
     cerr << "error opening pipe for reading\n";
   if (filter) {
     if (pipe(pipe2)==-1)

@@ -165,6 +165,7 @@ void ComTerp::init() {
     _errbuf2[0] = '\0';
 
     _alist = nil;
+    _tempframe = nil;
     _brief = true;
     _just_reset = false;
     _defaults_added = false;
@@ -322,7 +323,7 @@ static void render_comvalue(ComValue& v, char* out, size_t outsize) {
    pinned down statically.  Keywords are read-only plus read-before-write;
    write-before-read is local scratch, not an input.  Escaping local()/global()
    vars go in a trailing annotation rather than the parens. */
-ComValue ComTerp::describe_funcobj(FuncObj* fo) {
+ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
   boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
   AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
   ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
@@ -361,7 +362,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
-    if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+    if (kind & (FuncObjVarScan::ReadOnly | FuncObjVarScan::ReadBeforeWrite)) {
       AttributeValue* defval = defaults->find(attr->SymbolId());
       /* a declaration-time capture can shadow the coded default,
          making it unreachable -- say so */
@@ -403,15 +404,19 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   }
   append_bounded(buf, sizeof(buf), pos, ")");
 
-  boolean any_escape = false;
-  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
-    Attribute* attr = classification->GetAttr(cit);
-    int kind = attr->Value()->int_val();
-    if (kind == FuncObjVarScan::EscapingLocal || kind == FuncObjVarScan::EscapingGlobal) {
-      append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
-                      symbol_pntr(attr->SymbolId()),
-                      kind == FuncObjVarScan::EscapingGlobal ? "global" : "local");
-      any_escape = true;
+  if (raw) {
+    boolean any_escape = false;
+    for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+      Attribute* attr = classification->GetAttr(cit);
+      int kind = attr->Value()->int_val();
+      if (kind & (FuncObjVarScan::EscapingLocal | FuncObjVarScan::EscapingGlobal |
+                  FuncObjVarScan::EscapingTemp)) {
+        const char* escname = kind & FuncObjVarScan::EscapingGlobal ? "global" :
+                               kind & FuncObjVarScan::EscapingTemp ? "temp" : "local";
+        append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                        symbol_pntr(attr->SymbolId()), escname);
+        any_escape = true;
+      }
     }
   }
 
@@ -487,6 +492,24 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
+  /* Persist read-before-write captures, including keyword overrides;
+     read-only overrides remain local to this call. */
+  if (callee_fo->persistable().is_object(AttributeList::class_symid())) {
+    AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
+    AttributeList* persistable = (AttributeList*)callee_fo->persistable().obj_val();
+    ALIterator cit;
+    for (persistable->First(cit); !persistable->Done(cit); persistable->Next(cit)) {
+      Attribute* pattr = persistable->GetAttr(cit);
+      Attribute* capattr = caps->GetAttr(pattr->SymbolId());
+      Attribute* cur = al->GetAttr(pattr->SymbolId());
+      /* a :posteval call's keyword can still be an unresolved
+         FuncObjPendingArg if the body never read it -- that object is
+         deleted just below, so persisting it here would leave captures()
+         holding a dangling pointer; skip it and keep the prior default. */
+      if (capattr && cur && !cur->Value()->is_object(FuncObjPendingArg::class_symid()))
+        *capattr->Value() = *cur->Value();
+    }
+  }
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
   for (int i=0; i<npos; i++) {
@@ -793,7 +816,18 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
 
     } else {
-      
+
+      if (_tempframe) {
+	int tid = sv.symbol_val();
+	AttributeValue* tval = _tempframe->find(tid);
+	if (tval && !tval->is_object(FuncObj::class_symid())) {
+	  ComValue newval(*tval);
+	  decr_stack(sv.narg() + sv.nkey());
+	  push_stack(newval);
+	  return;
+	}
+      }
+
       if (_alist) {
 	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
 	int id = sv.symbol_val();
@@ -1455,6 +1489,19 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
 
+	if (_tempframe) {
+	  AttributeValue* tval = _tempframe->find(comval.symbol_val());
+	  if (tval) {
+	    /* _tempframe entries are plain AttributeValues, not ComValues, but
+	       carry the narg/nkey/nids/flags block; restore_call_arity() preserves it */
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
+	    ComValue newval(*tval);
+	    *&comval = newval;
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
+	    return comval;
+	  }
+	}
+
 	if (_alist) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
@@ -1500,8 +1547,12 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval, boolean freeze) {
     if (comval->type() == ComValue::SymbolType) {
         void* vptr = nil;
 
-	/* search order: func scope (_alist) -> local -> global,
+	/* search order: temp frame -> func scope (_alist) -> local -> global,
 	   so a func-local var shadows a same-named outer one (else ++ mutates it) */
+	if (!comval->global_flag() && _tempframe) {
+	  AttributeValue* found = _tempframe->find(comval->symbol_val());
+	  if (found) return found;
+	}
 	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
 	  AttributeValue* found = _alist->find(id);
@@ -1935,6 +1986,7 @@ void ComTerp::add_defaults() {
     add_command("append", new AppendFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
     add_command("local", new LocalSymbolFunc(this));
+    add_command("temp", new TempSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
     add_command("substr", new SubStrFunc(this));
@@ -2007,6 +2059,14 @@ void ComTerp::set_attributes(AttributeList* alist) {
 }
 
 AttributeList* ComTerp::get_attributes() { return _alist;}
+
+void ComTerp::set_tempframe(AttributeList* tempframe) {
+    Unref(_tempframe);
+    _tempframe = tempframe;
+    Resource::ref(_tempframe);
+}
+
+AttributeList* ComTerp::get_tempframe() { return _tempframe; }
 
 int ComTerp::runfile(const char* filename, boolean popen_flag) {
     int old_runflag = running();
