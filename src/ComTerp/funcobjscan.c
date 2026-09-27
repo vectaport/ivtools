@@ -159,17 +159,21 @@ static void add_to_set(int*& set, int& n, int& cap, int symid) {
 }
 
 /* True iff span is exactly one plain-var token, OR a keyword's bound value
-   is -- PostfixSpanWalk::step's TOK_KEYWORD case bundles a keyword marker
-   together with its bound value into one span (span.start stays the
-   value's own token), so a bare variable passed as `:key var` needs
-   unwrapping here to be classifiable at all; a bare flag keyword (no
-   value, span.count==1) still names no variable.  Anything else, e.g. a
-   dot-chain target, is out of scope and simply produces no event. */
+   is exactly one plain-var token -- PostfixSpanWalk::step's TOK_KEYWORD
+   case bundles a keyword marker together with its bound value into one
+   span (span.start stays the value's own token), so a bare variable
+   passed as `:key var` needs unwrapping here to be classifiable at all.
+   Requiring span.count==2 (value token + marker) rather than merely >1
+   excludes a compound bound value such as `:key local(x)`, whose span
+   also starts at x's token even though the read actually goes through
+   local(), not a direct capture-eligible reference.  A bare flag keyword
+   (no value, span.count==1) still names no variable.  Anything else, e.g.
+   a dot-chain target, is out of scope and simply produces no event. */
 static boolean span_is_plain_var(PostfixSpanWalk::Span span, postfix_token* toks,
                                   boolean* is_plain_var) {
     int last = span.start + span.count - 1;
     if (toks[last].type == TOK_KEYWORD)
-        return span.count > 1 && is_plain_var[span.start];
+        return span.count == 2 && is_plain_var[span.start];
     return span.count == 1 && is_plain_var[span.start];
 }
 

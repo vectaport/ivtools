@@ -190,5 +190,32 @@ ok=ok&&(r24=="j20()")
 print("13 d=10; g20=func(attrlist(:x d)); help(g20) then d=999;g20().x (expect \"g20(:d [10])\" 10); j20=func(if(true :err)); help(j20) (expect \"j20()\"): %v %v %v\n\n" r22 r23.x r24)
 check_fail(:ok ok)
 
+// --- test 14: a self-bound method's keyword override on a read-only
+// capture persists as the new default too, the same as a plain (non-dot)
+// func() call already does -- the dot-bound call path applies such an
+// override through the same ephemeral-keyword mechanism as an ordinary
+// keyword, so it needs its own persist step back into the closure's
+// captures rather than reverting the override away entirely ---
+x30=5
+obj30=(:y 1)
+obj30.m = func(x30)
+r30=obj30.m()
+r31=obj30.m(:x30 7)
+r32=obj30.m()
+ok=ok&&(r30==5)&&(r31==7)&&(r32==7)
+print("14 x30=5; obj30.m=func(x30); obj30.m() vs obj30.m(:x30 7) vs obj30.m() again (expect 5 7 7): %v %v %v\n\n" r30 r31 r32)
+check_fail(:ok ok)
+
+// --- test 15: a keyword bound to a compound expression, not a bare
+// variable, must not be misread as a direct capture of that expression's
+// leading token -- `local(x)` reads x live through local(), so :x must
+// not show up in help() as a declaration-time capture ---
+x31=5
+f31=func(attrlist(:k local(x31)))
+r33=help(f31)
+ok=ok&&(r33=="f31()")
+print("15 x31=5; f31=func(attrlist(:k local(x31))); help(f31) (expect \"f31()\", no spurious :x31 capture): %v\n\n" r33)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

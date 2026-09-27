@@ -265,11 +265,25 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   comterp->set_attributes(old_alist);
   Unref(old_alist);
 
-  for (int i=0; i<nkw; i++)
+  /* a keyword that also names a capture never touched apply_kw's capture
+     branch above (the also_keyword skip at the capture loop), so it needs
+     its own persist step here -- otherwise it falls through to the plain
+     ephemeral-keyword revert below and the override is lost instead of
+     becoming the closure's new default, the same as a plain func() call
+     already does in fire_funcobj().  !existed rules out a name that is a
+     real field obj already owned before the call. */
+  AttributeList* fo_captures = fo->captures().is_object(AttributeList::class_symid()) ?
+    (AttributeList*) fo->captures().obj_val() : nil;
+  for (int i=0; i<nkw; i++) {
+    if (fo_captures && !kwpending[i].existed) {
+      Attribute* capattr = fo_captures->GetAttr(kwpending[i].symid);
+      Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
+      if (now) *capattr->Value() = *now->Value();
+    }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
+  }
   delete [] kwpending;
 
-  AttributeList* fo_captures = (AttributeList*) fo->captures().obj_val();
   for (int i=0; i<ncap; i++)
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
