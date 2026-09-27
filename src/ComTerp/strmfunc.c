@@ -1228,12 +1228,9 @@ void InfoFunc::execute() {
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
 
-  /* a bare symbol naming a func must be peeked via lookup_symval(), a pure
-     symbol-table read, before anything fires it -- an ordinary
-     stack_arg_post_eval(0) would call the func and hand back its return
-     value instead of the FuncObj itself (the same peek help() uses in
-     helpfunc.c to describe a func without calling it). Every other type
-     this command inspects is an ordinary value with nothing to auto-fire. */
+  /* a bare symbol naming a func is peeked via lookup_symval() (same as
+     help(), helpfunc.c) rather than stack_arg_post_eval(), which would
+     fire it and hand back its return value instead of the FuncObj. */
   ComValue peekval(stack_arg(0, true));
   FuncObj* peeked_fo = nil;
   if (peekval.is_type(AttributeValue::SymbolType)) {

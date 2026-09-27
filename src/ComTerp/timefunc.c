@@ -317,20 +317,21 @@ ComValue timeobj_to_colonlist(TimeObj* timeobj) {
     ComValue secval((int)sec);
     avl->Append(new AttributeValue(secval));
   } else {
+    /* the date/tz fields are always emitted, even for a dateless instant
+       (year()/month()/day() then read the epoch sentinel and tzoff() 0) --
+       a bare hr:min:sec list is colonlist_to_timeobj()'s duration grammar,
+       so omitting them would turn this instant into a duration on re-parse. */
     int yr = timeobj->year();
     int mon = timeobj->month();
     int day = timeobj->day();
-    boolean dated = !(yr==1970 && mon==1 && day==1);
 
-    if (dated) {
-      ComValue yrval(yr);
-      ComValue monval(symbol_add(Date::nameOfMonth(mon)), ComValue::SymbolType);
-      monval.bquote(1);
-      ComValue dayval(day);
-      avl->Append(new AttributeValue(yrval));
-      avl->Append(new AttributeValue(monval));
-      avl->Append(new AttributeValue(dayval));
-    }
+    ComValue yrval(yr);
+    ComValue monval(symbol_add(Date::nameOfMonth(mon)), ComValue::SymbolType);
+    monval.bquote(1);
+    ComValue dayval(day);
+    avl->Append(new AttributeValue(yrval));
+    avl->Append(new AttributeValue(monval));
+    avl->Append(new AttributeValue(dayval));
 
     int hr = timeobj->hour();
     ComValue hrval(hr==0 ? 24 : hr);
@@ -358,14 +359,12 @@ ComValue timeobj_to_colonlist(TimeObj* timeobj) {
       }
     }
 
-    if (dated) {
-      long off = timeobj->tzoff();
-      long aoff = off < 0 ? -off : off;
-      int tzh = (int)(aoff / 3600);
-      int tzm = (int)(aoff % 3600 / 60);
-      ComValue tzval((off < 0 ? -1 : 1) * (tzh*100 + tzm));
-      avl->Append(new AttributeValue(tzval));
-    }
+    long off = timeobj->tzoff();
+    long aoff = off < 0 ? -off : off;
+    int tzh = (int)(aoff / 3600);
+    int tzm = (int)(aoff % 3600 / 60);
+    ComValue tzval((off < 0 ? -1 : 1) * (tzh*100 + tzm));
+    avl->Append(new AttributeValue(tzval));
   }
 
   ComValue retval(avl);

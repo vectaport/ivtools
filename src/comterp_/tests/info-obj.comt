@@ -18,6 +18,7 @@ print("info-obj.comt version 1\n")
 //            round-trips through date(), unlike its printOn() text
 //   test 7:  info(timeobj) -- a live colon list round-tripping through
 //            time() for a dateless instant and for a duration alike
+//   test 8:  info(sockobj) -- (:host :port) against a real comterp server
 //
 // PipeObj is deliberately NOT exercised here -- constructing a real
 // bidirectional pipe (open(cmd "rw" :pipe), which forks via popen2())
@@ -100,6 +101,31 @@ i7b=info(t7b)
 ok7=(time(i7a)==t7a)&&(time(i7b)==t7b)
 ok=ok&&ok7
 print("7 time(info(t)) round-trips a dateless instant and a duration (expect true): %v\n" ok7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: info(sockobj) -- (:host :port) against a real comterp server ---
+errmsg(:clear)
+have_lsof8=shell("which lsof > /dev/null 2>&1")==0
+port8=22301
+if(have_lsof8 :then
+  while(shell(print("lsof -i :%d > /dev/null 2>&1" port8 :str))==0 port8=port8+1))
+shell(print("comterp server %d </dev/null > /dev/null 2>&1 &" port8 :str))
+if(have_lsof8 :then
+  cnt8=0;
+  while(cnt8<40 && shell(print("lsof -iTCP:%d -sTCP:LISTEN > /dev/null 2>&1" port8 :str))!=0
+    usleep(250000);cnt8=cnt8+1)
+:else
+  usleep(1000000))
+sock8=socket("127.0.0.1" port8)
+if(type(sock8)==`UnknownType :then
+  print("8 info(sockobj) (expect host/port) -- SKIPPED, server never listened on %d\n" port8)
+:else
+  i8=info(sock8);
+  ok8=(i8.host=="127.0.0.1")&&(i8.port==port8);
+  ok=ok&&ok8;
+  print("8 info(sockobj) against 127.0.0.1:%d (expect true): %v\n" port8 ok8);
+  remote(sock8 "exit" :nowait);
+  close(sock8))
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)

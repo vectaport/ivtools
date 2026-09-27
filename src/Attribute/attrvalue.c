@@ -882,12 +882,10 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* hook fires for the types ComTerp renders differently than this base
-       printer does -- ArrayType/StringType for the shared flags' ComTerp
-       meaning, ObjectType/StreamType so a value nested inside a list (which
-       only ever holds it as a plain AttributeValue&, never a ComValue&)
-       prints the same way it would at the top level. Other types print
-       correctly here regardless of which layer holds the reference. */
+    /* ArrayType/StringType: the hook gives their shared flags ComTerp's
+       own meaning. ObjectType/StreamType: a list holds a value as a plain
+       AttributeValue&, never a ComValue&, so the hook is what makes it
+       print the same nested as it would at the top level. */
     if (AttributeValue::_render_hook &&
         (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType ||
          sv.type() == AttributeValue::ObjectType || sv.type() == AttributeValue::StreamType))
