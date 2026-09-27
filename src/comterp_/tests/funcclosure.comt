@@ -248,6 +248,18 @@ ok=ok&&(r40==nil)&&(r41==8)&&(r42==8)
 print("17 f34=func(if(flag!=nil :then flag=8); flag); f34() vs f34(:flag) vs f34() again (expect nil 8 8 -- body's own write during the bare-flag call persists): %v %v %v\n\n" r40 r41 r42)
 check_fail(:ok ok)
 
+// --- test 17b: a body write that happens to write the same literal true
+// the bare flag synthesized still persists -- the untouched/written
+// distinction is tracked by a tag on the synthesized value, not by
+// comparing the final value against true ---
+f34b=func(if(flag!=nil :then flag=true); flag)
+r40b=f34b()
+r41b=f34b(:flag)
+r42b=f34b()
+ok=ok&&(r40b==nil)&&(r41b==true)&&(r42b==true)
+print("17b f34b=func(if(flag!=nil :then flag=true); flag); f34b() vs f34b(:flag) vs f34b() again (expect nil true true -- body's own write of true still persists): %v %v %v\n\n" r40b r41b r42b)
+check_fail(:ok ok)
+
 // --- test 18: a dot-bound method's bare flag keyword doesn't persist
 // either, matching a plain func's behavior; a body write during the same
 // bare-flag call still sticks ---
@@ -265,6 +277,14 @@ r47=obj36.m(:flag)
 r48=obj36.m()
 ok=ok&&(r46==nil)&&(r47==8)&&(r48==8)
 print("18b obj36.m=func(if(flag!=nil :then flag=8); flag); obj36.m() vs obj36.m(:flag) vs obj36.m() again (expect nil 8 8): %v %v %v\n\n" r46 r47 r48)
+check_fail(:ok ok)
+
+obj37=(:m func(if(flag!=nil :then flag=true); flag))
+r49=obj37.m()
+r50=obj37.m(:flag)
+r51=obj37.m()
+ok=ok&&(r49==nil)&&(r50==true)&&(r51==true)
+print("18c obj37.m=func(if(flag!=nil :then flag=true); flag); obj37.m() vs obj37.m(:flag) vs obj37.m() again (expect nil true true -- body's own write of true still persists on a dot-bound call): %v %v %v\n\n" r49 r50 r51)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)

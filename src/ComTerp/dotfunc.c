@@ -158,8 +158,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   AttributeList* kwlist = nil;
   int npos = 0;
   /* a bare keyword token (narg==0) loses its bareness once echo folds it
-     into a value -- record its symid here, before that happens, so a
-     synthesized true can be told apart from an explicit :key true */
+     into a value -- record its symid here, before that happens, so its
+     injected value can be tagged with bareflag() below */
   int nbareflags = 0;
   int* bareflag_symids = method_nkey>0 ? new int[method_nkey] : nil;
   for (int t=0; t<nargtoks-1; t++)
@@ -244,14 +244,20 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 	ALIterator it;
 	singleton->First(it);
 	Attribute* a = singleton->GetAttr(it);
-	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+	ComValue kwval(*a->Value());
+	for (int k=0; k<nbareflags; k++)
+	  if (bareflag_symids[k]==a->SymbolId()) { kwval.bareflag(1); break; }
+	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     } else if (kwlist) {
       ALIterator it;
       int i = 0;
       for (kwlist->First(it); !kwlist->Done(it); kwlist->Next(it), i++) {
 	Attribute* a = kwlist->GetAttr(it);
-	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+	ComValue kwval(*a->Value());
+	for (int k=0; k<nbareflags; k++)
+	  if (bareflag_symids[k]==a->SymbolId()) { kwval.bareflag(1); break; }
+	apply_kw(al, a->SymbolId(), kwval, kwpending[i]);
       }
     }
   }
@@ -284,14 +290,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
       /* a bare flag's synthesized true skips persistence, unless the
          body itself overwrote it with a real value of its own */
-      boolean is_untouched_bare_flag = false;
-      for (int k=0; k<nbareflags; k++) {
-        if (bareflag_symids[k]!=kwpending[i].symid) continue;
-        ComValue trueval(ComValue::trueval());
-        is_untouched_bare_flag = now && values_equal(comterp, *now->Value(), trueval);
-        break;
-      }
-      if (now && !is_untouched_bare_flag) *capattr->Value() = *now->Value();
+      if (now && !((ComValue*)now->Value())->bareflag()) *capattr->Value() = *now->Value();
     }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   }
