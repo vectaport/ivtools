@@ -98,6 +98,33 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
+/* a FuncObj used as a dot target exposes its own captures as a sealed
+   attrlist: existing entries read/write, no new ones can be added. */
+static AttributeList* funcobj_dot_attrlist(AttributeValue* funcval) {
+  FuncObj* fo = (FuncObj*) funcval->obj_val();
+  AttributeList* caps;
+  if (fo->captures().is_object(AttributeList::class_symid()))
+    caps = (AttributeList*) fo->captures().obj_val();
+  else {
+    caps = new AttributeList();
+    fo->captures() = ComValue(AttributeList::class_symid(), (void*)caps);
+  }
+  caps->sealed(true);
+  return caps;
+}
+
+/* the parser's placeholder for "nothing here" (e.g. a trailing dot with no
+   field after it) -- DotFunc treats it as if the rhs were simply absent.
+   nids()==0 tells this apart from a genuine call to the "empty" command
+   with no args (e.g. "f.empty()"): the placeholder's token is emitted with
+   a literal 0 there (_parser.c), while an actual parsed call always gets
+   a nonzero nids. */
+static boolean is_blank_rhs(ComValue& after_raw) {
+  static int empty_symid = symbol_add("empty");
+  return after_raw.is_command() && after_raw.command_symid()==empty_symid &&
+    after_raw.narg()==0 && after_raw.nkey()==0 && after_raw.nids()==0;
+}
+
 /* the counterpart for captures rather than keywords: a capture was never
    something the caller passed at this call site, so its injected entry
    always reverts or is removed from obj -- it never leaves a permanent
@@ -356,7 +383,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	!(before_part.is_attribute() &&
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
-	!before_part.is_attributelist()) {
+	!before_part.is_attributelist() &&
+	!before_part.is_object(FuncObj::class_symid())) {
 
       /* a list before "." is common (e.g. zoo.who("Ellie").moves) --
          give a specific error, not the generic type-mismatch one below */
@@ -413,7 +441,11 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     /* lookup value of before variable */
     void* vptr = nil;
     AttributeList* al = nil;
-    if (!before_part.is_attribute() && !before_part.is_attributelist()) {
+    boolean al_from_funcobj = false;
+    if (before_part.is_object(FuncObj::class_symid())) {
+      al = funcobj_dot_attrlist(&before_part);
+      al_from_funcobj = true;
+    } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
       /* func scope (_alist) is checked before local/global, same order
@@ -423,7 +455,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (fsval) {
 	if (fsval->is_attributelist())
 	  al = (AttributeList*) fsval->obj_val();
-	else {
+	else if (fsval->is_object(FuncObj::class_symid())) {
+	  al = funcobj_dot_attrlist(fsval);
+	  al_from_funcobj = true;
+	} else {
 	  al = new AttributeList();
 	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
 	  *fsval = newval;
@@ -437,6 +472,9 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	}
 	if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
 	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
+	} else if (vptr && ((ComValue*) vptr)->is_object(FuncObj::class_symid())) {
+	  al = funcobj_dot_attrlist((ComValue*) vptr);
+	  al_from_funcobj = true;
 	} else {
 	  al = new AttributeList();
 	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
@@ -457,20 +495,66 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else
       al = (AttributeList*) before_part.obj_val();
 
-    if (after_nids!=-1 && nargs()>1) {
+    /* a funcobj's dot with a blank rhs (e.g. "(f.)", the parser's "empty"
+       placeholder for a closing delimiter with nothing before it) acts as
+       if the rhs weren't there at all -- fall through to the bare form. */
+    boolean blank_rhs = al_from_funcobj && is_blank_rhs(after_raw);
+
+    if (!blank_rhs && after_nids!=-1 && nargs()>1) {
       /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval runs
          before reset_stack(); nargs()>1 + after_nids excludes dot(name) */
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
+      /* add_attr() never consults sealed() -- dispatch straight at the
+         real list, seal untouched, so a nested named-field write (even
+         through an alias) still rejects for the whole call. */
+      boolean was_sealed = al && al->sealed();
+      int npresymids = 0;
+      int* presymids = nil;
+      if (was_sealed) {
+	npresymids = al->Number();
+	if (npresymids>0) presymids = new int[npresymids];
+	ALIterator pit;
+	int pi = 0;
+	for (al->First(pit); !al->Done(pit); al->Next(pit))
+	  presymids[pi++] = al->GetAttr(pit)->SymbolId();
+      }
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
-    } else if (force_named_field || nargs()>1) {
+      /* strip any name the call's capture/keyword injection left behind
+         that wasn't already there before it. */
+      if (was_sealed) {
+	Attribute** newattrs = new Attribute*[al->Number()];
+	int nnewattrs = 0;
+	ALIterator it;
+	for (al->First(it); !al->Done(it); al->Next(it)) {
+	  Attribute* attr = al->GetAttr(it);
+	  int symid = attr->SymbolId();
+	  boolean was_present = false;
+	  for (int i=0; i<npresymids; i++)
+	    if (presymids[i]==symid) { was_present = true; break; }
+	  if (!was_present) newattrs[nnewattrs++] = attr;
+	}
+	for (int i=0; i<nnewattrs; i++)
+	  al->Remove(newattrs[i]);
+	delete [] newattrs;
+	delete [] presymids;
+      }
+    } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
         symbol_reference(after_symid);
       }
       reset_stack();
       Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
+      if (!attr && al && al->sealed()) {
+	/* a sealed attrlist (e.g. a func's own captures via dot) names no
+	   such entry -- report nil rather than growing the list. */
+	ComValue retval(ComValue::nullval());
+	retval.lhs_assign(1);
+	push_stack(retval);
+	return;
+      }
       if (!attr) {
 	attr = new Attribute(after_symid, new AttributeValue());
 	al->add_attribute(attr);

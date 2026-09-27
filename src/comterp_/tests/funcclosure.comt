@@ -339,5 +339,123 @@ ok=ok&&(r63==8)&&(r64==9)
 print("19d obj41.m=func(err=err+1; err); obj41.m(if(true :err) :err 7) then obj41.m() (expect 8 9 -- the body's write persists despite the same-named nested bare :err): %v %v\n\n" r63 r64)
 check_fail(:ok ok)
 
+// --- test 20: a plain func's name is a dot target onto its own captures --
+// dot(f) is a sealed attrlist (existing entries read/write, none addable);
+// f.y reads/writes the y capture directly, becoming the new default; a
+// non-existent name reads or writes as nil without growing the list ---
+y=42
+f50=func(y)
+r65=f50.y
+r66=(f50(:y 7))
+r67=f50()
+r68=(f50.y=7)
+r69=f50()
+r70=f50.z
+r71=(f50.z=1)
+r72=size(dot(f50))
+ok=ok&&(r65==42)&&(r66==7)&&(r67==42)&&(r68==7)&&(r69==7)&&(r70==nil)&&(r71==nil)&&(r72==1)
+print("20 f50=func(y); f50.y, f50(:y 7), f50(), f50.y=7, f50(), f50.z, f50.z=1, size(dot(f50)) (expect 42 7 42 7 7 nil nil 1): %v %v %v %v %v %v %v %v\n\n" r65 r66 r67 r68 r69 r70 r71 r72)
+check_fail(:ok ok)
+
+// --- test 20b: dot(f)@0 gives the first capture as a singleton attrlist,
+// and a func with no captures at all behaves the same way with an empty
+// sealed list -- nothing to read, nothing addable ---
+r73=print(dot(f50)@0 :str)
+nocap=func(1+1)
+r74=nocap.anything
+r75=(nocap.anything=1)
+r76=size(dot(nocap))
+r77=nocap()
+ok=ok&&(r73=="(:y 7)")&&(r74==nil)&&(r75==nil)&&(r76==0)&&(r77==2)
+print("20b dot(f50)@0, nocap=func(1+1); nocap.anything, nocap.anything=1, size(dot(nocap)), nocap() (expect (:y 7) nil nil 0 2): %v %v %v %v %v\n\n" r73 r74 r75 r76 r77)
+check_fail(:ok ok)
+
+// --- test 20c: a func-valued capture, called through the outer func's own
+// sealed dot target, still sees its own captures and any keyword supplied
+// at the call -- the seal on the outer func's list doesn't leak into the
+// inner call's scope ---
+z=0
+g51=func(z)
+f51=func(g51)
+r78=f51.g51(:z 3)
+r79=g51()
+ok=ok&&(r78==3)&&(r79==0)
+print("20c z=0;g51=func(z);f51=func(g51); f51.g51(:z 3) then g51() (expect 3 0 -- g51's own capture is untouched by the call-site keyword): %v %v\n\n" r78 r79)
+check_fail(:ok ok)
+
+// --- test 20d: a self-bound call through a sealed dot target still mutates
+// a field it shares with the outer func's own captures -- the seal blocks
+// adding a name, never writing one both funcs already capture ---
+w=0
+h52=func(w=w+1; w)
+f52=func(h52 w)
+r80=f52.h52()
+r81=f52.w
+r82=f52.h52()
+r83=f52.w
+ok=ok&&(r80==1)&&(r81==1)&&(r82==2)&&(r83==2)
+print("20d w=0;h52=func(w=w+1;w);f52=func(h52 w); f52.h52(), f52.w, f52.h52(), f52.w (expect 1 1 2 2 -- the shared w persists across calls): %v %v %v %v\n\n" r80 r81 r82 r83)
+check_fail(:ok ok)
+
+// --- test 20e: a blank rhs on a funcobj dot ("(f.)", the parser's "empty"
+// placeholder for nothing between the dot and the closing paren) acts as if
+// the rhs weren't there -- same as dot(f) itself ---
+y53=1
+f53=func(y53)
+r84=print((f53.) :str)
+r85=print(dot(f53) :str)
+r86=(f53.)@0
+ok=ok&&(r84==r85)&&(print(r86 :str)=="(:y53 1)")
+print("20e y53=1;f53=func(y53); (f53.)==dot(f53), (f53.)@0 (expect equal, (:y53 1)): %v %v\n\n" (r84==r85) r86)
+check_fail(:ok ok)
+
+// --- test 20f: a self-bound call through a sealed dot target must not gain
+// a permanent new field -- a keyword the callee writes as its own capture
+// is ephemeral to the dispatch copy, never reaching the sealed original ---
+g54=func(newcap=newcap+1; newcap)
+f54=func(g54)
+r87=f54.g54(:newcap 5)
+r88=size(dot(f54))
+r89=print(dot(f54) :str)
+ok=ok&&(r87==6)&&(r88==1)&&(r89=="(:g54 <FuncObj>)")
+print("20f g54=func(newcap=newcap+1;newcap);f54=func(g54); f54.g54(:newcap 5), size(dot(f54)), dot(f54) (expect 6 1 (:g54 <FuncObj>) -- newcap never joins f54's sealed captures): %v %v %v\n\n" r87 r88 r89)
+check_fail(:ok ok)
+
+// --- test 20g: a genuine call to a method literally named "empty" is not
+// swallowed by the blank-rhs shortcut -- it's treated like any other
+// nonexistent dot method (a func has no :empty capture here) ---
+y55=1
+f55=func(y55)
+r90=f55.empty()
+r91=(f55.)@0
+ok=ok&&(r90==nil)&&(print(r91 :str)=="(:y55 1)")
+print("20g y55=1;f55=func(y55); f55.empty() vs (f55.)@0 (expect nil (:y55 1) -- a real .empty() call isn't confused with a blank rhs): %v %v\n\n" r90 r91)
+check_fail(:ok ok)
+
+// --- test 20h: a nested dot expression that writes straight to a sealed
+// capture during a self-bound call (naming the outer func explicitly,
+// not going through the swapped scope) and a later bare read of that same
+// capture in the same call see one shared value, in call order ---
+w56=0
+h56=func(f56.w56=9; w56+1)
+f56=func(h56 w56)
+r92=f56.h56()
+r93=f56.w56
+ok=ok&&(r92==10)&&(r93==9)
+print("20h w56=0;h56=func(f56.w56=9;w56+1);f56=func(h56 w56); f56.h56(), f56.w56 (expect 10 9 -- the bare read sees the direct write that ran just before it, but a read alone doesn't persist a new default): %v %v\n\n" r92 r93)
+check_fail(:ok ok)
+
+// --- test 20i: an alias obtained via dot(f) before a self-bound call
+// stays subject to the seal for the whole call -- writing a nonexistent
+// name through it is rejected exactly as a direct dot-write would be ---
+g57=func(arg(0).z57=1)
+f57=func(g57 w57)
+a57=dot(f57)
+r94=f57.g57(a57)
+r95=size(dot(f57))
+ok=ok&&(r94==nil)&&(r95==2)
+print("20i g57=func(arg(0).z57=1);f57=func(g57 w57);a57=dot(f57); f57.g57(a57), size(dot(f57)) (expect nil 2 -- a saved alias can't grow the sealed list mid-call either): %v %v\n\n" r94 r95)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

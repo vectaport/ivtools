@@ -60,6 +60,7 @@ AttributeList::AttributeList (AttributeList* s) {
 #endif
     _alist = new AList;
     _count = 0;
+    _sealed = false;
     if (s != nil) {
         ALIterator i;
 

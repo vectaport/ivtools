@@ -117,6 +117,13 @@ public:
     // merge the contents of another AttributeList into this one,
     // replicating the AttributeValue as needed.
 
+    boolean sealed() { return _sealed; }
+    // true if no new entry may be added; an existing entry can still be
+    // read or reassigned either way.  False by default.
+
+    void sealed(boolean flag) { _sealed = flag; }
+    // set whether new entries are refused.
+
     static void print_attrlist(AttributeList* al);
     // print AttributeList to stdout
 
@@ -164,6 +171,7 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+    boolean _sealed;
 
     CLASS_SYMID("AttributeList");
 
