@@ -431,10 +431,9 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   int npos = val.narg();
   AttributeList* al = new AttributeList();
   /* symids this call supplied by keyword, gating kwoverride() below since
-     a write can copy the tag into an unrelated capture (other=flag) --
-     extra_keys carries its own count, since callers routing keywords
-     through it (NilFunc) zero val.nkey() first */
+     a write can copy the tag into an unrelated capture (other=flag). */
   int nkwoverrides = 0;
+  /* extra_keys carries its own count -- NilFunc zeroes val.nkey() first. */
   int max_kwoverrides = extra_keys ? extra_keys->Number() : val.nkey();
   int* kwoverride_symids = max_kwoverrides>0 ? new int[max_kwoverrides] : nil;
   /* seed al from this funcobj's declaration-time captures first,

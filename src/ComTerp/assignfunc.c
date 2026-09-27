@@ -210,6 +210,7 @@ void ModAssignFunc::execute() {
 	modfunc.funcid(symbol_add("mod"));
 	modfunc.exec(2,0);
 	ComValue result(pop_stack());
+	result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
         op1val->assignval(result);
 	push_stack(result);
     }
@@ -240,6 +241,7 @@ void MpyAssignFunc::execute() {
 	mpyfunc.funcid(symbol_add("mpy"));
 	mpyfunc.exec(2,0);
 	ComValue result(pop_stack());
+	result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
         op1val->assignval(result);
 	push_stack(result);
     }
@@ -269,6 +271,7 @@ void AddAssignFunc::execute() {
 	addfunc.funcid(symbol_add("add"));
 	addfunc.exec(2,0);
 	ComValue result(pop_stack());
+	result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
         op1val->assignval(result);
 	push_stack(result);
     }
@@ -299,6 +302,7 @@ void SubAssignFunc::execute() {
 	subfunc.funcid(symbol_add("sub"));
 	subfunc.exec(2,0);
 	ComValue result(pop_stack());
+	result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
         op1val->assignval(result);
 	push_stack(result);
     }
@@ -329,6 +333,7 @@ void DivAssignFunc::execute() {
 	divfunc.funcid(symbol_add("div"));
 	divfunc.exec(2,0);
 	ComValue result(pop_stack());
+	result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
         op1val->assignval(result);
 	push_stack(result);
     }
@@ -358,10 +363,11 @@ void IncrFunc::execute() {
 	    addfunc.funcid(symbol_add("add"));
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
+	    result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
             op1val->assignval(result);
 	    push_stack(result);
 	}
-    } else 
+    } else
         push_stack(ComValue::nullval());
 
 }
@@ -390,6 +396,7 @@ void IncrAfterFunc::execute() {
 	    addfunc.funcid(symbol_add("add"));
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
+	    result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
 	    push_stack(*op1val);
             op1val->assignval(result);
 	}
@@ -420,10 +427,11 @@ void DecrFunc::execute() {
 	    subfunc.funcid(symbol_add("sub"));
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
+	    result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
             op1val->assignval(result);
 	    push_stack(result);
 	}
-    } else 
+    } else
         push_stack(ComValue::nullval());
 
 }
@@ -451,6 +459,7 @@ void DecrAfterFunc::execute() {
 	    subfunc.funcid(symbol_add("sub"));
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
+	    result.kwoverride(0);   /* an operator's result may inherit a tag from its operand */
 	    push_stack(*op1val);
             op1val->assignval(result);
 	}
