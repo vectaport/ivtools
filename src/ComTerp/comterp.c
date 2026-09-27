@@ -423,6 +423,19 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
   return ComValue(buf);
 }
 
+/* whether a and b are the same ComTerp value, by the same rule the eq()
+   command uses -- not raw memory or type-tag comparison. */
+static boolean values_equal(ComTerp* comterp, AttributeValue& a, AttributeValue& b) {
+  ComValue va(a), vb(b);
+  comterp->push_stack(va);
+  comterp->push_stack(vb);
+  EqualFunc eqf(comterp);
+  eqf.funcid(symbol_add("eq"));
+  eqf.exec(2, 0);
+  ComValue result(comterp->pop_stack());
+  return result.is_true();
+}
+
 void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* lazy_posvals) {
   EvalFunc ef(this);
   ef.funcid(symbol_add("eval"));
@@ -521,9 +534,12 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       /* a bare flag's synthesized true skips persistence, unless the
          body itself overwrote it with a real value of its own */
       boolean is_untouched_bare_flag = false;
-      if (cur->Value()->is_boolean() && cur->Value()->is_true())
-        for (int k=0; k<nbareflags; k++)
-          if (bareflags[k]==capattr->SymbolId()) { is_untouched_bare_flag = true; break; }
+      for (int k=0; k<nbareflags; k++) {
+        if (bareflags[k]!=capattr->SymbolId()) continue;
+        ComValue trueval(ComValue::trueval());
+        is_untouched_bare_flag = values_equal(this, *cur->Value(), trueval);
+        break;
+      }
       if (is_untouched_bare_flag) continue;
       *capattr->Value() = *cur->Value();
     }

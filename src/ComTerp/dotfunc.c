@@ -157,6 +157,14 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   AttributeValueList* poslist = nil;
   AttributeList* kwlist = nil;
   int npos = 0;
+  /* a bare keyword token (narg==0) loses its bareness once echo folds it
+     into a value -- record its symid here, before that happens, so a
+     synthesized true can be told apart from an explicit :key true */
+  int nbareflags = 0;
+  int* bareflag_symids = method_nkey>0 ? new int[method_nkey] : nil;
+  for (int t=0; t<nargtoks-1; t++)
+    if (argtoks[t].type==TOK_KEYWORD && argtoks[t].narg==0)
+      bareflag_symids[nbareflags++] = argtoks[t].v.symbolid;
   if (method_narg>0 || method_nkey>0) {
     static int echo_symid = symbol_add("echo");
     method_tok.v.symbolid = echo_symid;
@@ -274,11 +282,21 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     if (fo_captures && !kwpending[i].existed) {
       Attribute* capattr = fo_captures->GetAttr(kwpending[i].symid);
       Attribute* now = capattr ? al->GetAttr(kwpending[i].symid) : nil;
-      if (now) *capattr->Value() = *now->Value();
+      /* a bare flag's synthesized true skips persistence, unless the
+         body itself overwrote it with a real value of its own */
+      boolean is_untouched_bare_flag = false;
+      for (int k=0; k<nbareflags; k++) {
+        if (bareflag_symids[k]!=kwpending[i].symid) continue;
+        ComValue trueval(ComValue::trueval());
+        is_untouched_bare_flag = now && values_equal(comterp, *now->Value(), trueval);
+        break;
+      }
+      if (now && !is_untouched_bare_flag) *capattr->Value() = *now->Value();
     }
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   }
   delete [] kwpending;
+  delete [] bareflag_symids;
 
   for (int i=0; i<ncap; i++)
     restore_capture(al, cappending[i], fo_captures);
