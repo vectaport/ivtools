@@ -111,8 +111,7 @@ prev_ok=check_fail(:ok ok)
 errmsg(:clear)
 have_lsof8=shell("which lsof > /dev/null 2>&1")==0
 if(!have_lsof8 :then
-  ok8=false;
-  print("8 info(sockobj) (expect host/port) -- FAIL, lsof not available to run this test safely\n")
+  print("8 info(sockobj) -- SKIPPED, lsof not available to run this test safely\n")
 :else
   port8=22301;
   while(shell(print("lsof -i :%d > /dev/null 2>&1" port8 :str))==0 port8=port8+1);
@@ -129,8 +128,8 @@ if(!have_lsof8 :then
     ok8=(i8.host=="127.0.0.1")&&(i8.port==port8);
     print("8 info(sockobj) against 127.0.0.1:%d (expect true): %v\n" port8 ok8);
     remote(sock8 "exit" :nowait);
-    close(sock8)))
-ok=ok&&ok8
+    close(sock8));
+  ok=ok&&ok8)
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)
