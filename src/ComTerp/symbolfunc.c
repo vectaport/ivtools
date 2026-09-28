@@ -282,6 +282,9 @@ void StringFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
+  static int comval_symid = symbol_add("comval");
+  ComValue comvalv(stack_key(comval_symid));
+  boolean comvalflag = comvalv.is_true();
   reset_stack();
 
   /* string(str) is a copy, not a capacity request: :raw copies the full
@@ -300,13 +303,18 @@ void StringFunc::execute() {
     return;
   }
 
-  int cap = capv.int_val();
+  /* string(n :comval) reserves n COMVALUE_CHUNK_BYTES-byte chunks, each an
+     @-indexed packed ComValue rather than a single char -- see issue #637.
+     Same capacity convention as a plain string(cap): cap is usable bytes,
+     not counting the guaranteed terminator. */
+  int cap = comvalflag ? capv.int_val()*COMVALUE_CHUNK_BYTES-1 : capv.int_val();
   int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
   if (newid<0) {
     push_stack(ComValue::nullval());
     return;
   }
   ComValue retval((unsigned int)newid, ComValue::StringType);
+  if (comvalflag) retval.blocksz(COMVALUE_CHUNK_BYTES);
   push_stack(retval);
 }
 

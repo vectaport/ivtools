@@ -61,6 +61,10 @@ class ComTerp;
 #define COMVALUE_TEMP_FLAG       0x40000000 // bit 30 -- set by temp() on its lvalue symbol -- write the call's temp frame, discarded when the call returns.
 #define COMVALUE_KWOVERRIDE_FLAG ((int)0x80000000) // bit 31 -- marks a call's keyword-supplied value; an ordinary assignment overwrites the whole ComValue with a freshly built one, clearing the bit, so its presence at call end means the body never touched the capture.
 
+#define COMVALUE_CHUNK_BYTES 40 // size of a string(n :comval) chunk: AttributeValue's
+                                // own member data (_type.._ext3), dropping ComValue's
+                                // _pedepth/_linenum -- see issue #637 for the byte layout.
+
 class ComValue : public AttributeValue {
 public:
     ComValue(const ComValue&);
@@ -204,12 +208,14 @@ public:
     // clear any explicit cap -- e.g. once append() reallocates to a fresh
     // backing, where the old cap (a limit against the old backing's
     // neighbor) no longer means anything.
-    int blocksz() const { return 0; }
-    // chunk size of a slice, in bytes -- always 0, an ordinary byte-granular
-    // slice.  The storage it once had went to sliced() and the flag bits
-    // above; a real implementation needs a field of its own again.
-    void blocksz(int sz) { }
-    // no-op -- see blocksz() above.
+    int blocksz() const { return type()==StringType ? _ext3 & 0xff : 0; }
+    // chunk size of a StringType value, in bytes -- 0 for an ordinary
+    // byte-granular string, nonzero for one built by string(n :comval),
+    // whose @ reads/writes a packed ComValue per blocksz()-byte chunk
+    // instead of a single char.  Shares _ext3's low byte with nids(),
+    // which is why nids() itself always reads 0 for a StringType.
+    void blocksz(int sz) { _ext3 = (_ext3 & ~0xff) | (sz & 0xff); }
+    // set the chunk size (0-255 bytes); only meaningful for a StringType.
 
     const char* cstr(std::string& scratch);
     // the slice-aware way to get a StringType value's text as a genuine C
@@ -302,6 +308,13 @@ public:
     // allocated (symbol_add(), interned, no spare room left for a next
     // append); true allocates 2x the needed length via symbol_new(), so a
     // run of append() calls amortizes to O(1) each the way Go's append does.
+
+    static ComValue comval_decode(const char* chunk);
+    // decode a COMVALUE_CHUNK_BYTES-byte string(n :comval) chunk back into a
+    // ComValue -- the reverse of the memcpy an @ assignment into such a
+    // string will write; ref_as_needed() picks up a share of whatever
+    // pointer/symid the chunk holds, matching the string buffer becoming
+    // another owner of it.
 
 protected:
     // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into

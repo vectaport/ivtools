@@ -649,3 +649,10 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
   return result;
 }
 
+ComValue ComValue::comval_decode(const char* chunk) {
+  ComValue val;
+  memcpy(&val._type, chunk, COMVALUE_CHUNK_BYTES);
+  val.ref_as_needed();
+  return val;
+}
+
