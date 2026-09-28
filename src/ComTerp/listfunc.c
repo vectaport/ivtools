@@ -121,15 +121,10 @@ void ListFunc::execute() {
 
   AttributeValueList* avl;
 
-  /* list(str :bytes [:hex]) -- the string's raw bytes, one list entry per
-     byte, whatever its blocktype(); each is a CharType (signed) value
-     printing as decimal (DecState), or with :hex a UCharType (unsigned)
-     value printing as 0x-hex (HexState) -- see operator<<'s CharType/
-     UCharType cases (attrvalue.c).  list(str) with no :bytes on a typed
-     (blocksz()>0) string instead decodes its chunks back into a list of
-     ComValues, via the same memcpy @ uses -- so values of different
-     ValueTypes packed into adjacent chunks come back out as themselves,
-     not as bytes. */
+  /* :bytes -- one list entry per raw byte, CharType (:hex UCharType)
+     with a Dec/HexState so it prints as decimal or 0x-hex. */
+  /* no :bytes on a typed (blocksz()>0) string -- decode its packed chunks
+     back into a list of ComValues instead of raw bytes. */
   if (listv.is_only_string() && (bytesflag || listv.blocksz()>0)) {
     const char* str = listv.string_ptr();
     boolean isslice = listv.sliced();
@@ -313,8 +308,16 @@ void ListAtFunc::execute() {
        is_only_string(), not is_string() -- symbol text is its identity */
     int nvv;
     if (listv.is_only_string()) {
-      const char* str = listv.string_ptr();
-      nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+      /* nil's last-index meaning is in chunks for a typed string, bytes
+         otherwise, matching the read/write path this index re-drives via :set. */
+      boolean isslice = listv.sliced();
+      int base = isslice ? listv.sliceoff() : 0;
+      int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+      int chunksz = listv.blocksz();
+      if (nv.is_nil())
+        nvv = chunksz>0 ? cap/chunksz-1 : (isslice ? cap-1 : (int)strlen(listv.string_ptr()+base)-1);
+      else
+        nvv = nv.int_val();
     } else {
       AttributeValueList* avl = listv.array_val();
       nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
@@ -332,12 +335,10 @@ void ListAtFunc::execute() {
 
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
-  /* stack_key() can't tell "missing :set" from "an explicit :set nil" --
-     both come back as plain nil -- so a manual keyword-presence scan (same
-     walk stack_key() itself does) settles which one this was, ahead of
-     reset_stack() invalidating the stack.  set_nil feeds the string
-     branches below, which treat an explicit nil as a real value to write
-     (the type's zero value), not as "nothing to set". */
+  /* stack_key() can't tell "missing :set" from "an explicit :set nil" (both
+     read back nil), so a keyword-presence scan settles it before reset_stack(). */
+  /* set_nil feeds the string branches below: an explicit nil is a real
+     value to write (the type's zero value), not "nothing to set". */
   boolean set_nil = false;
   if (setv.is_unknown()) {
     int count = nargs() + nkeys() - npops();
@@ -451,10 +452,10 @@ void ListAtFunc::execute() {
     int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
     int chunksz = listv.blocksz();
     if (chunksz>0) {
-      /* a string(n :type sym) value indexes whole chunksz-byte chunks,
-         decoding/encoding a packed ComValue rather than a single char.
-         Unlike a NUL-terminated string, a typed chunk array's capacity
-         is exactly n*chunksz, so no +1 adjustment. */
+      /* a typed string indexes whole chunksz-byte chunks, decoding/encoding
+         a packed ComValue rather than a single char. */
+      /* no +1 adjustment: unlike a NUL-terminated string, its capacity is
+         exactly n*chunksz. */
       int nchunks = cap/chunksz;
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
       if (!setflag && !set_nil) {
@@ -465,11 +466,10 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         if (nvv>=0 && nvv<nchunks) {
-          /* an explicit :set nil writes the chunk's zero value -- for
-             AnyType that's the all-zero UnknownType ComValue, nil being a
-             value AnyType can hold; for a scalar blocktype it's that
-             type's own zero, since every *_val() converter already
-             defaults an UnknownType source to 0 */
+          /* an explicit :set nil writes the chunk's zero value: for AnyType
+             that's the all-zero UnknownType ComValue, a value AnyType can hold. */
+          /* for a scalar blocktype it's that type's own zero, since every
+             *_val() converter already defaults an UnknownType source to 0. */
           ComValue newval(set_nil ? ComValue::nullval() : setv);
           ComValue::comval_encode((char*)str+base+nvv*chunksz, newval, listv.blocktype());
           ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
@@ -489,9 +489,9 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         /* is_string() also matches symbols, whose chars are their identity,
-           so writing here would edit every value sharing the symbol.
-           An explicit :set nil writes the zero byte, char_val()'s own
-           default for a type (like nil) it has no reading for. */
+           so writing here would edit every value sharing the symbol. */
+        /* an explicit :set nil writes the zero byte, char_val()'s own
+           default for a type it has no reading for. */
         if(nvv<cap && nvv>=0) {
           ComValue writeval = set_nil ? ComValue::nullval() : setv;
           *((char *)str+base+nvv) = writeval.char_val();

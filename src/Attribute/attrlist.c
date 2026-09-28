@@ -47,6 +47,7 @@ LeakChecker* AttributeValueList::_leakchecker = nil;
 LeakChecker* AttributeList::_leakchecker = nil;
 #endif
 
+implementTable(AttributeTable,int,Attribute*)
 
 /*****************************************************************************/
 using std::cerr;
@@ -59,6 +60,7 @@ AttributeList::AttributeList (AttributeList* s) {
     _leakchecker->create();
 #endif
     _alist = new AList;
+    _index = new AttributeTable(8);
     _count = 0;
     _sealed = false;
     if (s != nil) {
@@ -70,7 +72,7 @@ AttributeList::AttributeList (AttributeList* s) {
     }
 }
 
-AttributeList::~AttributeList () { 
+AttributeList::~AttributeList () {
 #ifdef LEAKCHECK
     _leakchecker->destroy();
 #endif
@@ -79,7 +81,12 @@ AttributeList::~AttributeList () {
 	for (First(i); !Done(i); Next(i)) {
 	  Resource::unref(GetAttr(i));
 	}
-	delete _alist; 
+	delete _alist;
+    }
+    if (_index) {
+        /* entries are non-owning -- the Attribute objects they point to were
+	   already freed by the _alist loop above. */
+        delete _index;
     }
 }
 
@@ -115,21 +122,21 @@ void AttributeList::add_attribute(Attribute* attr) {
 }
 
 int AttributeList::add_attr(Attribute* attr) {
-    ALIterator i;
-    for (First(i); !Done(i); Next(i)) {
-	Attribute* old_attr = GetAttr(i);
-	if (old_attr && attr->SymbolId() == old_attr->SymbolId()) {
-	    old_attr->Value(attr->Value());
-	    return -1;
-	}
+    Attribute* old_attr = nil;
+    if (_index->find(old_attr, attr->SymbolId())) {
+	old_attr->Value(attr->Value());
+	return -1;
     }
-    InsertBefore(i, attr);
+    Append(attr);
     Resource::ref(attr);
     attr->_owner = this;
+    _index->insert(attr->SymbolId(), attr);
     return 0;
 }
 
 Attribute* AttributeList::GetAttr (const char* n) {
+    // content scan, not symbol_find(): a symbol_new()-sourced name symid
+    // is never registered in symbol_find()'s reverse index.
     ALIterator i;
     for (First(i); !Done(i); Next(i)) {
 	Attribute* attr = GetAttr(i);
@@ -140,13 +147,9 @@ Attribute* AttributeList::GetAttr (const char* n) {
 }
 
 Attribute* AttributeList::GetAttr (int symid) {
-    ALIterator i;
-    for (First(i); !Done(i); Next(i)) {
-	Attribute* attr = GetAttr(i);
-	if (symid == attr->SymbolId())
-	    return attr;
-    }
-    return nil;
+    Attribute* attr = nil;
+    if (symid!=-1) _index->find(attr, symid);
+    return attr;
 }
 
 Attribute* AttributeList::Attr (AList* r) {
@@ -177,21 +180,31 @@ void AttributeList::InsertBefore (ALIterator i, Attribute* v) {
 
 void AttributeList::Remove (ALIterator& i) {
     AList* doomed = Elem(i);
+    int symid = Attr(doomed)->SymbolId();
 
     Next(i);
     _alist->Remove(doomed);
     delete doomed;
     --_count;
-}	
-    
+
+    Attribute* indexed = nil;
+    if (_index->find(indexed, symid))
+        _index->remove(symid);
+}
+
 void AttributeList::Remove (Attribute* p) {
     AList* temp;
 
     if ((temp = _alist->Find(p)) != nil) {
+        int symid = p->SymbolId();
 	_alist->Remove(temp);
         delete temp;
 	--_count;
         Resource::unref(p);
+
+	Attribute* indexed = nil;
+	if (_index->find(indexed, symid))
+	    _index->remove(symid);
     }
 }
 
@@ -264,16 +277,8 @@ AttributeValue* AttributeList::find(const char* name) {
 }
 
 AttributeValue* AttributeList::find(int symid) {
-    if (symid==-1)
-        return nil;
-    ALIterator i;
-    for (First(i); !Done(i); Next(i)) {
-	Attribute* attr = GetAttr(i);
-	if (attr->SymbolId() == symid) {
-	    return attr->Value();
-	}
-    }
-    return nil;
+    Attribute* attr = GetAttr(symid);
+    return attr ? attr->Value() : nil;
 }
 
 AttributeList* AttributeList::merge(AttributeList* al) {

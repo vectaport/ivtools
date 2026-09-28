@@ -84,10 +84,10 @@ void AssignFunc::execute() {
     /* clear any kwoverride() tag an operator's copy-constructed result
        carried over from an operand -- an assignment's RHS is always fresh */
     operand2->kwoverride(0);
-    /* the global/local/temp/attrlist/attribute branches below hand this
-       pointer to a persistent structure that deletes it later; every other
-       branch only reads *operand2 and must delete it itself once done, or
-       its ref on whatever Resource it holds is never released */
+    /* global/local/temp/attrlist/attribute branches hand this pointer to a
+       persistent structure that deletes it later. */
+    /* every other branch must delete operand2 itself once done, or its ref
+       on whatever Resource it holds is never released. */
     boolean operand2_owned = false;
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
@@ -128,9 +128,8 @@ void AssignFunc::execute() {
 	    operand2_owned = true;
 	} else if (comterp()->get_tempframe() &&
 		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
-	    /* bare write to an existing temp() name: mirrors bare-write's usual
-	       rule (write where a bare read would find it) -- only the
-	       creating write needs temp(). */
+	    /* bare write to an existing temp() name mirrors bare-write's usual
+	       rule (write where a bare read would find it): only the creating write needs temp(). */
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);

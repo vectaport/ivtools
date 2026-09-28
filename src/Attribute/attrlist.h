@@ -32,6 +32,7 @@
 #include <leakchecker.h>
 
 #include <OS/enter-scope.h>
+#include <OS/table.h>
 #include <InterViews/resource.h>
 #include <Attribute/classid.h>
 #include <Attribute/aliterator.h>
@@ -49,6 +50,16 @@ class AList;
 class Attribute;
 class AttributeValue;
 class ParamStruct;
+
+declareTable(AttributeTable,int,Attribute*)
+// symid-keyed lookup index for an AttributeList; a non-owning map onto
+// Attribute objects the list already owns via _alist, accelerating
+// GetAttr()/find() and add_attr()'s duplicate check without changing the
+// ordered AList's role as the authoritative iteration order. Values are
+// live Attribute pointers, not copies -- callers that resolve a func-scope
+// variable to an AttributeValue* and mutate it in place (e.g. an increment
+// operator via ComTerp::lookup_symval()) depend on identity with the
+// Attribute's own stored value, not just its current contents.
 
 //: list of Attribute objects, i.e. a property list.
 // An AttributeList is derived from Resource, so it is a reference-counted
@@ -170,6 +181,7 @@ protected:
     // clear 'attr's valueptr before deleting it; hence this is protected.
 
     AList* _alist;
+    AttributeTable* _index;
     unsigned int _count;
     boolean _sealed;
 

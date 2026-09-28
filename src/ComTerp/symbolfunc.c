@@ -254,15 +254,10 @@ StrRefFunc::StrRefFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void StrRefFunc::execute() {
-  /* read the count off the live stack slot directly -- copy-constructing a
-     local ComValue from it first (the previous approach) takes its own
-     transient ref via ref_as_needed(), inflating every reading by 1 for as
-     long as that copy stays alive. A bare symbol/variable argument still
-     carries one extra ref of its own here, from stack_arg() resolving it
-     into the stack slot in place -- that one is inherent to evaluating the
-     argument at all (any command reading a variable pays it, not just this
-     one) and isn't released until reset_stack() below, after the count is
-     already read; a literal argument carries no such ref. */
+  /* read the count off the live stack slot directly, not a copy -- a copy
+     would take its own transient ref_as_needed() ref, inflating the count. */
+  /* a bare symbol/variable argument still carries stack_arg()'s own
+     resolution ref, held until reset_stack() -- inherent to evaluating any variable. */
   ComValue& argv = stack_arg(0);
   ComValue retval;
   if (argv.type()==ComValue::StringType)
@@ -282,9 +277,8 @@ void StrRefFunc::execute() {
 StringFunc::StringFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-/* :type's value is always a bare symbol name (`AnyType, `FloatType, ...) --
-   the reverse of type_symid(ValueType); a linear scan over the closed
-   enum, same cost class as the table type_symid() itself builds. */
+/* the reverse of type_symid(ValueType): a linear scan over the closed enum,
+   same cost class as the table type_symid() itself builds. */
 static AttributeValue::ValueType valuetype_for_symid(int symid) {
   for (int t=AttributeValue::UnknownType; t<=AttributeValue::AnyType; t++)
     if (AttributeValue::type_symid((AttributeValue::ValueType)t) == symid)
@@ -310,9 +304,32 @@ void StringFunc::execute() {
      (cstr()'s C-string contract) -- see SLICES.md for the distinction. */
   if (capv.is_string()) {
     if (rawflag) {
-      ComValue dest("");
-      ComValue retval = dest.append_str(capv, true);
-      push_stack(retval);
+      if (capv.blocktype() != AttributeValue::UnknownType) {
+        /* a typed string's bytes are chunk-packed, not NUL-terminated text,
+           so copy the whole buffer directly (append_str() would cut it short at an embedded NUL). */
+        boolean isslice = capv.sliced();
+        int base = isslice ? capv.sliceoff() : 0;
+        int len = isslice ? capv.slicelen() : symbol_len(capv.string_val());
+        int newid = len>=0 ? symbol_new((unsigned)len, false) : -1;
+        if (newid<0) {
+          push_stack(ComValue::nullval());
+          return;
+        }
+        char* buf = (char*)symbol_pntr(newid);
+        memcpy(buf, capv.string_ptr()+base, len);
+        ComValue retval((unsigned int)newid, ComValue::StringType);
+        retval.blocktype(capv.blocktype());
+        if (capv.blocktype() == AttributeValue::AnyType)
+          /* the copied chunks alias capv's own Resource-backed values --
+             take an independent ref per chunk for this second owner. */
+          for (int off = 0; off + ATTRVALUE_CHUNK_BYTES <= len; off += ATTRVALUE_CHUNK_BYTES)
+            AttributeValue::ref_as_needed(buf + off);
+        push_stack(retval);
+      } else {
+        ComValue dest("");
+        ComValue retval = dest.append_str(capv, true);
+        push_stack(retval);
+      }
     } else {
       std::string scratch;
       ComValue retval(capv.cstr(scratch));
@@ -321,11 +338,10 @@ void StringFunc::execute() {
     return;
   }
 
-  /* string(n :type `AnyType) reserves n type_size(`AnyType)-byte chunks,
-     each an @-indexed packed ComValue rather than a single char. The
-     "-1 for the terminator" capacity convention is a NUL-terminated-
-     char-string idiom; a typed chunk array has no such
-     terminator, so it gets the full n*chunksz. */
+  /* string(n :type sym) reserves n chunksz-byte chunks, each an @-indexed
+     packed ComValue rather than a single char. */
+  /* no "-1 for the terminator": that's a NUL-terminated-string idiom, and
+     a typed chunk array has no terminator, so it gets the full n*chunksz. */
   AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
   int chunksz = 0;
   if (typeflag && typev.type()==ComValue::SymbolType) {

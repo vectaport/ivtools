@@ -716,10 +716,8 @@ void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueTy
     memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
     val.ref_as_needed();
   } else {
-    /* a scalar blocktype's chunk is a straight bit pattern for that C
-       type, not val's own -- e.g. writing a DoubleType 1.5 into a
-       FloatType chunk needs float_val()'s converted 4-byte pattern, not
-       double_val()'s 8-byte one truncated in place. */
+    /* a scalar blocktype's chunk holds that C type's own bit pattern, not
+       val's -- e.g. a FloatType chunk needs float_val()'s converted bytes. */
     ComValue converted;
     switch (blocktype) {
     case AttributeValue::CharType:   converted = ComValue(val.char_val()); break;
