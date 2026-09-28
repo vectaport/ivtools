@@ -53,9 +53,8 @@ void TypeSymbolFunc::execute() {
 
   if (all_flag) {
     /* the whole closed set in enum order, complete by construction;
-       ArrayType never appears since ListType covers it; AnyType is the
-       wildcard element type at the end, for a slot that carries a raw
-       ComValue of whatever type it holds */
+       ArrayType never appears since ListType covers it */
+    // AnyType trails the list, the wildcard slot for a raw ComValue
     reset_stack();
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);

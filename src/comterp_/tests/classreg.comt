@@ -1,7 +1,7 @@
 // src/comterp_/tests/classreg.comt -- class(:all) reports every class this
 // binary linked, whether or not one was ever built
 //
-// coverage: 11/14 (79%)
+// coverage: 12/15 (80%)
 // funcs: class size at lt func for
 // missing: class(:all :comps together) class(stress-wrong-type) !class(:all value)
 //
@@ -141,7 +141,7 @@ prev_ok=check_fail(:ok ok)
 // internally to walk a string-backed stream, never a value a script holds ---
 r15=inlist(lst `StringNextFunc)
 ok=ok&&(r15==false)
-print("15 StringNextFunc in class(:all) (expect false): %v\n" r15)
+print("15 inlist(lst `StringNextFunc) (expect false): %v\n" r15)
 prev_ok=check_fail(:ok ok)
 
 // --- test 16: every component class in :all is also in :comps.  A component
