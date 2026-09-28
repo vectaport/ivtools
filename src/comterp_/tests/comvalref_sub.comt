@@ -12,14 +12,14 @@
 
 t1="comvalref test string one, long enough to avoid short-string tricks"
 b1=strref(t1)
-s1=string(2 :type `AnyType)
+s1=string(2 `AnyType)
 s1@0=t1
 a1=strref(t1)
 d1=a1-b1
 
 t2a="comvalref overwrite target A, long enough string literal here"
 t2b="comvalref overwrite target B, a different long literal here too"
-s2=string(1 :type `AnyType)
+s2=string(1 `AnyType)
 s2@0=t2a
 base2a=strref(t2a)
 base2b=strref(t2b)
@@ -28,14 +28,14 @@ d2a=base2a-strref(t2a)
 d2b=strref(t2b)-base2b
 
 t3="comvalref nil-clear target, long enough literal string here"
-s3=string(1 :type `AnyType)
+s3=string(1 `AnyType)
 s3@0=t3
 base3=strref(t3)
 s3@0=nil
 d3=base3-strref(t3)
 
 t4="comvalref read-only target, long enough literal string right here"
-s4=string(1 :type `AnyType)
+s4=string(1 `AnyType)
 s4@0=t4
 base4=strref(t4)
 s4@0
@@ -50,14 +50,14 @@ l5@0=t5
 d5=strref(t5)-base5
 
 t6="comvalref release target, long enough literal string right here too"
-s6=string(1 :type `AnyType)
+s6=string(1 `AnyType)
 s6@0=t6
 base6=strref(t6)
 s6=nil
 d6=strref(t6)-base6
 
 t7="comvalref append-growth target, long enough literal string here too"
-s7=string(1 :type `AnyType)
+s7=string(1 `AnyType)
 s7@0=t7
 base7=strref(t7)
 s7=append(s7 "unrelated")
