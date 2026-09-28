@@ -135,11 +135,8 @@ int AttributeList::add_attr(Attribute* attr) {
 }
 
 Attribute* AttributeList::GetAttr (const char* n) {
-    /* compares n's actual text, not a symbol_find() reverse lookup -- a
-       symbol_new()-sourced symid (e.g. a writable string buffer used as
-       a name) is deliberately never registered there, so this must scan
-       by content to find every attribute, not just symbol_add()-interned
-       ones. */
+    // content scan, not symbol_find(): a symbol_new()-sourced name symid
+    // is never registered in symbol_find()'s reverse index.
     ALIterator i;
     for (First(i); !Done(i); Next(i)) {
 	Attribute* attr = GetAttr(i);
