@@ -153,7 +153,7 @@ void ListFunc::execute() {
       int chunksz = listv.blocksz();
       int nchunks = cap/chunksz;
       for (int i=0; i<nchunks; i++) {
-	ComValue elt = ComValue::comval_decode(str+base+i*chunksz);
+	ComValue elt = ComValue::comval_decode(str+base+i*chunksz, listv.blocktype());
 	avl->Append(new AttributeValue(elt));
       }
     }
@@ -459,18 +459,20 @@ void ListAtFunc::execute() {
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
       if (!setflag && !set_nil) {
         if (nvv>=0 && nvv<nchunks) {
-          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz);
+          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
           push_stack(retval);
           return;
         }
       } else if (listv.is_only_string()) {
         if (nvv>=0 && nvv<nchunks) {
-          /* an explicit :set nil writes the chunk's zero value (UnknownType,
-             every field cleared) rather than leaving the chunk untouched --
-             nil is itself a value AnyType can hold */
+          /* an explicit :set nil writes the chunk's zero value -- for
+             AnyType that's the all-zero UnknownType ComValue, nil being a
+             value AnyType can hold; for a scalar blocktype it's that
+             type's own zero, since every *_val() converter already
+             defaults an UnknownType source to 0 */
           ComValue newval(set_nil ? ComValue::nullval() : setv);
-          ComValue::comval_encode((char*)str+base+nvv*chunksz, newval);
-          ComValue retval(newval);
+          ComValue::comval_encode((char*)str+base+nvv*chunksz, newval, listv.blocktype());
+          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
           push_stack(retval);
           return;
         }

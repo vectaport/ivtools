@@ -1356,6 +1356,12 @@ void InfoFunc::execute() {
     ComValue blocktypev(AttributeValue::type_symid(streamv.blocktype()), ComValue::SymbolType);
     blocktypev.bquote(1);
     al->add_attr(blocktype_sym, blocktypev);
+    if (streamv.blocksz()>0) {
+      static int nblocks_sym = symbol_add("nblocks");
+      int cap = streamv.sliced() ? streamv.slicelen() : symbol_len(streamv.string_val());
+      ComValue nblocksv(cap/streamv.blocksz());
+      al->add_attr(nblocks_sym, nblocksv);
+    }
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;

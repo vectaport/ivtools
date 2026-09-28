@@ -303,15 +303,22 @@ public:
     // append); true allocates 2x the needed length via symbol_new(), so a
     // run of append() calls amortizes to O(1) each the way Go's append does.
 
-    static ComValue comval_decode(const char* chunk);
-    // decode an ATTRVALUE_CHUNK_BYTES-byte string(n :type `AnyType) chunk
-    // back into a ComValue -- the reverse of comval_encode()'s memcpy;
+    static ComValue comval_decode(const char* chunk, AttributeValue::ValueType blocktype);
+    // decode a string(n :type sym) chunk back into a ComValue of type
+    // blocktype.  blocktype==AnyType is the full ATTRVALUE_CHUNK_BYTES
+    // AttributeValue packing (the reverse of comval_encode()'s memcpy;
     // ref_as_needed() picks up a share of whatever pointer/symid the chunk
-    // holds, matching the string buffer becoming another owner of it.
-    static void comval_encode(char* chunk, ComValue& val);
-    // encode val's raw member data into an ATTRVALUE_CHUNK_BYTES-byte chunk,
-    // unref'ing whatever value was there and ref_as_needed()-ing val to
-    // account for the chunk becoming a second owner of its pointer/symid.
+    // holds, matching the string buffer becoming another owner of it).
+    // Any other blocktype is a plain scalar (Char..Double): the chunk is
+    // exactly type_size(blocktype) bytes, read directly into the new
+    // value's own raw storage -- no pointer type has a type_size() other
+    // than AnyType, so there's nothing to ref.
+    static void comval_encode(char* chunk, ComValue& val, AttributeValue::ValueType blocktype);
+    // encode val's raw data into a blocktype chunk, the reverse of
+    // comval_decode() above.  blocktype==AnyType unrefs whatever value was
+    // there and ref_as_needed()-s val, accounting for the chunk becoming a
+    // second owner of its pointer/symid; a scalar blocktype is a plain
+    // memcpy of type_size(blocktype) bytes, nothing to ref either side.
 
 protected:
     // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into

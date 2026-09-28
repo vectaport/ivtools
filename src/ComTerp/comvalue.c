@@ -656,17 +656,44 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
   return result;
 }
 
-ComValue ComValue::comval_decode(const char* chunk) {
+ComValue ComValue::comval_decode(const char* chunk, AttributeValue::ValueType blocktype) {
   ComValue val;
-  memcpy(&val._type, chunk, ATTRVALUE_CHUNK_BYTES);
-  val.ref_as_needed();
+  if (blocktype == AttributeValue::AnyType) {
+    memcpy(&val._type, chunk, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    val.type(blocktype);
+    memcpy(&val._v, chunk, AttributeValue::type_size(blocktype));
+  }
   return val;
 }
 
-void ComValue::comval_encode(char* chunk, ComValue& val) {
-  ComValue old = ComValue::comval_decode(chunk);
-  old.unref_as_needed();
-  memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
-  val.ref_as_needed();
+void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueType blocktype) {
+  if (blocktype == AttributeValue::AnyType) {
+    ComValue old = ComValue::comval_decode(chunk, blocktype);
+    old.unref_as_needed();
+    memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    /* a scalar blocktype's chunk is a straight bit pattern for that C
+       type, not val's own -- e.g. writing a DoubleType 1.5 into a
+       FloatType chunk needs float_val()'s converted 4-byte pattern, not
+       double_val()'s 8-byte one truncated in place. */
+    ComValue converted;
+    switch (blocktype) {
+    case AttributeValue::CharType:   converted = ComValue(val.char_val()); break;
+    case AttributeValue::UCharType:  converted = ComValue(val.uchar_val()); break;
+    case AttributeValue::ShortType:  converted = ComValue(val.short_val()); break;
+    case AttributeValue::UShortType: converted = ComValue(val.ushort_val()); break;
+    case AttributeValue::IntType:    converted = ComValue(val.int_val()); break;
+    case AttributeValue::UIntType:   converted = ComValue(val.uint_val(), AttributeValue::UIntType); break;
+    case AttributeValue::LongType:   converted = ComValue(val.long_val()); break;
+    case AttributeValue::ULongType:  converted = ComValue(val.ulong_val()); break;
+    case AttributeValue::FloatType:  converted = ComValue(val.float_val()); break;
+    case AttributeValue::DoubleType: converted = ComValue(val.double_val()); break;
+    default: converted = val; break;
+    }
+    memcpy(chunk, &converted._v, AttributeValue::type_size(blocktype));
+  }
 }
 
