@@ -174,12 +174,15 @@ public:
 //: attrlist command for ComTerp.
 // attrlst=attrlist([:<name> [val]] ...) -- create attribute list from keyword/value pairs.
 // Keyword-only (no value) sets attribute to true. Missing attribute returns nil.
+// :bincnt sizes the returned list's symid lookup index; 0 disables it, so
+// GetAttr()/find()/add_attr() fall back to a linear scan (see
+// AttributeList::index_size(), echoed via info(al :sym)).
 class AttrListFunc : public ComFunc {
 public:
     AttrListFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "alst=%s([:<name> [val]] ...) -- create attribute list from keyword/value pairs"; }
+      return "alst=%s([:<name> [val]] :bincnt) -- create attribute list from keyword/value pairs"; }
 };
 
 #endif /* !defined(_listfunc_h) */

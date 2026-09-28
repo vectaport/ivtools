@@ -207,8 +207,27 @@ AttrListFunc::AttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void AttrListFunc::execute() {
-    AttributeList* al = stack_keys();
+    static int bincnt_symid = symbol_add("bincnt");
+    ComValue bincntv(stack_key(bincnt_symid));
+    AttributeList* raw = stack_keys();
     reset_stack();
+
+    /* :bincnt sizes the returned list's symid index (0 disables it,
+       falling back to a linear scan) -- stack_keys() already copied it
+       in as an ordinary attribute, so rebuild into a list constructed
+       with the requested size and drop that attribute from the copy */
+    AttributeList* al = raw;
+    if (bincntv.is_int()) {
+      al = new AttributeList(nil, bincntv.int_val());
+      ALIterator i;
+      for (raw->First(i); !raw->Done(i); raw->Next(i)) {
+        Attribute* attr = raw->GetAttr(i);
+        if (attr->SymbolId() != bincnt_symid)
+          al->add_attribute(new Attribute(*attr));
+      }
+      delete raw;
+    }
+
     ComValue retval(AttributeList::class_symid(), al);
     push_stack(retval);
 }
