@@ -122,12 +122,13 @@ void ListFunc::execute() {
   AttributeValueList* avl;
 
   /* list(str :bytes [:hex]) -- the string's raw bytes, one list entry per
-     byte, whatever its blocktype(); :hex renders each as a 2-digit hex
-     string, otherwise each is a plain 0-255 int.  list(str) with no
-     :bytes on a typed (blocksz()>0) string instead decodes its chunks
-     back into a list of ComValues, via the same memcpy @ uses -- so
-     values of different ValueTypes packed into adjacent chunks come back
-     out as themselves, not as bytes. */
+     byte, whatever its blocktype(); each is a CharType (signed) value, or
+     a UCharType (unsigned) value with :hex -- print()'s own %x verb reads
+     either as hex from there.  list(str) with no :bytes on a typed
+     (blocksz()>0) string instead decodes its chunks back into a list of
+     ComValues, via the same memcpy @ uses -- so values of different
+     ValueTypes packed into adjacent chunks come back out as themselves,
+     not as bytes. */
   if (listv.is_only_string() && (bytesflag || listv.blocksz()>0)) {
     const char* str = listv.string_ptr();
     boolean isslice = listv.sliced();
@@ -137,12 +138,10 @@ void ListFunc::execute() {
     if (bytesflag) {
       for (int i=0; i<cap; i++) {
 	unsigned char b = (unsigned char)*(str+base+i);
-	if (hexflag) {
-	  char hexbuf[3];
-	  snprintf(hexbuf, sizeof(hexbuf), "%02x", b);
-	  avl->Append(new AttributeValue(hexbuf));
-	} else
-	  avl->Append(new AttributeValue((int)b, ComValue::IntType));
+	if (hexflag)
+	  avl->Append(new AttributeValue(b));
+	else
+	  avl->Append(new AttributeValue((char)b));
       }
     } else {
       int chunksz = listv.blocksz();

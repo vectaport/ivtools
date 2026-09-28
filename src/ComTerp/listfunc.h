@@ -67,8 +67,8 @@ public:
 	":attr      make attribute list",
 	":size n    make list of size n",
 	":colon     tag the result coloned(), same as ':' itself builds",
-	":bytes     a string's raw bytes as a list of ints (or use with :hex)",
-	":hex       with :bytes, render each byte as a 2-digit hex string",
+	":bytes     a string's raw bytes as a list of CharType values",
+	":hex       with :bytes, UCharType values instead of CharType",
 	nil
       };
       return keys;
