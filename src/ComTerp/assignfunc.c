@@ -84,6 +84,11 @@ void AssignFunc::execute() {
     /* clear any kwoverride() tag an operator's copy-constructed result
        carried over from an operand -- an assignment's RHS is always fresh */
     operand2->kwoverride(0);
+    /* the global/local/temp/attrlist/attribute branches below hand this
+       pointer to a persistent structure that deletes it later; every other
+       branch only reads *operand2 and must delete it itself once done, or
+       its ref on whatever Resource it holds is never released */
+    boolean operand2_owned = false;
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
 	/* global() lvalue tested before func-frame branch; old-value cleanup reads
@@ -95,6 +100,7 @@ void AssignFunc::execute() {
 	      delete oldval;
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
+	    operand2_owned = true;
 	} else if (operand1.local_flag()) {
 	    /* local() lvalue: write the default (per-instance) symbol table,
 	       skipping any func frame -- the session-scope escape */
@@ -104,6 +110,7 @@ void AssignFunc::execute() {
 	      delete oldval;
 	    }
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
+	    operand2_owned = true;
 	} else if (operand1.temp_flag()) {
 	    /* temp() lvalue: write the call's own temp frame -- add_attribute()
 	       replaces by symid, so a later temp(x)=val on x just updates it. */
@@ -118,6 +125,7 @@ void AssignFunc::execute() {
 	    }
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);
+	    operand2_owned = true;
 	} else if (comterp()->get_tempframe() &&
 		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
 	    /* bare write to an existing temp() name: mirrors bare-write's usual
@@ -126,6 +134,7 @@ void AssignFunc::execute() {
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);
+	    operand2_owned = true;
 	} else if (attrlist) {
 	    if (value_contains_container(*operand2, (void*)attrlist, true)) {
 	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
@@ -140,11 +149,13 @@ void AssignFunc::execute() {
 					    operand2);
 	    attrlist->add_attribute(attr);
 	    Unref(attrlist);
+	    operand2_owned = true;
 	}
 	else {
 	    /* bare write mirrors a bare read's own scoping: local if present,
 	       else the existing global, else a fresh local -- see SLICES.md */
 	    comterp()->assign_symval(operand1.symbol_val(), operand2);
+	    operand2_owned = true;
 	}
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();
@@ -158,6 +169,7 @@ void AssignFunc::execute() {
 	return;
       }
       attr->Value(operand2);
+      operand2_owned = true;
     } else if (operand1.is_array() && operand1.lhs_assign()) {
       /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,
          so complete the write by re-driving at() with a real :set keyword */
@@ -188,9 +200,11 @@ void AssignFunc::execute() {
 	cout << "comterp stack:  ";
         print_stack_arg_post_eval(0);
 	delete operand2;
+	operand2_owned = true;
     }
     reset_stack();
     push_stack(*operand2);
+    if (!operand2_owned) delete operand2;
 }
 
 ModAssignFunc::ModAssignFunc(ComTerp* comterp) : AssignFunc(comterp) {
