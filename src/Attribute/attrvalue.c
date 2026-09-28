@@ -56,6 +56,20 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 
 /*****************************************************************************/
 
+// ComTerp object classes (FuncObj, FileObj, SocketObj) are Resource-derived
+// and refcounted like AttributeList/Attribute below, but Attribute is a
+// lower layer than ComTerp, so their class ids are looked up by name
+// (symbol_add() is idempotent -- see Attribute/_comutil.h) rather than by
+// including their headers.
+static boolean is_comterp_object_classid(unsigned int classid) {
+  static int funcobj_symid = symbol_add("FuncObj");
+  static int fileobj_symid = symbol_add("FileObj");
+  static int socketobj_symid = symbol_add("SocketObj");
+  return classid==(unsigned int)funcobj_symid ||
+         classid==(unsigned int)fileobj_symid ||
+         classid==(unsigned int)socketobj_symid;
+}
+
 int* AttributeValue::_type_syms = nil;
 AttributeValue::RenderHook AttributeValue::_render_hook = nil;
 
@@ -268,6 +282,8 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
       Resource::ref((Attribute*)ptr);
     else if (classid==AttributeList::class_symid())
       Resource::ref((AttributeList*)ptr);
+    else if (is_comterp_object_classid(classid))
+      Resource::ref((Resource*)ptr);
 }
 
 AttributeValue::AttributeValue(ComponentView* view, int compid) { 
@@ -1323,10 +1339,12 @@ void AttributeValue::ref_as_needed() {
     else if (_type == AttributeValue::ObjectType) {
       if (object_compview())
 	Resource::ref((ComponentView*)_v.objval.ptr);
-      else if (obj_type_val()==AttributeList::class_symid()) 
+      else if (obj_type_val()==AttributeList::class_symid())
 	Resource::ref((AttributeList*)_v.objval.ptr);
-      else if (obj_type_val()==Attribute::class_symid()) 
+      else if (obj_type_val()==Attribute::class_symid())
 	Resource::ref((Attribute*)_v.objval.ptr);
+      else if (is_comterp_object_classid(obj_type_val()))
+        Resource::ref((Resource*)_v.objval.ptr);
     }
 #endif
 }
@@ -1383,10 +1401,12 @@ void AttributeValue::unref_as_needed() {
   else if (_type == AttributeValue::ObjectType) {
     if (object_compview()) 
        Resource::unref((ComponentView*)_v.objval.ptr);
-    else if (obj_type_val() == AttributeList::class_symid()) 
+    else if (obj_type_val() == AttributeList::class_symid())
        Resource::unref((AttributeList*)_v.objval.ptr);
-    else if (obj_type_val() == Attribute::class_symid()) 
+    else if (obj_type_val() == Attribute::class_symid())
        Resource::unref((Attribute*)_v.objval.ptr);
+    else if (is_comterp_object_classid(obj_type_val()))
+       Resource::unref((Resource*)_v.objval.ptr);
   }
 #endif
 }
