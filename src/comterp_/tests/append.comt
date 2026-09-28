@@ -235,5 +235,13 @@ r20=s20+"x"
 ok=ok&&(r20==nil)
 print("20 '+' on a typed string refuses instead of corrupting it (expect nil): %v\n" r20)
 
+// --- 21: '+' refuses a typed string on its RIGHT side too -- checking only
+//         the left operand would let append_str() misread the right
+//         operand's packed chunk bytes as NUL-terminated text ---
+s21=string(1 :type `IntType)
+r21="x"+s21
+ok=ok&&(r21==nil)
+print("21 '+' on a right-hand typed string refuses instead of corrupting it (expect nil): %v\n" r21)
+
 print("append: %v\n" ok)
 ok
