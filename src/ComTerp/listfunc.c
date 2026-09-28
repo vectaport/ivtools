@@ -336,12 +336,10 @@ void ListAtFunc::execute() {
 
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
-  /* stack_key() can't tell "missing :set" from "an explicit :set nil" --
-     both come back as plain nil -- so a manual keyword-presence scan (same
-     walk stack_key() itself does) settles which one this was, ahead of
-     reset_stack() invalidating the stack.  set_nil feeds the string
-     branches below, which treat an explicit nil as a real value to write
-     (the type's zero value), not as "nothing to set". */
+  /* stack_key() can't tell "missing :set" from "an explicit :set nil" (both
+     read back nil), so a keyword-presence scan settles it before reset_stack(). */
+  /* set_nil feeds the string branches below: an explicit nil is a real
+     value to write (the type's zero value), not "nothing to set". */
   boolean set_nil = false;
   if (setv.is_unknown()) {
     int count = nargs() + nkeys() - npops();
