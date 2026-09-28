@@ -49,7 +49,10 @@ boolean value_contains_container(AttributeValue& val, void* target,
 				  boolean target_is_attrlist);
 
 //: create list command for ComTerp.
-// lst=list([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
+// lst=list([lst|strm|val] :strmlst :attr :size n :bytes :hex) -- create list,
+// copy list, or convert stream.  On a typed (blocksz()>0) string built by
+// string(n :type sym), list(str) with no :bytes decodes its chunks back
+// into a list of ComValues instead of wrapping the string whole.
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -57,13 +60,15 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon) -- create list, copy list, or convert stream (unary $)"; }
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon :bytes :hex) -- create list, copy list, or convert stream (unary $)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":strmlst   return list inside stream for debug",
 	":attr      make attribute list",
 	":size n    make list of size n",
 	":colon     tag the result coloned(), same as ':' itself builds",
+	":bytes     a string's raw bytes as a list of ints (or use with :hex)",
+	":hex       with :bytes, render each byte as a 2-digit hex string",
 	nil
       };
       return keys;

@@ -104,6 +104,12 @@ void ListFunc::execute() {
   static int colon_symid = symbol_add("colon");
   ComValue colonv(stack_key_post_eval(colon_symid));
   boolean colonflag = colonv.is_true();
+  static int bytes_symid = symbol_add("bytes");
+  ComValue bytesv(stack_key_post_eval(bytes_symid));
+  boolean bytesflag = bytesv.is_true();
+  static int hex_symid = symbol_add("hex");
+  ComValue hexv(stack_key_post_eval(hex_symid));
+  boolean hexflag = hexv.is_true();
   reset_stack();
 
   if (attrflag) {
@@ -115,7 +121,43 @@ void ListFunc::execute() {
 
   AttributeValueList* avl;
 
-  if (listv.is_array()) 
+  /* list(str :bytes [:hex]) -- the string's raw bytes, one list entry per
+     byte, whatever its blocktype(); :hex renders each as a 2-digit hex
+     string, otherwise each is a plain 0-255 int.  list(str) with no
+     :bytes on a typed (blocksz()>0) string instead decodes its chunks
+     back into a list of ComValues, via the same memcpy @ uses -- so
+     values of different ValueTypes packed into adjacent chunks come back
+     out as themselves, not as bytes. */
+  if (listv.is_only_string() && (bytesflag || listv.blocksz()>0)) {
+    const char* str = listv.string_ptr();
+    boolean isslice = listv.sliced();
+    int base = isslice ? listv.sliceoff() : 0;
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    avl = new AttributeValueList();
+    if (bytesflag) {
+      for (int i=0; i<cap; i++) {
+	unsigned char b = (unsigned char)*(str+base+i);
+	if (hexflag) {
+	  char hexbuf[3];
+	  snprintf(hexbuf, sizeof(hexbuf), "%02x", b);
+	  avl->Append(new AttributeValue(hexbuf));
+	} else
+	  avl->Append(new AttributeValue((long)b));
+      }
+    } else {
+      int chunksz = listv.blocksz();
+      int nchunks = cap/chunksz;
+      for (int i=0; i<nchunks; i++) {
+	ComValue elt = ComValue::comval_decode(str+base+i*chunksz);
+	avl->Append(new AttributeValue(elt));
+      }
+    }
+    ComValue retval(avl);
+    push_stack(retval);
+    return;
+  }
+
+  if (listv.is_array())
     avl = new AttributeValueList(listv.array_val());
   else {
     avl = new AttributeValueList();
