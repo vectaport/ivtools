@@ -882,10 +882,13 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* hook only fires for ArrayType/StringType, where the shared flags
-       carry ComTerp-specific meaning; other types print correctly here. */
+    /* ArrayType/StringType: the hook gives their shared flags ComTerp's
+       own meaning. ObjectType/StreamType: a list holds a value as a plain
+       AttributeValue&, never a ComValue&, so the hook is what makes it
+       print the same nested as it would at the top level. */
     if (AttributeValue::_render_hook &&
-        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType))
+        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType ||
+         sv.type() == AttributeValue::ObjectType || sv.type() == AttributeValue::StreamType))
       return AttributeValue::_render_hook(out, sv);
     AttributeValue* svp = (AttributeValue*)&sv;
     const char* title;

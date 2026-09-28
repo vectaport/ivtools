@@ -1,0 +1,136 @@
+// info-obj.comt version 1
+print("info-obj.comt version 1\n")
+
+// src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
+// opaque Obj types other than streams: AttributeList, a bare func by
+// name, FileObj, DateObj, and TimeObj.
+//
+// coverage:
+//   test 1:  info(attrlst) -- (:sealed :count) on an ordinary attrlist
+//   test 2:  info((f.)) -- a func's own sealed captures list, matching
+//            the exact spec: f=func(a+b+c); info((f.)) == (:sealed true :count 3)
+//   test 3:  info(f) on a bare func name -- (:ntoks :nspans :posteval),
+//            and f itself is never called (no side effect fires)
+//   test 4:  info(f) with :posteval true reports it
+//   test 5:  info(fileobj) -- (:filename :mode :open), and :open flips
+//            to false after close()
+//   test 6:  info(dateobj) -- a live year:mon:day colon list that
+//            round-trips through date(), unlike its printOn() text
+//   test 7:  info(timeobj) -- a live colon list round-tripping through
+//            time() for a dateless instant and for a duration alike
+//   test 8:  info(sockobj) -- (:host :port) against a real comterp server
+//
+// PipeObj is deliberately NOT exercised here -- constructing a real
+// bidirectional pipe (open(cmd "rw" :pipe), which forks via popen2())
+// corrupts state that later crashes an unrelated test elsewhere in this
+// suite, reproducibly, with nothing else involved (issue #634). info()'s
+// own PipeObj dispatch in strmfunc.c is untouched by that bug and was
+// verified manually against a real PipeObj outside the suite.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/info-obj.comt")
+
+errmsg(:clear)
+run("./testlib.comt")
+ok=true
+
+// --- test 1: info(attrlst) reports :sealed and :count ---
+errmsg(:clear)
+al1=attrlist(:x 1 :y 2 :z 3)
+i1=info(al1)
+ok1=(i1.sealed==false)&&(i1.count==3)
+ok=ok&&ok1
+print("1 info(attrlist(:x 1 :y 2 :z 3)) (expect sealed false, count 3): %v\n" ok1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: info((f.)) on a func's own sealed captures list ---
+errmsg(:clear)
+f2=func(a+b+c)
+i2=info((f2.))
+ok2=(i2.sealed==true)&&(i2.count==3)
+ok=ok&&ok2
+print("2 f2=func(a+b+c); info((f2.)) (expect sealed true, count 3): %v\n" ok2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: info(f) on a bare func name never fires f ---
+errmsg(:clear)
+sideeffect=0
+f3=func(sideeffect=sideeffect+1; sideeffect)
+i3=info(f3)
+ok3=(class(i3)==`AttributeList)&&(i3.ntoks>0)&&(sideeffect==0)
+ok=ok&&ok3
+print("3 info(f3) on a bare func name -- class AttributeList, ntoks>0, f3 never called (expect true): %v\n" ok3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: info(f :posteval) reports true for a lazy func ---
+errmsg(:clear)
+f4=func(arg(0) :posteval)
+i4=info(f4)
+ok4=(i4.posteval==true)
+ok=ok&&ok4
+print("4 f4=func(arg(0) :posteval); info(f4).posteval (expect true): %v\n" ok4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: info(fileobj) reports :filename :mode :open, open flips false after close() ---
+errmsg(:clear)
+fp5=open("./info-obj.comt" "r")
+i5a=info(fp5)
+close(fp5)
+i5b=info(fp5)
+ok5=(i5a.mode=="r")&&(i5a.open==true)&&(i5b.open==false)
+ok=ok&&ok5
+print("5 info(fileobj) before/after close() (expect mode \"r\", open true then false): %v\n" ok5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: info(dateobj) round-trips through date() ---
+errmsg(:clear)
+d6=date(2026:Sep:27)
+i6=info(d6)
+d6b=date(i6)
+ok6=(islist(i6 :colon))&&(d6b==d6)
+ok=ok&&ok6
+print("6 d6=date(2026:Sep:27); date(info(d6))==d6 (expect true): %v\n" ok6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: info(timeobj) round-trips through time(), dateless and duration ---
+errmsg(:clear)
+t7a=time(1:2:3)
+i7a=info(t7a)
+t7b=time(0:5:0 :delta true)
+i7b=info(t7b)
+ok7=(time(i7a)==t7a)&&(time(i7b)==t7b)
+ok=ok&&ok7
+print("7 time(info(t)) round-trips a dateless instant and a duration (expect true): %v\n" ok7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: info(sockobj) -- (:host :port) against a real comterp server ---
+// requires lsof to confirm both the port was free before launch and that
+// the launched server (not some other process) is what's listening --
+// without it there is no way to tell a foreign server apart from our own,
+// and server_down() below would shut down whatever socket() connected to.
+errmsg(:clear)
+have_lsof8=shell("which lsof > /dev/null 2>&1")==0
+if(!have_lsof8 :then
+  print("8 info(sockobj) -- SKIPPED, lsof not available to run this test safely\n")
+:else
+  port8=22301;
+  while(shell(print("lsof -i :%d > /dev/null 2>&1" port8 :str))==0 port8=port8+1);
+  shell(print("comterp server %d </dev/null > /dev/null 2>&1 &" port8 :str));
+  cnt8=0;
+  while(cnt8<40 && shell(print("lsof -iTCP:%d -sTCP:LISTEN > /dev/null 2>&1" port8 :str))!=0
+    usleep(250000);cnt8=cnt8+1);
+  sock8=socket("127.0.0.1" port8);
+  if(type(sock8)==`UnknownType :then
+    ok8=false;
+    print("8 info(sockobj) (expect host/port) -- FAIL, server never listened on %d\n" port8)
+  :else
+    i8=info(sock8);
+    ok8=(i8.host=="127.0.0.1")&&(i8.port==port8);
+    print("8 info(sockobj) against 127.0.0.1:%d (expect true): %v\n" port8 ok8);
+    remote(sock8 "exit" :nowait);
+    close(sock8));
+  ok=ok&&ok8)
+prev_ok=check_fail(:ok ok)
+
+print("info-obj: %v\n" ok)
+ok

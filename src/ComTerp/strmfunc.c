@@ -28,6 +28,8 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/iofunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/socket.h>
+#include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
@@ -1216,8 +1218,9 @@ InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void InfoFunc::execute() {
-  /* attrlst=info(streamobj [:raw]) -- inspect a stream's internal directory;
-     :raw returns the raw list as-is, else a named AttributeList (:mode/:func if non-literal) */
+  /* attrlst=info(strm|attrlst|funcname|fileobj|pipeobj|sockobj [:raw]) --
+     inspect an opaque value's internal facts; :raw returns a stream's raw
+     list as-is, else a type-specific named AttributeList */
 
   /* fetch :raw from the post-eval region before
      reset_stack() clears it */
@@ -1225,8 +1228,106 @@ void InfoFunc::execute() {
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
 
-  ComValue streamv(stack_arg_post_eval(0));
+  /* a bare symbol naming a func is peeked via lookup_symval() (same as
+     help(), helpfunc.c) rather than stack_arg_post_eval(), which would
+     fire it and hand back its return value instead of the FuncObj. */
+  ComValue peekval(stack_arg(0, true));
+  FuncObj* peeked_fo = nil;
+  if (peekval.is_type(AttributeValue::SymbolType)) {
+    ComValue resolved(comterp()->lookup_symval(peekval));
+    if (resolved.is_object(FuncObj::class_symid()))
+      peeked_fo = (FuncObj*) resolved.obj_val();
+  }
+
+  ComValue streamv(peeked_fo ? ComValue::nullval() : stack_arg_post_eval(0));
   reset_stack();
+
+  if (peeked_fo) {
+    AttributeList* al = new AttributeList();
+    static int ntoks_sym = symbol_add("ntoks");
+    static int nspans_sym = symbol_add("nspans");
+    static int posteval_sym = symbol_add("posteval");
+    ComValue ntoksv(peeked_fo->ntoks());
+    ComValue nspansv(peeked_fo->nspans());
+    ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
+    al->add_attr(ntoks_sym, ntoksv);
+    al->add_attr(nspans_sym, nspansv);
+    al->add_attr(posteval_sym, postevalv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(DateObj::class_symid())) {
+    ComValue retval(dateobj_to_colonlist((DateObj*)streamv.obj_val()));
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(TimeObj::class_symid())) {
+    ComValue retval(timeobj_to_colonlist((TimeObj*)streamv.obj_val()));
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(AttributeList::class_symid())) {
+    AttributeList* target = (AttributeList*)streamv.obj_val();
+    AttributeList* al = new AttributeList();
+    static int sealed_sym = symbol_add("sealed");
+    static int count_sym = symbol_add("count");
+    ComValue sealedv(target->sealed() ? ComValue::trueval() : ComValue::falseval());
+    ComValue countv(target->Number());
+    al->add_attr(sealed_sym, sealedv);
+    al->add_attr(count_sym, countv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(FileObj::class_symid())) {
+    FileObj* fileobj = (FileObj*)streamv.obj_val();
+    AttributeList* al = new AttributeList();
+    static int filename_sym = symbol_add("filename");
+    static int mode_sym2 = symbol_add("mode");
+    static int open_sym = symbol_add("open");
+    ComValue filenamev(fileobj->filename() ? fileobj->filename() : "");
+    ComValue modev(fileobj->mode() ? fileobj->mode() : "");
+    ComValue openv(fileobj->fptr() != nil ? ComValue::trueval() : ComValue::falseval());
+    al->add_attr(filename_sym, filenamev);
+    al->add_attr(mode_sym2, modev);
+    al->add_attr(open_sym, openv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(PipeObj::class_symid())) {
+    PipeObj* pipeobj = (PipeObj*)streamv.obj_val();
+    AttributeList* al = new AttributeList();
+    static int command_sym = symbol_add("command");
+    static int pid_sym = symbol_add("pid");
+    ComValue commandv(pipeobj->command() ? pipeobj->command() : "");
+    ComValue pidv((int)pipeobj->pid());
+    al->add_attr(command_sym, commandv);
+    al->add_attr(pid_sym, pidv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_object(SocketObj::class_symid())) {
+    SocketObj* sockobj = (SocketObj*)streamv.obj_val();
+    AttributeList* al = new AttributeList();
+    static int host_sym = symbol_add("host");
+    static int port_sym = symbol_add("port");
+    ComValue hostv(sockobj->host() ? sockobj->host() : "");
+    ComValue portv((int)sockobj->port());
+    al->add_attr(host_sym, hostv);
+    al->add_attr(port_sym, portv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
 
   if (!streamv.is_stream()) {
     push_stack(ComValue::nullval());
