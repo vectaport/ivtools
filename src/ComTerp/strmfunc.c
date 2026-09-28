@@ -1218,7 +1218,7 @@ InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void InfoFunc::execute() {
-  /* attrlst=info(strm|attrlst|funcname|fileobj|pipeobj|sockobj [:raw]) --
+  /* attrlst=info(strm|attrlst|funcname|fileobj|pipeobj|sockobj|str [:raw]) --
      inspect an opaque value's internal facts; :raw returns a stream's raw
      list as-is, else a type-specific named AttributeList */
 
@@ -1324,6 +1324,38 @@ void InfoFunc::execute() {
     ComValue portv((int)sockobj->port());
     al->add_attr(host_sym, hostv);
     al->add_attr(port_sym, portv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_only_string()) {
+    AttributeList* al = new AttributeList();
+    static int sliced_sym = symbol_add("sliced");
+    static int sliceoff_sym = symbol_add("sliceoff");
+    static int slicelen_sym = symbol_add("slicelen");
+    static int slicecap_sym = symbol_add("slicecap");
+    static int blocksz_sym = symbol_add("blocksz");
+    static int blocktype_sym = symbol_add("blocktype");
+    ComValue slicedv(streamv.sliced() ? ComValue::trueval() : ComValue::falseval());
+    al->add_attr(sliced_sym, slicedv);
+    if (streamv.sliced()) {
+      ComValue sliceoffv(streamv.sliceoff());
+      ComValue slicelenv(streamv.slicelen());
+      al->add_attr(sliceoff_sym, sliceoffv);
+      al->add_attr(slicelen_sym, slicelenv);
+      if (streamv.slicecapset()) {
+        ComValue slicecapv(streamv.slicecap());
+        al->add_attr(slicecap_sym, slicecapv);
+      }
+    }
+    ComValue blockszv(streamv.blocksz());
+    al->add_attr(blocksz_sym, blockszv);
+    /* the ValueType each @ chunk decodes/encodes as -- UnknownType (nil'd
+       to a bquoted `UnknownType) for an ordinary, non-chunked string */
+    ComValue blocktypev(AttributeValue::type_symid(streamv.blocktype()), ComValue::SymbolType);
+    blocktypev.bquote(1);
+    al->add_attr(blocktype_sym, blocktypev);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;
