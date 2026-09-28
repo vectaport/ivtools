@@ -453,10 +453,10 @@ void ListAtFunc::execute() {
     int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
     int chunksz = listv.blocksz();
     if (chunksz>0) {
-      /* a string(n :type sym) value indexes whole chunksz-byte chunks,
-         decoding/encoding a packed ComValue rather than a single char.
-         Unlike a NUL-terminated string, a typed chunk array's capacity
-         is exactly n*chunksz, so no +1 adjustment. */
+      /* a typed string indexes whole chunksz-byte chunks, decoding/encoding
+         a packed ComValue rather than a single char. */
+      /* no +1 adjustment: unlike a NUL-terminated string, its capacity is
+         exactly n*chunksz. */
       int nchunks = cap/chunksz;
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
       if (!setflag && !set_nil) {
