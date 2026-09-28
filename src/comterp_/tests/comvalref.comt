@@ -93,5 +93,14 @@ ok=ok&&(list(c8)=={10,20,30})
 print("8 string(s8 :raw) on a typed string preserves its chunks (expect {10,20,30}): %v\n" list(c8))
 check_fail(:ok ok)
 
+// --- test 9: string(typedstr :raw) on an EMPTY typed string (0 chunks)
+//     must still return a genuine empty typed string, not nil -- the copy
+//     path used to treat a zero length as an allocation failure ---
+s9=string(0 :type `IntType)
+c9=string(s9 :raw)
+ok=ok&&istype(c9 StringType)&&(list(c9)=={})
+print("9 string(s9 :raw) on an empty typed string returns an empty copy, not nil (expect true {}): %v %v\n" istype(c9 StringType) list(c9))
+check_fail(:ok ok)
+
 print("comvalref: %v\n" ok)
 ok

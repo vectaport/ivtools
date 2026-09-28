@@ -313,7 +313,7 @@ void StringFunc::execute() {
         boolean isslice = capv.sliced();
         int base = isslice ? capv.sliceoff() : 0;
         int len = isslice ? capv.slicelen() : symbol_len(capv.string_val());
-        int newid = len>0 ? symbol_new((unsigned)len, false) : -1;
+        int newid = len>=0 ? symbol_new((unsigned)len, false) : -1;
         if (newid<0) {
           push_stack(ComValue::nullval());
           return;
