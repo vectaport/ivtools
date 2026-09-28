@@ -696,3 +696,28 @@ void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueTy
   }
 }
 
+ComValue ComValue::append_chunk(ComValue& val) {
+  AttributeValue::ValueType bt = blocktype();
+  if (!is_only_string() || bt == AttributeValue::UnknownType)
+    return ComValue::nullval();
+  int chunksz = blocksz();
+  boolean isslice = sliced();
+  int base = isslice ? sliceoff() : 0;
+  int cap = isslice ? slicelen() : symbol_len(string_val());
+  /* always reallocates: a typed string carries no spare trailing capacity
+     to grow into, unlike the byte-string headroom path in append_str(). */
+  int newid = symbol_new((unsigned)(cap+chunksz), false);
+  if (newid<0) return ComValue::nullval();
+  char* buf = (char*)symbol_pntr(newid);
+  memcpy(buf, string_ptr()+base, cap);
+  if (bt == AttributeValue::AnyType)
+    /* the copied chunks alias this value's own Resource-backed values --
+       take an independent ref per chunk for the new buffer's ownership. */
+    for (int off = 0; off+ATTRVALUE_CHUNK_BYTES <= cap; off += ATTRVALUE_CHUNK_BYTES)
+      AttributeValue::ref_as_needed(buf+off);
+  ComValue::comval_encode(buf+cap, val, bt);
+  ComValue result((unsigned int)newid, ComValue::StringType);
+  result.blocktype(bt);
+  return result;
+}
+

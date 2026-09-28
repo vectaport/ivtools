@@ -312,7 +312,10 @@ void AddFunc::execute() {
     case ComValue::SymbolType:
         /* shared with append() (ComValue::append_str()), but with no headroom
            on the copy path -- '+' always allocates an exact fit. */
-        result = operand1.append_str(operand2, false);
+        /* a typed (chunked) string has no byte-growth meaning for '+' --
+           append_chunk()'s one-chunk contract belongs to append() alone. */
+        result = operand1.blocktype()==AttributeValue::UnknownType
+          ? operand1.append_str(operand2, false) : ComValue::nullval();
 	break;
     case ComValue::ArrayType: 
         {
