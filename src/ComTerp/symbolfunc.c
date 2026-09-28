@@ -341,11 +341,10 @@ void StringFunc::execute() {
     return;
   }
 
-  /* string(n :type `AnyType) reserves n type_size(`AnyType)-byte chunks,
-     each an @-indexed packed ComValue rather than a single char. The
-     "-1 for the terminator" capacity convention is a NUL-terminated-
-     char-string idiom; a typed chunk array has no such
-     terminator, so it gets the full n*chunksz. */
+  /* string(n :type sym) reserves n chunksz-byte chunks, each an @-indexed
+     packed ComValue rather than a single char. */
+  /* no "-1 for the terminator": that's a NUL-terminated-string idiom, and
+     a typed chunk array has no terminator, so it gets the full n*chunksz. */
   AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
   int chunksz = 0;
   if (typeflag && typev.type()==ComValue::SymbolType) {

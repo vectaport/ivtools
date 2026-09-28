@@ -121,15 +121,10 @@ void ListFunc::execute() {
 
   AttributeValueList* avl;
 
-  /* list(str :bytes [:hex]) -- the string's raw bytes, one list entry per
-     byte, whatever its blocktype(); each is a CharType (signed) value
-     printing as decimal (DecState), or with :hex a UCharType (unsigned)
-     value printing as 0x-hex (HexState) -- see operator<<'s CharType/
-     UCharType cases (attrvalue.c).  list(str) with no :bytes on a typed
-     (blocksz()>0) string instead decodes its chunks back into a list of
-     ComValues, via the same memcpy @ uses -- so values of different
-     ValueTypes packed into adjacent chunks come back out as themselves,
-     not as bytes. */
+  /* :bytes -- one list entry per raw byte, CharType (:hex UCharType)
+     with a Dec/HexState so it prints as decimal or 0x-hex. */
+  /* no :bytes on a typed (blocksz()>0) string -- decode its packed chunks
+     back into a list of ComValues instead of raw bytes. */
   if (listv.is_only_string() && (bytesflag || listv.blocksz()>0)) {
     const char* str = listv.string_ptr();
     boolean isslice = listv.sliced();
