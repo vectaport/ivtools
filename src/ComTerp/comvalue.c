@@ -234,6 +234,46 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StringType: {
+	  if (svp->blocksz() > 0) {
+	    /* a typed string(n :type sym)'s raw bytes aren't meaningful text --
+	       decode and print its packed chunks instead, the same values
+	       list(str) returns, in list literal form. */
+	    /* an AnyType chunk can decode back to the same backing symbol
+	       (s@0=s), so track symids currently being printed and stop
+	       recursing into one already on the stack. */
+	    static std::vector<unsigned int> printing_syms;
+	    unsigned int symid = svp->string_val();
+	    boolean cyclic = false;
+	    for (unsigned int i = 0; i < printing_syms.size(); i++)
+	      if (printing_syms[i] == symid) { cyclic = true; break; }
+	    if (cyclic) {
+	      out << "<cycle>";
+	      break;
+	    }
+	    /* pops printing_syms on any exit from this scope, including an
+	       exception out of a nested out<< -- so a later, unrelated print
+	       never mistakes this symbol for still being printed. */
+	    struct PoppingGuard {
+	      std::vector<unsigned int>& syms;
+	      PoppingGuard(std::vector<unsigned int>& s, unsigned int id) : syms(s) { syms.push_back(id); }
+	      ~PoppingGuard() { syms.pop_back(); }
+	    } guard(printing_syms, symid);
+	    const char* str = svp->string_ptr();
+	    boolean isslice = svp->sliced();
+	    int base = isslice ? svp->sliceoff() : 0;
+	    int cap = isslice ? svp->slicelen() : symbol_len(svp->string_val());
+	    int chunksz = svp->blocksz();
+	    int nchunks = cap/chunksz;
+	    out << "{";
+	    for (int i=0; i<nchunks; i++) {
+	      ComValue elt = ComValue::comval_decode(str+base+i*chunksz, svp->blocktype());
+	      out << elt;
+	      if (i+1<nchunks) out << ",";
+	    }
+	    if (nchunks == 1) out << ",";
+	    out << "}";
+	    break;
+	  }
 	  /* cstr(), not string_ptr() -- svp may be a raw _stack element, and
 	     string_ptr()'s virtual dispatch isn't reliable there (see comvalue.h) */
 	  std::string scratch;
@@ -256,16 +296,23 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::CharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::DecState)
+	      out << (int)svp->char_ref();
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
+	  } else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;
 
 	case ComValue::UCharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::setw(2) << std::setfill('0') << std::hex
+		  << (unsigned int)svp->uchar_ref() << std::dec;
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
+	  } else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
 	    
@@ -414,7 +461,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  } else if (svp->class_symid() == TimeObj::class_symid()) {
 	    ((TimeObj*)svp->obj_val())->printOn(out);
 	  } else
-            out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
+            out << "<" << symbol_pntr(svp->class_symid()) << ">";
 	  break;
 
 	case ComValue::UnknownType:
@@ -647,5 +694,45 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
     }
   }
   return result;
+}
+
+ComValue ComValue::comval_decode(const char* chunk, AttributeValue::ValueType blocktype) {
+  ComValue val;
+  if (blocktype == AttributeValue::AnyType) {
+    memcpy(&val._type, chunk, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    val.type(blocktype);
+    memcpy(&val._v, chunk, AttributeValue::type_size(blocktype));
+  }
+  return val;
+}
+
+void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueType blocktype) {
+  if (blocktype == AttributeValue::AnyType) {
+    /* the chunk being overwritten has no live AttributeValue wrapper of its
+       own to call unref_as_needed() on -- unref it in place instead. */
+    AttributeValue::unref_as_needed(chunk);
+    memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    /* a scalar blocktype's chunk holds that C type's own bit pattern, not
+       val's -- e.g. a FloatType chunk needs float_val()'s converted bytes. */
+    ComValue converted;
+    switch (blocktype) {
+    case AttributeValue::CharType:   converted = ComValue(val.char_val()); break;
+    case AttributeValue::UCharType:  converted = ComValue(val.uchar_val()); break;
+    case AttributeValue::ShortType:  converted = ComValue(val.short_val()); break;
+    case AttributeValue::UShortType: converted = ComValue(val.ushort_val()); break;
+    case AttributeValue::IntType:    converted = ComValue(val.int_val()); break;
+    case AttributeValue::UIntType:   converted = ComValue(val.uint_val(), AttributeValue::UIntType); break;
+    case AttributeValue::LongType:   converted = ComValue(val.long_val()); break;
+    case AttributeValue::ULongType:  converted = ComValue(val.ulong_val()); break;
+    case AttributeValue::FloatType:  converted = ComValue(val.float_val()); break;
+    case AttributeValue::DoubleType: converted = ComValue(val.double_val()); break;
+    default: converted = val; break;
+    }
+    memcpy(chunk, &converted._v, AttributeValue::type_size(blocktype));
+  }
 }
 

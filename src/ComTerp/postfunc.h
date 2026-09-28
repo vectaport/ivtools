@@ -26,6 +26,7 @@
 #define _postfunc_h
 
 #include <ComTerp/comfunc.h>
+#include <InterViews/resource.h>
 
 class ComTerp;
 
@@ -175,7 +176,8 @@ public:
 
 };
 
-class FuncObj {
+//: a bound function body, refcounted like any other object-typed ComValue.
+class FuncObj : public Resource {
  public:
   // toks/ntoks is the concatenation of one or more body spans, back to
   // back with no separator token between them -- spanlens[i] (nspans

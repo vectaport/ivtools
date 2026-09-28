@@ -46,6 +46,8 @@
     int symbol_add(const char*);
     int symbol_unref(int);
     int symbol_reference(int);
+    int symbol_refcount(int);
+    int symbol_len(int);
     int symbol_find(const char*);
     const char* symbol_pntr(int);
 // }
@@ -123,11 +125,19 @@ public:
 };
     // enum for attribute value types.
     // AnyType marks a value slot that carries a raw ComValue of whatever type
-    // was stored there (e.g. a string(:comval)-backed slice's element),
-    // rather than being fixed to one of the other types itself.
+    // was stored there (e.g. a string(n :type `AnyType) chunk), rather than
+    // being fixed to one of the other types itself.
 
-    enum ValueState { UnknownState, OctState, HexState };
-    // enum for states -- occupies the low nibble of the state word
+#define ATTRVALUE_CHUNK_BYTES 40 // size of an AnyType chunk: AttributeValue's
+                                 // own member data (_type/_blocktype/_v/the
+                                 // state union/_ext1..3), dropping ComValue's
+                                 // own _pedepth/_linenum.
+
+    enum ValueState { UnknownState, OctState, HexState, DecState };
+    // enum for states -- occupies the low nibble of the state word.  For
+    // CharType/UCharType, DecState/HexState pick a numeric rendering
+    // (decimal or 0x-hex) over the default char-literal one -- see
+    // out_char_brief() and operator<<.
 
     enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper };
     // enum for output wrappers, a display-only annotation surrounding the
@@ -201,6 +211,13 @@ public:
     static int type_symid(ValueType);
     // return symbol id corresponding to given type
     const char* type_name() { return symbol_pntr(type_symid()); }
+
+    ValueType blocktype() const { return type()==StringType ? _blocktype : UnknownType; }
+    // for a StringType built as a packed chunk array, the ValueType each
+    // chunk decodes as; UnknownType (0, the zero-init default) for an
+    // ordinary string, never set otherwise.
+    void blocktype(ValueType t) { if (type()==StringType) _blocktype = t; }
+    // set the per-chunk ValueType of a StringType value.
     // type name of value.
 
     void assignval (const AttributeValue&);
@@ -436,8 +453,18 @@ public:
 
     void ref_as_needed();
     // increment ref counters as needed
+    static void ref_as_needed(const void* base);
+    // increment ref counters as needed for a value with no live AttributeValue
+    // wrapper of its own -- 'base' is ATTRVALUE_CHUNK_BYTES of packed
+    // AttributeValue data (an AnyType chunk newly copied into a second
+    // buffer), read in place rather than copied into a temporary.
     void unref_as_needed();
     // decrement ref counters as needed
+    static void unref_as_needed(const void* base);
+    // decrement ref counters as needed for a value with no live AttributeValue
+    // wrapper of its own -- 'base' is ATTRVALUE_CHUNK_BYTES of packed
+    // AttributeValue data (a string(n :type `AnyType) chunk about to be
+    // overwritten), read in place rather than copied into a temporary.
     void dup_as_needed();
     // duplicate lists then increment ref counters as needed
     const boolean same_list(const AttributeValue& av);
@@ -455,6 +482,12 @@ public:
 protected:
 
     ValueType _type;
+    ValueType _blocktype; // for a StringType built as a packed chunk array
+                          // (comterp's string(n :comval)): the ValueType
+                          // each chunk decodes as; blocksz() is derived from
+                          // it via type_size().  Sits in what would
+                          // otherwise be alignment padding before _v, so it
+                          // costs nothing in sizeof(AttributeValue).
     attr_value _v;
     union {
       int _command_symid; // used for CommandType.

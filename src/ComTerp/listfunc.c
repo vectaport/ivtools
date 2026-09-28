@@ -104,6 +104,12 @@ void ListFunc::execute() {
   static int colon_symid = symbol_add("colon");
   ComValue colonv(stack_key_post_eval(colon_symid));
   boolean colonflag = colonv.is_true();
+  static int bytes_symid = symbol_add("bytes");
+  ComValue bytesv(stack_key_post_eval(bytes_symid));
+  boolean bytesflag = bytesv.is_true();
+  static int hex_symid = symbol_add("hex");
+  ComValue hexv(stack_key_post_eval(hex_symid));
+  boolean hexflag = hexv.is_true();
   reset_stack();
 
   if (attrflag) {
@@ -115,7 +121,43 @@ void ListFunc::execute() {
 
   AttributeValueList* avl;
 
-  if (listv.is_array()) 
+  /* :bytes -- one list entry per raw byte, CharType (:hex UCharType)
+     with a Dec/HexState so it prints as decimal or 0x-hex. */
+  /* no :bytes on a typed (blocksz()>0) string -- decode its packed chunks
+     back into a list of ComValues instead of raw bytes. */
+  if (listv.is_only_string() && (bytesflag || listv.blocksz()>0)) {
+    const char* str = listv.string_ptr();
+    boolean isslice = listv.sliced();
+    int base = isslice ? listv.sliceoff() : 0;
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    avl = new AttributeValueList();
+    if (bytesflag) {
+      for (int i=0; i<cap; i++) {
+	unsigned char b = (unsigned char)*(str+base+i);
+	AttributeValue* elt;
+	if (hexflag) {
+	  elt = new AttributeValue(b);
+	  elt->state(AttributeValue::HexState);
+	} else {
+	  elt = new AttributeValue((char)b);
+	  elt->state(AttributeValue::DecState);
+	}
+	avl->Append(elt);
+      }
+    } else {
+      int chunksz = listv.blocksz();
+      int nchunks = cap/chunksz;
+      for (int i=0; i<nchunks; i++) {
+	ComValue elt = ComValue::comval_decode(str+base+i*chunksz, listv.blocktype());
+	avl->Append(new AttributeValue(elt));
+      }
+    }
+    ComValue retval(avl);
+    push_stack(retval);
+    return;
+  }
+
+  if (listv.is_array())
     avl = new AttributeValueList(listv.array_val());
   else {
     avl = new AttributeValueList();
@@ -189,7 +231,10 @@ void ListAtFunc::execute() {
   /* str@lo:hi builds a slice sharing str's symid via sliceoff/slicelen;
      hi is exclusive, Go-style; str@lo:hi:cap (Go's full slice expression)
      also bounds how far append() may grow it in place before reallocating;
-     slicing a plain list falls through to nil */
+     slicing a plain list falls through to nil.  lo/hi/cap count in
+     blocksz()-byte chunks for a typed (blocktype()!=UnknownType) string,
+     bytes otherwise; the slice carries the parent's blocktype() forward
+     either way, so a re-slice stays a view of the same chunk type. */
   if (listv.is_only_string() && nv.is_type(ComValue::ArrayType) && nv.coloned()) {
     AttributeValueList* range = nv.array_val();
     boolean forwrite = comterp()->stack_top(nkeys()+1).lhs_assign();
@@ -207,8 +252,10 @@ void ListAtFunc::execute() {
       }
       if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType &&
           (!have_cap || capval.type()==ComValue::IntType)) {
+        int chunksz = listv.blocksz();
         int lo = loval.int_val();
         int hi = hival.int_val();
+        if (chunksz>0) { lo *= chunksz; hi *= chunksz; }
         /* bounds against listv's own window, granted room included, so
            re-slicing a capped slice can still reach into that room */
         int base = listv.sliced() ? listv.sliceoff() : 0;
@@ -217,6 +264,7 @@ void ListAtFunc::execute() {
         boolean cap_ok = true;
         if (have_cap) {
           int mx = capval.int_val();
+          if (chunksz>0) mx *= chunksz;
           cap_ok = mx>=hi && mx<=cap && (mx-hi)<=0xffff;
           room = cap_ok ? mx-hi : 0;
         }
@@ -228,6 +276,7 @@ void ListAtFunc::execute() {
           retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
           retval.sliced(1);
+          retval.blocktype(listv.blocktype());
           if (have_cap)
             retval.slicecap(room);
           else if (listv.sliced() && listv.slicecapset())
@@ -259,8 +308,16 @@ void ListAtFunc::execute() {
        is_only_string(), not is_string() -- symbol text is its identity */
     int nvv;
     if (listv.is_only_string()) {
-      const char* str = listv.string_ptr();
-      nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+      /* nil's last-index meaning is in chunks for a typed string, bytes
+         otherwise, matching the read/write path this index re-drives via :set. */
+      boolean isslice = listv.sliced();
+      int base = isslice ? listv.sliceoff() : 0;
+      int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+      int chunksz = listv.blocksz();
+      if (nv.is_nil())
+        nvv = chunksz>0 ? cap/chunksz-1 : (isslice ? cap-1 : (int)strlen(listv.string_ptr()+base)-1);
+      else
+        nvv = nv.int_val();
     } else {
       AttributeValueList* avl = listv.array_val();
       nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
@@ -278,7 +335,22 @@ void ListAtFunc::execute() {
 
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
-  if (setv.is_unknown()) setv = ComValue::blankval();                 // absent :set -> also blank
+  /* stack_key() can't tell "missing :set" from "an explicit :set nil" (both
+     read back nil), so a keyword-presence scan settles it before reset_stack(). */
+  /* set_nil feeds the string branches below: an explicit nil is a real
+     value to write (the type's zero value), not "nothing to set". */
+  boolean set_nil = false;
+  if (setv.is_unknown()) {
+    int count = nargs() + nkeys() - npops();
+    for (int i=0; i<count; i++) {
+      ComValue& keyref = comterp()->stack_top(-i);
+      if (keyref.type()==ComValue::KeywordType && keyref.symbol_val()==set_symid) {
+        set_nil = true;
+        break;
+      }
+    }
+    setv = ComValue::blankval();                                    // absent :set -> also blank
+  }
   boolean setflag = !setv.is_blank();
   static int ins_symid = symbol_add("ins");
   ComValue insv(stack_key(ins_symid, false, ComValue::blankval()));
@@ -378,23 +450,55 @@ void ListAtFunc::execute() {
     boolean isslice = listv.sliced();
     int base = isslice ? listv.sliceoff() : 0;
     int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
-    /* nil means the last character: the slice's last index when sliced,
-       otherwise the parent's strlen()-based last character */
-    int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
-    if(!setflag) {
-      if(nvv>=0 && nvv<cap) {
-        ComValue retval(*(str+base+nvv), ComValue::CharType);
-        push_stack(retval);
-        return;
+    int chunksz = listv.blocksz();
+    if (chunksz>0) {
+      /* a typed string indexes whole chunksz-byte chunks, decoding/encoding
+         a packed ComValue rather than a single char. */
+      /* no +1 adjustment: unlike a NUL-terminated string, its capacity is
+         exactly n*chunksz. */
+      int nchunks = cap/chunksz;
+      int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
+      if (!setflag && !set_nil) {
+        if (nvv>=0 && nvv<nchunks) {
+          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
+          push_stack(retval);
+          return;
+        }
+      } else if (listv.is_only_string()) {
+        if (nvv>=0 && nvv<nchunks) {
+          /* an explicit :set nil writes the chunk's zero value: for AnyType
+             that's the all-zero UnknownType ComValue, a value AnyType can hold. */
+          /* for a scalar blocktype it's that type's own zero, since every
+             *_val() converter already defaults an UnknownType source to 0. */
+          ComValue newval(set_nil ? ComValue::nullval() : setv);
+          ComValue::comval_encode((char*)str+base+nvv*chunksz, newval, listv.blocktype());
+          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
+          push_stack(retval);
+          return;
+        }
       }
-    } else if (listv.is_only_string()) {
-      /* is_string() also matches symbols, whose chars are their identity,
-         so writing here would edit every value sharing the symbol */
-      if(nvv<cap && nvv>=0) {
-	*((char *)str+base+nvv) = setv.char_val();
-	ComValue retval(setv);
-	push_stack(retval);
-	return;
+    } else {
+      /* nil means the last character: the slice's last index when sliced,
+         otherwise the parent's strlen()-based last character */
+      int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
+      if(!setflag && !set_nil) {
+        if(nvv>=0 && nvv<cap) {
+          ComValue retval(*(str+base+nvv), ComValue::CharType);
+          push_stack(retval);
+          return;
+        }
+      } else if (listv.is_only_string()) {
+        /* is_string() also matches symbols, whose chars are their identity,
+           so writing here would edit every value sharing the symbol. */
+        /* an explicit :set nil writes the zero byte, char_val()'s own
+           default for a type it has no reading for. */
+        if(nvv<cap && nvv>=0) {
+          ComValue writeval = set_nil ? ComValue::nullval() : setv;
+          *((char *)str+base+nvv) = writeval.char_val();
+          ComValue retval(writeval);
+          push_stack(retval);
+          return;
+        }
       }
     }
   }
