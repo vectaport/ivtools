@@ -1266,7 +1266,7 @@ int AttributeValue::type_symid() const {
 int AttributeValue::type_symid(ValueType type) {
   if (!_type_syms) {
     int i = 0;
-    _type_syms = new int[((int)BlankType)+1];
+    _type_syms = new int[((int)AnyType)+1];
     _type_syms[i++] = symbol_add("UnknownType");
     _type_syms[i++] = symbol_add("CharType");
     _type_syms[i++] = symbol_add("UCharType");
@@ -1289,8 +1289,9 @@ int AttributeValue::type_symid(ValueType type) {
     _type_syms[i++] = symbol_add("BooleanType");
     _type_syms[i++] = symbol_add("OperatorType");
     _type_syms[i++] = symbol_add("BlankType");
+    _type_syms[i++] = symbol_add("AnyType");
   }
-  if (type>=UnknownType && type<=BlankType)
+  if (type>=UnknownType && type<=AnyType)
     return _type_syms[(int)type];
   else
     return -1;

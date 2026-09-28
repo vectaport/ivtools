@@ -167,7 +167,7 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for a string-backed stream."; }
 
-    CLASS_SYMID("StringNextFunc");
+    CLASS_SYMID_HIDDEN("StringNextFunc");
 
 };
 
