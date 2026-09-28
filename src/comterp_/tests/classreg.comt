@@ -1,7 +1,7 @@
 // src/comterp_/tests/classreg.comt -- class(:all) reports every class this
 // binary linked, whether or not one was ever built
 //
-// coverage: 11/14 (79%)
+// coverage: 12/15 (80%)
 // funcs: class size at lt func for
 // missing: class(:all :comps together) class(stress-wrong-type) !class(:all value)
 //
@@ -137,7 +137,14 @@ ok=ok&&(r14==false)
 print("14 FuncObjPendingArg in class(:all) (expect false): %v\n" r14)
 prev_ok=check_fail(:ok ok)
 
-// --- test 15: every component class in :all is also in :comps.  A component
+// --- test 15: same for StringNextFunc -- the hidden cursor next() uses
+// internally to walk a string-backed stream, never a value a script holds ---
+r15=inlist(lst `StringNextFunc)
+ok=ok&&(r15==false)
+print("15 inlist(lst `StringNextFunc) (expect false): %v\n" r15)
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: every component class in :all is also in :comps.  A component
 // registered with the one-argument macro lands in :all but never in :comps,
 // which is invisible from either listing alone -- this is what catches it.
 // Vacuously true under comterp, which links no component classes ---
@@ -147,7 +154,7 @@ dummy=for(i=0 i<size(lst) i=i+1
   if(substr(nm size(nm)-4 :after)=="Comp" :then
     if(!inlist(comps at(lst i)) :then compsok=false)))
 ok=ok&&(compsok==true)
-print("15 every *Comp in class(:all) is in class(:comps) (expect true): %v\n" compsok)
+print("16 every *Comp in class(:all) is in class(:comps) (expect true): %v\n" compsok)
 prev_ok=check_fail(:ok ok)
 
 print("classreg: %v\n" ok)

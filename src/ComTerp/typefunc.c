@@ -54,10 +54,11 @@ void TypeSymbolFunc::execute() {
   if (all_flag) {
     /* the whole closed set in enum order, complete by construction;
        ArrayType never appears since ListType covers it */
+    // AnyType trails the list, the wildcard slot for a raw ComValue
     reset_stack();
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    for (int t=AttributeValue::UnknownType; t<=AttributeValue::BlankType; t++) {
+    for (int t=AttributeValue::UnknownType; t<=AttributeValue::AnyType; t++) {
       ComValue* av = new ComValue
 	(AttributeValue::type_symid((AttributeValue::ValueType)t),
 	 AttributeValue::SymbolType);
