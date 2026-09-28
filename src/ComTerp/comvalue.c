@@ -238,6 +238,19 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    /* a typed string(n :type sym)'s raw bytes aren't meaningful text --
 	       decode and print its packed chunks instead, the same values
 	       list(str) returns, in list literal form. */
+	    /* an AnyType chunk can decode back to the same backing symbol
+	       (s@0=s), so track symids currently being printed and stop
+	       recursing into one already on the stack. */
+	    static std::vector<unsigned int> printing_syms;
+	    unsigned int symid = svp->string_val();
+	    boolean cyclic = false;
+	    for (unsigned int i = 0; i < printing_syms.size(); i++)
+	      if (printing_syms[i] == symid) { cyclic = true; break; }
+	    if (cyclic) {
+	      out << "<cycle>";
+	      break;
+	    }
+	    printing_syms.push_back(symid);
 	    const char* str = svp->string_ptr();
 	    boolean isslice = svp->sliced();
 	    int base = isslice ? svp->sliceoff() : 0;
@@ -252,6 +265,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    }
 	    if (nchunks == 1) out << ",";
 	    out << "}";
+	    printing_syms.pop_back();
 	    break;
 	  }
 	  /* cstr(), not string_ptr() -- svp may be a raw _stack element, and

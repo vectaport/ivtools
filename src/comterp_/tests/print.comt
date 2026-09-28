@@ -243,5 +243,15 @@ ok=ok&&(p32=="{10,20,30}")&&(p32b=="{20,}")
 print("32 print(\"%v\" string(3 :type `IntType) with @0,@1,@2 set) and its slice s32@1:2 (expect {10,20,30} {20,}): %v %v\n\n" "%v" p32 p32b)
 prev_ok=check_fail(:ok ok)
 
+// --- test 33: a self-referential AnyType chunk (s@0=s) must not recurse
+// forever decoding its own value back -- the cycle is caught and printed
+// as a placeholder instead of exhausting the stack ---
+s33=string(1 :type `AnyType)
+s33@0=s33
+p33=print("%v" s33 :str)
+ok=ok&&(p33=="{<cycle>,}")
+print("33 s33=string(1 :type `AnyType);s33@0=s33;print(\"%v\" s33) (expect {<cycle>,}): %v\n\n" "%v" p33)
+prev_ok=check_fail(:ok ok)
+
 print("print: %v\n" ok)
 ok
