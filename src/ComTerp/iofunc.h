@@ -30,6 +30,7 @@
 #define _iofunc_h
 
 #include <ComTerp/comfunc.h>
+#include <InterViews/resource.h>
 
 class ComTerp;
 class ComValue;
@@ -93,7 +94,8 @@ public:
       return "[status]=%s(fileobj|pipeobj|sockobj) -- close file command, returning fclose()/pclose()'s raw status for a fileobj"; }
 };
 
-class FileObj {
+//: an open FILE*, refcounted like any other object-typed ComValue.
+class FileObj : public Resource {
  public:
   FileObj(const char* filename, const char* mode, int pipeflag);
   FileObj(FILE* fptr);
@@ -115,7 +117,8 @@ class FileObj {
 };
 
 
-class PipeObj {
+//: a popen()'d subprocess, refcounted like any other object-typed ComValue.
+class PipeObj : public Resource {
  public:
   PipeObj(const char* command);
   virtual ~PipeObj();

@@ -256,16 +256,23 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::CharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::DecState)
+	      out << (int)svp->char_ref();
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
+	  } else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;
 
 	case ComValue::UCharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::setw(2) << std::setfill('0') << std::hex
+		  << (unsigned int)svp->uchar_ref() << std::dec;
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
+	  } else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
 	    
@@ -647,5 +654,45 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
     }
   }
   return result;
+}
+
+ComValue ComValue::comval_decode(const char* chunk, AttributeValue::ValueType blocktype) {
+  ComValue val;
+  if (blocktype == AttributeValue::AnyType) {
+    memcpy(&val._type, chunk, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    val.type(blocktype);
+    memcpy(&val._v, chunk, AttributeValue::type_size(blocktype));
+  }
+  return val;
+}
+
+void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueType blocktype) {
+  if (blocktype == AttributeValue::AnyType) {
+    /* the chunk being overwritten has no live AttributeValue wrapper of its
+       own to call unref_as_needed() on -- unref it in place instead. */
+    AttributeValue::unref_as_needed(chunk);
+    memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
+    val.ref_as_needed();
+  } else {
+    /* a scalar blocktype's chunk holds that C type's own bit pattern, not
+       val's -- e.g. a FloatType chunk needs float_val()'s converted bytes. */
+    ComValue converted;
+    switch (blocktype) {
+    case AttributeValue::CharType:   converted = ComValue(val.char_val()); break;
+    case AttributeValue::UCharType:  converted = ComValue(val.uchar_val()); break;
+    case AttributeValue::ShortType:  converted = ComValue(val.short_val()); break;
+    case AttributeValue::UShortType: converted = ComValue(val.ushort_val()); break;
+    case AttributeValue::IntType:    converted = ComValue(val.int_val()); break;
+    case AttributeValue::UIntType:   converted = ComValue(val.uint_val(), AttributeValue::UIntType); break;
+    case AttributeValue::LongType:   converted = ComValue(val.long_val()); break;
+    case AttributeValue::ULongType:  converted = ComValue(val.ulong_val()); break;
+    case AttributeValue::FloatType:  converted = ComValue(val.float_val()); break;
+    case AttributeValue::DoubleType: converted = ComValue(val.double_val()); break;
+    default: converted = val; break;
+    }
+    memcpy(chunk, &converted._v, AttributeValue::type_size(blocktype));
+  }
 }
 

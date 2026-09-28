@@ -26,15 +26,17 @@
 #define _socket_h
 
 #include <Attribute/classid.h>
+#include <InterViews/resource.h>
 #include <stdlib.h>
 
 class ACE_SOCK_Stream;
 class ACE_SOCK_Connector;
 
-class SocketObj {
+//: an open TCP connection, refcounted like any other object-typed ComValue.
+class SocketObj : public Resource {
  public:
   SocketObj();
-  SocketObj(const char* host, unsigned short port); 
+  SocketObj(const char* host, unsigned short port);
   virtual ~SocketObj();
   void socket(ACE_SOCK_Stream* socket) { _socket = socket; }
   ACE_SOCK_Stream* socket() { return _socket; }

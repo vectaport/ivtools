@@ -37,6 +37,7 @@
 #include <Unidraw/Components/compview.h>
 #endif
 
+#include <cstddef>
 #include <ctype.h>
 #include <iomanip>
 #include <iostream.h>
@@ -55,6 +56,22 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 #endif
 
 /*****************************************************************************/
+
+// ComTerp object classes (FuncObj, FileObj, SocketObj, PipeObj) are
+// Resource-derived and refcounted like AttributeList/Attribute below, but
+// Attribute is a lower layer than ComTerp, so their class ids are looked
+// up by name (symbol_add() is idempotent -- see Attribute/_comutil.h)
+// rather than by including their headers.
+static boolean is_comterp_object_classid(unsigned int classid) {
+  static int funcobj_symid = symbol_add("FuncObj");
+  static int fileobj_symid = symbol_add("FileObj");
+  static int socketobj_symid = symbol_add("SocketObj");
+  static int pipeobj_symid = symbol_add("PipeObj");
+  return classid==(unsigned int)funcobj_symid ||
+         classid==(unsigned int)fileobj_symid ||
+         classid==(unsigned int)socketobj_symid ||
+         classid==(unsigned int)pipeobj_symid;
+}
 
 int* AttributeValue::_type_syms = nil;
 AttributeValue::RenderHook AttributeValue::_render_hook = nil;
@@ -268,6 +285,8 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
       Resource::ref((Attribute*)ptr);
     else if (classid==AttributeList::class_symid())
       Resource::ref((AttributeList*)ptr);
+    else if (is_comterp_object_classid(classid))
+      Resource::ref((Resource*)ptr);
 }
 
 AttributeValue::AttributeValue(ComponentView* view, int compid) { 
@@ -330,6 +349,7 @@ void AttributeValue::clear() {
     // first 8 bytes would otherwise hold construction-path garbage.
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
+    _blocktype = UnknownType;
     _state = 0;
     _ext1 = _ext2 = _ext3 = 0;
 }
@@ -341,6 +361,7 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     const void* v2 = &sv._v;
     memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
+    _blocktype = sv._blocktype;
     _command_symid = sv._command_symid;
     _ext1 = sv._ext1;
     _ext2 = sv._ext2;
@@ -882,10 +903,9 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* ArrayType/StringType: the hook gives their shared flags ComTerp's
-       own meaning. ObjectType/StreamType: a list holds a value as a plain
-       AttributeValue&, never a ComValue&, so the hook is what makes it
-       print the same nested as it would at the top level. */
+    /* ArrayType/StringType: the hook gives their shared flags ComTerp's own meaning. */
+    /* ObjectType/StreamType: a list holds a value as a plain AttributeValue&,
+       so the hook is what nests it the same as top level. */
     if (AttributeValue::_render_hook &&
         (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType ||
          sv.type() == AttributeValue::ObjectType || sv.type() == AttributeValue::StreamType))
@@ -1023,11 +1043,18 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	case AttributeValue::CharType:
-	  AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
+	  if (svp->state()==AttributeValue::DecState)
+	    out << (int)svp->char_ref();
+	  else
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
 	  break;
 
 	case AttributeValue::UCharType:
-	  AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
+	  if (svp->state()==AttributeValue::HexState)
+	    out << "0x" << std::setw(2) << std::setfill('0') << std::hex
+		<< (unsigned int)svp->uchar_ref() << std::dec;
+	  else
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
 	  break;
 	  
 	case AttributeValue::IntType:
@@ -1217,6 +1244,8 @@ int AttributeValue::type_size(ValueType type) {
     return sizeof(float);
   case AttributeValue::DoubleType:
     return sizeof(double);
+  case AttributeValue::AnyType:
+    return ATTRVALUE_CHUNK_BYTES;
   default:
     return 0;
   }
@@ -1229,6 +1258,7 @@ void AttributeValue::assignval (const AttributeValue& av) {
     const void* v2 = &av._v;
     memcpy(v1, v2, sizeof(_v));
     _type = av._type;
+    _blocktype = av._blocktype;
     _command_symid = av._command_symid;
     _ext1 = av._ext1;
     _ext2 = av._ext2;
@@ -1311,10 +1341,12 @@ void AttributeValue::ref_as_needed() {
     else if (_type == AttributeValue::ObjectType) {
       if (object_compview())
 	Resource::ref((ComponentView*)_v.objval.ptr);
-      else if (obj_type_val()==AttributeList::class_symid()) 
+      else if (obj_type_val()==AttributeList::class_symid())
 	Resource::ref((AttributeList*)_v.objval.ptr);
-      else if (obj_type_val()==Attribute::class_symid()) 
+      else if (obj_type_val()==Attribute::class_symid())
 	Resource::ref((Attribute*)_v.objval.ptr);
+      else if (is_comterp_object_classid(obj_type_val()))
+        Resource::ref((Resource*)_v.objval.ptr);
     }
 #endif
 }
@@ -1365,16 +1397,118 @@ void AttributeValue::unref_as_needed() {
   }
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
-  else if (_type == AttributeValue::StringType)  // only StringType, never for SymbolType --
-       symbol_unref(string_val());              // SymAddFunc's closing loop relies on this
+  else if (_type == AttributeValue::StringType) {  // only StringType, never for SymbolType --
+    /* an AnyType-chunked string holds one comval_encode()-taken Resource ref
+       per chunk -- release them all before the buffer's last ref drops. */
+    if (_blocktype == AnyType && symbol_refcount(string_val()) == 1) {
+      const char* base = string_ptr();
+      int len = symbol_len(string_val());
+      for (int off = 0; off + ATTRVALUE_CHUNK_BYTES <= len; off += ATTRVALUE_CHUNK_BYTES)
+        unref_as_needed(base + off);
+    }
+    symbol_unref(string_val());              // SymAddFunc's closing loop relies on this
+  }
 #ifdef RESOURCE_COMPVIEW
   else if (_type == AttributeValue::ObjectType) {
     if (object_compview()) 
        Resource::unref((ComponentView*)_v.objval.ptr);
-    else if (obj_type_val() == AttributeList::class_symid()) 
+    else if (obj_type_val() == AttributeList::class_symid())
        Resource::unref((AttributeList*)_v.objval.ptr);
-    else if (obj_type_val() == Attribute::class_symid()) 
+    else if (obj_type_val() == Attribute::class_symid())
        Resource::unref((Attribute*)_v.objval.ptr);
+    else if (is_comterp_object_classid(obj_type_val()))
+       Resource::unref((Resource*)_v.objval.ptr);
+  }
+#endif
+}
+
+//: a plain-data stand-in for AttributeValue's own member layout, for
+// offsetof() below -- AttributeValue itself has a virtual destructor, so
+// it isn't standard-layout and offsetof() on it is only conditionally
+// supported.  Field-for-field identical to the members declared in
+// attrvalue.h, in the same order, so the offsets match ATTRVALUE_CHUNK_BYTES
+// (the chunk holds those bytes with no vtable slot in front of them).
+struct AttributeValueLayout {
+  AttributeValue::ValueType type;
+  AttributeValue::ValueType blocktype;
+  attr_value v;
+  union { int command_symid; boolean object_compview; int stream_mode; int state; };
+};
+
+void AttributeValue::ref_as_needed(const void* base) {
+  // 'base' holds ATTRVALUE_CHUNK_BYTES of packed AttributeValue data (see
+  // comval_decode()/comval_encode()), with no live AttributeValue wrapping
+  // it -- read each field at its AttributeValueLayout offset instead.
+  typedef AttributeValueLayout Layout;
+  const char* p = (const char*)base;
+  ValueType type;
+  memcpy(&type, p + offsetof(Layout, type), sizeof(type));
+  if (type != ArrayType && type != StreamType && type != StringType
+#ifdef RESOURCE_COMPVIEW
+      && type != ObjectType
+#endif
+      )
+    return;
+  attr_value v;
+  memcpy(&v, p + offsetof(Layout, v), sizeof(v));
+  if (type == ArrayType)
+    Resource::ref(v.arrayval.ptr);
+  else if (type == StreamType)
+    Resource::ref(v.streamval.listptr);
+  else if (type == StringType)  // only StringType, never for SymbolType --
+    symbol_reference(v.symval.symid);
+#ifdef RESOURCE_COMPVIEW
+  else if (type == ObjectType) {
+    boolean object_compview;
+    memcpy(&object_compview, p + offsetof(Layout, object_compview),
+           sizeof(object_compview));
+    if (object_compview)
+      Resource::ref((ComponentView*)v.objval.ptr);
+    else if (v.objval.type == AttributeList::class_symid())
+      Resource::ref((AttributeList*)v.objval.ptr);
+    else if (v.objval.type == Attribute::class_symid())
+      Resource::ref((Attribute*)v.objval.ptr);
+    else if (is_comterp_object_classid(v.objval.type))
+      Resource::ref((Resource*)v.objval.ptr);
+  }
+#endif
+}
+
+void AttributeValue::unref_as_needed(const void* base) {
+  // 'base' holds ATTRVALUE_CHUNK_BYTES of packed AttributeValue data (see
+  // comval_decode()/comval_encode()), with no live AttributeValue wrapping
+  // it -- read each field at its AttributeValueLayout offset instead.
+  typedef AttributeValueLayout Layout;
+  const char* p = (const char*)base;
+  ValueType type;
+  memcpy(&type, p + offsetof(Layout, type), sizeof(type));
+  if (type != ArrayType && type != StreamType && type != StringType
+#ifdef RESOURCE_COMPVIEW
+      && type != ObjectType
+#endif
+      )
+    return;
+  attr_value v;
+  memcpy(&v, p + offsetof(Layout, v), sizeof(v));
+  if (type == ArrayType)
+    Resource::unref(v.arrayval.ptr);
+  else if (type == StreamType)
+    Resource::unref(v.streamval.listptr);
+  else if (type == StringType)  // only StringType, never for SymbolType --
+    symbol_unref(v.symval.symid);  // SymAddFunc's closing loop relies on this
+#ifdef RESOURCE_COMPVIEW
+  else if (type == ObjectType) {
+    boolean object_compview;
+    memcpy(&object_compview, p + offsetof(Layout, object_compview),
+           sizeof(object_compview));
+    if (object_compview)
+      Resource::unref((ComponentView*)v.objval.ptr);
+    else if (v.objval.type == AttributeList::class_symid())
+      Resource::unref((AttributeList*)v.objval.ptr);
+    else if (v.objval.type == Attribute::class_symid())
+      Resource::unref((Attribute*)v.objval.ptr);
+    else if (is_comterp_object_classid(v.objval.type))
+      Resource::unref((Resource*)v.objval.ptr);
   }
 #endif
 }
