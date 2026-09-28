@@ -180,7 +180,13 @@ void Table::grow() { \
     for (TableEntry(Table)** e = newfirst; e <= newlast; e++) { \
 	*e = nil; \
     } \
-    TableGen(Table)* g = new TableGen(Table); \
+    TableGen(Table)* g; \
+    try { \
+	g = new TableGen(Table); \
+    } catch (...) { \
+	delete[] newfirst; \
+	throw; \
+    } \
     g->first_ = first_; \
     g->last_ = last_; \
     g->size_ = size_; \
