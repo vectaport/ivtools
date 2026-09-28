@@ -18,6 +18,10 @@
 // symbol is ListType, so ArrayType never appears (test 6) -- that is the
 // same name type(1,2,3) already reports, not an omission.
 //
+// AnyType trails the list (test 3) -- it marks a slot holding a raw
+// ComValue of whatever type it carries, rather than a value fixed to one
+// type itself, so no ordinary value's type() ever answers it directly.
+//
 // type() with no value now answers blank rather than falling through to
 // comterp's stack-shortfall backstop, matching class().  See classblank.comt
 // for why blank and nil have to stay distinguishable.
@@ -37,15 +41,17 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 2: and the list is the whole closed set, one entry per type ---
 r2=size(lst)
-ok=ok&&(r2==22)
-print("2 size(type(:all)) the closed set (expect 22): %v\n" r2)
+ok=ok&&(r2==23)
+print("2 size(type(:all)) the closed set (expect 23): %v\n" r2)
 prev_ok=check_fail(:ok ok)
 
-// --- test 3: in enum order, so position is meaningful at both ends ---
+// --- test 3: in enum order, so position is meaningful at both ends --
+// AnyType is the wildcard element type, trailing BlankType as the last slot ---
 r3a=at(lst 0)
 r3b=at(lst 21)
-ok=ok&&(r3a==`UnknownType)&&(r3b==`BlankType)
-print("3 at(lst 0) at(lst 21) enum order (expect UnknownType BlankType): %v %v\n" r3a r3b)
+r3c=at(lst 22)
+ok=ok&&(r3a==`UnknownType)&&(r3b==`BlankType)&&(r3c==`AnyType)
+print("3 at(lst 0) at(lst 21) at(lst 22) enum order (expect UnknownType BlankType AnyType): %v %v %v\n" r3a r3b r3c)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: every entry is a symbol, the same thing type(val) hands back ---
@@ -70,8 +76,8 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 7: :all is a listing request, so a named value does not narrow it ---
 r7=size(type(3 :all))
-ok=ok&&(r7==22)
-print("7 size(type(3 :all)) :all ignores the value (expect 22): %v\n" r7)
+ok=ok&&(r7==23)
+print("7 size(type(3 :all)) :all ignores the value (expect 23): %v\n" r7)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: bare type() names no value, so it answers blank ---

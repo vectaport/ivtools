@@ -118,6 +118,14 @@ class TimeObj {
 long timespec_scaled(const struct timespec& ts, boolean ns, boolean us, boolean ms);
 struct timespec nsec_to_timespec(long nsec_since);
 
+/* the same year-led colon list date()/time() accept as input, built as a
+   live coloned value instead of printOn()'s text -- the only way to get
+   that list back out of an existing DateObj/TimeObj, since printOn() only
+   ever renders to an ostream (see InfoFunc, strmfunc.c). */
+class ComValue;
+ComValue dateobj_to_colonlist(DateObj* dateobj);
+ComValue timeobj_to_colonlist(TimeObj* timeobj);
+
 //: date makes date from days since 1/1/1901, a string, or a TimeObj's
 // calendar date -- nil if that TimeObj carries no date (the epoch-date
 // sentinel, see TimeObj above).

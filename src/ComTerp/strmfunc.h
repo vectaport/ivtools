@@ -113,13 +113,22 @@ public:
       return "val=%s(arg [arg [...]] [:key val...]) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)"; }
 };
 
-//: info command for stream objects.
-// attrlst=info(streamobj)      -- AttributeList describing a literal stream's
-//                                 directory: func, ntoks, nremaining,
-//                                 elemN_off/elemN_cnt..., nelem.  Non-literal
-//                                 streams report (:mode :func).
+//: info command for opaque Obj types.
+// attrlst=info(streamobj)  -- AttributeList describing a literal stream's
+//                             directory: func, ntoks, nremaining,
+//                             elemN_off/elemN_cnt..., nelem.  Non-literal
+//                             streams report (:mode :func).
 // lst=info(streamobj :raw) -- the raw internal directory list, which is
-//                                 layout-agnostic.
+//                             layout-agnostic.
+// attrlst=info(attrlst)    -- (:sealed :count).
+// attrlst=info(funcname)   -- a bare, unfired func by name: (:ntoks :nspans :posteval).
+// attrlst=info(fileobj)    -- (:filename :mode :open).
+// attrlst=info(pipeobj)    -- (:command :pid).
+// attrlst=info(sockobj)    -- (:host :port).
+// list=info(dateobj|timeobj) -- the coloned year:mon:day[:hr:min:sec...]
+//                             list printOn() already renders as text, but
+//                             as a live value -- printOn() has no other way
+//                             to hand it back out.
 class InfoFunc : public StrmFunc {
 public:
     InfoFunc(ComTerp*);
@@ -127,10 +136,10 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "attrlst|lst=%s(strm :raw) -- return internal list of a stream"; }
+      return "attrlst=%s(obj [:raw]) -- inspect an opaque value's internal facts"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-        ":raw       return raw internal list directly",
+        ":raw       for a stream, return its raw internal list directly",
         nil };
       return keys; }
 
@@ -158,7 +167,7 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for a string-backed stream."; }
 
-    CLASS_SYMID("StringNextFunc");
+    CLASS_SYMID_HIDDEN("StringNextFunc");
 
 };
 

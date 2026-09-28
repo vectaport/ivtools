@@ -884,10 +884,13 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* hook only fires for ArrayType/StringType, where the shared flags
-       carry ComTerp-specific meaning; other types print correctly here. */
+    /* ArrayType/StringType: the hook gives their shared flags ComTerp's
+       own meaning. ObjectType/StreamType: a list holds a value as a plain
+       AttributeValue&, never a ComValue&, so the hook is what makes it
+       print the same nested as it would at the top level. */
     if (AttributeValue::_render_hook &&
-        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType))
+        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType ||
+         sv.type() == AttributeValue::ObjectType || sv.type() == AttributeValue::StreamType))
       return AttributeValue::_render_hook(out, sv);
     AttributeValue* svp = (AttributeValue*)&sv;
     const char* title;
@@ -1266,7 +1269,7 @@ int AttributeValue::type_symid() const {
 int AttributeValue::type_symid(ValueType type) {
   if (!_type_syms) {
     int i = 0;
-    _type_syms = new int[((int)BlankType)+1];
+    _type_syms = new int[((int)AnyType)+1];
     _type_syms[i++] = symbol_add("UnknownType");
     _type_syms[i++] = symbol_add("CharType");
     _type_syms[i++] = symbol_add("UCharType");
@@ -1289,8 +1292,9 @@ int AttributeValue::type_symid(ValueType type) {
     _type_syms[i++] = symbol_add("BooleanType");
     _type_syms[i++] = symbol_add("OperatorType");
     _type_syms[i++] = symbol_add("BlankType");
+    _type_syms[i++] = symbol_add("AnyType");
   }
-  if (type>=UnknownType && type<=BlankType)
+  if (type>=UnknownType && type<=AnyType)
     return _type_syms[(int)type];
   else
     return -1;

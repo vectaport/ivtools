@@ -114,13 +114,17 @@ typedef const char* const_char_ptr;
 //: multi-type attribute value object.
 class AttributeValue {
 public:
-    enum ValueType { UnknownType, CharType, UCharType, ShortType, UShortType, 
-		     IntType, UIntType, LongType, ULongType, FloatType, DoubleType, 
-                     StringType, SymbolType, ArrayType, StreamType, CommandType, KeywordType, 
+    enum ValueType { UnknownType, CharType, UCharType, ShortType, UShortType,
+		     IntType, UIntType, LongType, ULongType, FloatType, DoubleType,
+                     StringType, SymbolType, ArrayType, StreamType, CommandType, KeywordType,
                      ObjectType, EofType, BooleanType, OperatorType, BlankType,
+                     AnyType,
 		     ListType = ArrayType
 };
     // enum for attribute value types.
+    // AnyType marks a value slot that carries a raw ComValue of whatever type
+    // was stored there (e.g. a string(:comval)-backed slice's element),
+    // rather than being fixed to one of the other types itself.
 
     enum ValueState { UnknownState, OctState, HexState };
     // enum for states -- occupies the low nibble of the state word

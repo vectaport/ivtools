@@ -253,6 +253,123 @@ void TimeObj::printOn(ostream& out) const {
   }
 }
 
+/* the 3-element year:mon:day colon list date()/time() themselves accept --
+   mon a bquoted month-name symbol, matching how date()/time() parse one
+   back in (colonlist_to_dateobj() below, parse_month()). */
+ComValue dateobj_to_colonlist(DateObj* dateobj) {
+  Date* date = dateobj->date();
+  AttributeValueList* avl = new AttributeValueList();
+  /* Date::year()/dayOfMonth() return unsigned short -- cast to plain int so
+     the ComValue constructor picks IntType, which is what colonlist_to_dateobj()
+     and parse_month() require of a colon list's non-month fields. */
+  ComValue yrval((int)date->year());
+  ComValue monval(symbol_add(Date::nameOfMonth(date->month())), ComValue::SymbolType);
+  monval.bquote(1);
+  ComValue dayval((int)date->dayOfMonth());
+  avl->Append(new AttributeValue(yrval));
+  avl->Append(new AttributeValue(monval));
+  avl->Append(new AttributeValue(dayval));
+  ComValue retval(avl);
+  retval.coloned(1);
+  return retval;
+}
+
+/* mirrors printOn()'s own field selection exactly (dated vs dateless,
+   duration vs instant, :ms/:us/:ns precision groups, trailing tz offset),
+   but builds each field as a real ComValue instead of ostream text, so the
+   zero-padded fields (precision groups, tz) don't round-trip through the
+   scanner's leading-zero-is-octal rule the way printOn()'s text would. */
+ComValue timeobj_to_colonlist(TimeObj* timeobj) {
+  AttributeValueList* avl = new AttributeValueList();
+
+  if (timeobj->delta()) {
+    long total = (long)timeobj->raw().tv_sec;
+    boolean negative = total < 0;
+    if (negative) total = -total;
+    long sec = total % 60; total /= 60;
+    long min = total % 60; total /= 60;
+    long hr = total % 24; total /= 24;
+    long years, days;
+    days_to_years(total, years, days);
+
+    boolean show_years = years != 0;
+    boolean show_days = show_years || days != 0;
+    boolean show_hr = show_days || hr != 0;
+    boolean signed_yet = false;
+
+    if (show_years) {
+      ComValue v((int)(negative ? -years : years));
+      avl->Append(new AttributeValue(v));
+      signed_yet = true;
+    }
+    if (show_days) {
+      ComValue v((int)((negative && !signed_yet) ? -days : days));
+      avl->Append(new AttributeValue(v));
+      signed_yet = true;
+    }
+    if (show_hr) {
+      ComValue v((int)((negative && !signed_yet) ? -hr : hr));
+      avl->Append(new AttributeValue(v));
+      signed_yet = true;
+    }
+    ComValue minval((int)((negative && !signed_yet) ? -min : min));
+    avl->Append(new AttributeValue(minval));
+    ComValue secval((int)sec);
+    avl->Append(new AttributeValue(secval));
+  } else {
+    /* date/tz are always included, even when dateless: a bare hr:min:sec
+       list is colonlist_to_timeobj()'s duration grammar. */
+    int yr = timeobj->year();
+    int mon = timeobj->month();
+    int day = timeobj->day();
+
+    ComValue yrval(yr);
+    ComValue monval(symbol_add(Date::nameOfMonth(mon)), ComValue::SymbolType);
+    monval.bquote(1);
+    ComValue dayval(day);
+    avl->Append(new AttributeValue(yrval));
+    avl->Append(new AttributeValue(monval));
+    avl->Append(new AttributeValue(dayval));
+
+    int hr = timeobj->hour();
+    ComValue hrval(hr==0 ? 24 : hr);
+    ComValue minval(timeobj->minute());
+    ComValue secval(timeobj->second());
+    avl->Append(new AttributeValue(hrval));
+    avl->Append(new AttributeValue(minval));
+    avl->Append(new AttributeValue(secval));
+
+    int precision = timeobj->precision();
+    if (precision > 0) {
+      long nsec = timeobj->raw().tv_nsec;
+      int ms = (int)(nsec / 1000000);
+      int us = (int)((nsec / 1000) % 1000);
+      int ns = (int)(nsec % 1000);
+      ComValue msval(ms);
+      avl->Append(new AttributeValue(msval));
+      if (precision > 1) {
+        ComValue usval(us);
+        avl->Append(new AttributeValue(usval));
+      }
+      if (precision > 2) {
+        ComValue nsval(ns);
+        avl->Append(new AttributeValue(nsval));
+      }
+    }
+
+    long off = timeobj->tzoff();
+    long aoff = off < 0 ? -off : off;
+    int tzh = (int)(aoff / 3600);
+    int tzm = (int)(aoff % 3600 / 60);
+    ComValue tzval((off < 0 ? -1 : 1) * (tzh*100 + tzm));
+    avl->Append(new AttributeValue(tzval));
+  }
+
+  ComValue retval(avl);
+  retval.coloned(1);
+  return retval;
+}
+
 /*****************************************************************************/
 
 /* defined below, alongside time()'s own colon-list vetting */
