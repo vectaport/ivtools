@@ -129,7 +129,7 @@ public:
 #define ATTRVALUE_CHUNK_BYTES 40 // size of an AnyType chunk: AttributeValue's
                                  // own member data (_type/_blocktype/_v/the
                                  // state union/_ext1..3), dropping ComValue's
-                                 // own _pedepth/_linenum -- see issue #637.
+                                 // own _pedepth/_linenum.
 
     enum ValueState { UnknownState, OctState, HexState };
     // enum for states -- occupies the low nibble of the state word

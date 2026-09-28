@@ -189,7 +189,10 @@ void ListAtFunc::execute() {
   /* str@lo:hi builds a slice sharing str's symid via sliceoff/slicelen;
      hi is exclusive, Go-style; str@lo:hi:cap (Go's full slice expression)
      also bounds how far append() may grow it in place before reallocating;
-     slicing a plain list falls through to nil */
+     slicing a plain list falls through to nil.  lo/hi/cap count in
+     blocksz()-byte chunks for a typed (blocktype()!=UnknownType) string,
+     bytes otherwise; the slice carries the parent's blocktype() forward
+     either way, so a re-slice stays a view of the same chunk type. */
   if (listv.is_only_string() && nv.is_type(ComValue::ArrayType) && nv.coloned()) {
     AttributeValueList* range = nv.array_val();
     boolean forwrite = comterp()->stack_top(nkeys()+1).lhs_assign();
@@ -207,8 +210,10 @@ void ListAtFunc::execute() {
       }
       if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType &&
           (!have_cap || capval.type()==ComValue::IntType)) {
+        int chunksz = listv.blocksz();
         int lo = loval.int_val();
         int hi = hival.int_val();
+        if (chunksz>0) { lo *= chunksz; hi *= chunksz; }
         /* bounds against listv's own window, granted room included, so
            re-slicing a capped slice can still reach into that room */
         int base = listv.sliced() ? listv.sliceoff() : 0;
@@ -217,6 +222,7 @@ void ListAtFunc::execute() {
         boolean cap_ok = true;
         if (have_cap) {
           int mx = capval.int_val();
+          if (chunksz>0) mx *= chunksz;
           cap_ok = mx>=hi && mx<=cap && (mx-hi)<=0xffff;
           room = cap_ok ? mx-hi : 0;
         }
@@ -228,6 +234,7 @@ void ListAtFunc::execute() {
           retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
           retval.sliced(1);
+          retval.blocktype(listv.blocktype());
           if (have_cap)
             retval.slicecap(room);
           else if (listv.sliced() && listv.slicecapset())
@@ -381,9 +388,9 @@ void ListAtFunc::execute() {
     int chunksz = listv.blocksz();
     if (chunksz>0) {
       /* a string(n :type sym) value indexes whole chunksz-byte chunks,
-         decoding/encoding a packed ComValue rather than a single char --
-         see issue #637. Unlike a NUL-terminated string, a typed chunk
-         array's capacity is exactly n*chunksz, so no +1 adjustment. */
+         decoding/encoding a packed ComValue rather than a single char.
+         Unlike a NUL-terminated string, a typed chunk array's capacity
+         is exactly n*chunksz, so no +1 adjustment. */
       int nchunks = cap/chunksz;
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
       if (!setflag) {
