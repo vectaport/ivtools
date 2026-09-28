@@ -1,0 +1,67 @@
+// src/comterp_/tests/comvalref.comt -- Resource ref-counting through an
+// AnyType comval chunk (string(n :type `AnyType), @ read/write), and through
+// the general lst@N=val write path that backs it.
+//
+// funcs: string strref list at @ nil
+//
+// string(n :type sym) packs n fixed-size chunks into a string; an AnyType
+// chunk holds a raw ComValue, which can itself be a pointer-bearing type
+// (String, Array, Stream, Object) backed by a refcounted Resource. Writing
+// or clearing such a chunk must ref/unref exactly once per Resource handed
+// through it -- these tests pin that down for the String case, since
+// strref() is the only refcount directly readable from ComTerp; the same
+// AttributeValue::ref_as_needed()/unref_as_needed() machinery this exercises
+// is type-agnostic, so it covers the other pointer-bearing types too.
+//
+// The actual checks live in comvalref_sub.comt and run in a spawned comterp
+// subprocess (see multibody.comt's :body tests for the same idiom), not via
+// run() in this process: strref()'s reading is exact only when the whole
+// sequence executes at true top level. Run through run(), as run_all.comt
+// runs every script here, a fresh string literal's parse-time hold isn't
+// reliably settled by the time a later statement reads it, which perturbs
+// the exact deltas these tests need -- a subprocess sidesteps that
+// entirely by giving the checks a real top-level run of their own.
+
+run("./testlib.comt")
+ok=true
+
+out=*$$open("cat ./comvalref_sub.comt | comterp 2>&1 | tr \"\\n\" \" \"" :pipe)
+after=substr(out "RESULT " :after)
+vals=split(after :tokval)
+d1=vals@0
+d2a=vals@1
+d2b=vals@2
+d3=vals@3
+d4=vals@4
+d5=vals@5
+
+// --- test 1: writing a string into an AnyType chunk takes exactly one ref ---
+ok=ok&&(d1==1)
+print("1 s@0=t on an AnyType chunk takes exactly 1 ref (expect 1): %v\n" d1)
+check_fail(:ok ok)
+
+// --- test 2: overwriting a populated chunk with a different string releases
+//     the old value's ref and takes one on the new value ---
+ok=ok&&(d2a==1)&&(d2b==1)
+print("2 s@0=t2b over t2a unrefs t2a and refs t2b (expect 1 1): %v %v\n" d2a d2b)
+check_fail(:ok ok)
+
+// --- test 3: an explicit :set nil clears the chunk and releases its ref --
+ok=ok&&(d3==1)
+print("3 s@0=nil releases the chunk's held ref (expect 1): %v\n" d3)
+check_fail(:ok ok)
+
+// --- test 4: reading a chunk (not writing) never leaks -- repeated
+//     discarded reads hold the refcount steady ---
+ok=ok&&(d4==0)
+print("4 repeated discarded s@0 reads don't change strref (expect 0): %v\n" d4)
+check_fail(:ok ok)
+
+// --- test 5: the fix is general, not comval-specific -- an ordinary
+//     list(:size N)'s l@0=t takes exactly one ref too ---
+ok=ok&&(d5==1)
+print("5 l@0=t on a plain list also takes exactly 1 ref (expect 1): %v\n" d5)
+check_fail(:ok ok)
+
+print("comvalref: %v\n" ok)
+ok

@@ -1,0 +1,53 @@
+// src/comterp_/tests/comvalref_sub.comt -- the actual ref-counting checks
+// for comvalref.comt, run as a subprocess rather than via run() (see
+// comvalref.comt's header for why: strref() deltas are only exact when
+// executed at true top level, not nested inside another script's run()).
+//
+// Not registered in run_all.comt directly -- comvalref.comt spawns it as a
+// subprocess and parses its output.
+//
+// Prints one line: "RESULT d1 d2a d2b d3 d4 d5 END" and nothing else that
+// matters (the interactive echo of each statement is discarded by the
+// caller, which reads only what follows "RESULT ").
+
+t1="comvalref test string one, long enough to avoid short-string tricks"
+b1=strref(t1)
+s1=string(2 :type `AnyType)
+s1@0=t1
+a1=strref(t1)
+d1=a1-b1
+
+t2a="comvalref overwrite target A, long enough string literal here"
+t2b="comvalref overwrite target B, a different long literal here too"
+s2=string(1 :type `AnyType)
+s2@0=t2a
+base2a=strref(t2a)
+base2b=strref(t2b)
+s2@0=t2b
+d2a=base2a-strref(t2a)
+d2b=strref(t2b)-base2b
+
+t3="comvalref nil-clear target, long enough literal string here"
+s3=string(1 :type `AnyType)
+s3@0=t3
+base3=strref(t3)
+s3@0=nil
+d3=base3-strref(t3)
+
+t4="comvalref read-only target, long enough literal string right here"
+s4=string(1 :type `AnyType)
+s4@0=t4
+base4=strref(t4)
+s4@0
+s4@0
+s4@0
+d4=strref(t4)-base4
+
+t5="comvalref plain list target, long enough literal string here too"
+l5=list(:size 1)
+base5=strref(t5)
+l5@0=t5
+d5=strref(t5)-base5
+
+print("RESULT %v %v %v %v %v %v END\n" d1 d2a d2b d3 d4 d5)
+exit
