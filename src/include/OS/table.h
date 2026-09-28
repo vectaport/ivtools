@@ -122,7 +122,11 @@ Table::Table(int n) { \
 Table::~Table() { \
     for (TableEntry(Table)** e = first_; e <= last_; e++) { \
 	TableEntry(Table)* t = *e; \
-	delete t; \
+	while (t) { \
+	    TableEntry(Table)* next = t->chain_; \
+	    delete t; \
+	    t = next; \
+	} \
     } \
     delete[] first_; \
 } \
