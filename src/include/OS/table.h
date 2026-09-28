@@ -174,18 +174,21 @@ inline TableEntry(Table)*& Table::probe(Key i) { \
 } \
 \
 void Table::grow() { \
+    int newsize = ((size_ + 1) << 1) - 1; \
+    TableEntry(Table)** newfirst = new TableEntry(Table)*[newsize + 1]; \
+    TableEntry(Table)** newlast = &newfirst[newsize]; \
+    for (TableEntry(Table)** e = newfirst; e <= newlast; e++) { \
+	*e = nil; \
+    } \
     TableGen(Table)* g = new TableGen(Table); \
     g->first_ = first_; \
     g->last_ = last_; \
     g->size_ = size_; \
     g->older_ = older_; \
     older_ = g; \
-    size_ = ((size_ + 1) << 1) - 1; \
-    first_ = new TableEntry(Table)*[size_ + 1]; \
-    last_ = &first_[size_]; \
-    for (TableEntry(Table)** e = first_; e <= last_; e++) { \
-	*e = nil; \
-    } \
+    first_ = newfirst; \
+    last_ = newlast; \
+    size_ = newsize; \
 } \
 \
 void Table::insert(Key k, Value v) { \
@@ -212,8 +215,9 @@ boolean Table::find(Value& v, Key k) { \
 	    return true; \
 	} \
     } \
+    unsigned long h = key_to_hash(k); \
     for (TableGen(Table)* g = older_; g != nil; g = g->older_) { \
-	for (TableEntry(Table)* e = g->first_[key_to_hash(k) & g->size_]; \
+	for (TableEntry(Table)* e = g->first_[h & g->size_]; \
 	     e != nil; e = e->chain_) { \
 	    if (e->key_ == k) { \
 		v = e->value_; \
@@ -247,8 +251,9 @@ boolean Table::find_and_remove(Value& v, Key k) { \
 	    } \
 	} \
     } \
+    unsigned long h = key_to_hash(k); \
     for (TableGen(Table)* g = older_; g != nil; g = g->older_) { \
-	a = &g->first_[key_to_hash(k) & g->size_]; \
+	a = &g->first_[h & g->size_]; \
 	e = *a; \
 	if (e != nil) { \
 	    if (e->key_ == k) { \
@@ -295,8 +300,9 @@ void Table::remove(Key k) { \
 	    } \
 	} \
     } \
+    unsigned long h = key_to_hash(k); \
     for (TableGen(Table)* g = older_; g != nil; g = g->older_) { \
-	a = &g->first_[key_to_hash(k) & g->size_]; \
+	a = &g->first_[h & g->size_]; \
 	e = *a; \
 	if (e != nil) { \
 	    if (e->key_ == k) { \
