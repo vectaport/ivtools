@@ -1398,8 +1398,18 @@ void AttributeValue::unref_as_needed() {
   }
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
-  else if (_type == AttributeValue::StringType)  // only StringType, never for SymbolType --
-       symbol_unref(string_val());              // SymAddFunc's closing loop relies on this
+  else if (_type == AttributeValue::StringType) {  // only StringType, never for SymbolType --
+    /* an AnyType-chunked string holds one Resource ref per chunk, taken by
+       comval_encode() -- release them all before the last reference to the
+       backing buffer drops, or they outlive it. */
+    if (_blocktype == AnyType && symbol_refcount(string_val()) == 1) {
+      const char* base = string_ptr();
+      int len = symbol_len(string_val());
+      for (int off = 0; off + ATTRVALUE_CHUNK_BYTES <= len; off += ATTRVALUE_CHUNK_BYTES)
+        unref_as_needed(base + off);
+    }
+    symbol_unref(string_val());              // SymAddFunc's closing loop relies on this
+  }
 #ifdef RESOURCE_COMPVIEW
   else if (_type == AttributeValue::ObjectType) {
     if (object_compview()) 
@@ -1426,6 +1436,45 @@ struct AttributeValueLayout {
   attr_value v;
   union { int command_symid; boolean object_compview; int stream_mode; int state; };
 };
+
+void AttributeValue::ref_as_needed(const void* base) {
+  // 'base' holds ATTRVALUE_CHUNK_BYTES of packed AttributeValue data (see
+  // comval_decode()/comval_encode()), with no live AttributeValue wrapping
+  // it -- read each field at its AttributeValueLayout offset instead.
+  typedef AttributeValueLayout Layout;
+  const char* p = (const char*)base;
+  ValueType type;
+  memcpy(&type, p + offsetof(Layout, type), sizeof(type));
+  if (type != ArrayType && type != StreamType && type != StringType
+#ifdef RESOURCE_COMPVIEW
+      && type != ObjectType
+#endif
+      )
+    return;
+  attr_value v;
+  memcpy(&v, p + offsetof(Layout, v), sizeof(v));
+  if (type == ArrayType)
+    Resource::ref(v.arrayval.ptr);
+  else if (type == StreamType)
+    Resource::ref(v.streamval.listptr);
+  else if (type == StringType)  // only StringType, never for SymbolType --
+    symbol_reference(v.symval.symid);
+#ifdef RESOURCE_COMPVIEW
+  else if (type == ObjectType) {
+    boolean object_compview;
+    memcpy(&object_compview, p + offsetof(Layout, object_compview),
+           sizeof(object_compview));
+    if (object_compview)
+      Resource::ref((ComponentView*)v.objval.ptr);
+    else if (v.objval.type == AttributeList::class_symid())
+      Resource::ref((AttributeList*)v.objval.ptr);
+    else if (v.objval.type == Attribute::class_symid())
+      Resource::ref((Attribute*)v.objval.ptr);
+    else if (is_comterp_object_classid(v.objval.type))
+      Resource::ref((Resource*)v.objval.ptr);
+  }
+#endif
+}
 
 void AttributeValue::unref_as_needed(const void* base) {
   // 'base' holds ATTRVALUE_CHUNK_BYTES of packed AttributeValue data (see

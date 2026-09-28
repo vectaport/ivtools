@@ -34,6 +34,7 @@ d2b=vals@2
 d3=vals@3
 d4=vals@4
 d5=vals@5
+d6=vals@6
 
 // --- test 1: writing a string into an AnyType chunk takes exactly one ref ---
 ok=ok&&(d1==1)
@@ -61,6 +62,35 @@ check_fail(:ok ok)
 //     list(:size N)'s l@0=t takes exactly one ref too ---
 ok=ok&&(d5==1)
 print("5 l@0=t on a plain list also takes exactly 1 ref (expect 1): %v\n" d5)
+check_fail(:ok ok)
+
+// --- test 6: releasing the last reference to a populated typed string
+//     releases every chunk's held ref too, not just the string's own --
+ok=ok&&(d6==-1)
+print("6 s=nil on the last ref to a populated AnyType string releases its chunk's ref too (expect -1): %v\n" d6)
+check_fail(:ok ok)
+
+// --- test 7: s@nil=val on a typed string writes the last CHUNK, not the
+//     last byte -- s@nil must land on index nchunks-1 regardless of what
+//     zero bytes happen to sit inside earlier chunks ---
+s7=string(3 :type `IntType)
+s7@0=10
+s7@1=20
+r7=s7@nil=99
+ok=ok&&(r7==99)&&(list(s7)=={10,20,99})
+print("7 s7=string(3 :type `IntType);s7@0=10;s7@1=20;s7@nil=99;list(s7) (expect 99 {10,20,99}): %v %v\n" r7 list(s7))
+check_fail(:ok ok)
+
+// --- test 8: string(typedstr :raw) preserves the source's chunk type and
+//     values -- a byte-oriented copy would stop at the first embedded NUL
+//     inside the packed chunks and lose the block type entirely ---
+s8=string(3 :type `IntType)
+s8@0=10
+s8@1=20
+s8@2=30
+c8=string(s8 :raw)
+ok=ok&&(list(c8)=={10,20,30})
+print("8 string(s8 :raw) on a typed string preserves its chunks (expect {10,20,30}): %v\n" list(c8))
 check_fail(:ok ok)
 
 print("comvalref: %v\n" ok)

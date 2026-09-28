@@ -254,15 +254,11 @@ StrRefFunc::StrRefFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void StrRefFunc::execute() {
-  /* read the count off the live stack slot directly -- copy-constructing a
-     local ComValue from it first (the previous approach) takes its own
-     transient ref via ref_as_needed(), inflating every reading by 1 for as
-     long as that copy stays alive. A bare symbol/variable argument still
-     carries one extra ref of its own here, from stack_arg() resolving it
-     into the stack slot in place -- that one is inherent to evaluating the
-     argument at all (any command reading a variable pays it, not just this
-     one) and isn't released until reset_stack() below, after the count is
-     already read; a literal argument carries no such ref. */
+  /* read the count off the live stack slot directly, not a copy -- a copy
+     would take its own transient ref_as_needed() ref, inflating the count. */
+  /* a bare symbol/variable argument still carries stack_arg()'s own
+     resolution ref here, held until reset_stack() below -- inherent to
+     evaluating any variable, not specific to this command. */
   ComValue& argv = stack_arg(0);
   ComValue retval;
   if (argv.type()==ComValue::StringType)
@@ -310,9 +306,33 @@ void StringFunc::execute() {
      (cstr()'s C-string contract) -- see SLICES.md for the distinction. */
   if (capv.is_string()) {
     if (rawflag) {
-      ComValue dest("");
-      ComValue retval = dest.append_str(capv, true);
-      push_stack(retval);
+      if (capv.blocktype() != AttributeValue::UnknownType) {
+        /* a typed string's bytes are chunk-packed, not NUL-terminated text --
+           append_str() cuts a copy short at the first embedded NUL, so copy
+           the whole buffer directly instead. */
+        boolean isslice = capv.sliced();
+        int base = isslice ? capv.sliceoff() : 0;
+        int len = isslice ? capv.slicelen() : symbol_len(capv.string_val());
+        int newid = len>0 ? symbol_new((unsigned)len, false) : -1;
+        if (newid<0) {
+          push_stack(ComValue::nullval());
+          return;
+        }
+        char* buf = (char*)symbol_pntr(newid);
+        memcpy(buf, capv.string_ptr()+base, len);
+        ComValue retval((unsigned int)newid, ComValue::StringType);
+        retval.blocktype(capv.blocktype());
+        if (capv.blocktype() == AttributeValue::AnyType)
+          /* the copied chunks alias capv's own Resource-backed values --
+             take an independent ref per chunk for this second owner. */
+          for (int off = 0; off + ATTRVALUE_CHUNK_BYTES <= len; off += ATTRVALUE_CHUNK_BYTES)
+            AttributeValue::ref_as_needed(buf + off);
+        push_stack(retval);
+      } else {
+        ComValue dest("");
+        ComValue retval = dest.append_str(capv, true);
+        push_stack(retval);
+      }
     } else {
       std::string scratch;
       ComValue retval(capv.cstr(scratch));

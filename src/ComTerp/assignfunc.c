@@ -84,10 +84,10 @@ void AssignFunc::execute() {
     /* clear any kwoverride() tag an operator's copy-constructed result
        carried over from an operand -- an assignment's RHS is always fresh */
     operand2->kwoverride(0);
-    /* the global/local/temp/attrlist/attribute branches below hand this
-       pointer to a persistent structure that deletes it later; every other
-       branch only reads *operand2 and must delete it itself once done, or
-       its ref on whatever Resource it holds is never released */
+    /* global/local/temp/attrlist/attribute branches hand this pointer to a
+       persistent structure that deletes it later. */
+    /* every other branch must delete operand2 itself once done, or its ref
+       on whatever Resource it holds is never released. */
     boolean operand2_owned = false;
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();

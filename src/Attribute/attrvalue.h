@@ -46,6 +46,8 @@
     int symbol_add(const char*);
     int symbol_unref(int);
     int symbol_reference(int);
+    int symbol_refcount(int);
+    int symbol_len(int);
     int symbol_find(const char*);
     const char* symbol_pntr(int);
 // }
@@ -451,6 +453,11 @@ public:
 
     void ref_as_needed();
     // increment ref counters as needed
+    static void ref_as_needed(const void* base);
+    // increment ref counters as needed for a value with no live AttributeValue
+    // wrapper of its own -- 'base' is ATTRVALUE_CHUNK_BYTES of packed
+    // AttributeValue data (an AnyType chunk newly copied into a second
+    // buffer), read in place rather than copied into a temporary.
     void unref_as_needed();
     // decrement ref counters as needed
     static void unref_as_needed(const void* base);

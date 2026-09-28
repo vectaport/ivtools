@@ -6,7 +6,7 @@
 // Not registered in run_all.comt directly -- comvalref.comt spawns it as a
 // subprocess and parses its output.
 //
-// Prints one line: "RESULT d1 d2a d2b d3 d4 d5 END" and nothing else that
+// Prints one line: "RESULT d1 d2a d2b d3 d4 d5 d6 END" and nothing else that
 // matters (the interactive echo of each statement is discarded by the
 // caller, which reads only what follows "RESULT ").
 
@@ -49,5 +49,12 @@ base5=strref(t5)
 l5@0=t5
 d5=strref(t5)-base5
 
-print("RESULT %v %v %v %v %v %v END\n" d1 d2a d2b d3 d4 d5)
+t6="comvalref release target, long enough literal string right here too"
+s6=string(1 :type `AnyType)
+s6@0=t6
+base6=strref(t6)
+s6=nil
+d6=strref(t6)-base6
+
+print("RESULT %v %v %v %v %v %v %v END\n" d1 d2a d2b d3 d4 d5 d6)
 exit

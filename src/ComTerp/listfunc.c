@@ -313,8 +313,17 @@ void ListAtFunc::execute() {
        is_only_string(), not is_string() -- symbol text is its identity */
     int nvv;
     if (listv.is_only_string()) {
-      const char* str = listv.string_ptr();
-      nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+      /* nil's last-index meaning is in chunks for a typed string, bytes
+         otherwise -- match the read/write path below (blocksz()>0 case),
+         since this index is re-driven straight into it via :set. */
+      boolean isslice = listv.sliced();
+      int base = isslice ? listv.sliceoff() : 0;
+      int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+      int chunksz = listv.blocksz();
+      if (nv.is_nil())
+        nvv = chunksz>0 ? cap/chunksz-1 : (isslice ? cap-1 : (int)strlen(listv.string_ptr()+base)-1);
+      else
+        nvv = nv.int_val();
     } else {
       AttributeValueList* avl = listv.array_val();
       nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
