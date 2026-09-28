@@ -670,8 +670,9 @@ ComValue ComValue::comval_decode(const char* chunk, AttributeValue::ValueType bl
 
 void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueType blocktype) {
   if (blocktype == AttributeValue::AnyType) {
-    ComValue old = ComValue::comval_decode(chunk, blocktype);
-    old.unref_as_needed();
+    /* the chunk being overwritten has no live AttributeValue wrapper of its
+       own to call unref_as_needed() on -- unref it in place instead. */
+    AttributeValue::unref_as_needed(chunk);
     memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
     val.ref_as_needed();
   } else {

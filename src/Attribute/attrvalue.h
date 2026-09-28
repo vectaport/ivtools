@@ -453,6 +453,11 @@ public:
     // increment ref counters as needed
     void unref_as_needed();
     // decrement ref counters as needed
+    static void unref_as_needed(const void* base);
+    // decrement ref counters as needed for a value with no live AttributeValue
+    // wrapper of its own -- 'base' is ATTRVALUE_CHUNK_BYTES of packed
+    // AttributeValue data (a string(n :type `AnyType) chunk about to be
+    // overwritten), read in place rather than copied into a temporary.
     void dup_as_needed();
     // duplicate lists then increment ref counters as needed
     const boolean same_list(const AttributeValue& av);

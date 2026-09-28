@@ -37,6 +37,7 @@
 #include <Unidraw/Components/compview.h>
 #endif
 
+#include <cstddef>
 #include <ctype.h>
 #include <iomanip>
 #include <iostream.h>
@@ -1407,6 +1408,58 @@ void AttributeValue::unref_as_needed() {
        Resource::unref((Attribute*)_v.objval.ptr);
     else if (is_comterp_object_classid(obj_type_val()))
        Resource::unref((Resource*)_v.objval.ptr);
+  }
+#endif
+}
+
+//: a plain-data stand-in for AttributeValue's own member layout, for
+// offsetof() below -- AttributeValue itself has a virtual destructor, so
+// it isn't standard-layout and offsetof() on it is only conditionally
+// supported.  Field-for-field identical to the members declared in
+// attrvalue.h, in the same order, so the offsets match ATTRVALUE_CHUNK_BYTES
+// (the chunk holds those bytes with no vtable slot in front of them).
+struct AttributeValueLayout {
+  AttributeValue::ValueType type;
+  AttributeValue::ValueType blocktype;
+  attr_value v;
+  union { int command_symid; boolean object_compview; int stream_mode; int state; };
+};
+
+void AttributeValue::unref_as_needed(const void* base) {
+  // 'base' holds ATTRVALUE_CHUNK_BYTES of packed AttributeValue data (see
+  // comval_decode()/comval_encode()), with no live AttributeValue wrapping
+  // it -- read each field at its AttributeValueLayout offset instead.
+  typedef AttributeValueLayout Layout;
+  const char* p = (const char*)base;
+  ValueType type;
+  memcpy(&type, p + offsetof(Layout, type), sizeof(type));
+  if (type != ArrayType && type != StreamType && type != StringType
+#ifdef RESOURCE_COMPVIEW
+      && type != ObjectType
+#endif
+      )
+    return;
+  attr_value v;
+  memcpy(&v, p + offsetof(Layout, v), sizeof(v));
+  if (type == ArrayType)
+    Resource::unref(v.arrayval.ptr);
+  else if (type == StreamType)
+    Resource::unref(v.streamval.listptr);
+  else if (type == StringType)  // only StringType, never for SymbolType --
+    symbol_unref(v.symval.symid);  // SymAddFunc's closing loop relies on this
+#ifdef RESOURCE_COMPVIEW
+  else if (type == ObjectType) {
+    boolean object_compview;
+    memcpy(&object_compview, p + offsetof(Layout, object_compview),
+           sizeof(object_compview));
+    if (object_compview)
+      Resource::unref((ComponentView*)v.objval.ptr);
+    else if (v.objval.type == AttributeList::class_symid())
+      Resource::unref((AttributeList*)v.objval.ptr);
+    else if (v.objval.type == Attribute::class_symid())
+      Resource::unref((Attribute*)v.objval.ptr);
+    else if (is_comterp_object_classid(v.objval.type))
+      Resource::unref((Resource*)v.objval.ptr);
   }
 #endif
 }
