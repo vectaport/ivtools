@@ -417,8 +417,8 @@ f54=func(g54)
 r87=f54.g54(:newcap 5)
 r88=size(dot(f54))
 r89=print(dot(f54) :str)
-ok=ok&&(r87==6)&&(r88==1)&&(r89=="(:g54 FuncObj)")
-print("20f g54=func(newcap=newcap+1;newcap);f54=func(g54); f54.g54(:newcap 5), size(dot(f54)), dot(f54) (expect 6 1 (:g54 FuncObj) -- newcap never joins f54's sealed captures): %v %v %v\n\n" r87 r88 r89)
+ok=ok&&(r87==6)&&(r88==1)&&(r89=="(:g54 <FuncObj>)")
+print("20f g54=func(newcap=newcap+1;newcap);f54=func(g54); f54.g54(:newcap 5), size(dot(f54)), dot(f54) (expect 6 1 (:g54 <FuncObj>) -- newcap never joins f54's sealed captures): %v %v %v\n\n" r87 r88 r89)
 check_fail(:ok ok)
 
 // --- test 20g: a genuine call to a method literally named "empty" is not
