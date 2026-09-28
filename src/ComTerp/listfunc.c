@@ -332,7 +332,24 @@ void ListAtFunc::execute() {
 
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
-  if (setv.is_unknown()) setv = ComValue::blankval();                 // absent :set -> also blank
+  /* stack_key() can't tell "missing :set" from "an explicit :set nil" --
+     both come back as plain nil -- so a manual keyword-presence scan (same
+     walk stack_key() itself does) settles which one this was, ahead of
+     reset_stack() invalidating the stack.  set_nil feeds the string
+     branches below, which treat an explicit nil as a real value to write
+     (the type's zero value), not as "nothing to set". */
+  boolean set_nil = false;
+  if (setv.is_unknown()) {
+    int count = nargs() + nkeys() - npops();
+    for (int i=0; i<count; i++) {
+      ComValue& keyref = comterp()->stack_top(-i);
+      if (keyref.type()==ComValue::KeywordType && keyref.symbol_val()==set_symid) {
+        set_nil = true;
+        break;
+      }
+    }
+    setv = ComValue::blankval();                                    // absent :set -> also blank
+  }
   boolean setflag = !setv.is_blank();
   static int ins_symid = symbol_add("ins");
   ComValue insv(stack_key(ins_symid, false, ComValue::blankval()));
@@ -440,7 +457,7 @@ void ListAtFunc::execute() {
          is exactly n*chunksz, so no +1 adjustment. */
       int nchunks = cap/chunksz;
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
-      if (!setflag) {
+      if (!setflag && !set_nil) {
         if (nvv>=0 && nvv<nchunks) {
           ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz);
           push_stack(retval);
@@ -448,9 +465,12 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         if (nvv>=0 && nvv<nchunks) {
-          ComValue newval(setv);
+          /* an explicit :set nil writes the chunk's zero value (UnknownType,
+             every field cleared) rather than leaving the chunk untouched --
+             nil is itself a value AnyType can hold */
+          ComValue newval(set_nil ? ComValue::nullval() : setv);
           ComValue::comval_encode((char*)str+base+nvv*chunksz, newval);
-          ComValue retval(setv);
+          ComValue retval(newval);
           push_stack(retval);
           return;
         }
@@ -459,7 +479,7 @@ void ListAtFunc::execute() {
       /* nil means the last character: the slice's last index when sliced,
          otherwise the parent's strlen()-based last character */
       int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
-      if(!setflag) {
+      if(!setflag && !set_nil) {
         if(nvv>=0 && nvv<cap) {
           ComValue retval(*(str+base+nvv), ComValue::CharType);
           push_stack(retval);
@@ -467,10 +487,13 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         /* is_string() also matches symbols, whose chars are their identity,
-           so writing here would edit every value sharing the symbol */
+           so writing here would edit every value sharing the symbol.
+           An explicit :set nil writes the zero byte, char_val()'s own
+           default for a type (like nil) it has no reading for. */
         if(nvv<cap && nvv>=0) {
-          *((char *)str+base+nvv) = setv.char_val();
-          ComValue retval(setv);
+          ComValue writeval = set_nil ? ComValue::nullval() : setv;
+          *((char *)str+base+nvv) = writeval.char_val();
+          ComValue retval(writeval);
           push_stack(retval);
           return;
         }
