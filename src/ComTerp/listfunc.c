@@ -142,7 +142,7 @@ void ListFunc::execute() {
 	  snprintf(hexbuf, sizeof(hexbuf), "%02x", b);
 	  avl->Append(new AttributeValue(hexbuf));
 	} else
-	  avl->Append(new AttributeValue((long)b));
+	  avl->Append(new AttributeValue((int)b, ComValue::IntType));
       }
     } else {
       int chunksz = listv.blocksz();
