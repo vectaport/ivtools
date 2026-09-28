@@ -315,15 +315,16 @@ void StringFunc::execute() {
 
   /* string(n :type `AnyType) reserves n type_size(`AnyType)-byte chunks,
      each an @-indexed packed ComValue rather than a single char -- see
-     issue #637. Same capacity convention as a plain string(cap): cap is
-     usable bytes, not counting the guaranteed terminator. */
+     issue #637. The "-1 for the terminator" capacity convention is a
+     NUL-terminated-char-string idiom; a typed chunk array has no such
+     terminator, so it gets the full n*chunksz. */
   AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
   int chunksz = 0;
   if (typeflag && typev.type()==ComValue::SymbolType) {
     blocktype = valuetype_for_symid(typev.symbol_val());
     chunksz = AttributeValue::type_size(blocktype);
   }
-  int cap = typeflag ? capv.int_val()*chunksz-1 : capv.int_val();
+  int cap = typeflag ? capv.int_val()*chunksz : capv.int_val();
   int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
   if (newid<0) {
     push_stack(ComValue::nullval());

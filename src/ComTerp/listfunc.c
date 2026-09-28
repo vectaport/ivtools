@@ -382,10 +382,9 @@ void ListAtFunc::execute() {
     if (chunksz>0) {
       /* a string(n :type sym) value indexes whole chunksz-byte chunks,
          decoding/encoding a packed ComValue rather than a single char --
-         see issue #637. cap is one byte short of n*chunksz (the reserved
-         terminator byte), so nchunks rounds via cap+1, not a plain cap/chunksz
-         that would silently drop the last chunk. */
-      int nchunks = (cap+1)/chunksz;
+         see issue #637. Unlike a NUL-terminated string, a typed chunk
+         array's capacity is exactly n*chunksz, so no +1 adjustment. */
+      int nchunks = cap/chunksz;
       int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
       if (!setflag) {
         if (nvv>=0 && nvv<nchunks) {
