@@ -250,7 +250,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	      out << "<cycle>";
 	      break;
 	    }
-	    printing_syms.push_back(symid);
+	    /* pops printing_syms on any exit from this scope, including an
+	       exception out of a nested out<< -- so a later, unrelated print
+	       never mistakes this symbol for still being printed. */
+	    struct PoppingGuard {
+	      std::vector<unsigned int>& syms;
+	      PoppingGuard(std::vector<unsigned int>& s, unsigned int id) : syms(s) { syms.push_back(id); }
+	      ~PoppingGuard() { syms.pop_back(); }
+	    } guard(printing_syms, symid);
 	    const char* str = svp->string_ptr();
 	    boolean isslice = svp->sliced();
 	    int base = isslice ? svp->sliceoff() : 0;
@@ -265,7 +272,6 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    }
 	    if (nchunks == 1) out << ",";
 	    out << "}";
-	    printing_syms.pop_back();
 	    break;
 	  }
 	  /* cstr(), not string_ptr() -- svp may be a raw _stack element, and
