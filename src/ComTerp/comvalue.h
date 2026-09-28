@@ -61,10 +61,6 @@ class ComTerp;
 #define COMVALUE_TEMP_FLAG       0x40000000 // bit 30 -- set by temp() on its lvalue symbol -- write the call's temp frame, discarded when the call returns.
 #define COMVALUE_KWOVERRIDE_FLAG ((int)0x80000000) // bit 31 -- marks a call's keyword-supplied value; an ordinary assignment overwrites the whole ComValue with a freshly built one, clearing the bit, so its presence at call end means the body never touched the capture.
 
-#define COMVALUE_CHUNK_BYTES 40 // size of a string(n :comval) chunk: AttributeValue's
-                                // own member data (_type.._ext3), dropping ComValue's
-                                // _pedepth/_linenum -- see issue #637 for the byte layout.
-
 class ComValue : public AttributeValue {
 public:
     ComValue(const ComValue&);
@@ -212,8 +208,8 @@ public:
     // chunk size of a StringType value, in bytes -- derived from
     // blocktype(), not stored on its own; 0 for an ordinary byte-granular
     // string (blocktype() reads UnknownType, whose type_size() is 0).
-    // Nonzero for one built by string(n :comval), whose @ reads/writes a
-    // packed ComValue per blocksz()-byte chunk instead of a single char.
+    // Nonzero for one built by string(n :type `AnyType), whose @ reads/writes
+    // a packed ComValue per blocksz()-byte chunk instead of a single char.
 
     const char* cstr(std::string& scratch);
     // the slice-aware way to get a StringType value's text as a genuine C
@@ -308,11 +304,14 @@ public:
     // run of append() calls amortizes to O(1) each the way Go's append does.
 
     static ComValue comval_decode(const char* chunk);
-    // decode a COMVALUE_CHUNK_BYTES-byte string(n :comval) chunk back into a
-    // ComValue -- the reverse of the memcpy an @ assignment into such a
-    // string will write; ref_as_needed() picks up a share of whatever
-    // pointer/symid the chunk holds, matching the string buffer becoming
-    // another owner of it.
+    // decode an ATTRVALUE_CHUNK_BYTES-byte string(n :type `AnyType) chunk
+    // back into a ComValue -- the reverse of comval_encode()'s memcpy;
+    // ref_as_needed() picks up a share of whatever pointer/symid the chunk
+    // holds, matching the string buffer becoming another owner of it.
+    static void comval_encode(char* chunk, ComValue& val);
+    // encode val's raw member data into an ATTRVALUE_CHUNK_BYTES-byte chunk,
+    // unref'ing whatever value was there and ref_as_needed()-ing val to
+    // account for the chunk becoming a second owner of its pointer/symid.
 
 protected:
     // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into

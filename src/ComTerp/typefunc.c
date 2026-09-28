@@ -80,15 +80,7 @@ void TypeSymbolFunc::execute() {
   std::vector<int> type_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
-    /* a string(n :comval)'s own type is StringType, but it's a container,
-       not a value -- type() reports its first chunk's own type instead,
-       the same value comval@0 would decode to. */
-    if (val.is_only_string() && val.blocksz()>0) {
-      int base = val.sliced() ? val.sliceoff() : 0;
-      ComValue chunkval = ComValue::comval_decode(val.string_ptr()+base);
-      type_syms[i] = chunkval.type_symid();
-    } else
-      type_syms[i] = val.type_symid();
+    type_syms[i] = val.type_symid();
   }
   reset_stack();
 

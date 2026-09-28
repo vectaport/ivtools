@@ -651,8 +651,15 @@ ComValue ComValue::append_str(ComValue& addend, boolean headroom) {
 
 ComValue ComValue::comval_decode(const char* chunk) {
   ComValue val;
-  memcpy(&val._type, chunk, COMVALUE_CHUNK_BYTES);
+  memcpy(&val._type, chunk, ATTRVALUE_CHUNK_BYTES);
   val.ref_as_needed();
   return val;
+}
+
+void ComValue::comval_encode(char* chunk, ComValue& val) {
+  ComValue old = ComValue::comval_decode(chunk);
+  old.unref_as_needed();
+  memcpy(chunk, &val._type, ATTRVALUE_CHUNK_BYTES);
+  val.ref_as_needed();
 }
 

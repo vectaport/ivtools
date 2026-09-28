@@ -123,8 +123,13 @@ public:
 };
     // enum for attribute value types.
     // AnyType marks a value slot that carries a raw ComValue of whatever type
-    // was stored there (e.g. a string(:comval)-backed slice's element),
-    // rather than being fixed to one of the other types itself.
+    // was stored there (e.g. a string(n :type `AnyType) chunk), rather than
+    // being fixed to one of the other types itself.
+
+#define ATTRVALUE_CHUNK_BYTES 40 // size of an AnyType chunk: AttributeValue's
+                                 // own member data (_type/_blocktype/_v/the
+                                 // state union/_ext1..3), dropping ComValue's
+                                 // own _pedepth/_linenum -- see issue #637.
 
     enum ValueState { UnknownState, OctState, HexState };
     // enum for states -- occupies the low nibble of the state word

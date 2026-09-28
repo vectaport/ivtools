@@ -378,23 +378,47 @@ void ListAtFunc::execute() {
     boolean isslice = listv.sliced();
     int base = isslice ? listv.sliceoff() : 0;
     int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
-    /* nil means the last character: the slice's last index when sliced,
-       otherwise the parent's strlen()-based last character */
-    int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
-    if(!setflag) {
-      if(nvv>=0 && nvv<cap) {
-        ComValue retval(*(str+base+nvv), ComValue::CharType);
-        push_stack(retval);
-        return;
+    int chunksz = listv.blocksz();
+    if (chunksz>0) {
+      /* a string(n :type sym) value indexes whole chunksz-byte chunks,
+         decoding/encoding a packed ComValue rather than a single char --
+         see issue #637 */
+      int nchunks = cap/chunksz;
+      int nvv = nv.is_nil() ? nchunks-1 : nv.int_val();
+      if (!setflag) {
+        if (nvv>=0 && nvv<nchunks) {
+          ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz);
+          push_stack(retval);
+          return;
+        }
+      } else if (listv.is_only_string()) {
+        if (nvv>=0 && nvv<nchunks) {
+          ComValue newval(setv);
+          ComValue::comval_encode((char*)str+base+nvv*chunksz, newval);
+          ComValue retval(setv);
+          push_stack(retval);
+          return;
+        }
       }
-    } else if (listv.is_only_string()) {
-      /* is_string() also matches symbols, whose chars are their identity,
-         so writing here would edit every value sharing the symbol */
-      if(nvv<cap && nvv>=0) {
-	*((char *)str+base+nvv) = setv.char_val();
-	ComValue retval(setv);
-	push_stack(retval);
-	return;
+    } else {
+      /* nil means the last character: the slice's last index when sliced,
+         otherwise the parent's strlen()-based last character */
+      int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
+      if(!setflag) {
+        if(nvv>=0 && nvv<cap) {
+          ComValue retval(*(str+base+nvv), ComValue::CharType);
+          push_stack(retval);
+          return;
+        }
+      } else if (listv.is_only_string()) {
+        /* is_string() also matches symbols, whose chars are their identity,
+           so writing here would edit every value sharing the symbol */
+        if(nvv<cap && nvv>=0) {
+          *((char *)str+base+nvv) = setv.char_val();
+          ComValue retval(setv);
+          push_stack(retval);
+          return;
+        }
       }
     }
   }

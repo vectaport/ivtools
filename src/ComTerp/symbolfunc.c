@@ -274,6 +274,16 @@ void StrRefFunc::execute() {
 StringFunc::StringFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+/* :type's value is always a bare symbol name (`AnyType, `FloatType, ...) --
+   the reverse of type_symid(ValueType); a linear scan over the closed
+   enum, same cost class as the table type_symid() itself builds. */
+static AttributeValue::ValueType valuetype_for_symid(int symid) {
+  for (int t=AttributeValue::UnknownType; t<=AttributeValue::AnyType; t++)
+    if (AttributeValue::type_symid((AttributeValue::ValueType)t) == symid)
+      return (AttributeValue::ValueType)t;
+  return AttributeValue::UnknownType;
+}
+
 void StringFunc::execute() {
   ComValue capv(stack_arg(0));
   static int spaces_symid = symbol_add("spaces");
@@ -282,9 +292,9 @@ void StringFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
-  static int comval_symid = symbol_add("comval");
-  ComValue comvalv(stack_key(comval_symid));
-  boolean comvalflag = comvalv.is_true();
+  static int type_symid = symbol_add("type");
+  ComValue typev(stack_key(type_symid));
+  boolean typeflag = typev.is_known();
   reset_stack();
 
   /* string(str) is a copy, not a capacity request: :raw copies the full
@@ -303,22 +313,24 @@ void StringFunc::execute() {
     return;
   }
 
-  /* string(n :comval) reserves n COMVALUE_CHUNK_BYTES-byte chunks, each an
-     @-indexed packed ComValue rather than a single char -- see issue #637.
-     Same capacity convention as a plain string(cap): cap is usable bytes,
-     not counting the guaranteed terminator. */
-  int cap = comvalflag ? capv.int_val()*COMVALUE_CHUNK_BYTES-1 : capv.int_val();
+  /* string(n :type `AnyType) reserves n type_size(`AnyType)-byte chunks,
+     each an @-indexed packed ComValue rather than a single char -- see
+     issue #637. Same capacity convention as a plain string(cap): cap is
+     usable bytes, not counting the guaranteed terminator. */
+  AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
+  int chunksz = 0;
+  if (typeflag && typev.type()==ComValue::SymbolType) {
+    blocktype = valuetype_for_symid(typev.symbol_val());
+    chunksz = AttributeValue::type_size(blocktype);
+  }
+  int cap = typeflag ? capv.int_val()*chunksz-1 : capv.int_val();
   int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
   if (newid<0) {
     push_stack(ComValue::nullval());
     return;
   }
   ComValue retval((unsigned int)newid, ComValue::StringType);
-  /* blocktype() has nowhere to point yet -- AnyType (the "whole packed
-     chunk" ValueType, landing in a separate thread) doesn't exist in this
-     branch, so blocksz() reads 0 here until that case is added to
-     AttributeValue::type_size(). Sizing above already reserves the right
-     capacity; only the chunk-array behavior is pending. */
+  if (typeflag) retval.blocktype(blocktype);
   push_stack(retval);
 }
 

@@ -1219,6 +1219,8 @@ int AttributeValue::type_size(ValueType type) {
     return sizeof(float);
   case AttributeValue::DoubleType:
     return sizeof(double);
+  case AttributeValue::AnyType:
+    return ATTRVALUE_CHUNK_BYTES;
   default:
     return 0;
   }
