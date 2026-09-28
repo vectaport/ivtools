@@ -254,18 +254,26 @@ StrRefFunc::StrRefFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void StrRefFunc::execute() {
-  ComValue strv(stack_arg(0));
+  /* read the count off the live stack slot directly -- copy-constructing a
+     local ComValue from it first (the previous approach) takes its own
+     transient ref via ref_as_needed(), inflating every reading by 1 for as
+     long as that copy stays alive. A bare symbol/variable argument still
+     carries one extra ref of its own here, from stack_arg() resolving it
+     into the stack slot in place -- that one is inherent to evaluating the
+     argument at all (any command reading a variable pays it, not just this
+     one) and isn't released until reset_stack() below, after the count is
+     already read; a literal argument carries no such ref. */
+  ComValue& argv = stack_arg(0);
+  ComValue retval;
+  if (argv.type()==ComValue::StringType)
+    retval = ComValue(symbol_refcount(argv.symbol_val()), ComValue::IntType);
+  else if (argv.type()==ComValue::IntType)
+    retval = ComValue(symbol_refcount(argv.int_val()), ComValue::IntType);
+  else
+    retval = ComValue::nullval();
   reset_stack();
-  if (strv.type()==ComValue::StringType) {
-    ComValue retval(symbol_refcount(strv.symbol_val()), ComValue::IntType);
-    push_stack(retval);
-  } 
-  else if (strv.type()==ComValue::IntType) {
-    ComValue retval(symbol_refcount(strv.int_val()), ComValue::IntType);
-    push_stack(retval);
-  } else
-    push_stack(ComValue::nullval());
-  return;  
+  push_stack(retval);
+  return;
 }
 
 
