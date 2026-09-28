@@ -208,14 +208,12 @@ public:
     // clear any explicit cap -- e.g. once append() reallocates to a fresh
     // backing, where the old cap (a limit against the old backing's
     // neighbor) no longer means anything.
-    int blocksz() const { return type()==StringType ? _ext3 & 0xff : 0; }
-    // chunk size of a StringType value, in bytes -- 0 for an ordinary
-    // byte-granular string, nonzero for one built by string(n :comval),
-    // whose @ reads/writes a packed ComValue per blocksz()-byte chunk
-    // instead of a single char.  Shares _ext3's low byte with nids(),
-    // which is why nids() itself always reads 0 for a StringType.
-    void blocksz(int sz) { _ext3 = (_ext3 & ~0xff) | (sz & 0xff); }
-    // set the chunk size (0-255 bytes); only meaningful for a StringType.
+    int blocksz() const { return AttributeValue::type_size(blocktype()); }
+    // chunk size of a StringType value, in bytes -- derived from
+    // blocktype(), not stored on its own; 0 for an ordinary byte-granular
+    // string (blocktype() reads UnknownType, whose type_size() is 0).
+    // Nonzero for one built by string(n :comval), whose @ reads/writes a
+    // packed ComValue per blocksz()-byte chunk instead of a single char.
 
     const char* cstr(std::string& scratch);
     // the slice-aware way to get a StringType value's text as a genuine C

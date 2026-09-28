@@ -330,6 +330,7 @@ void AttributeValue::clear() {
     // first 8 bytes would otherwise hold construction-path garbage.
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
+    _blocktype = UnknownType;
     _state = 0;
     _ext1 = _ext2 = _ext3 = 0;
 }
@@ -341,6 +342,7 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     const void* v2 = &sv._v;
     memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
+    _blocktype = sv._blocktype;
     _command_symid = sv._command_symid;
     _ext1 = sv._ext1;
     _ext2 = sv._ext2;
@@ -1226,6 +1228,7 @@ void AttributeValue::assignval (const AttributeValue& av) {
     const void* v2 = &av._v;
     memcpy(v1, v2, sizeof(_v));
     _type = av._type;
+    _blocktype = av._blocktype;
     _command_symid = av._command_symid;
     _ext1 = av._ext1;
     _ext2 = av._ext2;

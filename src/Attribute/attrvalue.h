@@ -197,6 +197,13 @@ public:
     static int type_symid(ValueType);
     // return symbol id corresponding to given type
     const char* type_name() { return symbol_pntr(type_symid()); }
+
+    ValueType blocktype() const { return type()==StringType ? _blocktype : UnknownType; }
+    // for a StringType built as a packed chunk array, the ValueType each
+    // chunk decodes as; UnknownType (0, the zero-init default) for an
+    // ordinary string, never set otherwise.
+    void blocktype(ValueType t) { if (type()==StringType) _blocktype = t; }
+    // set the per-chunk ValueType of a StringType value.
     // type name of value.
 
     void assignval (const AttributeValue&);
@@ -451,6 +458,12 @@ public:
 protected:
 
     ValueType _type;
+    ValueType _blocktype; // for a StringType built as a packed chunk array
+                          // (comterp's string(n :comval)): the ValueType
+                          // each chunk decodes as; blocksz() is derived from
+                          // it via type_size().  Sits in what would
+                          // otherwise be alignment padding before _v, so it
+                          // costs nothing in sizeof(AttributeValue).
     attr_value _v;
     union {
       int _command_symid; // used for CommandType.

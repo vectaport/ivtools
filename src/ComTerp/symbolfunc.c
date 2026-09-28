@@ -314,7 +314,11 @@ void StringFunc::execute() {
     return;
   }
   ComValue retval((unsigned int)newid, ComValue::StringType);
-  if (comvalflag) retval.blocksz(COMVALUE_CHUNK_BYTES);
+  /* blocktype() has nowhere to point yet -- AnyType (the "whole packed
+     chunk" ValueType, landing in a separate thread) doesn't exist in this
+     branch, so blocksz() reads 0 here until that case is added to
+     AttributeValue::type_size(). Sizing above already reserves the right
+     capacity; only the chunk-array behavior is pending. */
   push_stack(retval);
 }
 
