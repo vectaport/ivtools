@@ -128,9 +128,8 @@ void AssignFunc::execute() {
 	    operand2_owned = true;
 	} else if (comterp()->get_tempframe() &&
 		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
-	    /* bare write to an existing temp() name: mirrors bare-write's usual
-	       rule (write where a bare read would find it) -- only the
-	       creating write needs temp(). */
+	    /* bare write to an existing temp() name mirrors bare-write's usual
+	       rule (write where a bare read would find it): only the creating write needs temp(). */
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);

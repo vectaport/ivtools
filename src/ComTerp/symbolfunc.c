@@ -257,8 +257,7 @@ void StrRefFunc::execute() {
   /* read the count off the live stack slot directly, not a copy -- a copy
      would take its own transient ref_as_needed() ref, inflating the count. */
   /* a bare symbol/variable argument still carries stack_arg()'s own
-     resolution ref here, held until reset_stack() below -- inherent to
-     evaluating any variable, not specific to this command. */
+     resolution ref, held until reset_stack() -- inherent to evaluating any variable. */
   ComValue& argv = stack_arg(0);
   ComValue retval;
   if (argv.type()==ComValue::StringType)
@@ -278,9 +277,8 @@ void StrRefFunc::execute() {
 StringFunc::StringFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-/* :type's value is always a bare symbol name (`AnyType, `FloatType, ...) --
-   the reverse of type_symid(ValueType); a linear scan over the closed
-   enum, same cost class as the table type_symid() itself builds. */
+/* the reverse of type_symid(ValueType): a linear scan over the closed enum,
+   same cost class as the table type_symid() itself builds. */
 static AttributeValue::ValueType valuetype_for_symid(int symid) {
   for (int t=AttributeValue::UnknownType; t<=AttributeValue::AnyType; t++)
     if (AttributeValue::type_symid((AttributeValue::ValueType)t) == symid)
@@ -307,9 +305,8 @@ void StringFunc::execute() {
   if (capv.is_string()) {
     if (rawflag) {
       if (capv.blocktype() != AttributeValue::UnknownType) {
-        /* a typed string's bytes are chunk-packed, not NUL-terminated text --
-           append_str() cuts a copy short at the first embedded NUL, so copy
-           the whole buffer directly instead. */
+        /* a typed string's bytes are chunk-packed, not NUL-terminated text,
+           so copy the whole buffer directly (append_str() would cut it short at an embedded NUL). */
         boolean isslice = capv.sliced();
         int base = isslice ? capv.sliceoff() : 0;
         int len = isslice ? capv.slicelen() : symbol_len(capv.string_val());

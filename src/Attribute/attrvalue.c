@@ -903,10 +903,9 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
-    /* ArrayType/StringType: the hook gives their shared flags ComTerp's
-       own meaning. ObjectType/StreamType: a list holds a value as a plain
-       AttributeValue&, never a ComValue&, so the hook is what makes it
-       print the same nested as it would at the top level. */
+    /* ArrayType/StringType: the hook gives their shared flags ComTerp's own meaning. */
+    /* ObjectType/StreamType: a list holds a value as a plain AttributeValue&,
+       so the hook is what nests it the same as top level. */
     if (AttributeValue::_render_hook &&
         (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType ||
          sv.type() == AttributeValue::ObjectType || sv.type() == AttributeValue::StreamType))
@@ -1399,9 +1398,8 @@ void AttributeValue::unref_as_needed() {
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
   else if (_type == AttributeValue::StringType) {  // only StringType, never for SymbolType --
-    /* an AnyType-chunked string holds one Resource ref per chunk, taken by
-       comval_encode() -- release them all before the last reference to the
-       backing buffer drops, or they outlive it. */
+    /* an AnyType-chunked string holds one comval_encode()-taken Resource ref
+       per chunk -- release them all before the buffer's last ref drops. */
     if (_blocktype == AnyType && symbol_refcount(string_val()) == 1) {
       const char* base = string_ptr();
       int len = symbol_len(string_val());

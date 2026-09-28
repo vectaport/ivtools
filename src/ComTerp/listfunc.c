@@ -309,8 +309,7 @@ void ListAtFunc::execute() {
     int nvv;
     if (listv.is_only_string()) {
       /* nil's last-index meaning is in chunks for a typed string, bytes
-         otherwise -- match the read/write path below (blocksz()>0 case),
-         since this index is re-driven straight into it via :set. */
+         otherwise, matching the read/write path this index re-drives via :set. */
       boolean isslice = listv.sliced();
       int base = isslice ? listv.sliceoff() : 0;
       int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
@@ -467,11 +466,10 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         if (nvv>=0 && nvv<nchunks) {
-          /* an explicit :set nil writes the chunk's zero value -- for
-             AnyType that's the all-zero UnknownType ComValue, nil being a
-             value AnyType can hold; for a scalar blocktype it's that
-             type's own zero, since every *_val() converter already
-             defaults an UnknownType source to 0 */
+          /* an explicit :set nil writes the chunk's zero value: for AnyType
+             that's the all-zero UnknownType ComValue, a value AnyType can hold. */
+          /* for a scalar blocktype it's that type's own zero, since every
+             *_val() converter already defaults an UnknownType source to 0. */
           ComValue newval(set_nil ? ComValue::nullval() : setv);
           ComValue::comval_encode((char*)str+base+nvv*chunksz, newval, listv.blocktype());
           ComValue retval = ComValue::comval_decode(str+base+nvv*chunksz, listv.blocktype());
@@ -491,9 +489,9 @@ void ListAtFunc::execute() {
         }
       } else if (listv.is_only_string()) {
         /* is_string() also matches symbols, whose chars are their identity,
-           so writing here would edit every value sharing the symbol.
-           An explicit :set nil writes the zero byte, char_val()'s own
-           default for a type (like nil) it has no reading for. */
+           so writing here would edit every value sharing the symbol. */
+        /* an explicit :set nil writes the zero byte, char_val()'s own
+           default for a type it has no reading for. */
         if(nvv<cap && nvv>=0) {
           ComValue writeval = set_nil ? ComValue::nullval() : setv;
           *((char *)str+base+nvv) = writeval.char_val();
