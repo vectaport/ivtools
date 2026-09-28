@@ -135,8 +135,18 @@ int AttributeList::add_attr(Attribute* attr) {
 }
 
 Attribute* AttributeList::GetAttr (const char* n) {
-    int id = symbol_find((char*)n);
-    return id==-1 ? nil : GetAttr(id);
+    /* compares n's actual text, not a symbol_find() reverse lookup -- a
+       symbol_new()-sourced symid (e.g. a writable string buffer used as
+       a name) is deliberately never registered there, so this must scan
+       by content to find every attribute, not just symbol_add()-interned
+       ones. */
+    ALIterator i;
+    for (First(i); !Done(i); Next(i)) {
+	Attribute* attr = GetAttr(i);
+	if (strcmp(n, attr->Name()) == 0)
+	    return attr;
+    }
+    return nil;
 }
 
 Attribute* AttributeList::GetAttr (int symid) {
