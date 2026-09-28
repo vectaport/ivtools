@@ -14,7 +14,7 @@ cmd1="echo 'drawtool(\nrectangle(0,0,50,50 :fillbg 1 :brush 65535,0 :fgcolor \"B
      " && (comdraw -stdin_off -runexpr \"r=import(\\\""+goodpath+
      "\\\");print(\\\"RESULT:%v\\n\\\" r);exit\" < /dev/null & pid=$!; (sleep 10; kill -9 $pid 2>/dev/null) & watcher=$!; wait $pid 2>/dev/null; kill $watcher 2>/dev/null) 2>&1 | tail -3 | tr \"\n\" \" \""
 out1=*$$open(cmd1 :pipe)
-ok=ok&&(index(out1 "RESULT:<OverlayIdrawComp>" :substr)!=nil)
+ok=ok&&(index(out1 "RESULT:OverlayIdrawComp" :substr)!=nil)
 print("1 import() of a recognized top-level object succeeds (expect true): %v\n%s\n\n" ok out1)
 
 // --- test 2: a top-level object name the catalog does not recognize must
