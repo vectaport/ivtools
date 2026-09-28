@@ -131,8 +131,11 @@ public:
                                  // state union/_ext1..3), dropping ComValue's
                                  // own _pedepth/_linenum.
 
-    enum ValueState { UnknownState, OctState, HexState };
-    // enum for states -- occupies the low nibble of the state word
+    enum ValueState { UnknownState, OctState, HexState, DecState };
+    // enum for states -- occupies the low nibble of the state word.  For
+    // CharType/UCharType, DecState/HexState pick a numeric rendering
+    // (decimal or 0x-hex) over the default char-literal one -- see
+    // out_char_brief() and operator<<.
 
     enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper };
     // enum for output wrappers, a display-only annotation surrounding the

@@ -122,9 +122,10 @@ void ListFunc::execute() {
   AttributeValueList* avl;
 
   /* list(str :bytes [:hex]) -- the string's raw bytes, one list entry per
-     byte, whatever its blocktype(); each is a CharType (signed) value, or
-     a UCharType (unsigned) value with :hex -- print()'s own %x verb reads
-     either as hex from there.  list(str) with no :bytes on a typed
+     byte, whatever its blocktype(); each is a CharType (signed) value
+     printing as decimal (DecState), or with :hex a UCharType (unsigned)
+     value printing as 0x-hex (HexState) -- see operator<<'s CharType/
+     UCharType cases (attrvalue.c).  list(str) with no :bytes on a typed
      (blocksz()>0) string instead decodes its chunks back into a list of
      ComValues, via the same memcpy @ uses -- so values of different
      ValueTypes packed into adjacent chunks come back out as themselves,
@@ -138,10 +139,15 @@ void ListFunc::execute() {
     if (bytesflag) {
       for (int i=0; i<cap; i++) {
 	unsigned char b = (unsigned char)*(str+base+i);
-	if (hexflag)
-	  avl->Append(new AttributeValue(b));
-	else
-	  avl->Append(new AttributeValue((char)b));
+	AttributeValue* elt;
+	if (hexflag) {
+	  elt = new AttributeValue(b);
+	  elt->state(AttributeValue::HexState);
+	} else {
+	  elt = new AttributeValue((char)b);
+	  elt->state(AttributeValue::DecState);
+	}
+	avl->Append(elt);
       }
     } else {
       int chunksz = listv.blocksz();

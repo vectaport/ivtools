@@ -1025,11 +1025,18 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	case AttributeValue::CharType:
-	  AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
+	  if (svp->state()==AttributeValue::DecState)
+	    out << (int)svp->char_ref();
+	  else
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
 	  break;
 
 	case AttributeValue::UCharType:
-	  AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
+	  if (svp->state()==AttributeValue::HexState)
+	    out << "0x" << std::setw(2) << std::setfill('0') << std::hex
+		<< (unsigned int)svp->uchar_ref() << std::dec;
+	  else
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
 	  break;
 	  
 	case AttributeValue::IntType:

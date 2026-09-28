@@ -256,16 +256,23 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::CharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::DecState)
+	      out << (int)svp->char_ref();
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
+	  } else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;
 
 	case ComValue::UCharType:
-	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::setw(2) << std::setfill('0') << std::hex
+		  << (unsigned int)svp->uchar_ref() << std::dec;
+	    else
+	      AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
+	  } else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
 	    
