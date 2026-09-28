@@ -117,7 +117,8 @@ class FileObj : public Resource {
 };
 
 
-class PipeObj {
+//: a popen()'d subprocess, refcounted like any other object-typed ComValue.
+class PipeObj : public Resource {
  public:
   PipeObj(const char* command);
   virtual ~PipeObj();

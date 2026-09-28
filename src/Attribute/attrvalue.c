@@ -57,18 +57,20 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 
 /*****************************************************************************/
 
-// ComTerp object classes (FuncObj, FileObj, SocketObj) are Resource-derived
-// and refcounted like AttributeList/Attribute below, but Attribute is a
-// lower layer than ComTerp, so their class ids are looked up by name
-// (symbol_add() is idempotent -- see Attribute/_comutil.h) rather than by
-// including their headers.
+// ComTerp object classes (FuncObj, FileObj, SocketObj, PipeObj) are
+// Resource-derived and refcounted like AttributeList/Attribute below, but
+// Attribute is a lower layer than ComTerp, so their class ids are looked
+// up by name (symbol_add() is idempotent -- see Attribute/_comutil.h)
+// rather than by including their headers.
 static boolean is_comterp_object_classid(unsigned int classid) {
   static int funcobj_symid = symbol_add("FuncObj");
   static int fileobj_symid = symbol_add("FileObj");
   static int socketobj_symid = symbol_add("SocketObj");
+  static int pipeobj_symid = symbol_add("PipeObj");
   return classid==(unsigned int)funcobj_symid ||
          classid==(unsigned int)fileobj_symid ||
-         classid==(unsigned int)socketobj_symid;
+         classid==(unsigned int)socketobj_symid ||
+         classid==(unsigned int)pipeobj_symid;
 }
 
 int* AttributeValue::_type_syms = nil;
