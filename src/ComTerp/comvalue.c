@@ -264,6 +264,15 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    int cap = isslice ? svp->slicelen() : symbol_len(svp->string_val());
 	    int chunksz = svp->blocksz();
 	    int nchunks = cap/chunksz;
+	    /* past AttributeValueList::default_max_out chunks, a full decode
+	       floods the terminal for no benefit -- print the type and count
+	       instead, same as any other opaque value (<FuncObj>, <cycle>
+	       above); list(str) still decodes it in full on request. */
+	    if (nchunks > AttributeValueList::default_max_out) {
+	      out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
+		  << "[" << nchunks << "]>";
+	      break;
+	    }
 	    out << "{";
 	    for (int i=0; i<nchunks; i++) {
 	      ComValue elt = ComValue::comval_decode(str+base+i*chunksz, svp->blocktype());
@@ -400,7 +409,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	       round-trips it back as input, so no ambiguity to guard against */
 	    boolean coloned = svp->coloned();
 	    if (!coloned) out << "{";
-	    while (!avl->Done(i)) {
+	    /* max_out() elides past a cutoff so a huge list can't flood the
+	       terminal: -1 (unset) applies default_max_out, 0 is unlimited. */
+	    int cutoff = avl->max_out();
+	    if (cutoff < 0) cutoff = AttributeValueList::default_max_out;
+	    int total = avl->Number();
+	    int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
+	    int printed = 0;
+	    while (!avl->Done(i) && printed < shown) {
 	      ComValue val(*avl->GetAttrVal(i));
 
 	      if (val.type() == ComValue::ObjectType &&
@@ -411,9 +427,11 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	        out << val;
 
 	      avl->Next(i);
-	      if (!avl->Done(i)) out << (coloned ? ":" : ",");
+	      printed++;
+	      if (printed < shown || printed < total) out << (coloned ? ":" : ",");
 	    };
-	    if (!coloned && avl->Number() == 1) out << ",";
+	    if (shown < total) out << "{" << (total - shown) << " more}";
+	    if (!coloned && total == 1) out << ",";
 	    if (!coloned) out << "}";
 	  } else {
 	    out << "list of length " << svp->array_len();

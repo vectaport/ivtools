@@ -49,10 +49,13 @@ boolean value_contains_container(AttributeValue& val, void* target,
 				  boolean target_is_attrlist);
 
 //: create list command for ComTerp.
-// lst=list([lst|strm|val] :strmlst :attr :size n :bytes :hex) -- create list,
+// lst=list([lst|strm|val] :strmlst :attr :size n :bytes :hex :cutoff n) -- create list,
 // copy list, or convert stream.  On a typed (blocksz()>0) string built by
 // string(n :type sym), list(str) with no :bytes decodes its chunks back
 // into a list of ComValues instead of wrapping the string whole.
+// :cutoff sets how many elements the result prints before eliding the
+// rest as "{n more}"; unset defaults to AttributeValueList::default_max_out
+// (16), 0 never elides.
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -60,7 +63,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon :bytes :hex) -- create list, copy list, or convert stream (unary $)"; }
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon :bytes :hex :cutoff n) -- create list, copy list, or convert stream (unary $)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":strmlst   return list inside stream for debug",
@@ -69,6 +72,7 @@ public:
 	":colon     tag the result coloned(), same as ':' itself builds",
 	":bytes     a string's raw bytes as a list of CharType values",
 	":hex       with :bytes, UCharType values instead of CharType",
+	":cutoff n  print elision cutoff, default 16, 0 disables",
 	nil
       };
       return keys;
