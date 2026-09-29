@@ -131,12 +131,20 @@ ok=ok&&(p14==orig_cutoff)
 print("14 cutoff(\"nope\") is ignored, cutoff() (expect unchanged, 256): %v\n" p14)
 prev_ok=check_fail(:ok ok)
 
+// --- test 15: cutoff() rejects a negative argument too, rather than
+// silently disabling elision the way cutoff(0) intentionally does ---
+cutoff(-5)
+p15=cutoff()
+ok=ok&&(p15==orig_cutoff)
+print("15 cutoff(-5) is ignored, cutoff() (expect unchanged, 256): %v\n" p15)
+prev_ok=check_fail(:ok ok)
+
 // restore the comterp-wide default so later scripts in this session see
 // the same starting point this one did
 cutoff(orig_cutoff)
-p15=cutoff()
-ok=ok&&(p15==orig_cutoff)
-print("15 cutoff(orig_cutoff), cutoff() (expect restored to 256): %v\n" p15)
+p16=cutoff()
+ok=ok&&(p16==orig_cutoff)
+print("16 cutoff(orig_cutoff), cutoff() (expect restored to 256): %v\n" p16)
 prev_ok=check_fail(:ok ok)
 
 print("\nlist_string_cutoff: %v\n" ok)

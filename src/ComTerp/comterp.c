@@ -197,6 +197,10 @@ void ComTerp::init() {
 
 
 ComTerp::~ComTerp() {
+    /* a print mid-flight elsewhere may still hold this comterp as the
+       source of its cutoff(); clear the pointer rather than leave
+       later renders reading freed memory. */
+    if (ComValue::comterp() == this) ComValue::comterp(nil);
     delete _peek_scratch;
     delete _fire_scratch_pool;
     /* Free stacks */

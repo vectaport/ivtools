@@ -790,7 +790,7 @@ void CutoffFunc::execute() {
   } else {
     ComValue nv(stack_arg(0));
     reset_stack();
-    if (nv.is_int()) comterp()->cutoff(nv.int_val());
+    if (nv.is_int() && nv.int_val()>=0) comterp()->cutoff(nv.int_val());
     ComValue retval(comterp()->cutoff(), ComValue::IntType);
     push_stack(retval);
   }
