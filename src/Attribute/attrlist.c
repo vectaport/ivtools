@@ -54,13 +54,14 @@ using std::cerr;
 
 int AttributeList::_symid = -1;
 
-AttributeList::AttributeList (AttributeList* s) {
+AttributeList::AttributeList (AttributeList* s, int index_size) {
 #ifdef LEAKCHECK
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeList");
     _leakchecker->create();
 #endif
     _alist = new AList;
-    _index = new AttributeTable(8);
+    _index_size = index_size >= 0 ? index_size : (s ? s->_index_size : 8);
+    _index = _index_size > 0 ? new AttributeTable(_index_size) : nil;
     _count = 0;
     _sealed = false;
     if (s != nil) {
@@ -123,15 +124,29 @@ void AttributeList::add_attribute(Attribute* attr) {
 
 int AttributeList::add_attr(Attribute* attr) {
     Attribute* old_attr = nil;
-    if (_index->find(old_attr, attr->SymbolId())) {
+    if (_index) {
+	_index->find(old_attr, attr->SymbolId());
+    } else {
+	old_attr = linear_find(attr->SymbolId());
+    }
+    if (old_attr) {
 	old_attr->Value(attr->Value());
 	return -1;
     }
     Append(attr);
     Resource::ref(attr);
     attr->_owner = this;
-    _index->insert(attr->SymbolId(), attr);
+    if (_index) _index->insert(attr->SymbolId(), attr);
     return 0;
+}
+
+Attribute* AttributeList::linear_find(int symid) {
+    ALIterator i;
+    for (First(i); !Done(i); Next(i)) {
+	Attribute* attr = GetAttr(i);
+	if (attr->SymbolId() == symid) return attr;
+    }
+    return nil;
 }
 
 Attribute* AttributeList::GetAttr (const char* n) {
@@ -147,8 +162,10 @@ Attribute* AttributeList::GetAttr (const char* n) {
 }
 
 Attribute* AttributeList::GetAttr (int symid) {
+    if (symid == -1) return nil;
+    if (!_index) return linear_find(symid);
     Attribute* attr = nil;
-    if (symid!=-1) _index->find(attr, symid);
+    _index->find(attr, symid);
     return attr;
 }
 
@@ -187,9 +204,11 @@ void AttributeList::Remove (ALIterator& i) {
     delete doomed;
     --_count;
 
-    Attribute* indexed = nil;
-    if (_index->find(indexed, symid))
-        _index->remove(symid);
+    if (_index) {
+	Attribute* indexed = nil;
+	if (_index->find(indexed, symid))
+	    _index->remove(symid);
+    }
 }
 
 void AttributeList::Remove (Attribute* p) {
@@ -202,9 +221,11 @@ void AttributeList::Remove (Attribute* p) {
 	--_count;
         Resource::unref(p);
 
-	Attribute* indexed = nil;
-	if (_index->find(indexed, symid))
-	    _index->remove(symid);
+	if (_index) {
+	    Attribute* indexed = nil;
+	    if (_index->find(indexed, symid))
+		_index->remove(symid);
+	}
     }
 }
 
