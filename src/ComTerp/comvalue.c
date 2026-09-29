@@ -409,9 +409,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	       round-trips it back as input, so no ambiguity to guard against */
 	    boolean coloned = svp->coloned();
 	    if (!coloned) out << "{";
-	    /* max_out() elides past a cutoff so a huge list can't flood the
-	       terminal: -1 (unset) applies default_max_out, 0 is unlimited.
-	       elide() gates whether this write may shorten output at all --
+	    /* max_out() elides past a cutoff: -1 (unset) applies
+	       default_max_out, 0 is unlimited. */
+	    /* elide() gates whether this write may shorten output at all --
 	       false for a write that must stay re-parseable. */
 	    int cutoff = ComValue::elide() ? avl->max_out() : 0;
 	    if (cutoff < 0) cutoff = AttributeValueList::default_max_out;

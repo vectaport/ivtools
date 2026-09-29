@@ -16,6 +16,10 @@ rc_pick_port=func(
     while(shell(print("lsof -i :%d > /dev/null 2>&1" p :str))==0 p=p+1));
   p)
 
+// FAIL-path cleanup: kill whatever holds a port (see updown.comt's kill_port)
+rc_kill_port=func(
+  if(have_lsof :then shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kp_port :str))))
+
 rc_server_up=func(
   shell(print("comterp server %d </dev/null > /dev/null 2>&1 &" rc_su_port :str));
   if(have_lsof :then
@@ -36,6 +40,7 @@ remote_cutoff_test=func(
   sock=rc_server_up(:rc_su_port port);
   if(sock==nil :then
     print("remote_cutoff: FAIL server never listened on %d\n" port :err);
+    rc_kill_port(:kp_port port);
     return(false));
   ok=true;
   // build a 30-element list on the server and get it back over the wire
