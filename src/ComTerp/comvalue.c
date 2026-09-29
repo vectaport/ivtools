@@ -65,6 +65,7 @@ ComValue ComValue::_acharval('a', ComValue::CharType);
 
 const ComTerp* ComValue::_comterp = nil;
 boolean ComValue::_echo = false;
+boolean ComValue::_elide = true;
 
 ComValue::ComValue(const ComValue& sv) {
     *this = sv;
@@ -267,7 +268,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    /* past AttributeValueList::default_max_out chunks, print the
 	       type and count instead, same as any other opaque value. */
 	    /* list(str) still decodes the full string on request. */
-	    if (nchunks > AttributeValueList::default_max_out) {
+	    if (ComValue::elide() && nchunks > AttributeValueList::default_max_out) {
 	      out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
 		  << "[" << nchunks << "]>";
 	      break;
@@ -409,8 +410,10 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    boolean coloned = svp->coloned();
 	    if (!coloned) out << "{";
 	    /* max_out() elides past a cutoff so a huge list can't flood the
-	       terminal: -1 (unset) applies default_max_out, 0 is unlimited. */
-	    int cutoff = avl->max_out();
+	       terminal: -1 (unset) applies default_max_out, 0 is unlimited.
+	       elide() gates whether this write may shorten output at all --
+	       false for a write that must stay re-parseable. */
+	    int cutoff = ComValue::elide() ? avl->max_out() : 0;
 	    if (cutoff < 0) cutoff = AttributeValueList::default_max_out;
 	    int total = avl->Number();
 	    int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
