@@ -234,6 +234,46 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StringType: {
+	  if (svp->blocksz() > 0) {
+	    /* a typed string(n :type sym)'s raw bytes aren't meaningful text --
+	       decode and print its packed chunks instead, the same values
+	       list(str) returns, in list literal form. */
+	    /* an AnyType chunk can decode back to the same backing symbol
+	       (s@0=s), so track symids currently being printed and stop
+	       recursing into one already on the stack. */
+	    static std::vector<unsigned int> printing_syms;
+	    unsigned int symid = svp->string_val();
+	    boolean cyclic = false;
+	    for (unsigned int i = 0; i < printing_syms.size(); i++)
+	      if (printing_syms[i] == symid) { cyclic = true; break; }
+	    if (cyclic) {
+	      out << "<cycle>";
+	      break;
+	    }
+	    /* pops printing_syms on any exit from this scope, including an
+	       exception out of a nested out<< -- so a later, unrelated print
+	       never mistakes this symbol for still being printed. */
+	    struct PoppingGuard {
+	      std::vector<unsigned int>& syms;
+	      PoppingGuard(std::vector<unsigned int>& s, unsigned int id) : syms(s) { syms.push_back(id); }
+	      ~PoppingGuard() { syms.pop_back(); }
+	    } guard(printing_syms, symid);
+	    const char* str = svp->string_ptr();
+	    boolean isslice = svp->sliced();
+	    int base = isslice ? svp->sliceoff() : 0;
+	    int cap = isslice ? svp->slicelen() : symbol_len(svp->string_val());
+	    int chunksz = svp->blocksz();
+	    int nchunks = cap/chunksz;
+	    out << "{";
+	    for (int i=0; i<nchunks; i++) {
+	      ComValue elt = ComValue::comval_decode(str+base+i*chunksz, svp->blocktype());
+	      out << elt;
+	      if (i+1<nchunks) out << ",";
+	    }
+	    if (nchunks == 1) out << ",";
+	    out << "}";
+	    break;
+	  }
 	  /* cstr(), not string_ptr() -- svp may be a raw _stack element, and
 	     string_ptr()'s virtual dispatch isn't reliable there (see comvalue.h) */
 	  std::string scratch;
@@ -421,7 +461,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  } else if (svp->class_symid() == TimeObj::class_symid()) {
 	    ((TimeObj*)svp->obj_val())->printOn(out);
 	  } else
-            out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
+            out << "<" << symbol_pntr(svp->class_symid()) << ">";
 	  break;
 
 	case ComValue::UnknownType:
@@ -694,5 +734,30 @@ void ComValue::comval_encode(char* chunk, ComValue& val, AttributeValue::ValueTy
     }
     memcpy(chunk, &converted._v, AttributeValue::type_size(blocktype));
   }
+}
+
+ComValue ComValue::append_chunk(ComValue& val) {
+  AttributeValue::ValueType bt = blocktype();
+  if (!is_only_string() || bt == AttributeValue::UnknownType)
+    return ComValue::nullval();
+  int chunksz = blocksz();
+  boolean isslice = sliced();
+  int base = isslice ? sliceoff() : 0;
+  int cap = isslice ? slicelen() : symbol_len(string_val());
+  /* always reallocates: a typed string carries no spare trailing capacity
+     to grow into, unlike the byte-string headroom path in append_str(). */
+  int newid = symbol_new((unsigned)(cap+chunksz), false);
+  if (newid<0) return ComValue::nullval();
+  char* buf = (char*)symbol_pntr(newid);
+  memcpy(buf, string_ptr()+base, cap);
+  if (bt == AttributeValue::AnyType)
+    /* the copied chunks alias this value's own Resource-backed values --
+       take an independent ref per chunk for the new buffer's ownership. */
+    for (int off = 0; off+ATTRVALUE_CHUNK_BYTES <= cap; off += ATTRVALUE_CHUNK_BYTES)
+      AttributeValue::ref_as_needed(buf+off);
+  ComValue::comval_encode(buf+cap, val, bt);
+  ComValue result((unsigned int)newid, ComValue::StringType);
+  result.blocktype(bt);
+  return result;
 }
 

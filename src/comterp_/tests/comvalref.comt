@@ -2,7 +2,7 @@
 // AnyType comval chunk (string(n :type `AnyType), @ read/write), and through
 // the general lst@N=val write path that backs it.
 //
-// funcs: string strref list at @ nil
+// funcs: string strref list at @ nil append
 //
 // string(n :type sym) packs n fixed-size chunks into a string; an AnyType
 // chunk holds a raw ComValue, which can itself be a pointer-bearing type
@@ -35,6 +35,7 @@ d3=vals@3
 d4=vals@4
 d5=vals@5
 d6=vals@6
+d7=vals@7
 
 // --- test 1: writing a string into an AnyType chunk takes exactly one ref ---
 ok=ok&&(d1==1)
@@ -100,6 +101,13 @@ s9=string(0 :type `IntType)
 c9=string(s9 :raw)
 ok=ok&&istype(c9 StringType)&&(list(c9)=={})
 print("9 string(s9 :raw) on an empty typed string returns an empty copy, not nil (expect true {}): %v %v\n" istype(c9 StringType) list(c9))
+check_fail(:ok ok)
+
+// --- test 10: append()'s reallocating growth on a typed AnyType string
+//     re-refs every carried-over chunk for the new buffer, netting to zero
+//     change in an untouched chunk's own value's refcount ---
+ok=ok&&(d7==0)
+print("10 append() growth nets 0 refcount change for an untouched AnyType chunk's value (expect 0): %v\n" d7)
 check_fail(:ok ok)
 
 print("comvalref: %v\n" ok)
