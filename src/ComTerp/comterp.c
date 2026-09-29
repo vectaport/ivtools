@@ -1553,8 +1553,20 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  comval.assignval(*(ComValue*)vptr);
 	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
-	} else
+	} else {
+	  /* PROTOTYPE (#TBD): last resort, so a real variable of the same name
+	     always wins -- an earlier key of a still-unfinished attrlist literal,
+	     read directly off the operand stack (see pending_literal_keyval()). */
+	  AttributeValue* pending = pending_literal_keyval(comval.symbol_val());
+	  if (pending) {
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
+	    ComValue newval(*pending);
+	    *&comval = newval;
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
+	    return comval;
+	  }
 	  return ComValue::nullval();
+	}
 
     } else if (comval.is_object(Attribute::class_symid())) {
       /* Attribute::Value() is a raw AttributeValue, not a ComValue, but its
@@ -2602,6 +2614,23 @@ AttributeValue* ComTerp::peek_alist_pending(AttributeList* al, int id, Attribute
   *_peek_scratch = pulled;  /* fresh each call, never written to al --
                                fire_funcobj()'s cleanup frees it unless frozen */
   return _peek_scratch;
+}
+
+AttributeValue* ComTerp::pending_literal_keyval(int symid) {
+  /* an AttrListFunc "(...)" literal pushes each value, then a KeywordType
+     tag naming it -- stack_keys() (comfunc.c) reads that same shape once
+     AttrListFunc itself runs.  Scanning it early, before AttrListFunc has
+     even fired, finds an earlier key of a still-unfinished literal. */
+  for (int i=0; i<=_stack_top; i++) {
+    ComValue& keyref = stack_top(-i);
+    if (keyref.type() == ComValue::KeywordType && keyref.symbol_val() == symid) {
+      if (keyref.keynarg_val() == 0) return nil;
+      ComValue& valref = stack_top(-i-1);
+      if (valref.type() == ComValue::KeywordType) return nil;
+      return &valref;
+    }
+  }
+  return nil;
 }
 
 void ComTerp::set_args(int argc, char** argv) {

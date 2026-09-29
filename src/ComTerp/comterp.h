@@ -426,6 +426,14 @@ public:
     // touched, so each plain read of a :posteval keyword re-fires -- it is a
     // live tap rather than a constant, and ycopy=y pins one draw.
 
+    AttributeValue* pending_literal_keyval(int symid);
+    // PROTOTYPE (#TBD): last-resort fallback for an undefined bare symbol --
+    // scans the live operand stack for a still-unfinished attrlist literal's
+    // earlier ":key val" pair matching symid.  A "(...)"" literal pushes each
+    // value before its own keyword tag, so while a later value in the same
+    // literal is still being evaluated, every earlier pair is already sitting
+    // on the stack in that shape, well before AttrListFunc itself ever runs.
+
     void set_args(int argc, char** argv);
     // set command line arguments
 
