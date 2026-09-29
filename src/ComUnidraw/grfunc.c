@@ -954,25 +954,29 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
 
     /* pixel data is flat r,g,b, nested (r,g,b) triples, legacy packed
-       0xRRGGBB ints, or a single packed string(w*h UIntType) of 0xRRGGBB
-       chunks; told apart by count and type, see
-       doc/APPENDIX-B-COMTERP-EXAMPLES.md */
+       0xRRGGBB ints, or a packed string(w*h UIntType) of 0xRRGGBB chunks;
+       told apart by count and type. */
     ComValue pixv(nval==1 ? *avl->GetAttrVal(i) : ComValue::nullval());
     if (nval == 1 && pixv.is_type(ComValue::StringType) &&
 	pixv.blocktype() == ComValue::UIntType && pixv.blocksz() > 0) {
       const char* pstr = pixv.string_ptr();
       int base = pixv.sliced() ? pixv.sliceoff() : 0;
       int chunksz = pixv.blocksz();
-      for (int row = 0; row < h; row++) {
-	for (int col = 0; col < w; col++) {
-	  ComValue chunk = ComValue::comval_decode(
-	    pstr + base + (row*w+col)*chunksz, ComValue::UIntType);
-	  char colorname[8];
-	  snprintf(colorname, sizeof(colorname), "#%06x", chunk.uint_val());
-	  float r, g, b;
-	  if (Color::find(World::current()->display(), colorname, r, g, b))
-	    raster->poke(col, row, r, g, b, 1.0);
-	}
+      int cap = pixv.sliced() ? pixv.slicelen() : symbol_len(pixv.string_val());
+      int navail = cap/chunksz;
+      /* a caller-supplied string can carry fewer than w*h chunks; stop at
+	 whichever is shorter, same as the list forms stop at avl->Done(). */
+      int nread = npix<navail ? npix : navail;
+      for (int idx = 0; idx < nread; idx++) {
+	int row = idx/w;
+	int col = idx%w;
+	ComValue chunk = ComValue::comval_decode(
+	  pstr + base + idx*chunksz, ComValue::UIntType);
+	char colorname[8];
+	snprintf(colorname, sizeof(colorname), "#%06x", chunk.uint_val());
+	float r, g, b;
+	if (Color::find(World::current()->display(), colorname, r, g, b))
+	  raster->poke(col, row, r, g, b, 1.0);
       }
     } else if (nval == npix*3) {
       for (int row = 0; row < h && !avl->Done(i); row++) {
