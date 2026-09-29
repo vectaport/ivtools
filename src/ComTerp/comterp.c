@@ -1541,6 +1541,20 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  }
 	}
 
+	/* PROTOTYPE (#TBD): same priority as _alist -- an earlier key of a
+	   still-unfinished attrlist literal overrides an outer variable of the
+	   same name, read directly off the operand stack (pending_literal_keyval()). */
+	{
+	  AttributeValue* pending = pending_literal_keyval(comval.symbol_val());
+	  if (pending) {
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
+	    ComValue newval(*pending);
+	    *&comval = newval;
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
+	    return comval;
+	  }
+	}
+
 	/* assignval() copies coloned() and other flags packed into _ext3
 	   with narg/nkey/nids -- restore_call_arity() undoes that right after */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
@@ -1553,20 +1567,8 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  comval.assignval(*(ComValue*)vptr);
 	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
-	} else {
-	  /* PROTOTYPE (#TBD): last resort, so a real variable of the same name
-	     always wins -- an earlier key of a still-unfinished attrlist literal,
-	     read directly off the operand stack (see pending_literal_keyval()). */
-	  AttributeValue* pending = pending_literal_keyval(comval.symbol_val());
-	  if (pending) {
-	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
-	    ComValue newval(*pending);
-	    *&comval = newval;
-	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
-	    return comval;
-	  }
+	} else
 	  return ComValue::nullval();
-	}
 
     } else if (comval.is_object(Attribute::class_symid())) {
       /* Attribute::Value() is a raw AttributeValue, not a ComValue, but its
