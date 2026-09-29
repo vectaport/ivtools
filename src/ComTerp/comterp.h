@@ -330,6 +330,12 @@ public:
     int trace_mode() { return _trace_mode; }
     // return trace mode
 
+    void cutoff(int n) { _cutoff = n; }
+    // set this comterp's list()/string() print elision cutoff
+
+    int cutoff() const { return _cutoff; }
+    // return this comterp's list()/string() print elision cutoff
+
     int& npause() { return _npause; }
     // return (reference to) number of pauses
 
@@ -527,6 +533,9 @@ protected:
 
     int _trace_mode;
     // trace mode
+
+    int _cutoff;
+    // list()/string() print elision cutoff for this comterp instance
 
     int _npause;
     // depth of pause

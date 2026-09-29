@@ -777,3 +777,22 @@ void ListIndexFunc::execute() {
   return;
 }
 
+/*****************************************************************************/
+
+CutoffFunc::CutoffFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CutoffFunc::execute() {
+  if (nargs()==0) {
+    reset_stack();
+    ComValue retval(comterp()->cutoff(), ComValue::IntType);
+    push_stack(retval);
+  } else {
+    ComValue nv(stack_arg(0));
+    reset_stack();
+    if (nv.is_int() && nv.int_val()>=0) comterp()->cutoff(nv.int_val());
+    ComValue retval(comterp()->cutoff(), ComValue::IntType);
+    push_stack(retval);
+  }
+}
+

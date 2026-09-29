@@ -173,6 +173,7 @@ void ComTerp::init() {
     _val_for_next_func = nil;
     _func_for_next_expr = nil;
     _trace_mode = 0;
+    _cutoff = AttributeValueList::default_max_out;
     _npause = 0;
     _stepflag = 0;
     _echo_postfix = 0;
@@ -196,6 +197,10 @@ void ComTerp::init() {
 
 
 ComTerp::~ComTerp() {
+    /* a print mid-flight elsewhere may still hold this comterp as the
+       source of its cutoff(); clear the pointer rather than leave
+       later renders reading freed memory. */
+    if (ComValue::comterp() == this) ComValue::comterp(nil);
     delete _peek_scratch;
     delete _fire_scratch_pool;
     /* Free stacks */
@@ -1982,6 +1987,7 @@ void ComTerp::add_defaults() {
     add_command("tuple", new TupleFunc(this));
     add_command("colonlist", new ColonListFunc(this));
     add_command("index", new ListIndexFunc(this));
+    add_command("cutoff", new CutoffFunc(this));
 
     add_command("sum", new SumFunc(this));
     add_command("mean", new MeanFunc(this));
