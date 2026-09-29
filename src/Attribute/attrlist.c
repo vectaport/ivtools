@@ -329,7 +329,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
 #endif
     _alist = new AList;
     _count = 0;
-    _max_out = -1;
+    _max_out = s ? s->_max_out : -1;
     if (s != nil) {
         ALIterator i;
 

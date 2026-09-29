@@ -264,10 +264,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    int cap = isslice ? svp->slicelen() : symbol_len(svp->string_val());
 	    int chunksz = svp->blocksz();
 	    int nchunks = cap/chunksz;
-	    /* past AttributeValueList::default_max_out chunks, a full decode
-	       floods the terminal for no benefit -- print the type and count
-	       instead, same as any other opaque value (<FuncObj>, <cycle>
-	       above); list(str) still decodes it in full on request. */
+	    /* past AttributeValueList::default_max_out chunks, print the
+	       type and count instead, same as any other opaque value. */
+	    /* list(str) still decodes the full string on request. */
 	    if (nchunks > AttributeValueList::default_max_out) {
 	      out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
 		  << "[" << nchunks << "]>";

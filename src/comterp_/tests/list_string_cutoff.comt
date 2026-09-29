@@ -70,5 +70,20 @@ ok=ok&&(sz17==17)
 print("7 size(list(string(17 :type UIntType))) (expect 17): %v\n" sz17)
 prev_ok=check_fail(:ok ok)
 
+// --- test 8: a plain copy (no explicit :cutoff) inherits the source
+// list's own cutoff instead of reverting to the default ---
+lstcopy=list(lst5)
+p8=print(lstcopy :str)
+ok=ok&&(p8=="{0,1,2,3,4,{15 more}}")
+print("8 print(list(list(lst :cutoff 5)) :str) (expect inherited cutoff 5): %v\n" p8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: :cutoff on a copy still overrides the inherited value ---
+lstoverride=list(lst5 :cutoff 0)
+p9=print(lstoverride :str)
+ok=ok&&(p9=="{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}")
+print("9 print(list(list(lst :cutoff 5) :cutoff 0) :str) (expect explicit override wins): %v\n" p9)
+prev_ok=check_fail(:ok ok)
+
 print("\nlist_string_cutoff: %v\n" ok)
 ok
