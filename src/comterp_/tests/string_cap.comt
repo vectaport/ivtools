@@ -1,7 +1,7 @@
 // src/comterp_/tests/string_cap.comt -- string(), strcap(), and @ into a
 // capacity-bearing buffer (#394)
 //
-// funcs: string strcap size at @ char isslice symid symvar
+// funcs: string strcap size at @ char isslice symid symvar type
 //
 // string(cap) creates a blank, writable buffer -- cap bytes of NUL, plus
 // one guaranteed terminator, none of it shared or deduplicated with any
@@ -112,6 +112,16 @@ ok=ok&&(at(r9 3)==char(0))
 ok=ok&&(at(r9 4)=='d')
 ok=ok&&(symid(symvar(r9))!=symid(symvar(sl8)))
 print("9 string(sl8 :raw) copies the full 8 bytes into independent storage (expect 8 true d true): %v %v %s %v\n" size(r9) (at(r9 3)==char(0)) print(at(r9 4) :str) (symid(symvar(r9))!=symid(symvar(sl8))))
+
+// --- 10: size() on a typed/chunked string counts chunks, not raw bytes --
+//         a chunk's own packed bytes can hold an embedded NUL (10 encodes
+//         as 0x0A 0x00 0x00 0x00), which used to make strlen()-based
+//         counting stop after the first chunk ---
+s10=string(5 :type `IntType)
+s10@0=10
+s10@1=20
+ok=ok&&(size(s10)==5)
+print("10 size(string(5 :type `IntType)) with chunk 0 holding an embedded-NUL value (expect 5): %v\n" size(s10))
 
 print("string_cap: %v\n" ok)
 ok
