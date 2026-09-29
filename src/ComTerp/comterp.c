@@ -1282,10 +1282,10 @@ int ComTerp::print_stack_top(ostream& out) const {
     ComValue::comterp(this);
     ComValue::echo(true);
     /* a remote peer must get every element back -- elision would make
-       the reply unparseable by remote()'s run(buf, true).  An accepted
-       socket handler's peer handle is its real fd; a handler attached
-       directly to fd 0 for a server's own stdin console (never accepted)
-       leaves it at ACE_INVALID_HANDLE. */
+       the reply unparseable by remote()'s run(buf, true). */
+    /* an accepted socket's peer handle is its real fd; a handler attached
+       to fd 0 for the server's own console (never accepted) stays
+       ACE_INVALID_HANDLE. */
     boolean save_elide = ComValue::elide();
     if (handler() && handler()->get_handle() != ACE_INVALID_HANDLE)
       ComValue::elide(false);
