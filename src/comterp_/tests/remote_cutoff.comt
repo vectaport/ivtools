@@ -56,7 +56,7 @@ remote_cutoff_test=func(
   print("1 remote(sock, 30-elem list-building expr), size(r) (expect 30): %v\n" sz);
   // a typed string past the collapse threshold must come back fully decoded,
   // not as an opaque "<Type[N]>" summary the client can't re-parse
-  r2=remote(sock "s=string(20 :type `UIntType);s");
+  r2=remote(sock "s=string(20 `UIntType);s");
   sz2=size(list(r2));
   ok=ok&&(sz2==20);
   print("2 remote(sock, 20-chunk typed string), size(list(r2)) (expect 20): %v\n" sz2);
