@@ -16,12 +16,16 @@ rc_pick_port=func(
     while(shell(print("lsof -i :%d > /dev/null 2>&1" p :str))==0 p=p+1));
   p)
 
-// FAIL-path cleanup: kill whatever holds a port (see updown.comt's kill_port)
+// FAIL-path cleanup: kill only the PID this test itself launched (a port
+// number alone can't tell this server apart from something else that grabbed
+// the port after it failed to come up)
 rc_kill_port=func(
-  if(have_lsof :then shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kp_port :str))))
+  pidfile=print("/tmp/rc_cutoff_pid_%d" kp_port :str);
+  shell(print("kill $(cat %s 2>/dev/null) > /dev/null 2>&1; rm -f %s" pidfile pidfile :str)))
 
 rc_server_up=func(
-  shell(print("comterp server %d </dev/null > /dev/null 2>&1 &" rc_su_port :str));
+  pidfile=print("/tmp/rc_cutoff_pid_%d" rc_su_port :str);
+  shell(print("comterp server %d </dev/null > /dev/null 2>&1 & echo $! > %s" rc_su_port pidfile :str));
   if(have_lsof :then
     cnt=0;
     while(cnt<40 && shell(print("lsof -iTCP:%d -sTCP:LISTEN > /dev/null 2>&1" rc_su_port :str))!=0
@@ -34,6 +38,8 @@ rc_server_up=func(
 rc_server_down=func(
   remote(rc_sd_sock "exit" :nowait);
   close(rc_sd_sock))
+
+rc_cleanup_pidfile=func(shell(print("rm -f /tmp/rc_cutoff_pid_%d" kp_port :str)))
 
 remote_cutoff_test=func(
   port=rc_pick_port(:rc_base 22301);
@@ -55,6 +61,7 @@ remote_cutoff_test=func(
   ok=ok&&(sz2==20);
   print("2 remote(sock, 20-chunk typed string), size(list(r2)) (expect 20): %v\n" sz2);
   rc_server_down(:rc_sd_sock sock);
+  rc_cleanup_pidfile(:kp_port port);
   ok)
 
 ok=true
