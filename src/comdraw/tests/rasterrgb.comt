@@ -89,16 +89,22 @@ print("5 packed string(w*h UIntType), row/col mapping (expect ~1,0,0 / ~0,1,0 / 
 
 // --- test 6: a packed string shorter than w*h stops early instead of
 // reading past its own allocation, same as the list forms stop at Done() ---
+// an unpoked pixel's color comes from the raw X pixmap XCreatePixmap()
+// allocated (server-defined, not guaranteed black), so this checks only
+// what the fix actually guarantees: the 4 supplied chunks land in order
+// through the last one, and reading past them doesn't crash.
 shortstr=string(4 UIntType)
 sidx=0
 for(sidx=0 sidx<4 sidx=sidx+1 at(shortstr sidx :set 0xff0000))
 r6=raster(0,0,64,64 :rgb 4,4,shortstr)
 ok=ok&&(r6!=nil)
 v6a=peek(r6 0 0)
-v6b=peek(r6 3 3)
+v6b=peek(r6 3 0)
+v6c=peek(r6 3 3)
 ok=ok&&(at(v6a 0)>0.9&&at(v6a 1)<0.1&&at(v6a 2)<0.1)
-ok=ok&&(at(v6b 0)<0.1&&at(v6b 1)<0.1&&at(v6b 2)<0.1)
-print("6 short packed string stops at its own length, no crash (expect ~1,0,0 / ~0,0,0): %v %v\n" v6a v6b)
+ok=ok&&(at(v6b 0)>0.9&&at(v6b 1)<0.1&&at(v6b 2)<0.1)
+ok=ok&&(v6c!=nil)
+print("6 short packed string stops at its own length, no crash (expect ~1,0,0 / ~1,0,0 / non-nil): %v %v %v\n" v6a v6b v6c)
 
 pastemode(0)
 
