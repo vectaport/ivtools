@@ -429,32 +429,28 @@ ok=ok&&(al.n==999 && myal46.n==5)
 print("46 func-local :al write hits the passed-in object, not outer al (expect al.n=999, myal46.n=5): %v %v\n\n" al.n myal46.n)
 prev_ok=check_fail(:ok ok)
 
-// --- test 47: there is no "self" mechanism -- a method reaches a sibling
-// method by an explicit dot-call, exactly like any outside caller would.
-// "zoo47" inside report's body is a dot lhs, so it's a normal capture
-// (#631): report is defined before zoo47 itself is bound, so its own
-// default for "zoo47" is nil and a bare zoo47.report() can't reach
-// zoo47.flash -- the caller must hand the target in explicitly, as a
-// keyword, at the self-bound call site ---
-zoo47=(:flash func(things) :report func(zoo47.flash(:things "hello")))
-r47=zoo47.report(:zoo47 zoo47)
+// --- test 47: a method reaches a sibling method by its bare name, not a
+// dot-lhs reference to the container -- a dot-bound call sets _alist to
+// the receiver's own attrlist for the call, so "flash" inside report's
+// body resolves through it directly, no capture and no self keyword ---
+zoo47=(:flash func(things) :report func(flash(:things "hello")))
+r47=zoo47.report()
 ok=ok&&(r47=="hello")
-print("47 zoo47.report(:zoo47 zoo47) reaches zoo47.flash(...), not a language self feature (expect hello): %v\n\n" r47)
+print("47 zoo47.report() reaches flash(...) via _alist, bare name (expect hello): %v\n\n" r47)
 prev_ok=check_fail(:ok ok)
 
-// --- test 48: since "zoo48" inside report's body is a normal capture,
-// not a live lookup, an explicit keyword binds the method to exactly the
-// object passed in -- slipping a different attrlist under the global
-// "zoo48" name mid-flight has no effect on a call that names its target
-// explicitly, unlike a same-named outer variable would (#631) ---
-zoo48=(:flash func("MINE") :report func(zoo48.flash()))
-r48a=zoo48.report(:zoo48 zoo48)
+// --- test 48: _alist is set from the receiver a call actually dispatches
+// through, not from the global name used to reach it -- slipping a
+// different attrlist under the global "zoo48" name mid-flight has no
+// effect on a call made through a saved reference to the original ---
+zoo48=(:flash func("MINE") :report func(flash()))
+r48a=zoo48.report()
 saved48=zoo48
 zoo48=(:flash func("OTHER"))
-r48b=saved48.report(:zoo48 saved48)
+r48b=saved48.report()
 zoo48=saved48
 ok=ok&&(r48a=="MINE" && r48b=="MINE")
-print("48 explicit :zoo48 keyword always reaches the object passed in, immune to zoo48 being reassigned (expect MINE MINE): %v %v\n\n" r48a r48b)
+print("48 saved48.report() still reaches the original flash, immune to zoo48 being reassigned (expect MINE MINE): %v %v\n\n" r48a r48b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 49: at(al n) (a bare read, no :set) hands back a detached,
