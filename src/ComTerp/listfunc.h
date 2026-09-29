@@ -54,8 +54,8 @@ boolean value_contains_container(AttributeValue& val, void* target,
 // string(n typesym), list(str) with no :bytes decodes its chunks back
 // into a list of ComValues instead of wrapping the string whole.
 // :cutoff sets how many elements the result prints before eliding the
-// rest as "{n more}"; unset defaults to AttributeValueList::default_max_out
-// (256), 0 never elides.
+// rest as "{n more}"; unset inherits the owning comterp's cutoff()
+// (starts at 256), 0 never elides.
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -72,7 +72,7 @@ public:
 	":colon     tag the result coloned(), same as ':' itself builds",
 	":bytes     a string's raw bytes as a list of CharType values",
 	":hex       with :bytes, UCharType values instead of CharType",
-	":cutoff n  print elision cutoff, default 256, 0 disables",
+	":cutoff n  print elision cutoff, unset inherits cutoff() (starts at 256), 0 disables",
 	nil
       };
       return keys;

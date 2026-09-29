@@ -268,12 +268,16 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    /* past the owning comterp's cutoff() chunks, print the type and
 	       count instead, same as any other opaque value. */
 	    /* list(str) still decodes the full string on request. */
-	    int strcutoff = ComValue::comterp() ? ComValue::comterp()->cutoff()
-						 : AttributeValueList::default_max_out;
-	    if (ComValue::elide() && strcutoff > 0 && nchunks > strcutoff) {
-	      out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
-		  << "[" << nchunks << "]>";
-	      break;
+	    /* comterp() is read only when elide() allows shortening, so a
+	       write that must stay re-parseable never dereferences it. */
+	    int strcutoff = AttributeValueList::default_max_out;
+	    if (ComValue::elide()) {
+	      if (ComValue::comterp()) strcutoff = ComValue::comterp()->cutoff();
+	      if (strcutoff > 0 && nchunks > strcutoff) {
+		out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
+		    << "[" << nchunks << "]>";
+		break;
+	      }
 	    }
 	    out << "{";
 	    for (int i=0; i<nchunks; i++) {
