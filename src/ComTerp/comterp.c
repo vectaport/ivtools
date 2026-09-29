@@ -2622,7 +2622,28 @@ AttributeValue* ComTerp::pending_literal_keyval(int symid) {
   /* an AttrListFunc "(...)" literal pushes each value, then a KeywordType
      tag naming it -- stack_keys() (comfunc.c) reads that same shape once
      AttrListFunc itself runs.  Scanning it early, before AttrListFunc has
-     even fired, finds an earlier key of a still-unfinished literal. */
+     even fired, finds an earlier key of a still-unfinished literal.
+
+     Gated on the CURRENT postfix buffer actually containing an "attrlist"
+     command token: a literal's own operands are evaluated in the same
+     buffer that compiled the literal, so this token is there whenever
+     we're really inside one.  A func body is compiled into its own,
+     separate buffer at definition time, so calling into one (an ordinary
+     command's keyword argument list, a dot-bound method body) swaps in a
+     buffer that never contains "attrlist" at all -- the stack scan below
+     never runs for those, whatever keyword tags happen to be sitting on
+     the operand stack from unrelated, already-dispatched calls. */
+  static int attrlist_symid = symbol_add("attrlist");
+  boolean in_literal = false;
+  for (unsigned int i=0; i<_pfnum; i++) {
+    if (_pfcomvals[i].is_type(ComValue::CommandType) &&
+	_pfcomvals[i].command_symid() == attrlist_symid) {
+      in_literal = true;
+      break;
+    }
+  }
+  if (!in_literal) return nil;
+
   for (int i=0; i<=_stack_top; i++) {
     ComValue& keyref = stack_top(-i);
     if (keyref.type() == ComValue::KeywordType && keyref.symbol_val() == symid) {

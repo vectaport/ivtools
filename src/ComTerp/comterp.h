@@ -435,13 +435,11 @@ public:
     // evaluated, every earlier pair is already sitting on the stack in
     // that shape, well before AttrListFunc itself ever runs.
     //
-    // Known limitation: the scan has no way to tell an attrlist literal's
-    // own tag from an ordinary call's still-unsatisfied keyword tag (a
-    // call pushes tag before value, the opposite order) -- it can misread
-    // a call's own in-progress ":k k"-shaped argument as an earlier
-    // literal key.  Not hit by any case in current use; would need a
-    // marker distinguishing "inside AttrListFunc's own operand
-    // accumulation" to close for good.
+    // Gated on the current postfix buffer containing an "attrlist"
+    // command token, so the scan never runs for an ordinary call's
+    // keyword-argument list (a func body is compiled into its own
+    // separate buffer, which never contains one) -- only for operands
+    // genuinely being evaluated inside a literal's own construction.
 
     void set_args(int argc, char** argv);
     // set command line arguments
