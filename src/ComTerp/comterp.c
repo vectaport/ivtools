@@ -1600,6 +1600,13 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval, boolean freeze) {
 	    : peek_alist_pending(_alist, id, found);
 	  if (aval) return aval;
 	}
+	/* same priority as _alist above -- a post_eval command (istype() and
+	   friends) that resolves a raw argument through this overload still
+	   sees a still-unfinished attrlist literal's earlier key */
+	{
+	  AttributeValue* pending = pending_literal_keyval(comval->symbol_val());
+	  if (pending) return pending;
+	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
 	} else if (globaltable()->find(vptr, comval->symbol_val())) {

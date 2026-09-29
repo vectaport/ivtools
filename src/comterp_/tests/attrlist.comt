@@ -690,5 +690,15 @@ ok=ok&&(al69.other==5 && r69==5)
 print("69 unrelated ':k69 k69'/':v69 v69' calls aren't shadowed by a same-named literal key (expect 5 5): %v %v\n\n" al69.other r69)
 prev_ok=check_fail(:ok ok)
 
+// --- test 70: a still-unfinished literal's earlier key is visible to a
+// post_eval command (istype()) resolving its own raw argument, not just
+// to an ordinary eager operand -- istype() reaches lookup_symval() through
+// its own AttributeValue*-returning overload, a separate path from the
+// one the tests above exercise ---
+al70=(:w70 16 :x70 istype(w70 IntType))
+ok=ok&&(al70.x70==true)
+print("70 al70=(:w70 16 :x70 istype(w70 IntType)); al70.x70 sees w70 via istype's raw-arg path (expect true): %v\n\n" al70.x70)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok
