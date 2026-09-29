@@ -700,5 +700,26 @@ ok=ok&&(al70.x70==true)
 print("70 al70=(:w70 16 :x70 istype(w70 IntType)); al70.x70 sees w70 via istype's raw-arg path (expect true): %v\n\n" al70.x70)
 prev_ok=check_fail(:ok ok)
 
+// --- test 71: isfunc()/iscomm() resolve their raw argument before
+// reset_stack() pops this call's own operands, unlike istype()/isclass()
+// which already did -- otherwise a still-unfinished literal's earlier key
+// is gone from the stack by the time the lookup runs ---
+al71=(:w71 func(9) :x71 isfunc(w71))
+ok=ok&&(al71.x71==true)
+print("71 al71=(:w71 func(9) :x71 isfunc(w71)); al71.x71 sees w71 before reset_stack() pops it (expect true): %v\n\n" al71.x71)
+prev_ok=check_fail(:ok ok)
+
+// --- test 72: a compound assignment inside a still-unfinished literal,
+// to a name that collides with the literal's own key, reaches the outer
+// variable rather than the literal's pending pair (a compound assign
+// resets its own operand stack before resolving its operand, same as
+// isfunc()/iscomm() did) -- no crash, no corruption, no stray write into
+// the literal's own construction ---
+w72=1
+al72=(:w72 16 :x72 (w72+=1))
+ok=ok&&(al72.x72==2 && w72==2)
+print("72 al72=(:w72 16 :x72 (w72+=1)); reaches the outer w72, literal's own :w72 16 untouched (expect 2 2): %v %v\n\n" al72.x72 w72)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok

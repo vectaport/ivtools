@@ -2658,7 +2658,10 @@ AttributeValue* ComTerp::pending_literal_keyval(int symid) {
       }
       ComValue& valref = stack_top(-i-1);
       if (valref.type() == ComValue::KeywordType) return nil;
-      return &valref;
+      /* _stack can move under a later push (realloc) -- copy out to
+	 stable storage rather than handing back a pointer into it */
+      *_peek_scratch = valref;
+      return _peek_scratch;
     }
   }
   return nil;
