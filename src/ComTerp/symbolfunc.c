@@ -994,12 +994,16 @@ void AppendFunc::execute() {
   ComValue addend(stack_arg(1));
   reset_stack();
 
-  if (!dest.is_only_string() || !(addend.is_string() || addend.is_char())) {
+  /* a typed (blocktype()!=UnknownType) dest appends one whole chunk holding
+     addend, whatever its own type; append_str()'s byte/char growth is for
+     an ordinary string only. */
+  boolean typed = dest.is_only_string() && dest.blocktype() != AttributeValue::UnknownType;
+  if (!dest.is_only_string() || (!typed && !(addend.is_string() || addend.is_char()))) {
     push_stack(ComValue::nullval());
     return;
   }
 
-  ComValue result = dest.append_str(addend, true /* headroom */);
+  ComValue result = typed ? dest.append_chunk(addend) : dest.append_str(addend, true /* headroom */);
 
   /* write back only on success, scoped exactly like a bare read of arg0:
      inside a func frame that's AssignFunc's own attrlist branch, not

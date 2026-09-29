@@ -320,6 +320,13 @@ public:
     // second owner of its pointer/symid; a scalar blocktype is a plain
     // memcpy of type_size(blocktype) bytes, nothing to ref either side.
 
+    ComValue append_chunk(ComValue& val);
+    // append()'s growth logic for a typed (blocktype()!=UnknownType)
+    // string: always reallocates one chunk larger (typed strings carry no
+    // spare capacity), copying existing chunk bytes over and re-ref_as_needed()-ing
+    // any AnyType chunk among them for the new buffer, then comval_encode()-ing
+    // val into the new trailing chunk.
+
 protected:
     // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into
     // _state are all inherited storage -- see AttributeValue's comment on

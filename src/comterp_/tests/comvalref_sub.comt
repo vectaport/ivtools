@@ -56,5 +56,12 @@ base6=strref(t6)
 s6=nil
 d6=strref(t6)-base6
 
-print("RESULT %v %v %v %v %v %v %v END\n" d1 d2a d2b d3 d4 d5 d6)
+t7="comvalref append-growth target, long enough literal string here too"
+s7=string(1 :type `AnyType)
+s7@0=t7
+base7=strref(t7)
+s7=append(s7 "unrelated")
+d7=strref(t7)-base7
+
+print("RESULT %v %v %v %v %v %v %v %v END\n" d1 d2a d2b d3 d4 d5 d6 d7)
 exit
