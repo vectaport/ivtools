@@ -7,8 +7,10 @@
 // guard, that's undefined behavior (typically a crash), not a graceful
 // error. pixels is now told apart purely by element count against w*h:
 // flat r,g,b (three scalars per pixel), nested (r,g,b) triples (unchanged,
-// still supported), or legacy packed 0xRRGGBB ints (one scalar per pixel,
-// matching poke()/pokeline()'s existing convention). Alpha is deliberately
+// still supported), legacy packed 0xRRGGBB ints (one scalar per pixel,
+// matching poke()/pokeline()'s existing convention), or a single packed
+// string(w*h UIntType) of 0xRRGGBB chunks -- lets a bulk load skip building
+// a large comma-separated literal. Alpha is deliberately
 // not part of any of these forms -- OverlayRaster/Raster::poke() accepts
 // an alpha parameter but never stores it (X11 pixmaps have no alpha
 // plane, and Raster::peek() always reports 1.0), so accepting an alpha
@@ -64,6 +66,17 @@ ok=ok&&(r4!=nil)
 v4=peek(r4 0 0)
 ok=ok&&(at(v4 0)<0.1&&at(v4 1)<0.1&&at(v4 2)<0.1)
 print("4 all-zero flat values, no crash (expect ~0,0,0,1): %v\n" v4)
+
+// --- test 5: packed string(w*h UIntType) of 0xRRGGBB chunks -- avoids
+// building a large comma-separated literal for bulk pixel loads ---
+pixstr=string(16 UIntType)
+pidx=0
+for(pidx=0 pidx<16 pidx=pidx+1 at(pixstr pidx :set 0xff0000))
+r5=raster(0,0,64,64 :rgb 4,4,pixstr)
+ok=ok&&(r5!=nil)
+v5=peek(r5 0 0)
+ok=ok&&(at(v5 0)>0.9&&at(v5 1)<0.1&&at(v5 2)<0.1)
+print("5 packed string(w*h UIntType) (expect ~1,0,0,1): %v\n" v5)
 
 pastemode(0)
 
