@@ -208,17 +208,24 @@ AttrListFunc::AttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void AttrListFunc::execute() {
     static int bincnt_symid = symbol_add("bincnt");
+    /* caps a script-supplied :bincnt so it can't drive AttributeTable's
+       size-doubling loop past what a bucket array can hold */
+    static const int max_bincnt = 1<<20;
     ComValue bincntv(stack_key(bincnt_symid));
     AttributeList* raw = stack_keys();
     reset_stack();
 
-    /* :bincnt sizes the returned list's symid index (0 disables it,
-       falling back to a linear scan) -- stack_keys() already copied it
-       in as an ordinary attribute, so rebuild into a list constructed
-       with the requested size and drop that attribute from the copy */
+    /* :bincnt sizes the index (0 disables it) and is always stripped from
+       the result; a bare or non-int value falls back to -1, the default. */
     AttributeList* al = raw;
-    if (bincntv.is_int()) {
-      al = new AttributeList(nil, bincntv.int_val());
+    if (raw->GetAttr(bincnt_symid) != nil) {
+      int bincnt = -1;
+      if (bincntv.is_int()) {
+        bincnt = bincntv.int_val();
+        if (bincnt < 0) bincnt = 0;
+        if (bincnt > max_bincnt) bincnt = max_bincnt;
+      }
+      al = new AttributeList(nil, bincnt);
       ALIterator i;
       for (raw->First(i); !raw->Done(i); raw->Next(i)) {
         Attribute* attr = raw->GetAttr(i);

@@ -45,30 +45,32 @@ ok=ok&&(szN==64)
 print("5 info(attrlist(:a 1 :bincnt 64)).indexsize (expect 64): %v\n" szN)
 prev_ok=check_fail(:ok ok)
 
-/* --- test 6: perf pattern -- :bincnt 0 (linear scan) vs. the indexed
-   default, timed in-process with time(:mono :ns) on the same binary.
-   500 unique keys keeps this well under a second even on a slow CI
-   runner while still separating the two paths by a wide, non-flaky
-   margin (O(N^2) linear inserts vs. O(N) indexed ones). */
+// --- test 6: a bare :bincnt (no value) is still consumed, using the default index ---
+alB=attrlist(:a 1 :bincnt)
+szB=info(alB).indexsize
+bcB=alB.bincnt
+ok=ok&&(szB>0)&&(bcB==nil)
+print("6 attrlist(:a 1 :bincnt) bare keyword (expect indexsize>0, bincnt nil): %v %v\n" szB bcB)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: perf pattern -- :bincnt 0 (linear) vs. the indexed default,
+// timed in-process with time(:mono :ns); min of 3 trials each side to
+// absorb one noisy CI sample without losing the wide O(N^2) vs. O(N) gap.
 n=500
 i=0
 kw=""
 for(i=0 i<n i=i+1 kw=kw+":k"+print(i :str)+" "+print(i :str)+" ")
-t0=time(:mono :ns)
-ali=eval("attrlist("+kw+")")
-t1=time(:mono :ns)
-tindexed=t1-t0
-
-t2=time(:mono :ns)
-all=eval("attrlist("+kw+":bincnt 0)")
-t3=time(:mono :ns)
-tlinear=t3-t2
+trial=0
+tindexed=999999999999
+tlinear=999999999999
+for(trial=0 trial<3 trial=trial+1
+  t0=time(:mono :ns);ali=eval("attrlist("+kw+")");t1=time(:mono :ns);d=t1-t0;tindexed=if(d<tindexed :then d :else tindexed);t2=time(:mono :ns);all=eval("attrlist("+kw+":bincnt 0)");t3=time(:mono :ns);d=t3-t2;tlinear=if(d<tlinear :then d :else tlinear))
 
 ok=ok&&(info(ali).indexsize>0)&&(info(all).indexsize==0)
 ok=ok&&(info(ali).count==n)&&(info(all).count==n)
 ok=ok&&(tlinear>tindexed)
 pct=100-(tindexed*100/tlinear)
-print("6 build %v-entry attrlist, indexed vs :bincnt 0 (expect linear slower): indexed=%v ns linear=%v ns (%v% faster indexed)\n" n tindexed tlinear pct)
+print("7 build %v-entry attrlist, indexed vs :bincnt 0, best of 3 (expect linear slower): indexed=%v ns linear=%v ns (%v% faster indexed)\n" n tindexed tlinear pct)
 prev_ok=check_fail(:ok ok)
 
 print("\nattrlist_bincnt: %v\n" ok)
