@@ -294,9 +294,11 @@ void StringFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
-  static int type_symid = symbol_add("type");
-  ComValue typev(stack_key(type_symid));
-  boolean typeflag = typev.is_known();
+  /* symbol=true skips the normal arg-resolution lookup, so a bare
+     identifier (IntType, not `IntType) reads as the symbol itself
+     rather than an attempted variable reference. */
+  ComValue typev(stack_arg(1, true));
+  boolean typeflag = typev.type()==ComValue::SymbolType;
   reset_stack();
 
   /* string(str) is a copy, not a capacity request: :raw copies the full
@@ -338,13 +340,13 @@ void StringFunc::execute() {
     return;
   }
 
-  /* string(n :type sym) reserves n chunksz-byte chunks, each an @-indexed
+  /* string(n typesym) reserves n chunksz-byte chunks, each an @-indexed
      packed ComValue rather than a single char. */
   /* no "-1 for the terminator": that's a NUL-terminated-string idiom, and
      a typed chunk array has no terminator, so it gets the full n*chunksz. */
   AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
   int chunksz = 0;
-  if (typeflag && typev.type()==ComValue::SymbolType) {
+  if (typeflag) {
     blocktype = valuetype_for_symid(typev.symbol_val());
     chunksz = AttributeValue::type_size(blocktype);
   }
