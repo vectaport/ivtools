@@ -125,7 +125,7 @@ public:
 };
     // enum for attribute value types.
     // AnyType marks a value slot that carries a raw ComValue of whatever type
-    // was stored there (e.g. a string(n :type `AnyType) chunk), rather than
+    // was stored there (e.g. a string(n `AnyType) chunk), rather than
     // being fixed to one of the other types itself.
 
 #define ATTRVALUE_CHUNK_BYTES 40 // size of an AnyType chunk: AttributeValue's
@@ -463,7 +463,7 @@ public:
     static void unref_as_needed(const void* base);
     // decrement ref counters as needed for a value with no live AttributeValue
     // wrapper of its own -- 'base' is ATTRVALUE_CHUNK_BYTES of packed
-    // AttributeValue data (a string(n :type `AnyType) chunk about to be
+    // AttributeValue data (a string(n `AnyType) chunk about to be
     // overwritten), read in place rather than copied into a temporary.
     void dup_as_needed();
     // duplicate lists then increment ref counters as needed

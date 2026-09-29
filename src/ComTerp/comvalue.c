@@ -236,7 +236,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::StringType: {
 	  if (svp->blocksz() > 0) {
-	    /* a typed string(n :type sym)'s raw bytes aren't meaningful text --
+	    /* a typed string(n typesym)'s raw bytes aren't meaningful text --
 	       decode and print its packed chunks instead, the same values
 	       list(str) returns, in list literal form. */
 	    /* an AnyType chunk can decode back to the same backing symbol
