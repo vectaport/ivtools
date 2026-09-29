@@ -1541,9 +1541,9 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  }
 	}
 
-	/* PROTOTYPE (#TBD): same priority as _alist -- an earlier key of a
-	   still-unfinished attrlist literal overrides an outer variable of the
-	   same name, read directly off the operand stack (pending_literal_keyval()). */
+	/* same priority as _alist -- an earlier key of a still-unfinished
+	   attrlist literal overrides an outer variable of the same name,
+	   read directly off the operand stack (pending_literal_keyval()). */
 	{
 	  AttributeValue* pending = pending_literal_keyval(comval.symbol_val());
 	  if (pending) {
@@ -2619,20 +2619,14 @@ AttributeValue* ComTerp::peek_alist_pending(AttributeList* al, int id, Attribute
 }
 
 AttributeValue* ComTerp::pending_literal_keyval(int symid) {
-  /* an AttrListFunc "(...)" literal pushes each value, then a KeywordType
-     tag naming it -- stack_keys() (comfunc.c) reads that same shape once
-     AttrListFunc itself runs.  Scanning it early, before AttrListFunc has
-     even fired, finds an earlier key of a still-unfinished literal.
-
-     Gated on the CURRENT postfix buffer actually containing an "attrlist"
-     command token: a literal's own operands are evaluated in the same
-     buffer that compiled the literal, so this token is there whenever
-     we're really inside one.  A func body is compiled into its own,
-     separate buffer at definition time, so calling into one (an ordinary
-     command's keyword argument list, a dot-bound method body) swaps in a
-     buffer that never contains "attrlist" at all -- the stack scan below
-     never runs for those, whatever keyword tags happen to be sitting on
-     the operand stack from unrelated, already-dispatched calls. */
+  /* an attrlist literal pushes each value before its own keyword tag, so
+     an earlier key's pair is already complete on the stack while a later
+     value is still being evaluated -- stack_keys() (comfunc.c) reads that
+     same shape once AttrListFunc itself runs. */
+  /* gated on an "attrlist" command token existing in the current postfix
+     buffer -- a func body (or any other call's own argument list)
+     compiles into its own separate buffer and never contains one, so the
+     scan below stays out of those entirely. */
   static int attrlist_symid = symbol_add("attrlist");
   boolean in_literal = false;
   for (unsigned int i=0; i<_pfnum; i++) {
@@ -2644,10 +2638,17 @@ AttributeValue* ComTerp::pending_literal_keyval(int symid) {
   }
   if (!in_literal) return nil;
 
-  for (int i=0; i<=_stack_top; i++) {
+  /* i==0 is the tag most recently pushed -- always the call or literal
+     key currently being evaluated, never an earlier, completed pair */
+  for (int i=1; i<=_stack_top; i++) {
     ComValue& keyref = stack_top(-i);
     if (keyref.type() == ComValue::KeywordType && keyref.symbol_val() == symid) {
-      if (keyref.keynarg_val() == 0) return nil;
+      if (keyref.keynarg_val() == 0) {
+	/* stack_keys() gives a bare ":flag" key this same default
+	   once the literal actually runs -- match it here too */
+	*_peek_scratch = ComValue::trueval();
+	return _peek_scratch;
+      }
       ComValue& valref = stack_top(-i-1);
       if (valref.type() == ComValue::KeywordType) return nil;
       return &valref;

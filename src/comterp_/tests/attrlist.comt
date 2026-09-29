@@ -657,5 +657,38 @@ ok=ok&&(sym66zval.xx==4)
 print("66 (l66@2).xx=4 no longer crashes (expect 4, l66 untouched, sym66zval.xx=4): %v %v %v\n\n" r66 l66 sym66zval.xx)
 prev_ok=check_fail(:ok ok)
 
+// --- test 67: an attrlist literal's own earlier keys are visible as
+// bare symbols to a later value still being evaluated in the same
+// literal, at the same priority as _alist -- w67 shadows the outer w67
+// of the same name, since the literal's own key wins ---
+w67=999
+al67=(:w67 16 :h67 12 :area func(w67*h67))
+ok=ok&&(al67.area()==192)
+print("67 al67=(:w67 16 :h67 12 :area func(w67*h67)); al67.area() shadows outer w67 (expect 192): %v\n\n" al67.area())
+prev_ok=check_fail(:ok ok)
+
+// --- test 68: a bare ":flag" key (no value) resolves, mid-construction,
+// to the same default stack_keys() (comfunc.c) gives it once the
+// literal actually runs -- true, not nil ---
+al68=(:flag :echo func(flag))
+ok=ok&&(al68.echo()==true)
+print("68 al68=(:flag :echo func(flag)); al68.echo() sees the bare :flag default (expect true): %v\n\n" al68.echo())
+prev_ok=check_fail(:ok ok)
+
+// --- test 69: an ordinary call's own keyword argument, passed under a
+// name that collides with an attrlist literal's key -- whether that
+// call sits inside the literal's own construction (al69) or completely
+// outside any literal (plain69) -- is never intercepted by the literal
+// key lookup above; it still resolves through the normal keyword path ---
+k69=5
+f69=func(k69)
+al69=(:k69 99 :other f69(:k69 k69))
+plain69=(:m69 func(v69))
+v69=5
+r69=plain69.m69(:v69 v69)
+ok=ok&&(al69.other==5 && r69==5)
+print("69 unrelated ':k69 k69'/':v69 v69' calls aren't shadowed by a same-named literal key (expect 5 5): %v %v\n\n" al69.other r69)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok

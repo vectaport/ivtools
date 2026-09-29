@@ -427,19 +427,22 @@ public:
     // live tap rather than a constant, and ycopy=y pins one draw.
 
     AttributeValue* pending_literal_keyval(int symid);
-    // PROTOTYPE (#TBD): same priority as _alist -- scans the live operand
-    // stack for a still-unfinished attrlist literal's earlier ":key val"
-    // pair matching symid, so it can shadow an outer variable of the same
+    // same priority as _alist -- scans the live operand stack for a
+    // still-unfinished attrlist literal's earlier ":key val" pair
+    // matching symid, so it can shadow an outer variable of the same
     // name.  A "(...)" literal pushes each value before its own keyword
-    // tag, so while a later value in the same literal is still being
-    // evaluated, every earlier pair is already sitting on the stack in
-    // that shape, well before AttrListFunc itself ever runs.
+    // tag, so an earlier pair is already complete on the stack while a
+    // later value in the same literal is still being evaluated.
     //
     // Gated on the current postfix buffer containing an "attrlist"
-    // command token, so the scan never runs for an ordinary call's
-    // keyword-argument list (a func body is compiled into its own
-    // separate buffer, which never contains one) -- only for operands
-    // genuinely being evaluated inside a literal's own construction.
+    // command token, so the scan never runs for an ordinary call's own
+    // keyword-argument list (a func body compiles into its own separate
+    // buffer, which never contains one).  Within that buffer, the tag
+    // most recently pushed (stack position 0) is always the call or
+    // literal key currently being evaluated, never an earlier, completed
+    // pair, so it's excluded too -- otherwise a nested call's own
+    // "argname argname"-shaped keyword could be misread as an outer
+    // literal key of the same name.
 
     void set_args(int argc, char** argv);
     // set command line arguments
