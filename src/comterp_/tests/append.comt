@@ -210,5 +210,38 @@ ok=ok&&(at(r18b 2)==char(0))
 ok=ok&&(at(r18b 4)=='Y')
 print("18b append() onto a NUL-containing slice dest grows from its real length, not a truncated one (expect 5 true Y): %v %v %s\n" size(r18b) (at(r18b 2)==char(0)) print(at(r18b 4) :str))
 
+// --- 19: append() on a typed (blocktype()!=UnknownType) string grows by
+//         one whole chunk holding val, not val's raw bytes -- a scalar
+//         blocktype converts val the same way comval_encode() always does,
+//         and the bare-variable write-back lets a stream val overdrive it
+//         into a fold, one chunk per firing ---
+s19=string(0 :type `IntType)
+s19=append(s19 10)
+s19=append(s19 20)
+ok=ok&&(list(s19)=={10,20})
+print("19a append() on a typed string grows by one chunk (expect {10,20}): %v\n" list(s19))
+
+s19b=string(0 :type `IntType)
+append(s19b $$(1,2,3))
+ok=ok&&(list(s19b)=={1,2,3})
+print("19b a stream val overdrives append() into a fold, one chunk per firing (expect {1,2,3}): %v\n" list(s19b))
+
+// --- 20: '+' has no defined meaning for a typed string -- it doesn't
+//         reassign by name the way append() does, so growing it one chunk
+//         at a time isn't available; refuses (nil) instead of corrupting
+//         the packed chunk bytes the way it used to ---
+s20=string(1 :type `IntType)
+r20=s20+"x"
+ok=ok&&(r20==nil)
+print("20 '+' on a typed string refuses instead of corrupting it (expect nil): %v\n" r20)
+
+// --- 21: '+' refuses a typed string on its RIGHT side too -- checking only
+//         the left operand would let append_str() misread the right
+//         operand's packed chunk bytes as NUL-terminated text ---
+s21=string(1 :type `IntType)
+r21="x"+s21
+ok=ok&&(r21==nil)
+print("21 '+' on a right-hand typed string refuses instead of corrupting it (expect nil): %v\n" r21)
+
 print("append: %v\n" ok)
 ok
