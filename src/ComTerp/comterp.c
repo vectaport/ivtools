@@ -1551,6 +1551,20 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  }
 	}
 
+	/* same priority as _alist -- an earlier key of a still-unfinished
+	   attrlist literal overrides an outer variable of the same name,
+	   read directly off the operand stack (pending_literal_keyval()). */
+	{
+	  AttributeValue* pending = pending_literal_keyval(comval.symbol_val());
+	  if (pending) {
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
+	    ComValue newval(*pending);
+	    *&comval = newval;
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
+	    return comval;
+	  }
+	}
+
 	/* assignval() copies coloned() and other flags packed into _ext3
 	   with narg/nkey/nids -- restore_call_arity() undoes that right after */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
@@ -1595,6 +1609,13 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval, boolean freeze) {
 	    ? pull_alist_pending(_alist, id, found)
 	    : peek_alist_pending(_alist, id, found);
 	  if (aval) return aval;
+	}
+	/* same priority as _alist above -- a post_eval command (istype() and
+	   friends) that resolves a raw argument through this overload still
+	   sees a still-unfinished attrlist literal's earlier key */
+	{
+	  AttributeValue* pending = pending_literal_keyval(comval->symbol_val());
+	  if (pending) return pending;
 	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
@@ -2613,6 +2634,48 @@ AttributeValue* ComTerp::peek_alist_pending(AttributeList* al, int id, Attribute
   *_peek_scratch = pulled;  /* fresh each call, never written to al --
                                fire_funcobj()'s cleanup frees it unless frozen */
   return _peek_scratch;
+}
+
+AttributeValue* ComTerp::pending_literal_keyval(int symid) {
+  /* an attrlist literal pushes each value before its own keyword tag, so
+     an earlier key's pair is already complete on the stack while a later
+     value is still being evaluated -- stack_keys() (comfunc.c) reads that
+     same shape once AttrListFunc itself runs. */
+  /* gated on an "attrlist" command token existing in the current postfix
+     buffer -- a func body (or any other call's own argument list)
+     compiles into its own separate buffer and never contains one, so the
+     scan below stays out of those entirely. */
+  static int attrlist_symid = symbol_add("attrlist");
+  boolean in_literal = false;
+  for (unsigned int i=0; i<_pfnum; i++) {
+    if (_pfcomvals[i].is_type(ComValue::CommandType) &&
+	_pfcomvals[i].command_symid() == attrlist_symid) {
+      in_literal = true;
+      break;
+    }
+  }
+  if (!in_literal) return nil;
+
+  /* i==0 is the tag most recently pushed -- always the call or literal
+     key currently being evaluated, never an earlier, completed pair */
+  for (int i=1; i<=_stack_top; i++) {
+    ComValue& keyref = stack_top(-i);
+    if (keyref.type() == ComValue::KeywordType && keyref.symbol_val() == symid) {
+      if (keyref.keynarg_val() == 0) {
+	/* stack_keys() gives a bare ":flag" key this same default
+	   once the literal actually runs -- match it here too */
+	*_peek_scratch = ComValue::trueval();
+	return _peek_scratch;
+      }
+      ComValue& valref = stack_top(-i-1);
+      if (valref.type() == ComValue::KeywordType) return nil;
+      /* _stack can move under a later push (realloc) -- copy out to
+	 stable storage rather than handing back a pointer into it */
+      *_peek_scratch = valref;
+      return _peek_scratch;
+    }
+  }
+  return nil;
 }
 
 void ComTerp::set_args(int argc, char** argv) {

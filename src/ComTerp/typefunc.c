@@ -291,8 +291,8 @@ void IsCommFunc::execute() {
   ComValue arg0(stack_arg(0, true));
   static int sym_symid = symbol_add("sym");
   ComValue symflag(stack_key(sym_symid));
-  reset_stack();
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
+  reset_stack();
   boolean match = resolved && resolved->is_type(AttributeValue::CommandType);
   if (symflag.is_true())
     push_symid_or_nil(this, match ? resolved->type_symid() : -1);
@@ -309,8 +309,8 @@ void IsFuncFunc::execute() {
   ComValue arg0(stack_arg(0, true));
   static int sym_symid = symbol_add("sym");
   ComValue symflag(stack_key(sym_symid));
-  reset_stack();
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
+  reset_stack();
   boolean match = resolved && resolved->is_object(FuncObj::class_symid());
   if (symflag.is_true())
     push_symid_or_nil(this, match ? resolved->class_symid() : -1);

@@ -429,32 +429,28 @@ ok=ok&&(al.n==999 && myal46.n==5)
 print("46 func-local :al write hits the passed-in object, not outer al (expect al.n=999, myal46.n=5): %v %v\n\n" al.n myal46.n)
 prev_ok=check_fail(:ok ok)
 
-// --- test 47: there is no "self" mechanism -- a method reaches a sibling
-// method by an explicit dot-call, exactly like any outside caller would.
-// "zoo47" inside report's body is a dot lhs, so it's a normal capture
-// (#631): report is defined before zoo47 itself is bound, so its own
-// default for "zoo47" is nil and a bare zoo47.report() can't reach
-// zoo47.flash -- the caller must hand the target in explicitly, as a
-// keyword, at the self-bound call site ---
-zoo47=(:flash func(things) :report func(zoo47.flash(:things "hello")))
-r47=zoo47.report(:zoo47 zoo47)
+// --- test 47: a method reaches a sibling method by its bare name, not a
+// dot-lhs reference to the container -- a dot-bound call sets _alist to
+// the receiver's own attrlist for the call, so "flash" inside report's
+// body resolves through it directly, no capture and no self keyword ---
+zoo47=(:flash func(things) :report func(flash(:things "hello")))
+r47=zoo47.report()
 ok=ok&&(r47=="hello")
-print("47 zoo47.report(:zoo47 zoo47) reaches zoo47.flash(...), not a language self feature (expect hello): %v\n\n" r47)
+print("47 zoo47.report() reaches flash(...) via _alist, bare name (expect hello): %v\n\n" r47)
 prev_ok=check_fail(:ok ok)
 
-// --- test 48: since "zoo48" inside report's body is a normal capture,
-// not a live lookup, an explicit keyword binds the method to exactly the
-// object passed in -- slipping a different attrlist under the global
-// "zoo48" name mid-flight has no effect on a call that names its target
-// explicitly, unlike a same-named outer variable would (#631) ---
-zoo48=(:flash func("MINE") :report func(zoo48.flash()))
-r48a=zoo48.report(:zoo48 zoo48)
+// --- test 48: _alist is set from the receiver a call actually dispatches
+// through, not from the global name used to reach it -- slipping a
+// different attrlist under the global "zoo48" name mid-flight has no
+// effect on a call made through a saved reference to the original ---
+zoo48=(:flash func("MINE") :report func(flash()))
+r48a=zoo48.report()
 saved48=zoo48
 zoo48=(:flash func("OTHER"))
-r48b=saved48.report(:zoo48 saved48)
+r48b=saved48.report()
 zoo48=saved48
 ok=ok&&(r48a=="MINE" && r48b=="MINE")
-print("48 explicit :zoo48 keyword always reaches the object passed in, immune to zoo48 being reassigned (expect MINE MINE): %v %v\n\n" r48a r48b)
+print("48 saved48.report() still reaches the original flash, immune to zoo48 being reassigned (expect MINE MINE): %v %v\n\n" r48a r48b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 49: at(al n) (a bare read, no :set) hands back a detached,
@@ -659,6 +655,70 @@ ok=ok&&(r66==4)
 ok=ok&&(l66==(`aaa66,`bbb66,`sym66zval))
 ok=ok&&(sym66zval.xx==4)
 print("66 (l66@2).xx=4 no longer crashes (expect 4, l66 untouched, sym66zval.xx=4): %v %v %v\n\n" r66 l66 sym66zval.xx)
+prev_ok=check_fail(:ok ok)
+
+// --- test 67: an attrlist literal's own earlier keys are visible as
+// bare symbols to a later value still being evaluated in the same
+// literal, at the same priority as _alist -- w67 shadows the outer w67
+// of the same name, since the literal's own key wins ---
+w67=999
+al67=(:w67 16 :h67 12 :area func(w67*h67))
+ok=ok&&(al67.area()==192)
+print("67 al67=(:w67 16 :h67 12 :area func(w67*h67)); al67.area() shadows outer w67 (expect 192): %v\n\n" al67.area())
+prev_ok=check_fail(:ok ok)
+
+// --- test 68: a bare ":flag" key (no value) resolves, mid-construction,
+// to the same default stack_keys() (comfunc.c) gives it once the
+// literal actually runs -- true, not nil ---
+al68=(:flag :echo func(flag))
+ok=ok&&(al68.echo()==true)
+print("68 al68=(:flag :echo func(flag)); al68.echo() sees the bare :flag default (expect true): %v\n\n" al68.echo())
+prev_ok=check_fail(:ok ok)
+
+// --- test 69: an ordinary call's own keyword argument, passed under a
+// name that collides with an attrlist literal's key -- whether that
+// call sits inside the literal's own construction (al69) or completely
+// outside any literal (plain69) -- is never intercepted by the literal
+// key lookup above; it still resolves through the normal keyword path ---
+k69=5
+f69=func(k69)
+al69=(:k69 99 :other f69(:k69 k69))
+plain69=(:m69 func(v69))
+v69=5
+r69=plain69.m69(:v69 v69)
+ok=ok&&(al69.other==5 && r69==5)
+print("69 unrelated ':k69 k69'/':v69 v69' calls aren't shadowed by a same-named literal key (expect 5 5): %v %v\n\n" al69.other r69)
+prev_ok=check_fail(:ok ok)
+
+// --- test 70: a still-unfinished literal's earlier key is visible to a
+// post_eval command (istype()) resolving its own raw argument, not just
+// to an ordinary eager operand -- istype() reaches lookup_symval() through
+// its own AttributeValue*-returning overload, a separate path from the
+// one the tests above exercise ---
+al70=(:w70 16 :x70 istype(w70 IntType))
+ok=ok&&(al70.x70==true)
+print("70 al70=(:w70 16 :x70 istype(w70 IntType)); al70.x70 sees w70 via istype's raw-arg path (expect true): %v\n\n" al70.x70)
+prev_ok=check_fail(:ok ok)
+
+// --- test 71: isfunc()/iscomm() resolve their raw argument before
+// reset_stack() pops this call's own operands, unlike istype()/isclass()
+// which already did -- otherwise a still-unfinished literal's earlier key
+// is gone from the stack by the time the lookup runs ---
+al71=(:w71 func(9) :x71 isfunc(w71))
+ok=ok&&(al71.x71==true)
+print("71 al71=(:w71 func(9) :x71 isfunc(w71)); al71.x71 sees w71 before reset_stack() pops it (expect true): %v\n\n" al71.x71)
+prev_ok=check_fail(:ok ok)
+
+// --- test 72: a compound assignment inside a still-unfinished literal,
+// to a name that collides with the literal's own key, reaches the outer
+// variable rather than the literal's pending pair (a compound assign
+// resets its own operand stack before resolving its operand, same as
+// isfunc()/iscomm() did) -- no crash, no corruption, no stray write into
+// the literal's own construction ---
+w72=1
+al72=(:w72 16 :x72 (w72+=1))
+ok=ok&&(al72.x72==2 && w72==2)
+print("72 al72=(:w72 16 :x72 (w72+=1)); reaches the outer w72, literal's own :w72 16 untouched (expect 2 2): %v %v\n\n" al72.x72 w72)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)
