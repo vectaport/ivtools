@@ -290,9 +290,14 @@ public:
     // get flag to insert in a nested fashion
 
     int max_out() { return _max_out; }
-    // get maximum to print 
+    // get element cutoff for printing: -1 (the default) applies
+    // default_max_out, 0 is unlimited (never elide), a positive count is
+    // the cutoff itself.
     void max_out(int num) { _max_out = num; }
-    // set maximum to print 
+    // set element cutoff for printing -- see max_out() above.
+
+    static const int default_max_out = 16;
+    // element cutoff a list uses when max_out() hasn't been set explicitly.
 
     boolean Equal(AttributeValueList* avl);
     boolean GreaterThan(AttributeValueList* avl);

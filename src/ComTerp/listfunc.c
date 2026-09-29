@@ -110,6 +110,8 @@ void ListFunc::execute() {
   static int hex_symid = symbol_add("hex");
   ComValue hexv(stack_key_post_eval(hex_symid));
   boolean hexflag = hexv.is_true();
+  static int cutoff_symid = symbol_add("cutoff");
+  ComValue cutoffv(stack_key_post_eval(cutoff_symid));
   reset_stack();
 
   if (attrflag) {
@@ -152,6 +154,7 @@ void ListFunc::execute() {
 	avl->Append(new AttributeValue(elt));
       }
     }
+    if (cutoffv.is_int()) avl->max_out(cutoffv.int_val());
     ComValue retval(avl);
     push_stack(retval);
     return;
@@ -191,6 +194,7 @@ void ListFunc::execute() {
     } else if (nargs())
       avl->Append(new AttributeValue(listv));
   }
+  if (cutoffv.is_int()) avl->max_out(cutoffv.int_val());
   /* no manual Resource::ref(avl) here -- the ComValue ctor already refs it;
      an extra ref would leak an AttributeValueList per list() call */
   ComValue retval(avl);

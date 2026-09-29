@@ -1,0 +1,71 @@
+// src/comterp_/tests/remote_cutoff.comt -- a remote() reply must stay fully
+// re-parseable even when the returned value is a list past the print
+// elision cutoff (list_string_cutoff.comt) -- ComValue::elide() is forced
+// off in ComTerp::print_stack_top() whenever handler() names a live socket
+// peer, so a comterp_listen/DrawServ reply never emits a "{n more}" marker.
+// Self-contained (does not depend on updown.comt having run first) --
+// see updown.comt for the launch/teardown pattern this borrows.
+//
+// funcs: shell()  socket()  remote()  close()  usleep()  type()
+
+have_lsof=shell("which lsof > /dev/null 2>&1")==0
+
+rc_pick_port=func(
+  p=rc_base;
+  if(have_lsof :then
+    while(shell(print("lsof -i :%d > /dev/null 2>&1" p :str))==0 p=p+1));
+  p)
+
+// FAIL-path cleanup: kill only the PID this test itself launched (a port
+// number alone can't tell this server apart from something else that grabbed
+// the port after it failed to come up)
+rc_kill_port=func(
+  pidfile=print("/tmp/rc_cutoff_pid_%d" kp_port :str);
+  shell(print("kill $(cat %s 2>/dev/null) > /dev/null 2>&1; rm -f %s" pidfile pidfile :str)))
+
+rc_server_up=func(
+  pidfile=print("/tmp/rc_cutoff_pid_%d" rc_su_port :str);
+  shell(print("comterp server %d </dev/null > /dev/null 2>&1 & echo $! > %s" rc_su_port pidfile :str));
+  if(have_lsof :then
+    cnt=0;
+    while(cnt<40 && shell(print("lsof -iTCP:%d -sTCP:LISTEN > /dev/null 2>&1" rc_su_port :str))!=0
+      usleep(250000);cnt++)
+  :else
+    usleep(1000000));
+  s=socket("127.0.0.1" rc_su_port);
+  if(type(s)==`UnknownType :then nil :else s))
+
+rc_server_down=func(
+  remote(rc_sd_sock "exit" :nowait);
+  close(rc_sd_sock))
+
+rc_cleanup_pidfile=func(shell(print("rm -f /tmp/rc_cutoff_pid_%d" kp_port :str)))
+
+remote_cutoff_test=func(
+  port=rc_pick_port(:rc_base 22301);
+  sock=rc_server_up(:rc_su_port port);
+  if(sock==nil :then
+    print("remote_cutoff: FAIL server never listened on %d\n" port :err);
+    rc_kill_port(:kp_port port);
+    return(false));
+  ok=true;
+  // build a 30-element list on the server and get it back over the wire
+  r=remote(sock "lst=0;i=1;for(i=1 i<30 i=i+1 lst=lst,i);lst");
+  sz=size(r);
+  ok=ok&&(sz==30);
+  print("1 remote(sock, 30-elem list-building expr), size(r) (expect 30): %v\n" sz);
+  // a typed string past the collapse threshold must come back fully decoded,
+  // not as an opaque "<Type[N]>" summary the client can't re-parse
+  r2=remote(sock "s=string(20 :type `UIntType);s");
+  sz2=size(list(r2));
+  ok=ok&&(sz2==20);
+  print("2 remote(sock, 20-chunk typed string), size(list(r2)) (expect 20): %v\n" sz2);
+  rc_server_down(:rc_sd_sock sock);
+  rc_cleanup_pidfile(:kp_port port);
+  ok)
+
+ok=true
+if(remote_cutoff_test :then print("remote_cutoff: pass\n") :else print("remote_cutoff: FAIL\n");ok=false)
+
+print("\nremote_cutoff: %v\n" ok)
+ok

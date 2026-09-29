@@ -118,12 +118,12 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "str=%s(cap :spaces :type sym | str :raw) -- cap bytes if cap is an int; a copy of str otherwise (:raw for its full range, else NUL-terminated)"; }
+      return "str=%s(cap [typesym] :spaces :raw | str :raw) -- cap bytes if cap is an int; a copy of str otherwise (:raw for its full range, else NUL-terminated)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":spaces    fill with spaces instead of NUL bytes (int form only)",
 	":raw       copy str's full range, not just up to its first NUL",
-	":type      cap type_size(sym)-byte chunks, @-indexed as packed ComValues of that type (e.g. `AnyType)",
+	"typesym    cap type_size(typesym)-byte chunks, @-indexed as packed ComValues of that type (e.g. AnyType, no bquote needed)",
 	nil
       };
       return keys;

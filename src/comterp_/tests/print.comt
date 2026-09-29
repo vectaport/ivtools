@@ -229,10 +229,10 @@ ok=ok&&match31
 print("31 quoted display of print(\"hello\" :prefix \"PREFIX\" :str)'s trailing newline as a second, empty segment (expect true): %v\n\n" match31)
 prev_ok=check_fail(:ok ok)
 
-// --- test 32: %v on a typed string(n :type sym) decodes its packed chunks
+// --- test 32: %v on a typed string(n typesym) decodes its packed chunks
 // as a list, rather than showing its raw bytes as garbled text -- and a
 // sliced view of one decodes only its own window ---
-s32=string(3 :type `IntType)
+s32=string(3 `IntType)
 s32@0=10
 s32@1=20
 s32@2=30
@@ -240,17 +240,17 @@ p32=print("%v" s32 :str)
 sl32=s32@1:2
 p32b=print("%v" sl32 :str)
 ok=ok&&(p32=="{10,20,30}")&&(p32b=="{20,}")
-print("32 print(\"%v\" string(3 :type `IntType) with @0,@1,@2 set) and its slice s32@1:2 (expect {10,20,30} {20,}): %v %v\n\n" "%v" p32 p32b)
+print("32 print(\"%v\" string(3 `IntType) with @0,@1,@2 set) and its slice s32@1:2 (expect {10,20,30} {20,}): %v %v\n\n" "%v" p32 p32b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 33: a self-referential AnyType chunk (s@0=s) must not recurse
 // forever decoding its own value back -- the cycle is caught and printed
 // as a placeholder instead of exhausting the stack ---
-s33=string(1 :type `AnyType)
+s33=string(1 `AnyType)
 s33@0=s33
 p33=print("%v" s33 :str)
 ok=ok&&(p33=="{<cycle>,}")
-print("33 s33=string(1 :type `AnyType);s33@0=s33;print(\"%v\" s33) (expect {<cycle>,}): %v\n\n" "%v" p33)
+print("33 s33=string(1 `AnyType);s33@0=s33;print(\"%v\" s33) (expect {<cycle>,}): %v\n\n" "%v" p33)
 prev_ok=check_fail(:ok ok)
 
 print("print: %v\n" ok)

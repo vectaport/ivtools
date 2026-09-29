@@ -208,7 +208,7 @@ public:
     // chunk size of a StringType value, in bytes -- derived from
     // blocktype(), not stored on its own; 0 for an ordinary byte-granular
     // string (blocktype() reads UnknownType, whose type_size() is 0).
-    // Nonzero for one built by string(n :type `AnyType), whose @ reads/writes
+    // Nonzero for one built by string(n `AnyType), whose @ reads/writes
     // a packed ComValue per blocksz()-byte chunk instead of a single char.
 
     const char* cstr(std::string& scratch);
@@ -252,6 +252,16 @@ public:
     // one that print() sends through unquoted.
     static boolean echo() { return _echo; }
     // return static REPL-echo flag.
+
+    static void elide(boolean flag) { _elide = flag; }
+    // set static flag controlling whether list()/string() print elision
+    // (see operator<<) is allowed to shorten output at all.  True by
+    // default -- a human-facing echo or log may elide.  A writer that
+    // must stay re-parseable (AttributeList::serialize() to a document
+    // or export, a socket reply to remote()) sets this false around its
+    // own write so every element survives the round trip.
+    static boolean elide() { return _elide; }
+    // return static elision-allowed flag.
 
     static ComValue& nullval();
     // returns reference to UnknownType ComValue.
@@ -304,7 +314,7 @@ public:
     // run of append() calls amortizes to O(1) each the way Go's append does.
 
     static ComValue comval_decode(const char* chunk, AttributeValue::ValueType blocktype);
-    // decode a string(n :type sym) chunk back into a ComValue of type
+    // decode a string(n typesym) chunk back into a ComValue of type
     // blocktype.  blocktype==AnyType is the full ATTRVALUE_CHUNK_BYTES
     // AttributeValue packing (the reverse of comval_encode()'s memcpy;
     // ref_as_needed() picks up a share of whatever pointer/symid the chunk
@@ -338,6 +348,7 @@ protected:
 
     static const ComTerp* _comterp;
     static boolean _echo;
+    static boolean _elide;
     static ComValue _nullval;
     static ComValue _trueval;
     static ComValue _falseval;

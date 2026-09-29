@@ -1,0 +1,27 @@
+// src/comdraw/tests/export_cutoff.comt -- a saved/exported document must stay
+// fully re-parseable even when an attribute holds a list past the print
+// elision cutoff (list_string_cutoff.comt, comterp_/tests) -- ComValue::elide()
+// is forced off around OverlayScript::Attributes()'s write so export() never
+// emits a "{n more}" marker into the command string.
+//
+// funcs: rect() setattr() export() run()
+
+ok=true
+
+r=rect(50,50,150,150)
+lst=0
+i=1
+for(i=1 i<30 i=i+1 lst=lst,i)
+setattr(r :biglist lst)
+
+e=export(r :string :percomp)
+ok=ok&&(index(e "more")==nil)
+print("1 export(r :percomp) of a 30-elem attribute has no elision marker (expect nil): %v\n" index(e "more"))
+
+r2=run(e :str)
+sz2=size(r2.biglist)
+ok=ok&&(sz2==30)
+print("2 size(run(export(...) :str).biglist) survives the round trip (expect 30): %v\n" sz2)
+
+print("export_cutoff: %v\n" ok)
+ok

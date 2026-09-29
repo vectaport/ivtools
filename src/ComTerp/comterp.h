@@ -283,7 +283,7 @@ public:
 
     void handler(ComterpHandler* h );
     // set handler for invoking ComFunc execute methods.
-    ComterpHandler* handler();
+    ComterpHandler* handler() const;
     // return pointer to handler that can read_expressions from
     // a connection and interpret them.
 
