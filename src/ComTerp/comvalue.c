@@ -265,10 +265,12 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    int cap = isslice ? svp->slicelen() : symbol_len(svp->string_val());
 	    int chunksz = svp->blocksz();
 	    int nchunks = cap/chunksz;
-	    /* past AttributeValueList::default_max_out chunks, print the
-	       type and count instead, same as any other opaque value. */
+	    /* past the owning comterp's cutoff() chunks, print the type and
+	       count instead, same as any other opaque value. */
 	    /* list(str) still decodes the full string on request. */
-	    if (ComValue::elide() && nchunks > AttributeValueList::default_max_out) {
+	    int strcutoff = ComValue::comterp() ? ComValue::comterp()->cutoff()
+						 : AttributeValueList::default_max_out;
+	    if (ComValue::elide() && strcutoff > 0 && nchunks > strcutoff) {
 	      out << "<" << symbol_pntr(AttributeValue::type_symid(svp->blocktype()))
 		  << "[" << nchunks << "]>";
 	      break;
@@ -409,12 +411,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	       round-trips it back as input, so no ambiguity to guard against */
 	    boolean coloned = svp->coloned();
 	    if (!coloned) out << "{";
-	    /* max_out() elides past a cutoff: -1 (unset) applies
-	       default_max_out, 0 is unlimited. */
+	    /* max_out() elides past a cutoff: -1 (unset) falls back to the
+	       owning comterp's cutoff(), 0 is unlimited. */
 	    /* elide() gates whether this write may shorten output at all --
 	       false for a write that must stay re-parseable. */
 	    int cutoff = ComValue::elide() ? avl->max_out() : 0;
-	    if (cutoff < 0) cutoff = AttributeValueList::default_max_out;
+	    if (cutoff < 0)
+	      cutoff = ComValue::comterp() ? ComValue::comterp()->cutoff()
+					    : AttributeValueList::default_max_out;
 	    int total = avl->Number();
 	    int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
 	    int printed = 0;

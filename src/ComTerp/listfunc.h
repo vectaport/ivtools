@@ -55,7 +55,7 @@ boolean value_contains_container(AttributeValue& val, void* target,
 // into a list of ComValues instead of wrapping the string whole.
 // :cutoff sets how many elements the result prints before eliding the
 // rest as "{n more}"; unset defaults to AttributeValueList::default_max_out
-// (16), 0 never elides.
+// (256), 0 never elides.
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -72,11 +72,25 @@ public:
 	":colon     tag the result coloned(), same as ':' itself builds",
 	":bytes     a string's raw bytes as a list of CharType values",
 	":hex       with :bytes, UCharType values instead of CharType",
-	":cutoff n  print elision cutoff, default 16, 0 disables",
+	":cutoff n  print elision cutoff, default 256, 0 disables",
 	nil
       };
       return keys;
     }
+};
+
+//: get/set this comterp's list()/string() print elision cutoff.
+// n=cutoff([n]) -- with no argument, return the current cutoff; with n,
+// set it. Per comterp instance, so a stdin console and a socket peer
+// served by the same process keep separate values. list()'s own :cutoff
+// still overrides this per value.
+class CutoffFunc : public ComFunc {
+public:
+    CutoffFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "n=%s([n]) -- get or set this comterp's list()/string() print elision cutoff, default 256, 0 disables"; }
 };
 
 //: list member command for ComTerp; also @ (binary at) operator.

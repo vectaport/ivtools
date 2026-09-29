@@ -296,7 +296,7 @@ public:
     void max_out(int num) { _max_out = num; }
     // set element cutoff for printing -- see max_out() above.
 
-    static const int default_max_out = 16;
+    static const int default_max_out = 256;
     // element cutoff a list uses when max_out() hasn't been set explicitly.
 
     boolean Equal(AttributeValueList* avl);

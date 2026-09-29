@@ -49,6 +49,9 @@ remote_cutoff_test=func(
     rc_kill_port(:kp_port port);
     return(false));
   ok=true;
+  // lower the server's own cutoff so a 30-element reply actually crosses
+  // it, regardless of the comterp-wide default cutoff() starts at
+  remote(sock "cutoff(5)");
   // build a 30-element list on the server and get it back over the wire
   r=remote(sock "lst=0;i=1;for(i=1 i<30 i=i+1 lst=lst,i);lst");
   sz=size(r);

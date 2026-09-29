@@ -1,8 +1,9 @@
 // src/comterp_/tests/list_string_cutoff.comt -- test list()/string() print elision
 //
-// coverage: list()'s :cutoff keyword and the default 16-element print
-// elision ("{n more}") it configures on AttributeValueList::max_out();
-// string(n typesym)'s fixed 16-chunk threshold for collapsing to an
+// coverage: list()'s :cutoff keyword; cutoff()'s get and set forms, which
+// hold this comterp instance's default list()/string() print elision
+// threshold (starts at AttributeValueList::default_max_out, 256);
+// string(n typesym)'s use of that same threshold for collapsing to an
 // opaque "<Type[N]>" summary instead of printing its decoded chunks.
 // Elision only ever changes what print() shows -- size()/list() on the
 // same value always see every element, checked explicitly below.
@@ -13,15 +14,16 @@
 run("./testlib.comt")
 ok=true
 
+orig_cutoff=cutoff()
+
 // build a 20-element list of sequential ints
 lst=0
 i=1
 for(i=1 i<20 i=i+1 lst=lst,i)
 
-// --- test 1: default cutoff (16) elides a 20-element list on print ---
-p1=print(lst :str)
-ok=ok&&(p1=="{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,{4 more}}")
-print("1 print(20-elem list :str), default cutoff (expect 16 shown + {4 more}): %v\n" p1)
+// --- test 1: cutoff() with no argument reads the comterp-wide default ---
+ok=ok&&(orig_cutoff==256)
+print("1 cutoff() (expect 256): %v\n" orig_cutoff)
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: :cutoff n overrides the default on a copy ---
@@ -46,43 +48,75 @@ ok=ok&&(sz==20)&&(sz5==20)&&(sz0==20)
 print("4 size(lst) size(lst5) size(lst0) (expect 20 20 20): %v %v %v\n" sz sz5 sz0)
 prev_ok=check_fail(:ok ok)
 
-// --- test 5: a typed string at or below the 16-chunk threshold prints
-// its full decoded list literal ---
-s16=string(16 `UIntType)
-p5=print("%v" s16 :str)
-ok=ok&&(p5=="{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}")
-print("5 print(string(16 UIntType) :str) (expect full 16-elem literal): %v\n" p5)
+// --- test 5: cutoff(n) sets the comterp-wide default -- a list with no
+// explicit :cutoff now elides at the new default ---
+c5=cutoff(5)
+ok=ok&&(c5==5)&&(cutoff()==5)
+p5=print(lst :str)
+ok=ok&&(p5=="{0,1,2,3,4,{15 more}}")
+print("5 cutoff(5), print(20-elem list :str) (expect 5 shown + {15 more}): %v\n" p5)
 prev_ok=check_fail(:ok ok)
 
-// --- test 6: a typed string over the 16-chunk threshold collapses to
-// an opaque <Type[N]> summary instead ---
-s17=string(17 `UIntType)
-p6=print("%v" s17 :str)
-ok=ok&&(p6=="<UIntType[17]>")
-print("6 print(string(17 UIntType) :str) (expect opaque summary): %v\n" p6)
+// --- test 6: string()'s typed-print threshold follows the same
+// comterp-wide default ---
+s5=string(5 `UIntType)
+p6=print("%v" s5 :str)
+ok=ok&&(p6=="{0,0,0,0,0}")
+print("6 print(string(5 UIntType) :str) at cutoff 5 (expect full 5-elem literal): %v\n" p6)
 prev_ok=check_fail(:ok ok)
 
-// --- test 7: the collapsed summary is print-only -- list() still
+// --- test 7: one chunk past the default collapses to an opaque summary ---
+s6=string(6 `UIntType)
+p7=print("%v" s6 :str)
+ok=ok&&(p7=="<UIntType[6]>")
+print("7 print(string(6 UIntType) :str) at cutoff 5 (expect opaque summary): %v\n" p7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: the collapsed summary is print-only -- list() still
 // decodes every chunk ---
-lst17=list(s17)
-sz17=size(lst17)
-ok=ok&&(sz17==17)
-print("7 size(list(string(17 UIntType))) (expect 17): %v\n" sz17)
+lst6=list(s6)
+sz6=size(lst6)
+ok=ok&&(sz6==6)
+print("8 size(list(string(6 UIntType))) (expect 6): %v\n" sz6)
 prev_ok=check_fail(:ok ok)
 
-// --- test 8: a plain copy (no explicit :cutoff) inherits the source
-// list's own cutoff instead of reverting to the default ---
-lstcopy=list(lst5)
-p8=print(lstcopy :str)
-ok=ok&&(p8=="{0,1,2,3,4,{15 more}}")
-print("8 print(list(list(lst :cutoff 5)) :str) (expect inherited cutoff 5): %v\n" p8)
-prev_ok=check_fail(:ok ok)
-
-// --- test 9: :cutoff on a copy still overrides the inherited value ---
-lstoverride=list(lst5 :cutoff 0)
-p9=print(lstoverride :str)
+// --- test 9: cutoff(0) disables the comterp-wide default entirely, for
+// list() with no explicit :cutoff ---
+cutoff(0)
+p9=print(lst :str)
 ok=ok&&(p9=="{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}")
-print("9 print(list(list(lst :cutoff 5) :cutoff 0) :str) (expect explicit override wins): %v\n" p9)
+print("9 cutoff(0), print(20-elem list :str) (expect all 20, no marker): %v\n" p9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: cutoff(0) disables it for string() too ---
+s20=string(20 `UIntType)
+p10=print("%v" s20 :str)
+ok=ok&&(p10=="{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}")
+print("10 cutoff(0), print(string(20 UIntType) :str) (expect all 20, no marker): %v\n" p10)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: a plain copy (no explicit :cutoff) inherits the source
+// list's own cutoff instead of reverting to the comterp-wide default ---
+cutoff(orig_cutoff)
+lstcopy=list(lst5)
+p11=print(lstcopy :str)
+ok=ok&&(p11=="{0,1,2,3,4,{15 more}}")
+print("11 print(list(list(lst :cutoff 5)) :str) (expect inherited cutoff 5): %v\n" p11)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: :cutoff on a copy still overrides the inherited value ---
+lstoverride=list(lst5 :cutoff 0)
+p12=print(lstoverride :str)
+ok=ok&&(p12=="{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}")
+print("12 print(list(list(lst :cutoff 5) :cutoff 0) :str) (expect explicit override wins): %v\n" p12)
+prev_ok=check_fail(:ok ok)
+
+// restore the comterp-wide default so later scripts in this session see
+// the same starting point this one did
+cutoff(orig_cutoff)
+p13=cutoff()
+ok=ok&&(p13==orig_cutoff)
+print("13 cutoff(orig_cutoff), cutoff() (expect restored to 256): %v\n" p13)
 prev_ok=check_fail(:ok ok)
 
 print("\nlist_string_cutoff: %v\n" ok)
