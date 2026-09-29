@@ -561,7 +561,12 @@ void ListSizeFunc::execute() {
   } else if (listv.is_string() || listv.is_symbol()) {
     /* a slice's own length, not its shared parent's --
        strlen() would run past the slice's window into the parent */
-    int len = listv.sliced() ? listv.slicelen() : (int)strlen(listv.symbol_ptr());
+    /* a typed string's total byte length comes from symbol_len(), not
+       strlen() -- a packed chunk's own bytes can hold an embedded NUL. */
+    int chunksz = listv.blocksz();
+    int bytelen = listv.sliced() ? listv.slicelen()
+      : chunksz>0 ? symbol_len(listv.string_val()) : (int)strlen(listv.symbol_ptr());
+    int len = chunksz>0 ? bytelen/chunksz : bytelen;
     ComValue retval(len, ComValue::IntType);
     push_stack(retval);
     return;
