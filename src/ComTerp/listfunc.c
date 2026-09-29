@@ -222,7 +222,7 @@ void AttrListFunc::execute() {
       int bincnt = -1;
       if (bincntv.is_int()) {
         bincnt = bincntv.int_val();
-        if (bincnt < 0) bincnt = 0;
+        if (bincnt < 0) bincnt = -1;
         if (bincnt > max_bincnt) bincnt = max_bincnt;
       }
       al = new AttributeList(nil, bincnt);

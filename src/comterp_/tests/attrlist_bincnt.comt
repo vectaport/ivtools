@@ -53,7 +53,14 @@ ok=ok&&(szB>0)&&(bcB==nil)
 print("6 attrlist(:a 1 :bincnt) bare keyword (expect indexsize>0, bincnt nil): %v %v\n" szB bcB)
 prev_ok=check_fail(:ok ok)
 
-// --- test 7: perf pattern -- :bincnt 0 (linear) vs. the indexed default,
+// --- test 7: a negative :bincnt keeps the default-index meaning, not 0 ---
+alNeg=attrlist(:a 1 :bincnt -5)
+szNeg=info(alNeg).indexsize
+ok=ok&&(szNeg>0)
+print("7 attrlist(:a 1 :bincnt -5) (expect indexsize>0, not disabled): %v\n" szNeg)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: perf pattern -- :bincnt 0 (linear) vs. the indexed default,
 // timed in-process with time(:mono :ns); min of 3 trials each side to
 // absorb one noisy CI sample without losing the wide O(N^2) vs. O(N) gap.
 n=500
@@ -70,7 +77,7 @@ ok=ok&&(info(ali).indexsize>0)&&(info(all).indexsize==0)
 ok=ok&&(info(ali).count==n)&&(info(all).count==n)
 ok=ok&&(tlinear>tindexed)
 pct=100-(tindexed*100/tlinear)
-print("7 build %v-entry attrlist, indexed vs :bincnt 0, best of 3 (expect linear slower): indexed=%v ns linear=%v ns (%v% faster indexed)\n" n tindexed tlinear pct)
+print("8 build %v-entry attrlist, indexed vs :bincnt 0, best of 3 (expect linear slower): indexed=%v ns linear=%v ns (%v% faster indexed)\n" n tindexed tlinear pct)
 prev_ok=check_fail(:ok ok)
 
 print("\nattrlist_bincnt: %v\n" ok)
