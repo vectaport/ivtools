@@ -2,7 +2,7 @@
 //
 // coverage: list()'s :cutoff keyword and the default 16-element print
 // elision ("{n more}") it configures on AttributeValueList::max_out();
-// string(n :type sym)'s fixed 16-chunk threshold for collapsing to an
+// string(n typesym)'s fixed 16-chunk threshold for collapsing to an
 // opaque "<Type[N]>" summary instead of printing its decoded chunks.
 // Elision only ever changes what print() shows -- size()/list() on the
 // same value always see every element, checked explicitly below.
@@ -48,18 +48,18 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 5: a typed string at or below the 16-chunk threshold prints
 // its full decoded list literal ---
-s16=string(16 :type `UIntType)
+s16=string(16 `UIntType)
 p5=print("%v" s16 :str)
 ok=ok&&(p5=="{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}")
-print("5 print(string(16 :type UIntType) :str) (expect full 16-elem literal): %v\n" p5)
+print("5 print(string(16 UIntType) :str) (expect full 16-elem literal): %v\n" p5)
 prev_ok=check_fail(:ok ok)
 
 // --- test 6: a typed string over the 16-chunk threshold collapses to
 // an opaque <Type[N]> summary instead ---
-s17=string(17 :type `UIntType)
+s17=string(17 `UIntType)
 p6=print("%v" s17 :str)
 ok=ok&&(p6=="<UIntType[17]>")
-print("6 print(string(17 :type UIntType) :str) (expect opaque summary): %v\n" p6)
+print("6 print(string(17 UIntType) :str) (expect opaque summary): %v\n" p6)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: the collapsed summary is print-only -- list() still
@@ -67,7 +67,7 @@ prev_ok=check_fail(:ok ok)
 lst17=list(s17)
 sz17=size(lst17)
 ok=ok&&(sz17==17)
-print("7 size(list(string(17 :type UIntType))) (expect 17): %v\n" sz17)
+print("7 size(list(string(17 UIntType))) (expect 17): %v\n" sz17)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: a plain copy (no explicit :cutoff) inherits the source
