@@ -1281,7 +1281,16 @@ int ComTerp::print_stack_top(ostream& out) const {
     if (_stack_top < 0) return true;
     ComValue::comterp(this);
     ComValue::echo(true);
+    /* a remote peer must get every element back -- elision would make
+       the reply unparseable by remote()'s run(buf, true). */
+    /* an accepted socket's peer handle is its real fd; a handler attached
+       to fd 0 for the server's own console (never accepted) stays
+       ACE_INVALID_HANDLE. */
+    boolean save_elide = ComValue::elide();
+    if (handler() && handler()->get_handle() != ACE_INVALID_HANDLE)
+      ComValue::elide(false);
     out << _stack[_stack_top];
+    ComValue::elide(save_elide);
     ComValue::echo(false);
     return true;
 }
@@ -2163,7 +2172,7 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
     return status;
 }
 
-ComterpHandler* ComTerp::handler() {
+ComterpHandler* ComTerp::handler() const {
     return _handler;
 }
 

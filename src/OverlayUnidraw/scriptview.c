@@ -30,6 +30,7 @@
 #include <OverlayUnidraw/ovexport.h>
 #include <OverlayUnidraw/ovunidraw.h>
 
+#include <ComTerp/comvalue.h>
 #include <ComTerp/parser.h>
 
 #include <Attribute/aliterator.h>
@@ -991,7 +992,12 @@ void OverlayScript::Attributes(ostream& out) {
       /* serialize() emits no leading space before its first attribute, so
          only this branch needs one to avoid running onto the prior value. */
       out << " ";
+      /* a saved document must stay fully re-parseable -- never let list()/
+         string() print elision drop an attribute value on write. */
+      boolean save_elide = ComValue::elide();
+      ComValue::elide(false);
       out << *attrlist;
+      ComValue::elide(save_elide);
     }
 }
 

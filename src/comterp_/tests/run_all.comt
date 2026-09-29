@@ -274,5 +274,13 @@ if(run("./attrlist_bincnt.comt")
   :then print("pass: attrlist_bincnt\n")
   :else print("FAIL: attrlist_bincnt\n");topok=false)
 
+if(run("./list_string_cutoff.comt")
+  :then print("pass: list_string_cutoff\n")
+  :else print("FAIL: list_string_cutoff\n");topok=false)
+
+if(run("./remote_cutoff.comt")
+  :then print("pass: remote_cutoff\n")
+  :else print("FAIL: remote_cutoff\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

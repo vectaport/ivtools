@@ -253,6 +253,16 @@ public:
     static boolean echo() { return _echo; }
     // return static REPL-echo flag.
 
+    static void elide(boolean flag) { _elide = flag; }
+    // set static flag controlling whether list()/string() print elision
+    // (see operator<<) is allowed to shorten output at all.  True by
+    // default -- a human-facing echo or log may elide.  A writer that
+    // must stay re-parseable (AttributeList::serialize() to a document
+    // or export, a socket reply to remote()) sets this false around its
+    // own write so every element survives the round trip.
+    static boolean elide() { return _elide; }
+    // return static elision-allowed flag.
+
     static ComValue& nullval();
     // returns reference to UnknownType ComValue.
     static ComValue& trueval();
@@ -338,6 +348,7 @@ protected:
 
     static const ComTerp* _comterp;
     static boolean _echo;
+    static boolean _elide;
     static ComValue _nullval;
     static ComValue _trueval;
     static ComValue _falseval;
