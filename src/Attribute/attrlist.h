@@ -70,8 +70,11 @@ declareTable(AttributeTable,int,Attribute*)
 // of their member AttributeValue objects.
 class AttributeList : public Resource {
 public:
-    AttributeList(AttributeList* = nil);
-    // construct with optional AttributeList to copy.
+    AttributeList(AttributeList* = nil, int index_size = -1);
+    // construct with optional AttributeList to copy, and an optional
+    // initial size for the symid index (see index_size() below). -1 (the
+    // default) inherits the size being copied from, or 8 with nothing to
+    // copy; 0 disables the index permanently for this list.
     virtual ~AttributeList();
     // do not call directly.  Frees memory of associated Attribute objects.
 
@@ -141,6 +144,12 @@ public:
     static void print_attrlist(std::ostream& out, AttributeList* al);
     // print AttributeList to out
 
+    int index_size() const { return _index_size; }
+    // the symid index's configured initial bucket count, or 0 if this list
+    // has no index and GetAttr(int)/find(int)/add_attr() fall back to a
+    // linear _alist scan -- e.g. for an apples-to-apples before/after
+    // benchmark against the indexed lookup. Visible via info(al :sym).
+
 protected:
     void Append(Attribute*);
     // append Attribute to end of list.  Could cause duplicates.
@@ -180,8 +189,13 @@ protected:
     // add attribute, returning 0 if new, -1 if already present -- when -1,
     // clear 'attr's valueptr before deleting it; hence this is protected.
 
+    Attribute* linear_find(int symid);
+    // scan _alist directly by symid, bypassing _index -- the pre-index
+    // lookup path, used whenever _index is nil.
+
     AList* _alist;
     AttributeTable* _index;
+    int _index_size;
     unsigned int _count;
     boolean _sealed;
 

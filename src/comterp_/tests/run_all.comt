@@ -270,5 +270,9 @@ if(run("./typeall.comt")
   :then print("pass: typeall\n")
   :else print("FAIL: typeall\n");topok=false)
 
+if(run("./attrlist_bincnt.comt")
+  :then print("pass: attrlist_bincnt\n")
+  :else print("FAIL: attrlist_bincnt\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

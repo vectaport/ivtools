@@ -207,8 +207,34 @@ AttrListFunc::AttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void AttrListFunc::execute() {
-    AttributeList* al = stack_keys();
+    static int bincnt_symid = symbol_add("bincnt");
+    /* caps a script-supplied :bincnt so it can't drive AttributeTable's
+       size-doubling loop past what a bucket array can hold */
+    static const int max_bincnt = 1<<20;
+    ComValue bincntv(stack_key(bincnt_symid));
+    AttributeList* raw = stack_keys();
     reset_stack();
+
+    /* :bincnt sizes the index (0 disables it) and is always stripped from
+       the result; a bare or non-int value falls back to -1, the default. */
+    AttributeList* al = raw;
+    if (raw->GetAttr(bincnt_symid) != nil) {
+      int bincnt = -1;
+      if (bincntv.is_int()) {
+        bincnt = bincntv.int_val();
+        if (bincnt < 0) bincnt = -1;
+        if (bincnt > max_bincnt) bincnt = max_bincnt;
+      }
+      al = new AttributeList(nil, bincnt);
+      ALIterator i;
+      for (raw->First(i); !raw->Done(i); raw->Next(i)) {
+        Attribute* attr = raw->GetAttr(i);
+        if (attr->SymbolId() != bincnt_symid)
+          al->add_attribute(new Attribute(*attr));
+      }
+      delete raw;
+    }
+
     ComValue retval(AttributeList::class_symid(), al);
     push_stack(retval);
 }
@@ -535,7 +561,12 @@ void ListSizeFunc::execute() {
   } else if (listv.is_string() || listv.is_symbol()) {
     /* a slice's own length, not its shared parent's --
        strlen() would run past the slice's window into the parent */
-    int len = listv.sliced() ? listv.slicelen() : (int)strlen(listv.symbol_ptr());
+    /* a typed string's total byte length comes from symbol_len(), not
+       strlen() -- a packed chunk's own bytes can hold an embedded NUL. */
+    int chunksz = listv.blocksz();
+    int bytelen = listv.sliced() ? listv.slicelen()
+      : chunksz>0 ? symbol_len(listv.string_val()) : (int)strlen(listv.symbol_ptr());
+    int len = chunksz>0 ? bytelen/chunksz : bytelen;
     ComValue retval(len, ComValue::IntType);
     push_stack(retval);
     return;
