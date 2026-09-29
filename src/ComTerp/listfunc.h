@@ -51,7 +51,7 @@ boolean value_contains_container(AttributeValue& val, void* target,
 //: create list command for ComTerp.
 // lst=list([lst|strm|val] :strmlst :attr :size n :bytes :hex) -- create list,
 // copy list, or convert stream.  On a typed (blocksz()>0) string built by
-// string(n :type sym), list(str) with no :bytes decodes its chunks back
+// string(n typesym), list(str) with no :bytes decodes its chunks back
 // into a list of ComValues instead of wrapping the string whole.
 class ListFunc : public ComFunc {
 public:

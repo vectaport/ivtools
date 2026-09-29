@@ -340,7 +340,7 @@ void StringFunc::execute() {
     return;
   }
 
-  /* string(n :type sym) reserves n chunksz-byte chunks, each an @-indexed
+  /* string(n typesym) reserves n chunksz-byte chunks, each an @-indexed
      packed ComValue rather than a single char. */
   /* no "-1 for the terminator": that's a NUL-terminated-string idiom, and
      a typed chunk array has no terminator, so it gets the full n*chunksz. */

@@ -117,11 +117,11 @@ print("9 string(sl8 :raw) copies the full 8 bytes into independent storage (expe
 //         a chunk's own packed bytes can hold an embedded NUL (10 encodes
 //         as 0x0A 0x00 0x00 0x00), which used to make strlen()-based
 //         counting stop after the first chunk ---
-s10=string(5 :type `IntType)
+s10=string(5 `IntType)
 s10@0=10
 s10@1=20
 ok=ok&&(size(s10)==5)
-print("10 size(string(5 :type `IntType)) with chunk 0 holding an embedded-NUL value (expect 5): %v\n" size(s10))
+print("10 size(string(5 `IntType)) with chunk 0 holding an embedded-NUL value (expect 5): %v\n" size(s10))
 
 print("string_cap: %v\n" ok)
 ok
