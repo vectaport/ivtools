@@ -959,25 +959,16 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     ComValue pixv(nval==1 ? *avl->GetAttrVal(i) : ComValue::nullval());
     if (nval == 1 && pixv.is_type(ComValue::StringType) &&
 	pixv.blocktype() == ComValue::UIntType && pixv.blocksz() > 0) {
-      const char* pstr = pixv.string_ptr();
-      int base = pixv.sliced() ? pixv.sliceoff() : 0;
+      const unsigned int* pstr =
+	(const unsigned int*)(pixv.string_ptr() +
+			       (pixv.sliced() ? pixv.sliceoff() : 0));
       int chunksz = pixv.blocksz();
       int cap = pixv.sliced() ? pixv.slicelen() : symbol_len(pixv.string_val());
       int navail = cap/chunksz;
       /* a caller-supplied string can carry fewer than w*h chunks; stop at
 	 whichever is shorter, same as the list forms stop at avl->Done(). */
       int nread = npix<navail ? npix : navail;
-      for (int idx = 0; idx < nread; idx++) {
-	int row = idx/w;
-	int col = idx%w;
-	ComValue chunk = ComValue::comval_decode(
-	  pstr + base + idx*chunksz, ComValue::UIntType);
-	char colorname[8];
-	snprintf(colorname, sizeof(colorname), "#%06x", chunk.uint_val());
-	float r, g, b;
-	if (Color::find(World::current()->display(), colorname, r, g, b))
-	  raster->poke(col, row, r, g, b, 1.0);
-      }
+      raster->pokergb(pstr, w, h, nread);
     } else if (nval == npix*3) {
       for (int row = 0; row < h && !avl->Done(i); row++) {
         for (int col = 0; col < w && !avl->Done(i); col++) {

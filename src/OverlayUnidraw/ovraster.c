@@ -1399,6 +1399,23 @@ void OverlayRaster::poke(
     Raster::poke(x, y, red, green, blue, alpha);
 }
 
+void OverlayRaster::pokergb(
+    const unsigned int* pixels, unsigned long w, unsigned long h,
+    unsigned long npix
+) {
+  /* r,g,b computed directly from the packed int rather than through
+     Color::find()'s "#RRGGBB" name parse -- XParseColor's own expansion
+     of a 2-digit hex channel is exactly channel/255, so this is the same
+     result without the string round-trip on every pixel. */
+  for (unsigned long idx = 0; idx < npix; idx++) {
+    unsigned int packed = pixels[idx];
+    float r = ((packed>>16)&0xff)/255.;
+    float g = ((packed>>8)&0xff)/255.;
+    float b = (packed&0xff)/255.;
+    poke(idx%w, idx/w, r, g, b, 1.0);
+  }
+}
+
 void OverlayRaster::graypeek(unsigned long x, unsigned long y, unsigned int& i)
 {
   float rval, gval, bval, aval;
