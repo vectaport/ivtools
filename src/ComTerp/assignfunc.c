@@ -241,7 +241,10 @@ void AssignFunc::execute() {
 	  writeval = *operand2;
 	ComValue targetv(*pair->Get(0));
 	if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
-	  continue;
+	  /* any nil ends a stream -- an out-of-range index is where at()
+	     itself would start returning nil, so the write stream ends
+	     here too, the same as the read-side index stream would. */
+	  break;
 	push_stack(*pair->Get(0));
 	push_stack(*pair->Get(1));
 	push_stack(writeval);
