@@ -1403,10 +1403,8 @@ void OverlayRaster::pokergb(
     const unsigned int* pixels, unsigned long w, unsigned long h,
     unsigned long npix
 ) {
-  /* r,g,b computed directly from the packed int rather than through
-     Color::find()'s "#RRGGBB" name parse -- XParseColor's own expansion
-     of a 2-digit hex channel is exactly channel/255, so this is the same
-     result without the string round-trip on every pixel. */
+  /* r,g,b come directly from the packed int, not through Color::find()'s
+     "#RRGGBB" name parse -- same result, no string round-trip per pixel. */
   for (unsigned long idx = 0; idx < npix; idx++) {
     unsigned int packed = pixels[idx];
     float r = ((packed>>16)&0xff)/255.;
