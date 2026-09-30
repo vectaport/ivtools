@@ -1297,13 +1297,13 @@ void InfoFunc::execute() {
     AttributeList* al = new AttributeList();
     static int sealed_sym = symbol_add("sealed");
     static int count_sym = symbol_add("count");
-    static int indexsize_sym = symbol_add("indexsize");
+    static int binsz_sym = symbol_add("binsz");
     ComValue sealedv(target->sealed() ? ComValue::trueval() : ComValue::falseval());
     ComValue countv(target->Number());
-    ComValue indexsizev(target->index_size());
+    ComValue binszv(target->index_size());
     al->add_attr(sealed_sym, sealedv);
     al->add_attr(count_sym, countv);
-    al->add_attr(indexsize_sym, indexsizev);
+    al->add_attr(binsz_sym, binszv);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;
