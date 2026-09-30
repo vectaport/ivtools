@@ -319,13 +319,8 @@ void StreamFunc::execute_literal() {
   elem_offset = posoffsets_running;
   delete [] possizes;
 
-  /* keywords second: skip_key_in_expr discovers them in reverse (the
-     last-written keyword's tag sits nearest the stack top), same as the
-     positionals above -- capture identity/size in scan order first, then
-     append to avl and accumulate forward tokbuf offsets in reverse of
-     scan order, landing both element order and offsets in source order.
-     Each keyword's own tag token occupies a tokbuf slot too (total's
-     "+1" above), so elem_offset advances past it even when key_narg==0. */
+  /* Scan keywords backward, then append them in source order.
+     Advance offsets past each value and its keyword tag. */
   rescan = keys_start;
   int* keysizes = nkeys()>0 ? new int[nkeys()] : nil;
   int* keysymids = nkeys()>0 ? new int[nkeys()] : nil;
