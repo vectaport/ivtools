@@ -26,6 +26,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/listfunc.h>
+#include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <InterViews/resource.h>
@@ -186,6 +187,49 @@ void AssignFunc::execute() {
       atfunc.exec(3, 1);
       ComValue result(pop_stack());
       *operand2 = result;
+    } else if (operand1.is_stream() && operand1.lhs_assign()) {
+      /* @ with a streamed index, e.g. r@0..9=val(s): eval_expr_internals
+	 packaged the at() lvalue-probe into a deferred stream instead of
+	 running it (comterp.c), carrying lhs_assign along so each pull now
+	 yields a settable [list,idx] pair (ListAtFunc, listfunc.c) instead
+	 of a read.  Drain it, zipping operand2 alongside when it's itself a
+	 stream (broadcasting a scalar otherwise), completing one :set write
+	 per pair through the same tested path the single-index case above
+	 uses, and collect what each write returned. */
+      static int set_symid = symbol_add("set");
+      boolean rhs_is_stream = operand2->is_stream();
+      ComValue idxstream(operand1);
+      ComValue rhsstream(rhs_is_stream ? *operand2 : ComValue::nullval());
+      AttributeValueList* results = new AttributeValueList();
+      for (;;) {
+	NextFunc::execute_impl(comterp(), idxstream);
+	ComValue pairv(pop_stack());
+	if (pairv.is_null()) break;
+	ComValue writeval;
+	if (rhs_is_stream) {
+	  NextFunc::execute_impl(comterp(), rhsstream);
+	  ComValue tick(pop_stack());
+	  if (tick.is_null()) break;
+	  writeval = tick;
+	} else
+	  writeval = *operand2;
+	AttributeValueList* pair = pairv.array_val();
+	push_stack(*pair->Get(0));
+	push_stack(*pair->Get(1));
+	push_stack(writeval);
+	ComValue setkey(set_symid, 1);
+	push_stack(setkey);
+	ListAtFunc atfunc(comterp());
+	atfunc.funcid(symbol_add("at"));
+	atfunc.exec(3, 1);
+	ComValue wrote(pop_stack());
+	results->Append(new AttributeValue(wrote));
+      }
+      delete operand2;
+      ComValue retval(results);
+      reset_stack();
+      push_stack(retval);
+      return;
     } else if (operand1.unknown() && operand1.lhs_assign()) {
       /* a locked attrlist's dot lookup found no such entry -- the write
          never happens, and the expression reports nil, not the RHS. */
