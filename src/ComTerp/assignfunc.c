@@ -197,7 +197,7 @@ void AssignFunc::execute() {
       boolean rhs_is_stream = operand2->is_stream();
       ComValue idxstream(operand1);
       ComValue rhsstream(rhs_is_stream ? *operand2 : ComValue::nullval());
-      AttributeValueList* results = new AttributeValueList();
+      int count = 0;
       for (;;) {
 	NextFunc::execute_impl(comterp(), idxstream);
 	ComValue pairv(pop_stack());
@@ -209,7 +209,6 @@ void AssignFunc::execute() {
 	     non-streamed al@n=val case (test 5, atop.comt): no effect. */
 	  cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
 	    symbol_pntr(pairv.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";
-	  delete results;
 	  delete operand2;
 	  reset_stack();
 	  push_stack(ComValue::nullval());
@@ -231,13 +230,16 @@ void AssignFunc::execute() {
 	ListAtFunc atfunc(comterp());
 	atfunc.funcid(symbol_add("at"));
 	atfunc.exec(3, 1);
-	ComValue wrote(pop_stack());
-	results->Append(new AttributeValue(wrote));
+	pop_stack();
+	count++;
       }
       delete operand2;
-      ComValue retval(results);
+      ComValue retval(count, ComValue::IntType);
       reset_stack();
       push_stack(retval);
+      /* count, not the written values -- list() already exists for
+	 collecting those, and building both would double the work */
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
       return;
     } else if (operand1.unknown() && operand1.lhs_assign()) {
       /* a locked attrlist's dot lookup found no such entry -- the write
