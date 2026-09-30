@@ -589,6 +589,45 @@ void ListSizeFunc::execute() {
 
 /*****************************************************************************/
 
+ListShiftFunc::ListShiftFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ListShiftFunc::execute() {
+  ComValue listv(stack_arg(0));
+  ComValue nv(stack_arg(1));
+  static int reverse_symid = symbol_add("reverse");
+  ComValue reversev(stack_key(reverse_symid));
+  boolean reverseflag = reversev.is_true();
+  reset_stack();
+
+  if (listv.is_type(ComValue::ArrayType)) {
+    AttributeValueList* avl = listv.array_val();
+    int sz = avl ? avl->Number() : 0;
+    if (avl && sz>1) {
+      int n = nv.is_nil() ? 1 : nv.int_val();
+      if (reverseflag) n = -n;
+      /* normalize into [0,sz) -- a left rotation by this count also
+         covers a negative (rightward) n, since rotating left by
+         sz-|n| is the same permutation as rotating right by |n| */
+      n = ((n % sz) + sz) % sz;
+      for (int i=0; i<n; i++) {
+	ALIterator it;
+	avl->First(it);
+	AttributeValue* av = avl->GetAttrVal(it);
+	avl->Remove(it);
+	avl->Append(av);
+      }
+    }
+    push_stack(listv);
+    return;
+  }
+
+  push_stack(ComValue::nullval());
+}
+
+
+/*****************************************************************************/
+
 
 TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
