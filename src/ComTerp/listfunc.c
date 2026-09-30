@@ -605,11 +605,12 @@ void ListShiftFunc::execute() {
     int sz = avl ? avl->Number() : 0;
     if (avl && sz>1) {
       int n = nv.is_nil() ? 1 : nv.int_val();
-      if (reverseflag) n = -n;
+      /* widen before negating -- -n on INT_MIN overflows a plain int */
+      long long neff = reverseflag ? -(long long)n : (long long)n;
       /* normalize into [0,sz) -- a left rotation by this count also
          covers a negative (rightward) n, since rotating left by
          sz-|n| is the same permutation as rotating right by |n| */
-      n = ((n % sz) + sz) % sz;
+      n = (int)(((neff % sz) + sz) % sz);
       for (int i=0; i<n; i++) {
 	ALIterator it;
 	avl->First(it);

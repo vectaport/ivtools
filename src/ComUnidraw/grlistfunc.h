@@ -38,13 +38,13 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=at(list|attrlist|compview [n] :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, or the first selected thing if n is omitted; :del and :raw apply only to a plain list, attribute list, or string, not a compview"; }
+      return "val=at(list|attrlist|compview [n] :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, or the first selected thing if n is omitted; :del applies only to a plain list, not an attribute list, string, or compview; :raw is a no-op everywhere"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
 	":ins val   insert val in list",
-	":del       delete val from list, returning the deleted value -- not supported for a compview",
-	":raw       currently a no-op -- reserved for opting a coloned colon-list index out of a future dispatch on coloned(); not supported for a compview",
+	":del       delete val from a plain list, returning the deleted value -- not supported for an attribute list, string, or compview",
+	":raw       currently a no-op -- reserved for opting a coloned colon-list index out of a future dispatch on coloned()",
 	nil
       };
       return keys;
