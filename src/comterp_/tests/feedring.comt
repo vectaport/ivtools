@@ -1,9 +1,10 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 17 tests of feed(str)/:noring/next()/info() ring behavior,
-// incl. survival of a nested-stream drain, :raw on a push and on
-// construction, an embedded-NUL push, and a sliced first argument
+// coverage: 18 tests of feed(str)/:noring/next()/info() ring behavior,
+// incl. survival of a nested-stream drain, :raw on a push (refused over
+// one byte, honored at exactly one) and on construction, an embedded-NUL
+// push, and a sliced first argument
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -122,12 +123,18 @@ c13=next(ring13)
 ok=ok&&(c13=='z')
 print("13 ring survives being drained via +0 overdrive, still feedable (expect 'z'): %v\n" c13)
 
-// --- 14: :raw on a push into a ring stores an unprotected string whole,
-// same as a bquoted one, instead of splitting it into characters ---
+// --- 14: a ring slot is one literal byte, so :raw (or a bquoted string)
+// can only be honored on a push when the string is exactly one byte --
+// a longer one is refused outright rather than silently truncated ---
 ring14=feed(string(10))
-feed(ring14 :raw "hi")
-ok=ok&&(info(ring14).count==1)
-print("14 feed(ring14 :raw \"hi\") pushes one slot, not two (expect 1): %v\n" info(ring14).count)
+r14a=feed(ring14 "hi" :raw)
+ok=ok&&(r14a==nil)&&(info(ring14).count==0)
+print("14a feed(ring14 \"hi\" :raw) refuses a multi-char raw push (expect nil, count 0): %v %v\n" r14a info(ring14).count)
+r14b=feed(ring14 "h" :raw)
+ok=ok&&(r14b!=nil)&&(info(ring14).count==1)
+c14b=next(ring14)
+ok=ok&&(c14b=='h')
+print("14b feed(ring14 \"h\" :raw) pushes a one-byte raw string (expect 'h'): %v\n" c14b)
 
 // --- 15: pushing a slice containing an embedded NUL carries its full
 // slicelen(), not just the bytes up to the NUL ---

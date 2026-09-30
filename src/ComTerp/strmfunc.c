@@ -1641,14 +1641,22 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
   return true;
 }
 
-/* push a value into a ring FIFO's avl: a CharType (or anything char_val()
-   can coerce) pushes one byte; an unprotected StringType pushes its
-   characters in order unless rawflag, which stores it as a single char
-   the same as a bquoted one.  Indexes the string's own bytes directly
-   (not cstr(), which truncates at the first embedded NUL) so a slice
-   containing one still pushes its full slicelen() bytes.  Stops at the
-   first refusal (buffer full), leaving whatever already landed in place,
-   and reports that refusal to the caller. */
+/* push a value into a ring FIFO's avl: an unprotected StringType (not
+   bquoted, not :raw) pushes its characters in order -- a ring slot is one
+   literal byte, so this is the only way a multi-character string can go
+   in at all, whatever rawflag says.  Indexes the string's own bytes
+   directly (not cstr(), which truncates at the first embedded NUL) so a
+   slice containing one still pushes its full slicelen() bytes.
+
+   Any other StringType (bquoted, or :raw-protected) can only be honored
+   when it's exactly one byte long -- a ring has nowhere to put a whole
+   multi-character string as a single unsplit unit, so it's refused
+   rather than silently truncated through char_val().  A non-string value
+   pushes via char_val() as before.
+
+   Stops at the first refusal (buffer full or an un-splittable string),
+   leaving whatever already landed in place, and reports that refusal to
+   the caller. */
 static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean rawflag) {
   if (!rawflag && streams_as_characters(v)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
@@ -1656,6 +1664,12 @@ static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean raw
     for (int k=0; k<len; k++)
       if (!ring_push_char(avl, base[k])) return false;
     return true;
+  }
+  if (v.is_type(ComValue::StringType)) {
+    const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
+    int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
+    if (len!=1) return false;
+    return ring_push_char(avl, base[0]);
   }
   return ring_push_char(avl, v.char_val());
 }
