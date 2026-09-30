@@ -150,6 +150,22 @@ scrn_9=mbr(r9 :scrn)
 ok=ok&&(at(scrn_9 0)>=0&&at(scrn_9 1)>=0&&at(scrn_9 2)<=ncols()&&at(scrn_9 3)<=nrows())
 print("9 raster(:rgb ...) with no coords lands on-screen via gravity (expect within {0,0,%v,%v}): %v\n" ncols() nrows() scrn_9)
 
+// --- test 10: a :rgb raster's border shows on all 4 sides, not just the
+// top and left -- OverlayRaster's border-outline draw used to reach one
+// pixel past the pixmap on the right and bottom, which X11 silently
+// clips, leaving those two edges bare. Compare an unpoked point on each
+// edge against its opposite edge instead of asserting a color, since the
+// border's actual color depends on the foreground/background setup. ---
+r10=raster(0,0,64,64 :rgb 10,8,pixstr)
+ok=ok&&(r10!=nil)
+left_mid=peek(r10 0 4)
+right_mid=peek(r10 9 4)
+top_mid=peek(r10 4 0)
+bot_mid=peek(r10 4 7)
+ok=ok&&(at(left_mid 0)==at(right_mid 0)&&at(left_mid 1)==at(right_mid 1)&&at(left_mid 2)==at(right_mid 2))
+ok=ok&&(at(top_mid 0)==at(bot_mid 0)&&at(top_mid 1)==at(bot_mid 1)&&at(top_mid 2)==at(bot_mid 2))
+print("10 :rgb raster's border is symmetric on all 4 sides (expect left==right, top==bot): %v,%v %v,%v\n" left_mid right_mid top_mid bot_mid)
+
 pastemode(0)
 
 print("rasterrgb: %v\n" ok)

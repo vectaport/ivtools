@@ -1254,10 +1254,14 @@ OverlayRaster::OverlayRaster(
     bwidth = (bwidth % 2) ? bwidth + 1 : bwidth;
 
     XSetForeground(dpy, gc, fpixel);
-    XSetLineAttributes(dpy, gc, bwidth, LineSolid, CapButt, JoinMiter); 
+    XSetLineAttributes(dpy, gc, bwidth, LineSolid, CapButt, JoinMiter);
+    /* XDrawRectangle's width/height reach x+width,y+height -- pwidth_-1,
+       pheight_-1 are the pixmap's actual last column/row, so the extent
+       needs the -1 or the right/bottom edges land one pixel past it and
+       X11 silently clips them. */
     XDrawRectangle(
-        dpy, r->pixmap_, gc, bwidth/2, bwidth/2, r->pwidth_ - bwidth,
-        r->pheight_ - bwidth
+        dpy, r->pixmap_, gc, bwidth/2, bwidth/2, r->pwidth_ - bwidth - 1,
+        r->pheight_ - bwidth - 1
     );
 
     Resource::unref(fc);
