@@ -26,6 +26,8 @@
 
 #include <ComUtil/comterp.h>
 
+class AttributeValueList;
+
 // PostfixSpanWalk: a single forward (left-to-right) pass over an already
 // detached, forward-ordered postfix_token buffer -- the kind
 // ComTerp::copy_post_eval_expr/copy_stack_arg_post_eval produce (a FuncObj
@@ -74,5 +76,22 @@ protected:
     int _consumed_count;
     int _consumed_capacity;
 };
+
+// Shared by parse(fileobj :flat/:tree) and postfix(expr :flat/:tree): given
+// an already-detached postfix_token buffer (see PostfixSpanWalk above for
+// what "detached" requires), append the ComTerp-inspectable value each
+// covers onto 'avl' (a caller may call either function more than once, e.g.
+// once per expression parsed from a multi-statement chunk, accumulating
+// into the same list). A keyword token folds together with its bound value
+// (if any) into a one-entry AttributeList in both forms, so a keyword and
+// its value always travel as a single unit.
+
+// Appends one entry per token, in raw postfix order.
+void postfix_flatten_into(postfix_token* toks, int ntoks, AttributeValueList* avl);
+
+// Appends one entry per top-level ';'-sequenced result, each a list of the
+// command symbol followed by its own operands' nested trees (built by
+// walking PostfixSpanWalk alongside).
+void postfix_nest_into(postfix_token* toks, int ntoks, AttributeValueList* avl);
 
 #endif /* !defined(_postfixspan_h) */

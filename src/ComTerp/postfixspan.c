@@ -22,6 +22,11 @@
  */
 
 #include <ComTerp/postfixspan.h>
+#include <ComTerp/comvalue.h>
+
+#include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
+
 #include <string.h>
 
 PostfixSpanWalk::PostfixSpanWalk() {
@@ -156,4 +161,71 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
     /* Leaf: a literal value token (int, string, etc) or TOK_BLANK --
        just itself, no operands */
     push(Span{i, 1}, 0);
+}
+
+void postfix_flatten_into(postfix_token* toks, int ntoks, AttributeValueList* avl) {
+    for (int i = 0; i < ntoks; i++) {
+        ComValue tv(&toks[i]);
+        if (toks[i].type == TOK_KEYWORD && tv.narg() <= avl->Number()) {
+            AttributeList* al = new AttributeList();
+            ComValue keyval;
+            if (tv.narg() == 1) {
+                AttributeValue* prev = avl->Get(avl->Number()-1);
+                keyval = ComValue(*prev);
+                avl->Remove(prev);
+            } else {
+                AttributeValueList* sub = new AttributeValueList();
+                for (int k = 0; k < tv.narg(); k++) {
+                    ComValue subelt(*avl->Get(avl->Number()-tv.narg()+k));
+                    sub->Append(new AttributeValue(subelt));
+                }
+                for (int k = 0; k < tv.narg(); k++)
+                    avl->Remove(avl->Get(avl->Number()-1));
+                keyval = ComValue(sub);
+            }
+            al->add_attr(tv.symbol_val(), keyval);
+            ComValue alval(AttributeList::class_symid(), al);
+            avl->Append(new AttributeValue(alval));
+        } else
+            avl->Append(new AttributeValue(tv));
+    }
+}
+
+void postfix_nest_into(postfix_token* toks, int ntoks, AttributeValueList* avl) {
+    PostfixSpanWalk walker;
+    ComValue* built = new ComValue[ntoks];
+    for (int i = 0; i < ntoks; i++) {
+        walker.step(toks, i);
+        int ncons = walker.consumed_count();
+        ComValue tv(&toks[i]);
+        if (toks[i].type == TOK_KEYWORD) {
+            AttributeList* al = new AttributeList();
+            ComValue keyval;
+            if (ncons == 1) {
+                PostfixSpanWalk::Span s = walker.consumed(0);
+                keyval = built[s.start + s.count - 1];
+            } else
+                keyval = ComValue(new AttributeValueList());
+            al->add_attr(tv.symbol_val(), keyval);
+            built[i] = ComValue(AttributeList::class_symid(), al);
+        } else if (toks[i].type == TOK_COMMAND && ncons > 0) {
+            AttributeValueList* node = new AttributeValueList();
+            node->Append(new AttributeValue(tv));
+            for (int k = 0; k < ncons; k++) {
+                PostfixSpanWalk::Span s = walker.consumed(k);
+                ComValue opnd(built[s.start + s.count - 1]);
+                node->Append(new AttributeValue(opnd));
+            }
+            built[i] = ComValue(node);
+        } else
+            /* a literal, TOK_BLANK, or a bare command reference (a
+               variable read, narg==nkey==0) is its own subtree */
+            built[i] = tv;
+    }
+    for (int k = 0; k < walker.remaining_count(); k++) {
+        PostfixSpanWalk::Span s = walker.remaining(k);
+        ComValue result(built[s.start + s.count - 1]);
+        avl->Append(new AttributeValue(result));
+    }
+    delete [] built;
 }

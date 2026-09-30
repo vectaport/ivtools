@@ -705,83 +705,11 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat, boole
 			&_pfbuf, &_pfsiz, &_pfnum);
 	if (status)
 	    err_print( stdout, "parser" );
-	else if (flat) {
-	    /* one entry per token, in the same raw postfix order print_pfbuf
-	       shows -- except a TOK_KEYWORD, whose value is always the
-	       token(s) immediately before it (already appended to avl),
-	       folds together with it into a one-entry AttributeList so a
-	       keyword and its value travel as a single inspectable unit */
-	    for (int i = 0; i < _pfnum; i++) {
-		ComValue tv(&_pfbuf[i]);
-		if (_pfbuf[i].type == TOK_KEYWORD && tv.narg() <= avl->Number()) {
-		    AttributeList* al = new AttributeList();
-		    ComValue keyval;
-		    if (tv.narg() == 1) {
-			AttributeValue* prev = avl->Get(avl->Number()-1);
-			keyval = ComValue(*prev);
-			avl->Remove(prev);
-		    } else {
-			AttributeValueList* sub = new AttributeValueList();
-			for (int k = 0; k < tv.narg(); k++) {
-			    ComValue subelt(*avl->Get(avl->Number()-tv.narg()+k));
-			    sub->Append(new AttributeValue(subelt));
-			}
-			for (int k = 0; k < tv.narg(); k++)
-			    avl->Remove(avl->Get(avl->Number()-1));
-			keyval = ComValue(sub);
-		    }
-		    al->add_attr(tv.symbol_val(), keyval);
-		    ComValue alval(AttributeList::class_symid(), al);
-		    avl->Append(new AttributeValue(alval));
-		} else
-		    avl->Append(new AttributeValue(tv));
-	    }
-	} else if (tree) {
-	    /* one forward pass, walking PostfixSpanWalk alongside so each
-	       command/keyword token's own operand spans (already correctly
-	       split into plain-positional vs. keyword-bound, the one part
-	       of this that's genuinely fiddly to get right) are known right
-	       after it steps -- 'built' holds the already-assembled subtree
-	       for every token index, so an operand span {start,count} always
-	       resolves to built[start+count-1], the subtree of whichever
-	       token ends that span */
-	    PostfixSpanWalk walker;
-	    ComValue* built = new ComValue[_pfnum];
-	    for (int i = 0; i < _pfnum; i++) {
-		walker.step(_pfbuf, i);
-		int ncons = walker.consumed_count();
-		ComValue tv(&_pfbuf[i]);
-		if (_pfbuf[i].type == TOK_KEYWORD) {
-		    AttributeList* al = new AttributeList();
-		    ComValue keyval;
-		    if (ncons == 1) {
-			PostfixSpanWalk::Span s = walker.consumed(0);
-			keyval = built[s.start + s.count - 1];
-		    } else
-			keyval = ComValue(new AttributeValueList());
-		    al->add_attr(tv.symbol_val(), keyval);
-		    built[i] = ComValue(AttributeList::class_symid(), al);
-		} else if (_pfbuf[i].type == TOK_COMMAND && ncons > 0) {
-		    AttributeValueList* node = new AttributeValueList();
-		    node->Append(new AttributeValue(tv));
-		    for (int k = 0; k < ncons; k++) {
-			PostfixSpanWalk::Span s = walker.consumed(k);
-			ComValue opnd(built[s.start + s.count - 1]);
-			node->Append(new AttributeValue(opnd));
-		    }
-		    built[i] = ComValue(node);
-		} else
-		    /* a literal, TOK_BLANK, or a bare command reference
-		       (a variable read, narg==nkey==0) is its own subtree */
-		    built[i] = tv;
-	    }
-	    for (int k = 0; k < walker.remaining_count(); k++) {
-		PostfixSpanWalk::Span s = walker.remaining(k);
-		ComValue result(built[s.start + s.count - 1]);
-		avl->Append(new AttributeValue(result));
-	    }
-	    delete [] built;
-	} else
+	else if (flat)
+	    postfix_flatten_into(_pfbuf, _pfnum, avl);
+	else if (tree)
+	    postfix_nest_into(_pfbuf, _pfnum, avl);
+	else
 	    for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
     } while (status==0 && strlen(_buffer)>_bufptr);
     // return _pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF;
