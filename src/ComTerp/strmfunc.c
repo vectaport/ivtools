@@ -951,8 +951,19 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  fobjv.narg(narg);
 	  fobjv.nkey(nkey);
 	  comterp->fire_funcobj(fobjv);
-	} else
+	} else {
+	  if (streamv.lhs_assign()) {
+	    /* reasserts the lvalue signal ListAtFunc reads off a stale stack
+	       slot (see ARCHITECTURE.md, "at()'s lhs flag") -- that slot is
+	       long gone by replay time, so push one flagged throwaway value
+	       and pop it right back off to leave a fresh one in its place. */
+	    ComValue sentinel(ComValue::nullval());
+	    sentinel.lhs_assign(1);
+	    comterp->push_stack(sentinel);
+	    comterp->pop_stack(false);
+	  }
 	  funcptr->exec(narg, nkey);
+	}
 
 	// recurse until not a stream
 	while (comterp->stack_top().is_stream()) {

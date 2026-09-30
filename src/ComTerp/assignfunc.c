@@ -26,6 +26,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/listfunc.h>
+#include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <InterViews/resource.h>
@@ -39,6 +40,23 @@ using std::cerr;
 
 /*****************************************************************************/
 
+/* whether at()'s :set would actually write (list target :set) vs. silently
+   no-op and return nil (a fixed-capacity string index out of range) --
+   nil is also a legitimate written value, so the write's own return can't
+   tell the two apart; this mirrors ListAtFunc::execute()'s own bounds
+   check (listfunc.c) on the same target/index pair. */
+static boolean idxassign_in_range(ComValue& listv, int idx) {
+  if (idx < 0) return false;
+  if (listv.is_type(ComValue::ArrayType)) return true;
+  if (listv.is_only_string()) {
+    boolean isslice = listv.sliced();
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    int chunksz = listv.blocksz();
+    int nchunks = chunksz>0 ? cap/chunksz : cap;
+    return idx < nchunks;
+  }
+  return false;
+}
 
 AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -186,6 +204,66 @@ void AssignFunc::execute() {
       atfunc.exec(3, 1);
       ComValue result(pop_stack());
       *operand2 = result;
+    } else if (operand1.is_stream() && operand1.lhs_assign()) {
+      /* @ with a streamed index, e.g. r@0..9=val(s): drains the deferred
+	 at() stream (comterp.c/strmfunc.c), zip-writing operand2 alongside
+	 when it's itself a stream, else broadcasting it -- see
+	 ARCHITECTURE.md, "at()'s lhs flag", for why this needs draining
+	 here rather than reusing the scalar pair branch above. */
+      static int set_symid = symbol_add("set");
+      boolean rhs_is_stream = operand2->is_stream();
+      ComValue idxstream(operand1);
+      ComValue rhsstream(rhs_is_stream ? *operand2 : ComValue::nullval());
+      int count = 0;
+      for (;;) {
+	NextFunc::execute_impl(comterp(), idxstream);
+	ComValue pairv(pop_stack());
+	if (pairv.is_null()) break;
+	AttributeValueList* pair = pairv.array_val();
+	if (!pairv.is_array() || !pairv.lhs_assign() || !pair || pair->Number()!=2) {
+	  /* the streamed target isn't list/string-shaped (e.g. an attrlist) --
+	     at() has nothing writable to hand back for it, same as the
+	     non-streamed al@n=val case (test 5, atop.comt): no effect. */
+	  cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
+	    symbol_pntr(pairv.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";
+	  delete operand2;
+	  reset_stack();
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	ComValue writeval;
+	if (rhs_is_stream) {
+	  NextFunc::execute_impl(comterp(), rhsstream);
+	  ComValue tick(pop_stack());
+	  if (tick.is_null()) break;
+	  writeval = tick;
+	} else
+	  writeval = *operand2;
+	ComValue targetv(*pair->Get(0));
+	if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
+	  /* any nil ends a stream -- an out-of-range index is where at()
+	     itself would start returning nil, so the write stream ends
+	     here too, the same as the read-side index stream would. */
+	  break;
+	push_stack(*pair->Get(0));
+	push_stack(*pair->Get(1));
+	push_stack(writeval);
+	ComValue setkey(set_symid, 1);
+	push_stack(setkey);
+	ListAtFunc atfunc(comterp());
+	atfunc.funcid(symbol_add("at"));
+	atfunc.exec(3, 1);
+	pop_stack();
+	count++;
+      }
+      delete operand2;
+      ComValue retval(count, ComValue::IntType);
+      reset_stack();
+      push_stack(retval);
+      /* count, not the written values -- list() already exists for
+	 collecting those, and building both would double the work */
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
     } else if (operand1.unknown() && operand1.lhs_assign()) {
       /* a locked attrlist's dot lookup found no such entry -- the write
          never happens, and the expression reports nil, not the RHS. */

@@ -214,6 +214,31 @@ write by scope flag — `global_flag` to `globaltable()`, `local_flag` to
 inside a func body (the frame branch used to preempt `global_flag`; fixed
 when `local()` was added).
 
+### `at()`'s lhs flag, and why a streamed index needs help
+
+`at()` (`ListAtFunc`) uses the same `lhs_assign()` flag as `global()`/
+`local()`, but reads it differently: not off its own `ComValue` (`at()`
+takes two args, no reserved lvalue-symbol slot the way `global(sym)`
+does), but off `stack_top(nkeys()+1)` — one slot past the top of its own
+arguments. For an immediate dispatch that slot holds the just-popped
+command token itself: `ComTerp::pop_stack()` only moves `_stack_top`
+down, it never clears the vacated entry, so the flag `AssignFunc` set on
+that token earlier is still physically there to read back.
+
+That trick is tied to *immediate* dispatch. When the index is a stream,
+`eval_expr_internals` boxes the whole `at()` call into a fresh, deferred
+`StreamType` value instead of running it (`comterp.c`); a fresh
+`ComValue` doesn't inherit the flag, so it has to be copied onto the
+boxed value explicitly. And when that deferred value is later replayed
+one element at a time (`NextFunc`'s external-stream handling,
+`strmfunc.c`), the operand stack has moved on since packaging — nothing
+at `stack_top(nkeys()+1)` is left over from the original dispatch. The
+replay path reproduces the signal on purpose instead: push one
+`lhs_assign()`-flagged throwaway value and pop it right back off before
+firing `at()`, leaving the same kind of stale-but-readable slot behind
+that the immediate path gets by accident. `ListAtFunc`'s own check is
+unchanged either way.
+
 ## Symbol Tables and the Func Frame
 
 Bare-symbol lookup walks three levels (verified empirically; see the
