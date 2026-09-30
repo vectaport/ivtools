@@ -432,14 +432,30 @@ v                // 99 -- referencing v bare fires it, because v is a
 calls against each command's own `help()`/`dockeys()` signature:
 
 ```
-comlint script.comt [program]
+comlint script.comt [program] [nokeys]
 ```
 
 `program` picks which family member's registered commands to check
 against (`comterp`, `comdraw`, `drawserv`, ...; defaults to `comterp`)
 — a script that only calls commands belonging to a different family
 member needs that member named explicitly, or those commands are
-simply unregistered and silently unchecked.
+simply unregistered and silently unchecked. `nokeys` disables the
+unknown-keyword check below entirely, for a script that leans on
+different commands silently ignoring different keywords by design.
+
+Every finding is one of three severities. **FAIL** always blocks —
+today only the command-shadowing assignment check below, since ComTerp
+itself refuses the assignment outright, so there's no legitimate case
+to allow. **WARN** blocks unless overridden by a `// comlint:allow --
+<reason>` comment on the line immediately before the flagged
+statement's own first line — blank lines and unrelated comments
+between the two don't matter, only the statement that directly follows
+the `comlint:allow` line consumes it, so an override never leaks onto
+a later statement it wasn't written for. **HINT** is reported but never
+blocks; no current check emits one, the tier exists for a future
+softer check. `exit(1)` follows any unresolved FAIL or WARN; an
+overridden WARN and any HINT still print, tagged accordingly, but never
+affect the exit code.
 
 It works from `postfix()`'s and `help()`'s output alone and never
 executes the target script. A statement spanning several physical
@@ -457,7 +473,7 @@ one thing never checked by either rule below — `postfix()` labels
 `name` with the *global* command's arity even when `a.name` is a local
 override, exactly the exception the previous section describes.
 
-**Positional-arity check** flags a call whose real, post-glue
+**Positional-arity check** (WARN) flags a call whose real, post-glue
 positional-argument count falls short of what the command declares as
 required — the failure mode above, where a bare symbol's glued-on
 arglist silently absorbs part of what a neighboring call was supposed
@@ -465,7 +481,7 @@ to receive. A call that supplies any keyword argument is skipped by
 this check (a keyword often signals an alternate calling form a single
 signature line can't validate).
 
-**Unknown-keyword check** flags a `:keyword` in a call that doesn't
+**Unknown-keyword check** (WARN; disabled entirely by `nokeys`) flags a `:keyword` in a call that doesn't
 match any keyword the command declares — in its docstring signature
 line(s) or in `dockeys()` — the same silent-no-op failure mode ComTerp
 shares with a REST API ignoring an unrecognized query parameter,
@@ -479,7 +495,7 @@ val...])`), or `:keyword value` (`setattr(compview [:keyword value
 is exempt: flagging a name any of them deliberately doesn't enumerate
 would be a false positive, not a catch.
 
-**Command-shadowing assignment check** flags a plain assignment
+**Command-shadowing assignment check** (FAIL) flags a plain assignment
 (`name=value`, or a `+=`/`-=`/`*=`/`/=`/`%=` compound form) to a symbol
 name that also names a registered command — `pi=0` or `list+=1`, for
 example. ComTerp itself refuses a bare assignment to a registered
@@ -496,7 +512,7 @@ index-assignment (`obj@name=...`) are excluded by checking the
 character before the identifier itself, since both assign through the
 object rather than to the bare name.
 
-**Global-shadow write check** flags a bare write (`name=value` or a
+**Global-shadow write check** (WARN) flags a bare write (`name=value` or a
 compound form) to a name already declared global earlier in the same
 script via `global(name)=value` — the bare write lands in that same
 global rather than a fresh local, per the rule that a bare write

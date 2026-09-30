@@ -97,6 +97,7 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 10: class() takes no keywords, so a keyword-only call still names
 // no value -- blank, not the keyword's own value handed back ---
+// comlint:allow -- deliberately passes an unrecognized keyword to exercise the ignored-by-design behavior
 r10=class(:foo)
 ok=ok&&(type(r10)==`BlankType)
 print("10 class(:foo) names no value either (expect BlankType): %v\n" type(r10))

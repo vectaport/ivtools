@@ -94,6 +94,7 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 10: an unrecognized keyword is ignored by design, so it names no
 // value either and answers blank rather than handing the keyword back ---
+// comlint:allow -- deliberately passes an unrecognized keyword to exercise the ignored-by-design behavior
 r10=type(:foo)
 ok=ok&&(type(r10)==`BlankType)
 print("10 type(:foo) names no value either (expect BlankType): %v\n" type(r10))

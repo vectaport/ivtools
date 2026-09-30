@@ -57,6 +57,7 @@ prev_ok=check_fail(:ok ok)
 //             global in place -- the UAF repro, valgrind-clean, and the
 //             actual observable fix: this used to read back nil ---
 global(gsc_b)="hello world"
+// comlint:allow -- deliberately exercises the bare write landing in the global, the exact behavior under test
 gsc_b="local shadow"
 ok=ok&&(gsc_b=="local shadow")
 ok=ok&&(global(gsc_b)=="local shadow")

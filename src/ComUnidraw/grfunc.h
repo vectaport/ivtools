@@ -52,8 +52,15 @@ class CreateRectFunc : public CreateGraphicFunc {
 public:
     CreateRectFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "compview=%s(x0,y0,x1,y1) -- create a rectangle"; }
+    virtual const char* docstring() {
+	return "compview=%s(x0,y0,x1,y1 :brush linepat,width) -- create a rectangle"; }
+    virtual const char** dockeys() {
+	static const char* keys[] = {
+	    ":brush linepat,width   set line pattern/width for this graphic",
+	    nil
+	};
+	return keys;
+    }
 };
 
 //: line drawing command for comdraw.
@@ -79,12 +86,19 @@ public:
 
 //: text drawing command for comdraw.
 // compview=text(x0,y0 textstr) -- create a text string
-class CreateTextFunc : public CreateGraphicFunc { 
+class CreateTextFunc : public CreateGraphicFunc {
 public:
     CreateTextFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "compview=%s(x0,y0 textstr) -- create a text string"; }
+    virtual const char* docstring() {
+	return "compview=%s(x0,y0 textstr :font name|name,printfont,printsize) -- create a text string"; }
+    virtual const char** dockeys() {
+	static const char* keys[] = {
+	    ":font name|name,printfont,printsize   set this text's font by X name, or by [name,printfont,printsize]",
+	    nil
+	};
+	return keys;
+    }
 };
 
 //: multiline drawing command for comdraw.
@@ -94,8 +108,17 @@ class CreateMultiLineFunc : public CreateGraphicFunc {
 public:
     CreateMultiLineFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "compview=%s(x0,y0[,x1,y1,...]) -- create a multiline"; }
+    virtual const char* docstring() {
+	return "compview=%s(x0,y0[,x1,y1,...] :brush linepat,width :head :tail) -- create a multiline"; }
+    virtual const char** dockeys() {
+	static const char* keys[] = {
+	    ":brush linepat,width   set line pattern/width for this graphic",
+	    ":head                  draw an arrowhead at the last point",
+	    ":tail                  draw an arrowhead at the first point",
+	    nil
+	};
+	return keys;
+    }
 };
 
 //: open spline drawing command for comdraw.
@@ -136,7 +159,14 @@ public:
     CreateRasterFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "compview=%s([xbeg,ybeg,xend,yend] :rgb w,h,pixels) -- create a raster spanning inclusive pixel corners xbeg,ybeg to xend,yend; pixels is w*h flat r,g,b values, w*h nested (r,g,b) triples, w*h packed 0xRRGGBB ints, or a packed string(w*h UIntType) of 0xRRGGBB chunks"; }
+	return "compview=%s([xbeg,ybeg,xend,yend] :rgb w,h,pixels :transform a00,a01,a10,a11,a20,a21) -- create a raster spanning inclusive pixel corners xbeg,ybeg to xend,yend; pixels is w*h flat r,g,b values, w*h nested (r,g,b) triples, w*h packed 0xRRGGBB ints, or a packed string(w*h UIntType) of 0xRRGGBB chunks"; }
+    virtual const char** dockeys() {
+	static const char* keys[] = {
+	    ":transform a00,a01,a10,a11,a20,a21   explicit 6-element transform, overriding the screen-derived default",
+	    nil
+	};
+	return keys;
+    }
     RasterOvComp* create_from_rgb(
         ComValue& rgbv, AttributeList* al, boolean has_coords = false,
         float xbeg = 0., float ybeg = 0.

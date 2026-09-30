@@ -3,27 +3,37 @@
 # comlint  lint a .comt script's command calls against each command's own
 #          help()/dockeys() signature
 #
-# Usage:  comlint script.comt [program]
+# Usage:  comlint script.comt [program] [nokeys]
 #
 # program selects which family member's registered commands and
 # docstrings to check against (comterp, comdraw, drawserv, ...);
-# defaults to comterp.
+# defaults to comterp. nokeys disables the unknown-keyword check (see
+# below) entirely, for a script that leans on different commands
+# silently ignoring different keywords by design.
 
 if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
   arg(1)=="-help" || arg(1)=="--help" :then
 
     print("comlint  lint a .comt script against each command's own signature\n");
-    print("Usage:  comlint script.comt [program]\n\n");
+    print("Usage:  comlint script.comt [program] [nokeys]\n\n");
     print("program picks which family member's commands to check against\n");
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
-    print("Flags a call passing fewer positional arguments than the\n");
-    print("command requires, a :keyword the command doesn't declare in\n");
-    print("its own signature or dockeys(), a plain assignment (name=\n");
-    print("value, or a compound += form) to a name that also names a\n");
-    print("registered command, or a bare write to a name already\n");
-    print("declared global() earlier in the script (see doc/LANGUAGE.md\n");
-    print("for how local()/func() scoping and global(:clear) narrow\n");
-    print("this last check). Never executes the target script.\n\n");
+    print("Every finding is FAIL (always blocks), WARN (blocks unless\n");
+    print("overridden), or HINT (reported, never blocks). A WARN is\n");
+    print("overridden by a '// comlint:allow -- <reason>' comment line\n");
+    print("preceding the flagged statement -- blank lines and other\n");
+    print("comments in between don't matter, only the next statement's\n");
+    print("own start consumes it.\n\n");
+    print("FAIL: a plain assignment (name=value, or a compound += form)\n");
+    print("to a name that also names a registered command -- ComTerp\n");
+    print("itself refuses the assignment, so it's a guaranteed no-op.\n\n");
+    print("WARN: a call passing fewer positional arguments than the\n");
+    print("command requires; a :keyword the command doesn't declare in\n");
+    print("its own signature or dockeys() (pass 'nokeys' to disable this\n");
+    print("one check entirely); a bare write to a name already declared\n");
+    print("global() earlier in the script (see doc/LANGUAGE.md for how\n");
+    print("local()/func() scoping and global(:clear) narrow this one).\n\n");
+    print("Never executes the target script.\n\n");
     print("A call using a keyword skips the positional-arity check (an\n");
     print("alternate calling convention it can't validate) but still gets\n");
     print("its keyword names checked. Statements spanning multiple lines\n");
@@ -35,19 +45,23 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
 target=arg(1)
 program=arg(2)
 if(program==nil :then program="comterp")
+nokeysarg=arg(3)
+checkkeys=true
+if(nokeysarg=="nokeys" :then checkkeys=false)
 
-if(program!="comterp" && arg(3)!="direct" :then
+if(program!="comterp" && arg(4)!="direct" :then
   /* comdraw/drawserv's -runfile has no argv-forwarding to arg(n) the
      way comterp's `run` subcommand does, so this same script
      can't just be invoked under $program directly and see its own
      positional arguments the normal way. Instead, shell out
      (shell()/open(:pipe) both exist in ComTerp) to $program with a
      patched copy of this script's own source (read via its own
-     arg(0) path) that has every reference to positional arguments 1,
-     2 and 3 textually replaced with a literal string constant --
-     target, program, and "direct" (a guard so the patched copy
-     doesn't try to delegate again) -- built with nothing but ComTerp
-     primitives (open/gets/index/substr/print), no external tooling
+     arg(0) path) that has every reference to positional arguments 1
+     through 4 textually replaced with a literal constant -- target,
+     program, nokeysarg, and "direct" (a guard at position 4, past the
+     user-facing arg(3), so the patched copy doesn't try to delegate
+     again) -- built with nothing but ComTerp primitives
+     (open/gets/index/substr/print), no external tooling
      beyond shell() itself to invoke $program.
 
      The replaced pattern strings below are built by concatenation
@@ -91,7 +105,9 @@ if(program!="comterp" && arg(3)!="direct" :then
      never held or written as one giant string at once */
   pat1="arg"+"("+"1"+")";rep1="\""+target+"\"";
   pat2="arg"+"("+"2"+")";rep2="\""+program+"\"";
-  pat3="arg"+"("+"3"+")";rep3="\"direct\"";
+  pat3="arg"+"("+"3"+")";rep3="nil";
+  if(nokeysarg!=nil :then rep3="\""+nokeysarg+"\"");
+  pat4="arg"+"("+"4"+")";rep4="\"direct\"";
 
   /* tmppath is only somewhat unpredictable (time + a random suffix)
      in shared /tmp, with no atomic-create primitive available from
@@ -132,6 +148,15 @@ if(program!="comterp" && arg(3)!="direct" :then
       remaining=substr(remaining pos+size(pattern) :after));
     sline=result;
 
+    pattern=pat4;replacement=rep4;
+    result="";remaining=sline;loopdone=false;
+    while(!loopdone
+      pos=index(remaining pattern);
+      if(pos==nil :then result=result+remaining;loopdone=true;continue);
+      result=result+substr(remaining pos)+replacement;
+      remaining=substr(remaining pos+size(pattern) :after));
+    sline=result;
+
     print("%s" sline :file tf);
     sline=gets(sf));
   close(sf);
@@ -149,7 +174,14 @@ if(fp==nil :then
 
 print("comlint: checking %s against %s's command set\n" target program)
 
-nflagged=0
+/* nfail is always-blocking; nwarn is unresolved WARN (blocks); nwarnok is
+   WARN found but suppressed by a preceding '// comlint:allow' comment
+   (reported, doesn't block) -- see allowarmed below. No check currently
+   emits HINT (reported, never blocks); the category exists for a future
+   softer check. */
+nfail=0
+nwarn=0
+nwarnok=0
 nchecked=0
 nskipped=0
 lineno=0
@@ -157,6 +189,12 @@ mlbal=0
 incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 wschars=" \t"
+
+/* armed by a '// comlint:allow -- <reason>' comment line and consumed by
+   the next statement's own first line, whatever blank lines or other
+   comments sit in between -- only a non-matching comment line clears it
+   early (see the comment-line branch in the main loop below). */
+allowarmed=false
 
 /* names seen as the lvalue of a global(name)=... assignment so far, and
    the line each was first seen -- only that assign form actually
@@ -205,8 +243,16 @@ stmtbuf="";stmtlineno=0;stmtnlines=0;stmtbad=false
 while((srcline=gets(fp))!=nil
   lineno=lineno+1;
 
-  if(size(srcline)==0 :then continue);
-  if(substr(srcline 2)=="//" :then continue);
+  /* gets() includes the line's own trailing newline, so a truly blank
+     source line reads back as "\n" (size 1), never size 0 -- checking
+     size alone only ever catches a final line with no trailing newline
+     at all. Without this, a blank line falls through as its own trivial
+     no-op statement, silently consuming an armed comlint:allow before
+     the statement it was meant for ever sees it. */
+  if(srcline=="\n" || size(srcline)==0 :then continue);
+  if(substr(srcline 2)=="//" :then
+    if(index(srcline "comlint:allow")!=nil :then allowarmed=true :else allowarmed=false);
+    continue);
 
   hasopen=index(srcline "/*");
   hasclose=index(srcline "*/");
@@ -252,7 +298,9 @@ while((srcline=gets(fp))!=nil
       mlbal=mlbal-1;
       if(mlbal<0 :then stmtbad=true)));
 
-  if(stmtnlines==0 :then stmtlineno=lineno;stmtbuf=srcline);
+  if(stmtnlines==0 :then
+    stmtlineno=lineno;stmtbuf=srcline;
+    stmtallowed=allowarmed;allowarmed=false);
   if(stmtnlines>0 :then stmtbuf=stmtbuf+"\n"+srcline);
   stmtnlines=stmtnlines+1;
 
@@ -517,10 +565,11 @@ while((srcline=gets(fp))!=nil
       index(flaggedglobal name)==nil :then
       flaggedglobal=flaggedglobal,name;
       gline=at(globallines gidx);
-      print("%s:%v: global(%s) declares %s global here\n" target gline name name);
-      print("%s:%v: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is intentional\n"
-        target stmtline name name name);
-      nflagged=nflagged+1);
+      wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+      print("%s:%v: %s: global(%s) declares %s global here\n" target gline wtag name name);
+      print("%s:%v: %s: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is intentional\n"
+        target stmtline wtag name name name);
+      if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1));
 
     istypecmd=print("istype(%s CommandType)" name :str);
     isshadow=eval(istypecmd);
@@ -537,9 +586,9 @@ while((srcline=gets(fp))!=nil
        ComTerp itself ("assignment to command ... without args not
        allowed") -- the name stays bound to the command, so the
        assignment has no effect regardless of the command's own arity */
-    print("%s:%v: %s=...: \"%s\" is a registered command (%s) -- assigning to it will have no effect\n"
+    print("%s:%v: FAIL: %s=...: \"%s\" is a registered command (%s) -- assigning to it will have no effect\n"
       target stmtline name name hsig);
-    nflagged=nflagged+1)
+    nfail=nfail+1)
 
   pfcmd=print("postfix(%s)" stmt :str);
   pftext=eval(pfcmd);
@@ -700,10 +749,11 @@ while((srcline=gets(fp))!=nil
              to catch) */
           searchfor=kwname+" ";
 
-          if(index(declared searchfor)==nil :then
-            print("%s:%v: %s(): unrecognized keyword %s\n"
-              target stmtline name kwname);
-            nflagged=nflagged+1)));
+          if(checkkeys && index(declared searchfor)==nil :then
+            wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+            print("%s:%v: %s: %s(): unrecognized keyword %s\n"
+              target stmtline wtag name kwname);
+            if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1))));
       continue);
 
     op=index(sig "(");
@@ -734,9 +784,10 @@ while((srcline=gets(fp))!=nil
       required=required+1);
 
     if(obsnarg<required :then
-      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
-        target stmtline name obsnarg name required);
-      nflagged=nflagged+1)))
+      wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+      print("%s:%v: %s: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
+        target stmtline wtag name obsnarg name required);
+      if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1))))
 
 if(stmtnlines>0 :then
   print("%s: warning: unbalanced parens in trailing %v line(s) starting at line %v -- not checked\n"
@@ -745,7 +796,7 @@ if(stmtnlines>0 :then
 
 close(fp)
 
-print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v issue(s) flagged\n"
-  nchecked nskipped nflagged)
-if(nflagged>0 :then exit(1))
+print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v fail(s), %v warn(s), %v warn(s) overridden\n"
+  nchecked nskipped nfail nwarn nwarnok)
+if(nfail>0 || nwarn>0 :then exit(1))
 exit(0)

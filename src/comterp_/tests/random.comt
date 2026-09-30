@@ -155,6 +155,7 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 20: size() with random-length string ---
 n=int(rand()*10)+1
+// comlint:allow -- substr() has no :n keyword; the second positional arg alone sets truncation length, so this always yields "a"
 s=substr("abcdefghij" 1 :n n)
 ok=ok&&(size(s)>=0)
 print("20 size(random substr) (expect >=0): %v\n\n" size(s))
