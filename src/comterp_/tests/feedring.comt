@@ -1,0 +1,111 @@
+// src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
+// over a string's own bytes
+//
+// coverage: 12 tests of feed(str)/:noring/next()/info() ring behavior
+// funcs: feed next info string char
+//
+// A bare (unprotected) string argument to feed(), with no existing FIFO,
+// builds a fixed-capacity ring FIFO over that string's own bytes instead of
+// a growable copy of its characters: feed(ring ch) writes at the tail and
+// wraps mod capacity, next(ring) reads at the head and advances it, both
+// refusing (nil) rather than failing -- full and empty are the same
+// "nothing to do right now" answer every other stream gives, not a
+// permanent state, so a ring can still be fed after an empty next() the
+// same way a growable feed() FIFO can (see feed.comt test 16).  :noring
+// disables wraparound: a push refuses once the buffer has filled, even
+// after elements have been popped from the front, rather than reclaiming
+// that drained space.  info() reports a ring's head/tail/count/cap/wrap
+// plus the live region as a slice of the backing string -- two slices when
+// it straddles the wrap point.
+
+ok=true
+
+// --- 1-2: building and a basic push/pop round trip ---
+buf1=string(4)
+ring1=feed(buf1)
+ok=ok&&(istype(ring1 StreamType))
+print("1 feed(string(4)) builds a stream (expect true): %v\n" istype(ring1 StreamType))
+
+feed(ring1 'a')
+c1=next(ring1)
+ok=ok&&(c1=='a')
+print("2 feed(ring1 'a');next(ring1) (expect 'a'): %v\n" c1)
+
+// --- 3-4: fill to capacity, then refuse ---
+buf2=string(3)
+ring2=feed(buf2)
+feed(ring2 'a'); feed(ring2 'b'); feed(ring2 'c')
+ok=ok&&(info(ring2).count==3)
+print("3 info(ring2).count after filling a 3-byte ring (expect 3): %v\n" info(ring2).count)
+
+r4=feed(ring2 'd')
+ok=ok&&(r4==nil)
+print("4 feed(ring2 'd') on a full ring (expect nil): %v\n" r4)
+
+// --- 5: drain to empty, then refuse ---
+next(ring2); next(ring2); next(ring2)
+c5=next(ring2)
+ok=ok&&(c5==nil)
+print("5 next(ring2) on an empty ring (expect nil): %v\n" c5)
+
+// --- 6: still feedable after an empty next(), same as a growable FIFO ---
+feed(ring2 'x')
+c6=next(ring2)
+ok=ok&&(c6=='x')
+print("6 feed(ring2 'x') after an empty next() (expect 'x'): %v\n" c6)
+
+// --- 7: wraparound, 3+ full cycles, FIFO order preserved throughout ---
+buf7=string(3)
+ring7=feed(buf7)
+w7=true
+i7=0
+while(i7<9
+  ch7=char(97+i7);
+  feed(ring7 ch7);
+  p7=next(ring7);
+  w7=w7&&(p7==ch7);
+  i7=i7+1)
+ok=ok&&w7
+print("7 9 push/pop cycles through a 3-byte ring, 3 wraps (expect all match): %v\n" w7)
+
+// --- 8: info() straddle -- the live region spans the wrap point ---
+buf8=string(4)
+ring8=feed(buf8)
+feed(ring8 'a'); feed(ring8 'b'); feed(ring8 'c')
+next(ring8); next(ring8)
+feed(ring8 'd'); feed(ring8 'e')
+i8=info(ring8)
+ok=ok&&(i8.count==3)&&(size(i8.buf)==2)
+print("8 info(ring8) after a straddling wrap (expect count 3, two buf slices): %v\n" i8)
+
+// --- 9-10: :noring -- refuses once the tail reaches capacity, never wraps ---
+buf9=string(3)
+ring9=feed(buf9 :noring)
+feed(ring9 'a'); feed(ring9 'b'); feed(ring9 'c')
+c9=next(ring9)
+ok=ok&&(c9=='a')
+print("9 :noring fills normally, first pop (expect 'a'): %v\n" c9)
+
+r10=feed(ring9 'd')
+ok=ok&&(r10==nil)
+print("10 feed(ring9 'd') on a drained :noring ring, tail still at cap (expect nil): %v\n" r10)
+
+// --- 11: a bare string with existing content seeds the ring already-queued,
+// matching what feeding a string into a FIFO meant before the ring existed
+// (stringstream.comt test 8) ---
+ring11=feed("hi")
+c11a=next(ring11)
+c11b=next(ring11)
+ok=ok&&(c11a=='h')&&(c11b=='i')
+print("11 feed(\"hi\") seeds the ring from its own content (expect 'h' 'i'): %v %v\n" c11a c11b)
+
+// --- 12: a bquoted string still stores whole, same escape as the growable
+// FIFO (stringstream.comt test 7) -- bquote protects the value from being
+// taken apart at all, ring included ---
+ring12=feed(`"hi")
+c12=next(ring12)
+ok=ok&&(c12=="hi")
+print("12 feed(`\"hi\") stores the string whole, not as a ring (expect \"hi\"): %v\n" c12)
+
+print("feedring: %v\n" ok)
+ok

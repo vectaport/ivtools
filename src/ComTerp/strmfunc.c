@@ -38,6 +38,10 @@
 
 #define TITLE "StrmFunc"
 
+/* forward decl: InfoFunc::execute() identifies a ring stream by comparing
+   against this singleton, defined down by FeedFunc/RingNextFunc below */
+static RingNextFunc* ring_next_func(ComTerp* comterp);
+
 /*****************************************************************************/
 
 StrmFunc::StrmFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -867,8 +871,14 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	 fprintf(stderr, "unexpected need to fix comterp in stream_func\n");
 	 }
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
-      if (comterp->stack_top().is_null() && 
-	  comterp->stack_height()>outside_stackh) 
+      /* a ring's avl is persistent head/tail/count bookkeeping, not just
+	 remaining elements -- nil means "empty for now," not "exhausted,"
+	 so clearing it here would destroy a ring that's still feedable.
+	 stream_mode_raw(), not stream_mode(): the latter reports 0 once
+	 this stream's own list is empty (see attrvalue.c) */
+      if (comterp->stack_top().is_null() &&
+	  comterp->stack_height()>outside_stackh &&
+	  !(streamv.stream_mode_raw()&STREAM_RING))
 	streamv.stream_list()->clear();
       else if (comterp->stack_height()==outside_stackh)
 	comterp->push_stack(ComValue::blankval());
@@ -1394,6 +1404,70 @@ void InfoFunc::execute() {
   ComFunc* sfunc = streamv.stream_func() ? (ComFunc*)streamv.stream_func() : nil;
   boolean is_literal = sfunc && sfunc->funcid() == slnf_symid;
 
+  /* ring FIFO: report head/tail/count/cap plus the live region as a slice
+     (or two, when it straddles the end) of the backing string -- the
+     string's own slice fields are how a run of its bytes is represented
+     everywhere else, so the ring's live data is shown the same way rather
+     than as raw offsets */
+  if (avl && sfunc == ring_next_func(comterp()) && avl->Number()>=5) {
+    AttributeList* al = new AttributeList();
+    static int mode_sym3 = symbol_add("mode");
+    static int head_sym = symbol_add("head");
+    static int tail_sym = symbol_add("tail");
+    static int count_sym = symbol_add("count");
+    static int cap_sym = symbol_add("cap");
+    static int wrap_sym = symbol_add("wrap");
+    static int buf_sym = symbol_add("buf");
+    ComValue bufv(*((AttributeValue*)avl->Get(0)));
+    int head = ((AttributeValue*)avl->Get(1))->int_val();
+    int tail = ((AttributeValue*)avl->Get(2))->int_val();
+    int count = ((AttributeValue*)avl->Get(3))->int_val();
+    int wrap = ((AttributeValue*)avl->Get(4))->int_val();
+    int cap = symbol_len(bufv.string_val());
+
+    ComValue modeval("ring");
+    ComValue headv(head);
+    ComValue tailv(tail);
+    ComValue countv2(count);
+    ComValue capv(cap);
+    ComValue wrapv(wrap ? ComValue::trueval() : ComValue::falseval());
+    al->add_attr(mode_sym3, modeval);
+    al->add_attr(head_sym, headv);
+    al->add_attr(tail_sym, tailv);
+    al->add_attr(count_sym, countv2);
+    al->add_attr(cap_sym, capv);
+    al->add_attr(wrap_sym, wrapv);
+
+    if (count>0) {
+      /* one contiguous run when it doesn't straddle the end, two when it
+	 does -- same slice ctor pattern ListAtFunc uses for str@lo:hi */
+      int firstlen = head+count<=cap ? count : cap-head;
+      ComValue first(bufv.string_val(), ComValue::StringType);
+      first.ref_as_needed();
+      first.sliceoff(head);
+      first.slicelen(firstlen);
+      first.sliced(1);
+      if (firstlen==count) {
+	al->add_attr(buf_sym, first);
+      } else {
+	ComValue second(bufv.string_val(), ComValue::StringType);
+	second.ref_as_needed();
+	second.sliceoff(0);
+	second.slicelen(count-firstlen);
+	second.sliced(1);
+	AttributeValueList* parts = new AttributeValueList();
+	parts->Append(new AttributeValue(first));
+	parts->Append(new AttributeValue(second));
+	ComValue partsv(parts);
+	al->add_attr(buf_sym, partsv);
+      }
+    }
+
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
   if (!avl || !is_literal) {
     AttributeList* al = new AttributeList();
     static int mode_sym = symbol_add("mode");
@@ -1481,6 +1555,102 @@ void InfoFunc::execute() {
 /*****************************************************************************/
 
 
+/* singleton RingNextFunc, shared by FeedFunc (construction/push) and
+   InfoFunc (identifying a ring stream to report on) */
+static RingNextFunc* ring_next_func(ComTerp* comterp) {
+  static RingNextFunc* rnfunc = nil;
+  if (!rnfunc) {
+    rnfunc = new RingNextFunc(comterp);
+    rnfunc->funcid(symbol_add("ringnext"));
+  }
+  return rnfunc;
+}
+
+/* build a fresh ring FIFO over buf's own bytes.  avl layout:
+   [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) -- wrap=0 (:noring)
+   never reclaims space freed from the head, wrap=1 is the circular default.
+
+   buf's own content up to its first NUL (bounded by its capacity) seeds
+   the ring as already-queued data, immediately poppable -- string(cap) is
+   all-NUL so this is 0 for a freshly allocated buffer, but feed("hello")
+   starts with all five characters queued, matching what feeding a string
+   into a FIFO meant before it had a fixed-capacity form. */
+static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap) {
+  int cap = symbol_len(buf.string_val());
+  std::string scratch;
+  int initial = (int)strlen(buf.cstr(scratch));
+  if (initial>cap) initial = cap;
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(buf));
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));  // head
+  int tail0 = initial;
+  if (tail0>=cap) tail0 = wrap ? 0 : cap;
+  avl->Append(new AttributeValue(tail0, AttributeValue::IntType));  // tail
+  avl->Append(new AttributeValue(initial, AttributeValue::IntType));  // count
+  avl->Append(new AttributeValue(wrap ? 1 : 0, AttributeValue::IntType));  // wrap
+  ComValue stream(ring_next_func(comterp), avl);
+  stream.stream_mode(STREAM_INTERNAL | STREAM_RING);
+  return stream;
+}
+
+/* push one character into a ring FIFO's avl; false (refused) when full --
+   capacity is symbol_len(), not strlen(), so an embedded zero byte
+   written earlier in the ring never strands the rest of the buffer. */
+static boolean ring_push_char(AttributeValueList* avl, char ch) {
+  if (!avl || avl->Number()<5) return false;
+  AttributeValue* bufav = (AttributeValue*)avl->Get(0);
+  AttributeValue* tailav = (AttributeValue*)avl->Get(2);
+  AttributeValue* countav = (AttributeValue*)avl->Get(3);
+  AttributeValue* wrapav = (AttributeValue*)avl->Get(4);
+  int cap = symbol_len(bufav->string_val());
+  int count = countav->int_val();
+  int tail = tailav->int_val();
+  /* full is count==cap in wrap mode, but a :noring tail sits AT cap once it
+     stops advancing (never reclaiming drained space), so count alone can
+     understate fullness there -- tail==cap is the real bound on where a
+     byte may land, checked either way since it's always true when count
+     alone would already refuse */
+  if (cap<=0 || count>=cap || tail>=cap) return false;
+  *((char*)bufav->string_ptr()+tail) = ch;
+  int newtail = tail+1;
+  if (newtail>=cap) newtail = wrapav->int_val() ? 0 : cap;
+  tailav->int_ref() = newtail;
+  countav->int_ref() = count+1;
+  return true;
+}
+
+/* push a value into a ring FIFO's avl: a CharType (or anything char_val()
+   can coerce) pushes one byte, an unprotected StringType pushes its
+   characters in order.  Stops at the first refusal (buffer full), leaving
+   whatever already landed in place, and reports that refusal to the caller. */
+static boolean ring_push_value(AttributeValueList* avl, ComValue& v) {
+  if (streams_as_characters(v)) {
+    std::string scratch;
+    const char* s = v.cstr(scratch);
+    int len = v.sliced() ? v.slicelen() : (int)strlen(s);
+    for (int k=0; k<len; k++)
+      if (!ring_push_char(avl, s[k])) return false;
+    return true;
+  }
+  return ring_push_char(avl, v.char_val());
+}
+
+/* pop one character from a ring FIFO's avl; ComValue::nullval() when empty */
+static ComValue ring_pop_char(AttributeValueList* avl) {
+  if (!avl || avl->Number()<5) return ComValue::nullval();
+  AttributeValue* bufav = (AttributeValue*)avl->Get(0);
+  AttributeValue* headav = (AttributeValue*)avl->Get(1);
+  AttributeValue* countav = (AttributeValue*)avl->Get(3);
+  int count = countav->int_val();
+  if (count<=0) return ComValue::nullval();
+  int cap = symbol_len(bufav->string_val());
+  int head = headav->int_val();
+  char ch = *(bufav->string_ptr()+head);
+  headav->int_ref() = cap>0 ? (head+1)%cap : 0;
+  countav->int_ref() = count-1;
+  return ComValue(ch);
+}
+
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -1501,10 +1671,44 @@ void FeedFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
+  /* :noring -- a new string-backed FIFO refuses a push once full instead
+     of wrapping to reclaim drained space; no effect once the FIFO exists */
+  static int noring_symid = symbol_add("noring");
+  ComValue noringv(stack_key_post_eval(noring_symid));
+  boolean noringflag = noringv.is_true();
   reset_stack();
 
   boolean arg0_is_fifo = n>0 && argv[0].is_stream() &&
     argv[0].stream_func() == (void*)fnfunc;
+  boolean arg0_is_ring = n>0 && argv[0].is_stream() &&
+    argv[0].stream_func() == (void*)ring_next_func(comterp());
+
+  if (arg0_is_ring) {
+    /* push the remaining args, one char (or string's worth of chars) at a
+       time, onto the ring's tail; any refusal (buffer full) fails the
+       whole call with nil, same as next()'s empty-ring refusal */
+    AttributeValueList* avl = argv[0].stream_list();
+    boolean ok = true;
+    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i]);
+    ComValue retval(ok ? argv[0] : ComValue::nullval());
+    delete [] argv;
+    push_stack(retval);
+    return;
+  }
+
+  if (n>0 && !arg0_is_fifo && streams_as_characters(argv[0])) {
+    /* a bare (unprotected) string first argument becomes a fixed-capacity
+       ring over its own bytes, not a growable copy of its characters --
+       a bquoted string still falls through to the growable FIFO below */
+    ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
+    AttributeValueList* avl = stream.stream_list();
+    boolean ok = true;
+    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i]);
+    ComValue retval(ok ? stream : ComValue::nullval());
+    delete [] argv;
+    push_stack(retval);
+    return;
+  }
 
   if (arg0_is_fifo) {
     /* append the remaining args to the existing FIFO's back end; a stream-valued
@@ -1674,4 +1878,17 @@ void FeedNextFunc::execute() {
     }
   } else
     push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+RingNextFunc::RingNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void RingNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+
+  ComValue retval(ring_pop_char(operand1.stream_list()));
+  push_stack(retval);
 }
