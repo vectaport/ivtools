@@ -319,26 +319,42 @@ void StreamFunc::execute_literal() {
   elem_offset = posoffsets_running;
   delete [] possizes;
 
-  /* keywords second */
+  /* keywords second: skip_key_in_expr discovers them in reverse (the
+     last-written keyword's tag sits nearest the stack top), same as the
+     positionals above -- capture identity/size in scan order first, then
+     append to avl and accumulate forward tokbuf offsets in reverse of
+     scan order, landing both element order and offsets in source order.
+     Each keyword's own tag token occupies a tokbuf slot too (total's
+     "+1" above), so elem_offset advances past it even when key_narg==0. */
   rescan = keys_start;
+  int* keysizes = nkeys()>0 ? new int[nkeys()] : nil;
+  int* keysymids = nkeys()>0 ? new int[nkeys()] : nil;
+  int* keynargs = nkeys()>0 ? new int[nkeys()] : nil;
   for (int ki = 0; ki < nkeys(); ki++) {
     ComValue& keytoken = comterp()->pfcomvals()[comterp()->pfnum()-1+rescan];
-    int key_symid = keytoken.keyid_val();
-    int key_narg = keytoken.keynarg_val();
+    keysymids[ki] = keytoken.keyid_val();
+    keynargs[ki] = keytoken.keynarg_val();
     argcnt = 0;
     skip_key_in_expr(rescan, argcnt);
+    keysizes[ki] = argcnt;
+  }
+  for (int ki = nkeys()-1; ki >= 0; ki--) {
     ComValue keymarker;
     keymarker.type(ComValue::KeywordType);
-    keymarker.symbol_ref() = key_symid;
-    keymarker.keynarg_ref() = key_narg;
+    keymarker.symbol_ref() = keysymids[ki];
+    keymarker.keynarg_ref() = keynargs[ki];
     avl->Append(new AttributeValue(keymarker));
-    if (key_narg > 0) {
+    if (keynargs[ki] > 0) {
       avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
-      avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
-      elem_offset += argcnt;
+      avl->Append(new AttributeValue(keysizes[ki], AttributeValue::IntType));
+      elem_offset += keysizes[ki];
     }
+    elem_offset++;
     nelem++;
   }
+  delete [] keysizes;
+  delete [] keysymids;
+  delete [] keynargs;
 
   /* set nremaining now that we know total element count */
   ((AttributeValue*)avl->Get(1))->int_ref() = nelem;
