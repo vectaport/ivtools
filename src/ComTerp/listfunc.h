@@ -221,7 +221,7 @@ public:
 // Keyword-only (no value) sets attribute to true. Missing attribute returns nil.
 // :bincnt sizes the returned list's symid lookup index; 0 disables it, so
 // GetAttr()/find()/add_attr() fall back to a linear scan (see
-// AttributeList::index_size(), echoed via info(al :sym)).
+// AttributeList::index_size(), echoed as :binsz via info(al :sym)).
 class AttrListFunc : public ComFunc {
 public:
     AttrListFunc(ComTerp*);

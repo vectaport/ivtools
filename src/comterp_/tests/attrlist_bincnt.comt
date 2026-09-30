@@ -1,7 +1,7 @@
 // src/comterp_/tests/attrlist_bincnt.comt -- test attrlist()'s :bincnt keyword
 //
 // coverage: attrlist(:bincnt) -- sizing/disabling an AttributeList's symid
-// index at construction, and info(al :sym).indexsize echoing it back.
+// index at construction, and info(al :sym).binsz echoing it back.
 // Also a pattern to copy for future in-process perf-regression scripts:
 // :bincnt 0 gives a same-binary, linear-scan A/B baseline against the
 // indexed default, with no separate build needed.
@@ -14,16 +14,16 @@ ok=true
 
 // --- test 1: default construction has a non-zero index ---
 al=attrlist(:a 1 :b 2 :c 3)
-sz=info(al).indexsize
+sz=info(al).binsz
 ok=ok&&(sz>0)
-print("1 info(attrlist(:a 1 :b 2 :c 3)).indexsize (expect >0): %v\n" sz)
+print("1 info(attrlist(:a 1 :b 2 :c 3)).binsz (expect >0): %v\n" sz)
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: :bincnt 0 disables the index ---
 al0=attrlist(:a 1 :b 2 :c 3 :bincnt 0)
-sz0=info(al0).indexsize
+sz0=info(al0).binsz
 ok=ok&&(sz0==0)
-print("2 info(attrlist(... :bincnt 0)).indexsize (expect 0): %v\n" sz0)
+print("2 info(attrlist(... :bincnt 0)).binsz (expect 0): %v\n" sz0)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3: :bincnt 0 doesn't change the attribute count or values ---
@@ -40,24 +40,24 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 5: :bincnt N sizes (but doesn't disable) the index ---
 alN=attrlist(:a 1 :bincnt 64)
-szN=info(alN).indexsize
+szN=info(alN).binsz
 ok=ok&&(szN==64)
-print("5 info(attrlist(:a 1 :bincnt 64)).indexsize (expect 64): %v\n" szN)
+print("5 info(attrlist(:a 1 :bincnt 64)).binsz (expect 64): %v\n" szN)
 prev_ok=check_fail(:ok ok)
 
 // --- test 6: a bare :bincnt (no value) is still consumed, using the default index ---
 alB=attrlist(:a 1 :bincnt)
-szB=info(alB).indexsize
+szB=info(alB).binsz
 bcB=alB.bincnt
 ok=ok&&(szB>0)&&(bcB==nil)
-print("6 attrlist(:a 1 :bincnt) bare keyword (expect indexsize>0, bincnt nil): %v %v\n" szB bcB)
+print("6 attrlist(:a 1 :bincnt) bare keyword (expect binsz>0, bincnt nil): %v %v\n" szB bcB)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: a negative :bincnt keeps the default-index meaning, not 0 ---
 alNeg=attrlist(:a 1 :bincnt -5)
-szNeg=info(alNeg).indexsize
+szNeg=info(alNeg).binsz
 ok=ok&&(szNeg>0)
-print("7 attrlist(:a 1 :bincnt -5) (expect indexsize>0, not disabled): %v\n" szNeg)
+print("7 attrlist(:a 1 :bincnt -5) (expect binsz>0, not disabled): %v\n" szNeg)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: perf pattern -- :bincnt 0 (linear) vs. the indexed default,
@@ -73,7 +73,7 @@ tlinear=999999999999
 for(trial=0 trial<3 trial=trial+1
   t0=time(:mono :ns);ali=eval("attrlist("+kw+")");t1=time(:mono :ns);d=t1-t0;tindexed=if(d<tindexed :then d :else tindexed);t2=time(:mono :ns);all=eval("attrlist("+kw+":bincnt 0)");t3=time(:mono :ns);d=t3-t2;tlinear=if(d<tlinear :then d :else tlinear))
 
-ok=ok&&(info(ali).indexsize>0)&&(info(all).indexsize==0)
+ok=ok&&(info(ali).binsz>0)&&(info(all).binsz==0)
 ok=ok&&(info(ali).count==n)&&(info(all).count==n)
 ok=ok&&(tlinear>tindexed)
 pct=100-(tindexed*100/tlinear)
