@@ -41,6 +41,9 @@
 /* forward decl: InfoFunc::execute() identifies a ring stream by comparing
    against this singleton, defined down by FeedFunc/RingNextFunc below */
 static RingNextFunc* ring_next_func(ComTerp* comterp);
+/* forward decl: InfoFunc::execute() reports a ring's free room via this,
+   defined down alongside the other ring helpers below */
+static int ring_avail(AttributeValueList* avl);
 
 /*****************************************************************************/
 
@@ -1451,6 +1454,7 @@ void InfoFunc::execute() {
     static int count_sym = symbol_add("count");
     static int cap_sym = symbol_add("cap");
     static int wrap_sym = symbol_add("wrap");
+    static int room_sym = symbol_add("room");
     static int buf_sym = symbol_add("buf");
     ComValue bufv(*((AttributeValue*)avl->Get(0)));
     int head = ((AttributeValue*)avl->Get(1))->int_val();
@@ -1461,7 +1465,13 @@ void InfoFunc::execute() {
        are offsets within that window, so a display slice needs winoff added
        to land on the same bytes the ring itself reads and writes */
     int winoff = bufv.sliced() ? bufv.sliceoff() : 0;
-    int cap = bufv.sliced() ? bufv.slicelen() : symbol_len(bufv.string_val());
+    int bytecap = bufv.sliced() ? bufv.slicelen() : symbol_len(bufv.string_val());
+    /* head/tail/count above are slot counts -- one slot per element of the
+       buffer's declared type, elemsz bytes wide (1 for an ordinary
+       char-granular string) -- so cap and the buf slice below convert
+       through elemsz to land on the same bytes feed()/next() do. */
+    int elemsz = bufv.blocksz()>0 ? bufv.blocksz() : 1;
+    int cap = bytecap/elemsz;
 
     ComValue modeval("ring");
     ComValue headv(head);
@@ -1469,12 +1479,17 @@ void InfoFunc::execute() {
     ComValue countv2(count);
     ComValue capv(cap);
     ComValue wrapv(wrap ? ComValue::trueval() : ComValue::falseval());
+    /* same "how many more pushes fit" reckoning the push path itself
+       uses, exposed directly so a caller doesn't have to reconstruct it
+       as cap-count (which is only right in :wrap mode -- see ring_avail()) */
+    ComValue roomv(ring_avail(avl));
     al->add_attr(mode_sym3, modeval);
     al->add_attr(head_sym, headv);
     al->add_attr(tail_sym, tailv);
     al->add_attr(count_sym, countv2);
     al->add_attr(cap_sym, capv);
     al->add_attr(wrap_sym, wrapv);
+    al->add_attr(room_sym, roomv);
 
     if (count>0) {
       /* one contiguous run when it doesn't straddle the end, two when it
@@ -1482,17 +1497,19 @@ void InfoFunc::execute() {
       int firstlen = head+count<=cap ? count : cap-head;
       ComValue first(bufv.string_val(), ComValue::StringType);
       first.ref_as_needed();
-      first.sliceoff(winoff+head);
-      first.slicelen(firstlen);
+      first.sliceoff(winoff+head*elemsz);
+      first.slicelen(firstlen*elemsz);
       first.sliced(1);
+      first.blocktype(bufv.blocktype());
       if (firstlen==count) {
 	al->add_attr(buf_sym, first);
       } else {
 	ComValue second(bufv.string_val(), ComValue::StringType);
 	second.ref_as_needed();
 	second.sliceoff(winoff);
-	second.slicelen(count-firstlen);
+	second.slicelen((count-firstlen)*elemsz);
 	second.sliced(1);
+	second.blocktype(bufv.blocktype());
 	AttributeValueList* parts = new AttributeValueList();
 	parts->Append(new AttributeValue(first));
 	parts->Append(new AttributeValue(second));
@@ -1607,7 +1624,7 @@ static RingNextFunc* ring_next_func(ComTerp* comterp) {
 /* the ring's buffer element may itself be a slice (feed("abcd"@1:3) confines
    the ring to that window) -- wrap it as a ComValue to reach sliced()/
    sliceoff()/slicelen(), not exposed on the raw AttributeValue* element. */
-static int ring_buf_cap(AttributeValue* bufav) {
+static int ring_buf_bytecap(AttributeValue* bufav) {
   ComValue bufv(*bufav);
   return bufv.sliced() ? bufv.slicelen() : symbol_len(bufv.string_val());
 }
@@ -1615,6 +1632,25 @@ static int ring_buf_cap(AttributeValue* bufav) {
 static char* ring_buf_base(AttributeValue* bufav) {
   ComValue bufv(*bufav);
   return (char*)bufv.string_ptr() + (bufv.sliced() ? bufv.sliceoff() : 0);
+}
+
+/* width in bytes of one ring slot -- blocksz() for a typed (string(n
+   type)) buffer, one byte for an ordinary char-granular string. */
+static int ring_elemsz(AttributeValue* bufav) {
+  ComValue bufv(*bufav);
+  int bsz = bufv.blocksz();
+  return bsz>0 ? bsz : 1;
+}
+
+static AttributeValue::ValueType ring_buf_blocktype(AttributeValue* bufav) {
+  ComValue bufv(*bufav);
+  return bufv.blocktype();
+}
+
+/* ring capacity in slots, not bytes -- one slot per element of the
+   buffer's own declared type, matching how at()/size() already count it. */
+static int ring_buf_cap(AttributeValue* bufav) {
+  return ring_buf_bytecap(bufav) / ring_elemsz(bufav);
 }
 
 /* how many more ring_push_char() calls would succeed right now -- wrap
@@ -1644,13 +1680,23 @@ static int ring_avail(AttributeValueList* avl) {
    the ring as already-queued data, immediately poppable -- string(cap) is
    all-NUL so this is 0 for a freshly allocated buffer, but feed("hello")
    starts with all five characters queued, matching what feeding a string
-   into a FIFO meant before it had a fixed-capacity form. */
+   into a FIFO meant before it had a fixed-capacity form.  A typed buffer
+   (string(n type)) has no such text terminator -- its zero value is
+   ordinary data, not an end marker -- so it always starts empty rather
+   than guessing how much of it counts as already queued. */
 static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap) {
-  int cap = buf.sliced() ? buf.slicelen() : symbol_len(buf.string_val());
+  int bytecap = buf.sliced() ? buf.slicelen() : symbol_len(buf.string_val());
   const char* base = buf.string_ptr() + (buf.sliced() ? buf.sliceoff() : 0);
-  const void* nulp = memchr(base, '\0', cap);
-  int initial = nulp ? (const char*)nulp-base : cap;
-  if (initial>cap) initial = cap;
+  int elemsz = buf.blocksz()>0 ? buf.blocksz() : 1;
+  int cap = bytecap/elemsz;
+  int initial;
+  if (elemsz==1) {
+    const void* nulp = memchr(base, '\0', bytecap);
+    initial = nulp ? (const char*)nulp-base : cap;
+    if (initial>cap) initial = cap;
+  } else {
+    initial = 0;
+  }
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(buf));
   avl->Append(new AttributeValue(0, AttributeValue::IntType));  // head
@@ -1664,10 +1710,14 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
   return stream;
 }
 
-/* push one character into a ring FIFO's avl; false (refused) when full --
+/* push one element into a ring FIFO's avl; false (refused) when full --
    capacity is ring_buf_cap(), not strlen(), so an embedded zero byte
-   written earlier in the ring never strands the rest of the buffer. */
-static boolean ring_push_char(AttributeValueList* avl, char ch) {
+   written earlier in the ring never strands the rest of the buffer.
+   A typed (blocktype()!=UnknownType) ring encodes v at that type's own
+   width via comval_encode() -- the same promotion/demotion at(s N :set
+   v) already does -- instead of coercing through char_val(); an
+   ordinary byte ring stores v.char_val() directly. */
+static boolean ring_push_elt(AttributeValueList* avl, ComValue& v) {
   if (!avl || avl->Number()<5) return false;
   AttributeValue* bufav = (AttributeValue*)avl->Get(0);
   AttributeValue* tailav = (AttributeValue*)avl->Get(2);
@@ -1678,11 +1728,14 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
   int tail = tailav->int_val();
   /* full is count==cap in wrap mode, but a :noring tail sits AT cap once it
      stops advancing (never reclaiming drained space), so count alone can
-     understate fullness there -- tail==cap is the real bound on where a
-     byte may land, checked either way since it's always true when count
+     understate fullness there -- tail==cap is the real bound on where an
+     element may land, checked either way since it's always true when count
      alone would already refuse */
   if (cap<=0 || count>=cap || tail>=cap) return false;
-  *(ring_buf_base(bufav)+tail) = ch;
+  AttributeValue::ValueType bt = ring_buf_blocktype(bufav);
+  char* dst = ring_buf_base(bufav) + tail*ring_elemsz(bufav);
+  if (bt == AttributeValue::UnknownType) *dst = v.char_val();
+  else ComValue::comval_encode(dst, v, bt);
   int newtail = tail+1;
   if (newtail>=cap) newtail = wrapav->int_val() ? 0 : cap;
   tailav->int_ref() = newtail;
@@ -1690,16 +1743,29 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
   return true;
 }
 
-/* push a value into a ring FIFO's avl: an unprotected StringType (not
-   bquoted, not :raw) pushes its characters in order -- a ring slot is one
-   literal byte, so this is the only way a multi-character string can go
-   in at all, whatever rawflag says.  Indexes the string's own bytes
-   directly (not cstr(), which truncates at the first embedded NUL) so a
-   slice containing one still pushes its full slicelen() bytes.  Snapshots
-   those bytes before writing any of them, since the source can be the
-   ring's own backing string (e.g. feeding a ring a slice of itself) --
-   writing in place while still reading would let an earlier write
-   clobber a byte a later iteration hasn't read yet.
+static boolean ring_push_char(AttributeValueList* avl, char ch) {
+  ComValue cv(ch);
+  return ring_push_elt(avl, cv);
+}
+
+/* push a value into a ring FIFO's avl.
+
+   A typed (blocktype()!=UnknownType) ring's slot is one whole element of
+   that type, so a pushed value is promoted/demoted to it via
+   ring_push_elt() as a single unit -- never split into characters, since
+   there's no meaningful character view of a UIntType (or other typed)
+   element.
+
+   An ordinary byte ring's slot is one literal byte.  An unprotected
+   StringType (not bquoted, not :raw) pushes its characters in order --
+   the only way a multi-character string can go in at all, whatever
+   rawflag says.  Indexes the string's own bytes directly (not cstr(),
+   which truncates at the first embedded NUL) so a slice containing one
+   still pushes its full slicelen() bytes.  Snapshots those bytes before
+   writing any of them, since the source can be the ring's own backing
+   string (e.g. feeding a ring a slice of itself) -- writing in place
+   while still reading would let an earlier write clobber a byte a later
+   iteration hasn't read yet.
 
    Any other StringType (bquoted, or :raw-protected) can only be honored
    when it's exactly one byte long -- a ring has nowhere to put a whole
@@ -1715,6 +1781,9 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
    leaving whatever already landed in place, and reports that refusal to
    the caller. */
 static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean rawflag) {
+  if (!avl || avl->Number()<5) return false;
+  if (ring_buf_blocktype((AttributeValue*)avl->Get(0)) != AttributeValue::UnknownType)
+    return ring_push_elt(avl, v);
   if (!rawflag && streams_as_characters(v)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
@@ -1736,7 +1805,10 @@ static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean raw
   return ring_push_char(avl, v.char_val());
 }
 
-/* pop one character from a ring FIFO's avl; ComValue::nullval() when empty */
+/* pop one element from a ring FIFO's avl; ComValue::nullval() when empty.
+   An ordinary byte ring returns a CharType element; a typed ring decodes
+   the slot back via comval_decode(), the reverse of ring_push_elt()'s
+   comval_encode(). */
 static ComValue ring_pop_char(AttributeValueList* avl) {
   if (!avl || avl->Number()<5) return ComValue::nullval();
   AttributeValue* bufav = (AttributeValue*)avl->Get(0);
@@ -1746,10 +1818,13 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   if (count<=0) return ComValue::nullval();
   int cap = ring_buf_cap(bufav);
   int head = headav->int_val();
-  char ch = *(ring_buf_base(bufav)+head);
+  AttributeValue::ValueType bt = ring_buf_blocktype(bufav);
+  char* src = ring_buf_base(bufav) + head*ring_elemsz(bufav);
+  ComValue result = bt == AttributeValue::UnknownType
+    ? ComValue(*src) : ComValue::comval_decode(src, bt);
   headav->int_ref() = cap>0 ? (head+1)%cap : 0;
   countav->int_ref() = count-1;
-  return ComValue(ch);
+  return result;
 }
 
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {

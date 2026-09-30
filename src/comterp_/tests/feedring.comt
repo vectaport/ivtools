@@ -1,11 +1,13 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 20 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 26 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
-// backing bytes, and a multi-char push longer than the room left
+// backing bytes, a multi-char push longer than the room left, a ring
+// built over a typed (string(n type)) buffer operating in whole elements
+// with promotion/demotion on push, and info()'s :room field
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -18,9 +20,12 @@
 // same way a growable feed() FIFO can (see feed.comt test 16).  :noring
 // disables wraparound: a push refuses once the buffer has filled, even
 // after elements have been popped from the front, rather than reclaiming
-// that drained space.  info() reports a ring's head/tail/count/cap/wrap
+// that drained space.  info() reports a ring's head/tail/count/cap/wrap/room
 // plus the live region as a slice of the backing string -- two slices when
-// it straddles the wrap point.
+// it straddles the wrap point.  Built over a typed buffer (string(n type)),
+// a ring's slots are whole elements of that type, not raw bytes: cap counts
+// elements, and a pushed value is promoted/demoted to the type the same way
+// at(s N :set v) already does.
 
 ok=true
 
@@ -192,6 +197,53 @@ feed(ring19 'a'); feed(ring19 'b')
 r19=feed(ring19 "abcde")
 ok=ok&&(r19==nil)&&(info(ring19).count==4)
 print("19 feed(ring19 \"abcde\") with 2 slots free (expect nil, count 4): %v %v\n" r19 info(ring19).count)
+
+// --- 20-23: a ring built over a typed string (string(n type)) operates
+// in whole elements of that type, not raw bytes -- capacity, push, pop,
+// and info()'s live region all follow the buffer's own declared type,
+// the same width at() already uses to read/write it ---
+ring20=feed(string(4 UIntType))
+i20=info(ring20)
+ok=ok&&(i20.cap==4)&&(i20.count==0)
+print("20 feed(string(4 UIntType)) sizes the ring in elements, starts empty (expect cap 4, count 0): %v %v\n" i20.cap i20.count)
+
+// a pushed value is promoted to the ring's declared type, not truncated
+// through char_val() the way an untyped ring's push is
+feed(ring20 65)
+c20=next(ring20)
+ok=ok&&(c20==65)&&(type(c20)==`UIntType)
+print("21 feed(ring20 65);next(ring20) comes back as UIntType, not a char (expect 65 UIntType): %v %v\n" c20 type(c20))
+
+// a char pushed onto a typed ring is promoted the same way a numeric
+// value is, not stored as a raw byte
+feed(ring20 'A')
+c21=next(ring20)
+ok=ok&&(c21==65)&&(type(c21)==`UIntType)
+print("22 feed(ring20 'A') promotes the char to UIntType (expect 65 UIntType): %v %v\n" c21 type(c21))
+
+// fill to capacity, refuse, then drain in FIFO order with types intact
+feed(ring20 1); feed(ring20 2); feed(ring20 3); feed(ring20 4)
+r23=feed(ring20 99)
+v1=next(ring20); v2=next(ring20); v3=next(ring20); v4=next(ring20)
+ok=ok&&(r23==nil)&&(v1==1)&&(v2==2)&&(v3==3)&&(v4==4)
+print("23 a full UIntType ring refuses, then drains 1,2,3,4 in order (expect nil 1 2 3 4): %v %v %v %v %v\n" r23 v1 v2 v3 v4)
+
+// --- 24: info()'s :room is how many more pushes will succeed, which is
+// cap-count only in :wrap mode -- in :noring mode a pop frees an element
+// (count drops) without freeing room, since drained space never comes
+// back into play ---
+buf24=string(3)
+wring24=feed(buf24)
+feed(wring24 'a'); feed(wring24 'b'); feed(wring24 'c')
+next(wring24)
+ok=ok&&(info(wring24).room==1)
+print("24a :wrap ring room after fill+1 pop (expect 1): %v\n" info(wring24).room)
+
+nring24=feed(string(3) :noring)
+feed(nring24 'a'); feed(nring24 'b'); feed(nring24 'c')
+next(nring24)
+ok=ok&&(info(nring24).room==0)&&(info(nring24).count==2)
+print("24b :noring ring room after fill+1 pop, room stays 0 though count is 2: %v %v\n" info(nring24).room info(nring24).count)
 
 print("feedring: %v\n" ok)
 ok
