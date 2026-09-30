@@ -188,7 +188,6 @@ lineno=0
 mlbal=0
 incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
-wschars=" \t"
 
 /* armed by a '// comlint:allow -- <reason>' comment line and consumed by
    the next statement's own first line, whatever blank lines or other
@@ -220,6 +219,22 @@ allowarmed=false
    trade-off as clearedglobal. */
 globalnames=list();globallines=list();flaggedglobal=list()
 clearedglobal=list();localnames=list()
+
+/* every bare-lvalue name the shadow-scan below finds, paired with its
+   own statement's line -- the command-shadow FAIL check (istype()/
+   help() via eval()) runs on these AFTER the scan finishes rather than
+   during it, and the scan itself is plain top-level iterative code
+   (an explicit worknodes/workinfunc stack), never a func() call: a
+   func()'s own variables -- even ones declared global() -- don't
+   reliably see a change made outside that func between calls
+   (confirmed with a minimal repro: a counter incremented only from
+   inside a func(), called repeatedly from a plain top-level loop,
+   reads back as its pre-loop value once the loop ends -- global()
+   makes a func's write visible to a *later, separate* global() read,
+   not to the ambient script scope this loop already relies on
+   everywhere else), so any state this scan accumulates has to live in
+   the same top-level scope the rest of this script already uses. */
+shadownames=list();shadowlines=list()
 
 /* a statement spanning several physical lines (a for/while/func body,
    most commonly) is buffered here -- one line at a time, tracking a
@@ -353,219 +368,154 @@ while((srcline=gets(fp))!=nil
   stmt=stmtbuf;stmtline=stmtlineno;
   stmtbuf="";stmtnlines=0;
 
-  /* flag a plain assignment (name=value, or a +=/-=/etc. compound form)
+  /* flag a plain assignment (name=value, or a compound +=/-=/etc. form)
      to a symbol name that also names a registered command -- assigning
-     to it this way either warns and no-ops (a bare command, no args)
-     or silently rebinds it out from under every later call.
-     A pure text scan of stmt: only the raw '=' and the identifier
-     immediately before it matter, so no postfix() token is needed.
-     Dot-attribute assignment (a.name=...) is excluded by requiring the
-     character right before that identifier not be '.'. Whitespace
-     around '=' or a compound operator (print = 1, print += 1) is
-     skipped rather than assumed absent, and a '//' line comment (to the
-     next '\n' -- stmt can join several source lines) is never scanned
-     as code. */
-  /* Scanned by jumping straight to the nearest special character
-     (index() on the remaining statement text) instead of visiting
-     every character -- the '(' / ')' / '=' handling below is unchanged
-     from a char-at-a-time scan, only the stepping between those
-     characters is now a jump; a run of ordinary characters between two
-     specials, or the whole remaining span of a string/char literal or
-     comment, is consumed in one hop and (when inside a still-open
-     scope-call's argument) appended to argtext in that one piece
-     rather than one append per character. A backslash always wins the
-     jump, in or out of a literal, since it escapes whatever follows. */
-  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;slcmt=0;
-  parenkind=list();parenscopename=list();parenargtext=list();parenargok=list();
-  funcdepthcount=0;
-  while(ssi<ssz
-    inscopearg=(size(parenkind)>0 && at(parenkind nil)=="scope");
-    rest=substr(stmt ssi :after);
+     to it this way either warns and no-ops (a bare command, no args) or
+     silently rebinds it out from under every later call -- and register
+     or clear a global(name)/local(name) declaration, so a later bare
+     write to an already-declared global is flagged too. postfix(stmt
+     :tree) (like postfix(stmt) and help() elsewhere in this script)
+     parses without ever firing the statement, so this never risks
+     executing target script code.
 
-    if(slcmt>0 :then
-      nlpos=index(rest "\n");
-      if(nlpos==nil :then ssi=ssz :else ssi=ssi+nlpos+1;slcmt=0);
+     Walked with an explicit worknodes/workinfunc stack (LIFO via
+     popping the last element each time) rather than a recursive
+     helper -- see shadownames' own comment above for why nothing here
+     can be a func() call. A tree node is a list whose first element is
+     the command symbol and whose rest are its own operands, each
+     itself such a list or a leaf value; infunc carries whether a node
+     is nested inside a func(...) body. A dot-attribute call
+     (a.name(...)) resolves to whatever a.name is bound to, not the
+     same-named global/local/func builtin, so its own call node is
+     walked generically (its arguments still checked) without
+     global/local/assign/func's special treatment applying to it --
+     matching how the arity/keyword check below skips a dot call by its
+     own dot[...] postfix tag. It's a no-op on anything that isn't
+     list-shaped, so a stmt postfix(:tree) can't make sense of (nil, or
+     some other leaf) is silently skipped rather than specially
+     detected, the same statement still going on to the arity/keyword
+     check below, which has its own istype(pftext StringType) guard on
+     postfix(stmt). */
+  treecmd=print("postfix(%s :tree)" stmt :str);
+  tree=eval(treecmd);
+  worknodes=list();workinfunc=list();
+  if(islist(tree) :then worknodes=worknodes,tree;workinfunc=workinfunc,false);
+
+  while(size(worknodes)>0
+    node=at(worknodes nil :del);infunc=at(workinfunc nil :del);
+    if(!islist(node) :then continue);
+
+    head=at(node 0);headstr=print(head :str);nsz=size(node);
+
+    if(headstr=="dot" :then
+      worknodes=worknodes,at(node 1);workinfunc=workinfunc,infunc;
+      call=at(node 2);ci=1;csz=size(call);
+      while(ci<csz
+        worknodes=worknodes,at(call ci);workinfunc=workinfunc,infunc;
+        ci=ci+1);
       continue);
 
-    if(sinstr>0 || sinchr>0 :then
-      closepat=if(sinstr>0 :then "\"" :else "'");
-      epos=index(rest "\\");
-      qpos=index(rest closepat);
-      if(epos!=nil && (qpos==nil||epos<qpos) :then
-        skiphop=substr(substr(rest epos :after) 2);
-        if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+skiphop));
-        ssi=ssi+epos+2;
-        continue);
-      if(qpos==nil :then
-        if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+rest));
-        ssi=ssz;continue);
-      if(qpos>0 && inscopearg :then
-        at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+substr(rest qpos)));
-      if(sinstr>0 :then sinstr=0 :else sinchr=0);
-      ssi=ssi+qpos+1;
+    if(headstr=="global"||headstr=="local" :then
+      /* a folded keyword operand answers its own name via dot access
+         (nil when absent, and equally nil -- never a crash -- on a
+         plain leaf operand that isn't a keyword at all) */
+      isclear=false;ci=1;
+      while(ci<nsz
+        op=at(node ci);
+        if(op.clear!=nil :then isclear=true);
+        ci=ci+1);
+      if(isclear && headstr=="global" && nsz>=2 :then
+        gname0=print(at(node 1) :str);
+        if(index(clearedglobal gname0)==nil :then
+          clearedglobal=clearedglobal,gname0));
+      /* still queue this call's own operands -- an embedded assignment
+         inside a computed argument (e.g. local(symadd(f(x=1)))) is
+         still a real bare write to find */
+      ci=1;
+      while(ci<nsz
+        worknodes=worknodes,at(node ci);workinfunc=workinfunc,infunc;
+        ci=ci+1);
       continue);
 
-    pesc=index(rest "\\");
-    pq=index(rest "\"");
-    pc2=index(rest "'");
-    pcm=index(rest "//");
-    po=index(rest "(");
-    pk=index(rest ")");
-    peq=index(rest "=");
-    nearest=nil;kind=nil;
-    if(pesc!=nil && (nearest==nil||pesc<nearest) :then nearest=pesc;kind="esc");
-    if(pq!=nil && (nearest==nil||pq<nearest) :then nearest=pq;kind="openq");
-    if(pc2!=nil && (nearest==nil||pc2<nearest) :then nearest=pc2;kind="openc");
-    if(pcm!=nil && (nearest==nil||pcm<nearest) :then nearest=pcm;kind="comment");
-    if(po!=nil && (nearest==nil||po<nearest) :then nearest=po;kind="open");
-    if(pk!=nil && (nearest==nil||pk<nearest) :then nearest=pk;kind="close");
-    if(peq!=nil && (nearest==nil||peq<nearest) :then nearest=peq;kind="eq");
+    isassignfam=(headstr=="assign"||headstr=="mod_assign"||headstr=="mpy_assign"||
+      headstr=="add_assign"||headstr=="sub_assign"||headstr=="div_assign");
 
-    if(nearest==nil :then
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+rest));
-      ssi=ssz;continue);
+    if(isassignfam :then
+      lhs=at(node 1);rhs=at(node 2);
+      lhshead=nil;
+      if(islist(lhs) :then lhshead=print(at(lhs 0) :str));
 
-    if(nearest>0 && inscopearg :then
-      at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+substr(rest nearest)));
+      /* queued so a global/local lvalue's own :clear is honored (and
+         any nested assignment in lhs or rhs is found) whatever else
+         this statement also does */
+      worknodes=worknodes,lhs;workinfunc=workinfunc,infunc;
+      worknodes=worknodes,rhs;workinfunc=workinfunc,infunc;
 
-    if(kind=="esc" :then
-      skiphop=substr(substr(rest nearest :after) 2);
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+skiphop));
-      ssi=ssi+nearest+2;
+      if((lhshead=="global"||lhshead=="local") && size(lhs)==2 :then
+        gname=print(at(lhs 1) :str);
+        if(lhshead=="global" :then
+          gcidx=index(clearedglobal gname);
+          if(gcidx!=nil :then at(clearedglobal gcidx :del));
+          if(index(globalnames gname)==nil :then
+            globalnames=globalnames,gname;
+            globallines=globallines,stmtline)
+        :else
+          if(index(localnames gname)==nil :then
+            localnames=localnames,gname))
+      :else if(!islist(lhs) :then
+        name=print(lhs :str);
+
+        if(!infunc :then
+          gidx=index(globalnames name);
+          if(gidx!=nil && index(clearedglobal name)==nil &&
+            index(localnames name)==nil &&
+            index(flaggedglobal name)==nil :then
+            flaggedglobal=flaggedglobal,name;
+            gline=at(globallines gidx);
+            wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+            print("%s:%v: %s: global(%s) declares %s global here\n" target gline wtag name name);
+            print("%s:%v: %s: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is intentional\n"
+              target stmtline wtag name name name);
+            if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1)));
+
+        /* the command-shadow FAIL check itself needs eval() (istype()/
+           help() on a dynamically-built name), run below once this
+           whole tree is walked rather than here */
+        shadownames=shadownames,name;
+        shadowlines=shadowlines,stmtline));
       continue);
 
-    if(kind=="openq" :then
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"\""));
-      sinstr=1;ssi=ssi+nearest+1;continue);
-    if(kind=="openc" :then
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"'"));
-      sinchr=1;ssi=ssi+nearest+1;continue);
-    if(kind=="comment" :then slcmt=1;ssi=ssi+nearest+2;continue);
-
-    if(kind=="open" :then
-      ssi=ssi+nearest+1;
-      fbpos=ssi-2;
-      while(fbpos>=0 && index(wschars at(schars fbpos))!=nil
-        fbpos=fbpos-1);
-      fbnameend=fbpos;
-      while(fbpos>=0 && index(idchars at(schars fbpos))!=nil
-        fbpos=fbpos-1);
-      fbname="";fbi=fbpos+1;
-      while(fbi<=fbnameend
-        fbname=fbname+at(schars fbi);
-        fbi=fbi+1);
-      dotpos=fbpos;
-      while(dotpos>=0 && index(wschars at(schars dotpos))!=nil
-        dotpos=dotpos-1);
-      fbisdot=(dotpos>=0 && at(schars dotpos)=='.');
-      fbisfunc=(fbname=="func" && !fbisdot);
-
-      isscopecall=((fbname=="global"||fbname=="local") && !fbisdot);
-      parenkind=parenkind,if(fbisfunc :then "func" :else if(isscopecall :then "scope" :else "other"));
-      parenscopename=parenscopename,if(isscopecall :then fbname :else "");
-      parenargtext=parenargtext,"";
-      parenargok=parenargok,true;
-      if(fbisfunc :then funcdepthcount=funcdepthcount+1);
-      continue);
-    if(kind=="close" :then
-      ssi=ssi+nearest+1;
-      if(size(parenkind)>0 :then
-        wasfunc=at(parenkind nil :del);
-        wasscopename=at(parenscopename nil :del);
-        wasargtext=at(parenargtext nil :del);
-        wasargok=at(parenargok nil :del);
-        if(wasfunc=="func" :then funcdepthcount=funcdepthcount-1);
-        if(wasfunc=="scope" :then
-          wsi=ssi;
-          while(wsi<ssz && index(wschars at(schars wsi))!=nil
-            wsi=wsi+1);
-          isassigncall=false;
-          if(wsi<ssz && at(schars wsi)=='=' :then
-            wnc=' ';
-            if(wsi+1<ssz :then wnc=at(schars wsi+1));
-            if(wnc!='=' :then isassigncall=true));
-
-          argtoks=split(wasargtext :tokstr);
-          gname=nil;isclear=false;
-          if(wasargok && size(argtoks)>=1 :then gname=at(argtoks 0));
-          if(wasargok && size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
-
-          if(wasargok && isclear && wasscopename=="global" :then
-            if(index(clearedglobal gname)==nil :then
-              clearedglobal=clearedglobal,gname));
-          if(wasargok && !isclear && isassigncall && size(argtoks)==1 && gname!=nil :then
-            if(wasscopename=="global" :then
-              gcidx=index(clearedglobal gname);
-              if(gcidx!=nil :then at(clearedglobal gcidx :del));
-              if(index(globalnames gname)==nil :then
-                globalnames=globalnames,gname;
-                globallines=globallines,stmtline));
-            if(wasscopename=="local" :then
-              if(index(localnames gname)==nil :then
-                localnames=localnames,gname)))));
-      if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
-        at(parenargok size(parenargok)-1 :set false));
+    if(headstr=="func" :then
+      fi=1;
+      while(fi<nsz
+        worknodes=worknodes,at(node fi);workinfunc=workinfunc,true;
+        fi=fi+1);
       continue);
 
-    /* kind=="eq" */
-    ssi=ssi+nearest+1;
-    if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"="));
+    gi=1;
+    while(gi<nsz
+      worknodes=worknodes,at(node gi);workinfunc=workinfunc,infunc;
+      gi=gi+1));
 
-    nextc=' ';
-    if(ssi<ssz :then nextc=at(schars ssi));
-    if(nextc=='=' :then continue);
-    wpos=ssi-2;
-    while(wpos>=0 && index(wschars at(schars wpos))!=nil
-      wpos=wpos-1);
-    prevc=' ';
-    if(wpos>=0 :then prevc=at(schars wpos));
-    if(index("!<>" prevc)!=nil :then continue);
-    idend=wpos;
-    if(index("+-*/%" prevc)!=nil :then idend=wpos-1);
-    while(idend>=0 && index(wschars at(schars idend))!=nil
-      idend=idend-1);
-
-    idstart=idend;
-    while(idstart>=0 && index(idchars at(schars idstart))!=nil
-      idstart=idstart-1);
-    idstart=idstart+1;
-    if(idstart>idend :then continue);
-    if(index("0123456789" at(schars idstart))!=nil :then continue);
-    if(idstart>0 :then
-      pc2=at(schars idstart-1);
-      if(pc2=='.' || pc2=='@' :then continue));
-
-    name="";nmi=idstart;
-    while(nmi<=idend
-      name=name+at(schars nmi);
-      nmi=nmi+1);
-
-    gidx=index(globalnames name);
-    if(gidx!=nil && index(clearedglobal name)==nil &&
-      index(localnames name)==nil && funcdepthcount==0 &&
-      index(flaggedglobal name)==nil :then
-      flaggedglobal=flaggedglobal,name;
-      gline=at(globallines gidx);
-      wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
-      print("%s:%v: %s: global(%s) declares %s global here\n" target gline wtag name name);
-      print("%s:%v: %s: %s=...: writes it bare -- lands in the same global, not a fresh local -- wrap in local(%s) if a private copy was intended, or global(%s) if the global update is intentional\n"
-        target stmtline wtag name name name);
-      if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1));
-
-    istypecmd=print("istype(%s CommandType)" name :str);
-    isshadow=eval(istypecmd);
-    if(isshadow!=true :then continue);
-
-    hsig=name;
-    helpcmd=print("help(%s)" name :str);
-    helptext=eval(helpcmd);
-    if(istype(helptext StringType) :then
-      hlines=split(helptext :tokstr '\n');
-      hsig=at(hlines 0));
-
-    print("%s:%v: FAIL: %s=...: \"%s\" is a registered command (%s) -- assigning to it will have no effect\n"
-      target stmtline name name hsig);
-    nfail=nfail+1)
+  /* the command-shadow FAIL check itself, deferred out of the walk
+     above (see shadownames' own comment) */
+  shdi=0;
+  while(shdi<size(shadownames)
+    sname=at(shadownames shdi);sline=at(shadowlines shdi);
+    istypecmd=print("istype(%s CommandType)" sname :str);
+    isshadowcmd=eval(istypecmd);
+    if(isshadowcmd==true :then
+      hsig=sname;
+      helpcmd=print("help(%s)" sname :str);
+      helptext=eval(helpcmd);
+      if(istype(helptext StringType) :then
+        hlines=split(helptext :tokstr '\n');
+        hsig=at(hlines 0));
+      print("%s:%v: FAIL: %s=...: \"%s\" is a registered command (%s) -- assigning to it will have no effect\n"
+        target sline sname sname hsig);
+      nfail=nfail+1);
+    shdi=shdi+1);
+  shadownames=list();shadowlines=list()
 
   pfcmd=print("postfix(%s)" stmt :str);
   pftext=eval(pfcmd);
