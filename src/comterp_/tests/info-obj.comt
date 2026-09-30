@@ -19,6 +19,7 @@ print("info-obj.comt version 1\n")
 //   test 7:  info(timeobj) -- a live colon list round-tripping through
 //            time() for a dateless instant and for a duration alike
 //   test 8:  info(sockobj) -- (:host :port) against a real comterp server
+//   test 9:  info(lst) -- (:count :coloned :nested :cutoff) on a plain list
 //
 // PipeObj is deliberately NOT exercised here -- constructing a real
 // bidirectional pipe (open(cmd "rw" :pipe), which forks via popen2())
@@ -130,6 +131,17 @@ if(!have_lsof8 :then
     remote(sock8 "exit" :nowait);
     close(sock8));
   ok=ok&&ok8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: info(lst) reports :count :coloned :nested :cutoff on a plain list ---
+errmsg(:clear)
+l9=1,2,3,4
+i9=info(l9)
+c9=1:2
+ic9=info(c9)
+ok9=(i9.count==4)&&(i9.coloned==false)&&(i9.nested==false)&&(i9.cutoff==-1)&&(ic9.coloned==true)
+ok=ok&&ok9
+print("9 info(lst) plain vs. coloned (expect count 4, coloned false/true): %v\n" ok9)
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)
