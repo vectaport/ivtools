@@ -19,6 +19,8 @@ print("info-obj.comt version 1\n")
 //   test 7:  info(timeobj) -- a live colon list round-tripping through
 //            time() for a dateless instant and for a duration alike
 //   test 8:  info(sockobj) -- (:host :port) against a real comterp server
+//   test 9:  info(lst) -- (:count :coloned :nested :cutoff) on a plain list,
+//            default values plus :nested/:cutoff away from their defaults
 //
 // PipeObj is deliberately NOT exercised here -- constructing a real
 // bidirectional pipe (open(cmd "rw" :pipe), which forks via popen2())
@@ -130,6 +132,32 @@ if(!have_lsof8 :then
     remote(sock8 "exit" :nowait);
     close(sock8));
   ok=ok&&ok8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: info(lst) reports :count :coloned :nested :cutoff on a plain list ---
+errmsg(:clear)
+l9=1,2,3,4
+i9=info(l9)
+c9=1:2
+ic9=info(c9)
+ok9=(i9.count==4)&&(i9.coloned==false)&&(i9.nested==false)&&(i9.cutoff==-1)&&(ic9.coloned==true)
+ok=ok&&ok9
+print("9 info(lst) plain vs. coloned (expect count 4, coloned false/true): %v\n" ok9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9b: info(lst).nested and .cutoff away from their defaults ---
+// x9b's underlying list gets nested_insert(true) stamped on it the moment
+// a symbol-table read of it becomes ':' 's first operand (colonlist.comt
+// test 11) -- the same guard that keeps (x9b):3 from mutating x9b in place
+errmsg(:clear)
+x9b=1:2
+y9b=(x9b):3
+inest9b=info(x9b)
+l9c=list(1,2,3,4,5 :cutoff 2)
+icutoff9b=info(l9c)
+ok9b=(inest9b.nested==true)&&(icutoff9b.cutoff==2)
+ok=ok&&ok9b
+print("9b info(lst).nested and .cutoff away from defaults (expect true, 2): %v %v\n" inest9b.nested icutoff9b.cutoff)
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)
