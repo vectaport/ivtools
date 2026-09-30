@@ -140,6 +140,16 @@ dy=at(lbrt_b 1)-at(lbrt_a 1)
 ok=ok&&(dx>90&&dx<110&&dy>90&&dy<110)
 print("8 raster()'s xbeg,ybeg positions the :rgb form (expect dx,dy ~100,100): %v,%v\n" dx dy)
 
+// --- test 9: raster(:rgb ...) with no leading coords at all keeps the
+// old gravity-relative default placement -- it must land within the
+// visible viewport, not off at some untranslated drawing-space point
+// that a pan/zoom could put far outside view. ---
+r9=raster(:rgb 4,4,pixstr)
+ok=ok&&(r9!=nil)
+scrn_9=mbr(r9 :scrn)
+ok=ok&&(at(scrn_9 0)>=0&&at(scrn_9 1)>=0&&at(scrn_9 2)<=ncols()&&at(scrn_9 3)<=nrows())
+print("9 raster(:rgb ...) with no coords lands on-screen via gravity (expect within {0,0,%v,%v}): %v\n" ncols() nrows() scrn_9)
+
 pastemode(0)
 
 print("rasterrgb: %v\n" ok)

@@ -877,9 +877,12 @@ void CreateRasterFunc::execute() {
 
       /* xend,yend go unused here -- the raster's pixel dimensions come
 	 from :rgb's own w,h, not from this span -- but xbeg,ybeg still
-	 set where it's placed, same as the non-:rgb form below. */
+	 set where it's placed, same as the non-:rgb form below. Omitting
+	 xbeg,ybeg entirely keeps the old gravity-based default placement,
+	 rather than forcing drawing-space (0,0). */
+      boolean has_coords = vect.is_type(ComValue::ArrayType) && vect.array_len() >= 2;
       float xbeg = 0., ybeg = 0.;
-      if (vect.is_type(ComValue::ArrayType) && vect.array_len() >= 2) {
+      if (has_coords) {
 	ALIterator vi;
 	AttributeValueList* vavl = vect.array_val();
 	vavl->First(vi);
@@ -888,7 +891,7 @@ void CreateRasterFunc::execute() {
 	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing(
 	  sx, sy, xbeg, ybeg);
       }
-      RasterOvComp* comp = create_from_rgb(rgbv, al, xbeg, ybeg);
+      RasterOvComp* comp = create_from_rgb(rgbv, al, has_coords, xbeg, ybeg);
       if (PasteModeFunc::paste_mode() == 0)
         cmd = new PasteCmd(_ed, new Clipboard(comp));
       ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
@@ -954,7 +957,8 @@ void CreateRasterFunc::execute() {
 }
 
 RasterOvComp* CreateRasterFunc::create_from_rgb(
-    ComValue& rgbv, AttributeList* al, float xbeg, float ybeg
+    ComValue& rgbv, AttributeList* al, boolean has_coords,
+    float xbeg, float ybeg
 ) {
     AttributeValueList* avl = rgbv.array_val();
     ALIterator i;
@@ -1017,15 +1021,23 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(
     }
     raster->flush();
 
-    Transformer* t = new Transformer();
-    t->Translate(xbeg, ybeg);
-    rasterrect->SetTransformer(t);
-    Unref(t);
-    /* xbeg,ybeg already imply the translate above, so the viewer-relative
-       gravity transformer would double it; an explicit :transform wins. */
-    if (al && al->find(symbol_add("transform"))) {
+    if (has_coords) {
+      Transformer* t = new Transformer();
+      t->Translate(xbeg, ybeg);
+      rasterrect->SetTransformer(t);
+      Unref(t);
+      /* xbeg,ybeg already imply the translate above, so the viewer-relative
+	 gravity transformer would double it; an explicit :transform wins. */
+      if (al && al->find(symbol_add("transform"))) {
+	Transformer* rel = get_transformer(al);
+	rasterrect->SetTransformer(rel);
+	Unref(rel);
+      }
+    } else {
+      /* no xbeg,ybeg given -- fall back to gravity placement (or an
+	 explicit :transform), same default the :rgb form always had. */
       Transformer* rel = get_transformer(al);
-      rasterrect->SetTransformer(rel);
+      if (rel) rasterrect->SetTransformer(rel);
       Unref(rel);
     }
     set_graphic_gs(al, rasterrect);
