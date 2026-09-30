@@ -41,8 +41,8 @@
 /* forward decl: InfoFunc::execute() identifies a ring stream by comparing
    against this singleton, defined down by FeedFunc/RingNextFunc below */
 static RingNextFunc* ring_next_func(ComTerp* comterp);
-/* forward decl: InfoFunc::execute() reports a ring's free room via this,
-   defined down alongside the other ring helpers below */
+/* forward decl: InfoFunc::execute() reports a ring's free slot count via
+   this, defined down alongside the other ring helpers below */
 static int ring_avail(AttributeValueList* avl);
 
 /*****************************************************************************/
@@ -1465,7 +1465,7 @@ void InfoFunc::execute() {
     static int count_sym = symbol_add("count");
     static int cap_sym = symbol_add("cap");
     static int wrap_sym = symbol_add("wrap");
-    static int room_sym = symbol_add("room");
+    static int free_sym = symbol_add("free");
     static int buf_sym = symbol_add("buf");
     ComValue bufv(*((AttributeValue*)avl->Get(0)));
     int head = ((AttributeValue*)avl->Get(1))->int_val();
@@ -1493,14 +1493,14 @@ void InfoFunc::execute() {
     /* same "how many more pushes fit" reckoning the push path itself
        uses, exposed directly so a caller doesn't have to reconstruct it
        as cap-count (which is only right in :wrap mode -- see ring_avail()) */
-    ComValue roomv(ring_avail(avl));
+    ComValue freev(ring_avail(avl));
     al->add_attr(mode_sym3, modeval);
     al->add_attr(head_sym, headv);
     al->add_attr(tail_sym, tailv);
     al->add_attr(count_sym, countv2);
     al->add_attr(cap_sym, capv);
     al->add_attr(wrap_sym, wrapv);
-    al->add_attr(room_sym, roomv);
+    al->add_attr(free_sym, freev);
 
     if (count>0) {
       /* one contiguous run when it doesn't straddle the end, two when it
