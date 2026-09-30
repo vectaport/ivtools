@@ -188,14 +188,11 @@ void AssignFunc::execute() {
       ComValue result(pop_stack());
       *operand2 = result;
     } else if (operand1.is_stream() && operand1.lhs_assign()) {
-      /* @ with a streamed index, e.g. r@0..9=val(s): eval_expr_internals
-	 packaged the at() lvalue-probe into a deferred stream instead of
-	 running it (comterp.c), carrying lhs_assign along so each pull now
-	 yields a settable [list,idx] pair (ListAtFunc, listfunc.c) instead
-	 of a read.  Drain it, zipping operand2 alongside when it's itself a
-	 stream (broadcasting a scalar otherwise), completing one :set write
-	 per pair through the same tested path the single-index case above
-	 uses, and collect what each write returned. */
+      /* @ with a streamed index, e.g. r@0..9=val(s): drains the deferred
+	 at() stream (comterp.c/strmfunc.c), zip-writing operand2 alongside
+	 when it's itself a stream, else broadcasting it -- see
+	 ARCHITECTURE.md, "at()'s lhs flag", for why this needs draining
+	 here rather than reusing the scalar pair branch above. */
       static int set_symid = symbol_add("set");
       boolean rhs_is_stream = operand2->is_stream();
       ComValue idxstream(operand1);
@@ -205,6 +202,19 @@ void AssignFunc::execute() {
 	NextFunc::execute_impl(comterp(), idxstream);
 	ComValue pairv(pop_stack());
 	if (pairv.is_null()) break;
+	AttributeValueList* pair = pairv.array_val();
+	if (!pairv.is_array() || !pairv.lhs_assign() || !pair || pair->Number()!=2) {
+	  /* the streamed target isn't list/string-shaped (e.g. an attrlist) --
+	     at() has nothing writable to hand back for it, same as the
+	     non-streamed al@n=val case (test 5, atop.comt): no effect. */
+	  cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
+	    symbol_pntr(pairv.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";
+	  delete results;
+	  delete operand2;
+	  reset_stack();
+	  push_stack(ComValue::nullval());
+	  return;
+	}
 	ComValue writeval;
 	if (rhs_is_stream) {
 	  NextFunc::execute_impl(comterp(), rhsstream);
@@ -213,7 +223,6 @@ void AssignFunc::execute() {
 	  writeval = tick;
 	} else
 	  writeval = *operand2;
-	AttributeValueList* pair = pairv.array_val();
 	push_stack(*pair->Get(0));
 	push_stack(*pair->Get(1));
 	push_stack(writeval);

@@ -953,15 +953,10 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  comterp->fire_funcobj(fobjv);
 	} else {
 	  if (streamv.lhs_assign()) {
-	    /* an immediate at()/global()/local() dispatch signals lvalue
-	       context to the callee via a stale stack slot -- pop_stack()
-	       only moves the stack pointer, it never clears the vacated
-	       entry, so the just-popped command token's lhs_assign() bit is
-	       still readable one past the new top.  This call is firing long
-	       after that original dispatch, so reproduce the same signal on
-	       purpose: push one throwaway lhs_assign()-flagged value and pop
-	       it right back off, leaving its bits in that same slot for
-	       ListAtFunc's existing stack_top(nkeys()+1) check (listfunc.c). */
+	    /* reasserts the lvalue signal ListAtFunc reads off a stale stack
+	       slot (see ARCHITECTURE.md, "at()'s lhs flag") -- that slot is
+	       long gone by replay time, so push one flagged throwaway value
+	       and pop it right back off to leave a fresh one in its place. */
 	    ComValue sentinel(ComValue::nullval());
 	    sentinel.lhs_assign(1);
 	    comterp->push_stack(sentinel);
