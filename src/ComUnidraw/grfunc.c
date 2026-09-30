@@ -875,11 +875,9 @@ void CreateRasterFunc::execute() {
 
     if (rgbv.is_type(ComValue::ArrayType)) {
 
-      /* xend,yend go unused here -- the raster's pixel dimensions come
-	 from :rgb's own w,h, not from this span -- but xbeg,ybeg still
-	 set where it's placed, same as the non-:rgb form below. Omitting
-	 xbeg,ybeg entirely keeps the old gravity-based default placement,
-	 rather than forcing drawing-space (0,0). */
+      /* xend,yend are unused for :rgb -- pixel dims come from :rgb's own
+	 w,h. xbeg,ybeg position it when given; omitted, has_coords stays
+	 false and the gravity-based default below applies instead. */
       boolean has_coords = vect.is_type(ComValue::ArrayType) && vect.array_len() >= 2;
       float xbeg = 0., ybeg = 0.;
       if (has_coords) {
