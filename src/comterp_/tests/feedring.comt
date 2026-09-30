@@ -1,10 +1,11 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 18 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 19 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
-// push, and a sliced first argument
+// push, a sliced first argument, and a push overlapping the ring's own
+// backing bytes
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -166,6 +167,20 @@ c17a=next(ring17)
 c17b=next(ring17)
 ok=ok&&(c17a=='b')&&(c17b=='c')
 print("17 feed(\"abcd\"@1:3) rings over just the slice (expect cap 2, 'b' 'c'): %v %v %v\n" i17.cap c17a c17b)
+
+// --- 18: pushing a value that overlaps the ring's own backing bytes (a
+// slice of the same string the ring is built over) must push the bytes
+// as they were before the push started, not bytes already overwritten by
+// an earlier iteration of the same push ---
+s18="abcd"
+ring18=feed(s18)
+next(ring18); next(ring18)
+feed(ring18 'X'); feed(ring18 'Y')
+next(ring18); next(ring18); next(ring18); next(ring18)
+sl18=s18@0:4
+feed(ring18 sl18)
+ok=ok&&(s18=="cdXY")
+print("18 feeding a ring a slice of its own backing string (expect \"cdXY\"): %v\n" s18)
 
 print("feedring: %v\n" ok)
 ok

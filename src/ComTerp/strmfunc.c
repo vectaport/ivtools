@@ -1646,7 +1646,11 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
    literal byte, so this is the only way a multi-character string can go
    in at all, whatever rawflag says.  Indexes the string's own bytes
    directly (not cstr(), which truncates at the first embedded NUL) so a
-   slice containing one still pushes its full slicelen() bytes.
+   slice containing one still pushes its full slicelen() bytes.  Snapshots
+   those bytes before writing any of them, since the source can be the
+   ring's own backing string (e.g. feeding a ring a slice of itself) --
+   writing in place while still reading would let an earlier write
+   clobber a byte a later iteration hasn't read yet.
 
    Any other StringType (bquoted, or :raw-protected) can only be honored
    when it's exactly one byte long -- a ring has nowhere to put a whole
@@ -1661,8 +1665,9 @@ static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean raw
   if (!rawflag && streams_as_characters(v)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
+    std::string snapshot(base, len);
     for (int k=0; k<len; k++)
-      if (!ring_push_char(avl, base[k])) return false;
+      if (!ring_push_char(avl, snapshot[k])) return false;
     return true;
   }
   if (v.is_type(ComValue::StringType)) {
