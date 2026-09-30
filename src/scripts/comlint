@@ -274,29 +274,57 @@ while((srcline=gets(fp))!=nil
      across the whole buffered statement, not a per-line net -- checked
      for going negative the instant a ')' is seen, since that's the
      premature-close injection this guards against (see the comment
-     above stmtbuf's reset). */
-  pidx=0;pchars=split(srcline);instr=0;inchr=0;pescape=0;lcmt=0;
-  while(pidx<size(pchars) && !lcmt
-    pc=at(pchars pidx);
-    pidx=pidx+1;
-    if(pescape>0 :then pescape=0;continue);
-    if(pc=='\\' :then pescape=1;continue);
+     above stmtbuf's reset).
+
+     Scanned by jumping straight to the nearest structurally-relevant
+     character (index() on the whole remaining line) instead of
+     visiting every character with at() -- a backslash always wins the
+     jump (it escapes whatever follows, in or out of a literal, so
+     that next character is skipped without examining it), otherwise
+     the nearest of the state's own relevant markers (just the closing
+     delimiter inside a string/char literal; quote-open/char-open/
+     paren-open/paren-close/comment-start outside one) is handled and
+     the line resumes right after it. Runs of ordinary characters
+     between markers are skipped in one hop rather than one at a
+     time. */
+  remaining=srcline;instr=0;inchr=0;
+  while(size(remaining)>0
+    bpos=index(remaining "\\");
+    term=nil;kind=nil;
     if(instr>0 :then
-      if(pc=='"' :then instr=0);
-      continue);
+      term=index(remaining "\"");kind="closeq");
     if(inchr>0 :then
-      if(pc=='\'' :then inchr=0);
+      term=index(remaining "'");kind="closec");
+    if(instr==0 && inchr==0 :then
+      tq=index(remaining "\"");
+      tc=index(remaining "'");
+      to=index(remaining "(");
+      tk=index(remaining ")");
+      tcm=index(remaining "//");
+      term=nil;kind=nil;
+      if(tq!=nil && (term==nil||tq<term) :then term=tq;kind="openq");
+      if(tc!=nil && (term==nil||tc<term) :then term=tc;kind="openc");
+      if(to!=nil && (term==nil||to<term) :then term=to;kind="open");
+      if(tk!=nil && (term==nil||tk<term) :then term=tk;kind="close");
+      if(tcm!=nil && (term==nil||tcm<term) :then term=tcm;kind="comment"));
+
+    if(bpos!=nil && (term==nil || bpos<=term) :then
+      nextpos=bpos+2;
+      if(nextpos>=size(remaining) :then remaining="" :else remaining=substr(remaining nextpos :after));
       continue);
-    if(pc=='"' :then instr=1;continue);
-    if(pc=='\'' :then inchr=1;continue);
-    if(pc=='/' :then
-      pnc=' ';
-      if(pidx<size(pchars) :then pnc=at(pchars pidx));
-      if(pnc=='/' :then lcmt=1;continue));
-    if(pc=='(' :then mlbal=mlbal+1;continue);
-    if(pc==')' :then
+
+    if(term==nil :then remaining="";continue);
+
+    if(kind=="closeq" :then instr=0;remaining=substr(remaining term+1 :after);continue);
+    if(kind=="closec" :then inchr=0;remaining=substr(remaining term+1 :after);continue);
+    if(kind=="openq" :then instr=1;remaining=substr(remaining term+1 :after);continue);
+    if(kind=="openc" :then inchr=1;remaining=substr(remaining term+1 :after);continue);
+    if(kind=="comment" :then remaining="";continue);
+    if(kind=="open" :then mlbal=mlbal+1;remaining=substr(remaining term+1 :after);continue);
+    if(kind=="close" :then
       mlbal=mlbal-1;
-      if(mlbal<0 :then stmtbad=true)));
+      if(mlbal<0 :then stmtbad=true);
+      remaining=substr(remaining term+1 :after);continue));
 
   if(stmtnlines==0 :then
     stmtlineno=lineno;stmtbuf=srcline;
@@ -337,83 +365,85 @@ while((srcline=gets(fp))!=nil
      skipped rather than assumed absent, and a '//' line comment (to the
      next '\n' -- stmt can join several source lines) is never scanned
      as code. */
-  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;sescape=0;slcmt=0;
-  /* one entry per currently open '(' -- kind is "func", "scope" (a
-     global(/local( call), or "other"; scopename/argtext/argok are
-     only meaningful for a "scope" entry, but every open paren pushes
-     one of each so the stacks stay in lockstep and a plain ')' can
-     always pop by position regardless of kind. argtext accumulates
-     this frame's argument text char-by-char as the SAME loop that
-     already tracks strings/comments/escapes below visits it (so a
-     quoted ')' or a '// comment' inside the argument is handled by
-     the one correct implementation, not a second one); argok goes
-     false the moment a nested '(' opens within it, since global(sym)/
-     local(sym)'s one argument is only ever recognizable as a
-     declaration when it's a bare symbol (optionally "sym :clear") --
-     anything built from a nested call (global(symadd(dynamic)), a
-     real, valid call per a real run) can't be resolved to a name
-     statically, so it's left unregistered rather than guessed at. */
+  /* Scanned by jumping straight to the nearest special character
+     (index() on the remaining statement text) instead of visiting
+     every character -- the '(' / ')' / '=' handling below is unchanged
+     from a char-at-a-time scan, only the stepping between those
+     characters is now a jump; a run of ordinary characters between two
+     specials, or the whole remaining span of a string/char literal or
+     comment, is consumed in one hop and (when inside a still-open
+     scope-call's argument) appended to argtext in that one piece
+     rather than one append per character. A backslash always wins the
+     jump, in or out of a literal, since it escapes whatever follows. */
+  schars=split(stmt);ssz=size(schars);ssi=0;sinstr=0;sinchr=0;slcmt=0;
   parenkind=list();parenscopename=list();parenargtext=list();parenargok=list();
   funcdepthcount=0;
   while(ssi<ssz
-    sc=at(schars ssi);
-    ssi=ssi+1;
-    /* whether this char lands inside a still-open scope-call's argument,
-       decided from the stack state left by prior iterations -- computed
-       once up front so every early-continue branch below (string/char
-       literal content, an escaped char) can still append its character
-       to that frame's argtext before skipping the rest of the loop body,
-       instead of only the fallthrough case at the bottom reaching it;
-       a quoted argument's content (e.g. the "s" in global(x "s")=1) is
-       argument text like any other and must count toward its token
-       total, same as an unquoted one -- only true comment text (already
-       excluded by the slcmt check above) and this frame's own enclosing
-       parens are not part of the argument. */
     inscopearg=(size(parenkind)>0 && at(parenkind nil)=="scope");
-    if(sc=='\n' :then slcmt=0;continue);
-    if(slcmt>0 :then continue);
-    if(sescape>0 :then sescape=0;
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sc=='\\' :then sescape=1;
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sinstr>0 :then
-      if(sc=='"' :then sinstr=0);
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sinchr>0 :then
-      if(sc=='\'' :then sinchr=0);
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sc=='"' :then sinstr=1;
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sc=='\'' :then sinchr=1;
-      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
-      continue);
-    if(sc=='/' :then
-      snc=' ';
-      if(ssi<ssz :then snc=at(schars ssi));
-      if(snc=='/' :then slcmt=1;continue));
+    rest=substr(stmt ssi :after);
 
-    /* a bare write inside a func(...) literal's body lands in that
-       call's own frame, never in a same-named global, however outer
-       code declared it (confirmed against a real global(x)=1;
-       f=func(x=2;0);f(); run -- global(x) still reads 1 afterward) --
-       so track paren depth here too, tagging each '(' with whether the
-       identifier immediately before it is "func", and count how many
-       still-open parens are func-tagged. Popped with at(:del) (list has
-       no other stack-pop primitive); a non-func paren's close is a
-       no-op on the count. */
-    if(sc=='(' :then
-      /* the identifier immediately before '(' may have whitespace
-         between it and the paren (confirmed valid: global (x)=1 still
-         registers x for a real global(x) read afterward), and a
-         dot-call's '.' may have whitespace after it too (confirmed:
-         postfix(obj. global(x)) still tags dot[2|0|1]*) -- so skip
-         whitespace on both sides of the identifier before checking
-         either boundary. */
+    if(slcmt>0 :then
+      nlpos=index(rest "\n");
+      if(nlpos==nil :then ssi=ssz :else ssi=ssi+nlpos+1;slcmt=0);
+      continue);
+
+    if(sinstr>0 || sinchr>0 :then
+      closepat=if(sinstr>0 :then "\"" :else "'");
+      epos=index(rest "\\");
+      qpos=index(rest closepat);
+      if(epos!=nil && (qpos==nil||epos<qpos) :then
+        skiphop=substr(substr(rest epos :after) 2);
+        if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+skiphop));
+        ssi=ssi+epos+2;
+        continue);
+      if(qpos==nil :then
+        if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+rest));
+        ssi=ssz;continue);
+      if(qpos>0 && inscopearg :then
+        at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+substr(rest qpos)));
+      if(sinstr>0 :then sinstr=0 :else sinchr=0);
+      ssi=ssi+qpos+1;
+      continue);
+
+    pesc=index(rest "\\");
+    pq=index(rest "\"");
+    pc2=index(rest "'");
+    pcm=index(rest "//");
+    po=index(rest "(");
+    pk=index(rest ")");
+    peq=index(rest "=");
+    nearest=nil;kind=nil;
+    if(pesc!=nil && (nearest==nil||pesc<nearest) :then nearest=pesc;kind="esc");
+    if(pq!=nil && (nearest==nil||pq<nearest) :then nearest=pq;kind="openq");
+    if(pc2!=nil && (nearest==nil||pc2<nearest) :then nearest=pc2;kind="openc");
+    if(pcm!=nil && (nearest==nil||pcm<nearest) :then nearest=pcm;kind="comment");
+    if(po!=nil && (nearest==nil||po<nearest) :then nearest=po;kind="open");
+    if(pk!=nil && (nearest==nil||pk<nearest) :then nearest=pk;kind="close");
+    if(peq!=nil && (nearest==nil||peq<nearest) :then nearest=peq;kind="eq");
+
+    if(nearest==nil :then
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+rest));
+      ssi=ssz;continue);
+
+    if(nearest>0 && inscopearg :then
+      at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+substr(rest nearest)));
+
+    if(kind=="esc" :then
+      skiphop=substr(substr(rest nearest :after) 2);
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+skiphop));
+      ssi=ssi+nearest+2;
+      continue);
+
+    if(kind=="openq" :then
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"\""));
+      sinstr=1;ssi=ssi+nearest+1;continue);
+    if(kind=="openc" :then
+      if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"'"));
+      sinchr=1;ssi=ssi+nearest+1;continue);
+    if(kind=="comment" :then slcmt=1;ssi=ssi+nearest+2;continue);
+
+    if(kind=="open" :then
+      ssi=ssi+nearest+1;
       fbpos=ssi-2;
       while(fbpos>=0 && index(wschars at(schars fbpos))!=nil
         fbpos=fbpos-1);
@@ -427,28 +457,9 @@ while((srcline=gets(fp))!=nil
       dotpos=fbpos;
       while(dotpos>=0 && index(wschars at(schars dotpos))!=nil
         dotpos=dotpos-1);
-      /* obj.func(...)/obj.global(...)/obj.local(...) call a method on
-         obj -- unrelated to the same-named builtin -- so an identifier
-         match alone isn't enough; require it not be a dot-call by
-         checking the nearest non-whitespace character before it isn't
-         '.' */
       fbisdot=(dotpos>=0 && at(schars dotpos)=='.');
       fbisfunc=(fbname=="func" && !fbisdot);
 
-      /* global(sym)/local(sym) (optionally "sym :clear") are the only
-         forms that touch the table -- see the comment by globalnames
-         above. Their argument is read as raw text (rather than
-         reconstructed from postfix(), whose trailing '*' marks
-         post-eval status, not a statement boundary -- confirmed via a
-         real run showing list(1)'s own call token is starred exactly
-         like assign's) by the SAME char-by-char loop this whole
-         function already runs, via the parenkind/parenargtext stacks
-         below -- not a separate scan -- so a quoted ')' or a
-         '// comment' inside the argument is handled by the one
-         string/comment-aware implementation this loop already has,
-         and an embedded '=' deeper in the argument (e.g.
-         local(symadd("y"+print(x=2 :str)))=3) still reaches the
-         bare-write check below instead of being skipped over. */
       isscopecall=((fbname=="global"||fbname=="local") && !fbisdot);
       parenkind=parenkind,if(fbisfunc :then "func" :else if(isscopecall :then "scope" :else "other"));
       parenscopename=parenscopename,if(isscopecall :then fbname :else "");
@@ -456,7 +467,8 @@ while((srcline=gets(fp))!=nil
       parenargok=parenargok,true;
       if(fbisfunc :then funcdepthcount=funcdepthcount+1);
       continue);
-    if(sc==')' :then
+    if(kind=="close" :then
+      ssi=ssi+nearest+1;
       if(size(parenkind)>0 :then
         wasfunc=at(parenkind nil :del);
         wasscopename=at(parenscopename nil :del);
@@ -478,12 +490,6 @@ while((srcline=gets(fp))!=nil
           if(wasargok && size(argtoks)>=1 :then gname=at(argtoks 0));
           if(wasargok && size(argtoks)==2 && at(argtoks 1)==":clear" :then isclear=true);
 
-          /* global(x :clear)=val is itself malformed -- confirmed via
-             a real run that it warns "assignment to something other
-             than a symbol ... ignored" and does nothing beyond the
-             clear -- so isclear (an unambiguous, self-contained
-             effect) always wins over a trailing '=' that never
-             actually lands */
           if(wasargok && isclear && wasscopename=="global" :then
             if(index(clearedglobal gname)==nil :then
               clearedglobal=clearedglobal,gname));
@@ -497,25 +503,14 @@ while((srcline=gets(fp))!=nil
             if(wasscopename=="local" :then
               if(index(localnames gname)==nil :then
                 localnames=localnames,gname)))));
-      /* a nested '(' inside a still-open scope-call's argument means
-         that argument isn't a bare symbol (e.g. global(symadd(dyn)),
-         a real, valid call per a real run) -- mark it unrecognizable
-         rather than guess at the name it might resolve to; done here,
-         after the pop above, against whatever is now the new top (the
-         frame this ')' actually closed already popped off) */
       if(size(parenkind)>0 && at(parenkind nil)=="scope" :then
         at(parenargok size(parenargok)-1 :set false));
       continue);
 
-    if(inscopearg :then
-      at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+sc));
+    /* kind=="eq" */
+    ssi=ssi+nearest+1;
+    if(inscopearg :then at(parenargtext size(parenargtext)-1 :set at(parenargtext nil)+"="));
 
-    if(sc!='=' :then continue);
-
-    /* a bare '=' or a +=/-=/*=//=/%= compound-assign all assign to
-       their lhs; ==, !=, <=, >= are comparisons, not assignments.
-       wschars covers both space and tab, ComTerp's other accepted
-       inter-token whitespace character */
     nextc=' ';
     if(ssi<ssz :then nextc=at(schars ssi));
     if(nextc=='=' :then continue);
@@ -530,16 +525,12 @@ while((srcline=gets(fp))!=nil
     while(idend>=0 && index(wschars at(schars idend))!=nil
       idend=idend-1);
 
-    /* walk back over the identifier immediately before '=' (or before
-       a compound-assign's operator character) */
     idstart=idend;
     while(idstart>=0 && index(idchars at(schars idstart))!=nil
       idstart=idstart-1);
     idstart=idstart+1;
     if(idstart>idend :then continue);
     if(index("0123456789" at(schars idstart))!=nil :then continue);
-    /* a.name=... (dot attribute) and obj@name=... (index-assign) both
-       assign through the object, not to the global command "name" */
     if(idstart>0 :then
       pc2=at(schars idstart-1);
       if(pc2=='.' || pc2=='@' :then continue));
@@ -549,16 +540,6 @@ while((srcline=gets(fp))!=nil
       name=name+at(schars nmi);
       nmi=nmi+1);
 
-    /* a bare write to a name already established global earlier in this
-       script lands in that same global rather than a fresh local (a bare
-       write mirrors a bare read) -- flag it once per name, at its
-       first bare-write site after the global() that declared it.
-       Suppressed when the name was later global(:clear)ed, was ever named
-       in a local() call (local() shadows global() per comterp.c's lookup
-       order), or this write sits inside a func(...) body (its own frame,
-       never the global) -- see the comments by clearedglobal/localnames
-       and funcdepthcount above for why each is a permanent, one-way
-       suppression rather than a precise re-enable. */
     gidx=index(globalnames name);
     if(gidx!=nil && index(clearedglobal name)==nil &&
       index(localnames name)==nil && funcdepthcount==0 &&
@@ -582,10 +563,6 @@ while((srcline=gets(fp))!=nil
       hlines=split(helptext :tokstr '\n');
       hsig=at(hlines 0));
 
-    /* a bare assignment to any registered command name is refused by
-       ComTerp itself ("assignment to command ... without args not
-       allowed") -- the name stays bound to the command, so the
-       assignment has no effect regardless of the command's own arity */
     print("%s:%v: FAIL: %s=...: \"%s\" is a registered command (%s) -- assigning to it will have no effect\n"
       target stmtline name name hsig);
     nfail=nfail+1)
