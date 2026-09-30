@@ -1254,10 +1254,14 @@ OverlayRaster::OverlayRaster(
     bwidth = (bwidth % 2) ? bwidth + 1 : bwidth;
 
     XSetForeground(dpy, gc, fpixel);
-    XSetLineAttributes(dpy, gc, bwidth, LineSolid, CapButt, JoinMiter); 
+    XSetLineAttributes(dpy, gc, bwidth, LineSolid, CapButt, JoinMiter);
+    /* extent = bwidth normally, but bwidth==0 (a cosmetic 1px line) still
+       needs to reach the pixmap's actual last column/row, one pixel
+       short of what bwidth==0 alone would subtract. */
+    unsigned long extent = bwidth ? bwidth : 1;
     XDrawRectangle(
-        dpy, r->pixmap_, gc, bwidth/2, bwidth/2, r->pwidth_ - bwidth,
-        r->pheight_ - bwidth
+        dpy, r->pixmap_, gc, bwidth/2, bwidth/2, r->pwidth_ - extent,
+        r->pheight_ - extent
     );
 
     Resource::unref(fc);
@@ -1397,6 +1401,21 @@ void OverlayRaster::poke(
     RasterRep* r = rep();
     if (!r->pixmap_) init_space();
     Raster::poke(x, y, red, green, blue, alpha);
+}
+
+void OverlayRaster::pokergb(
+    const unsigned int* pixels, unsigned long w, unsigned long h,
+    unsigned long npix
+) {
+  /* r,g,b come directly from the packed int, not through Color::find()'s
+     "#RRGGBB" name parse -- same result, no string round-trip per pixel. */
+  for (unsigned long idx = 0; idx < npix; idx++) {
+    unsigned int packed = pixels[idx];
+    float r = ((packed>>16)&0xff)/255.;
+    float g = ((packed>>8)&0xff)/255.;
+    float b = (packed&0xff)/255.;
+    poke(idx%w, idx/w, r, g, b, 1.0);
+  }
 }
 
 void OverlayRaster::graypeek(unsigned long x, unsigned long y, unsigned int& i)

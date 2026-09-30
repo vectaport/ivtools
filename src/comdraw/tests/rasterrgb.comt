@@ -7,8 +7,10 @@
 // guard, that's undefined behavior (typically a crash), not a graceful
 // error. pixels is now told apart purely by element count against w*h:
 // flat r,g,b (three scalars per pixel), nested (r,g,b) triples (unchanged,
-// still supported), or legacy packed 0xRRGGBB ints (one scalar per pixel,
-// matching poke()/pokeline()'s existing convention). Alpha is deliberately
+// still supported), legacy packed 0xRRGGBB ints (one scalar per pixel,
+// matching poke()/pokeline()'s existing convention), or a single packed
+// string(w*h UIntType) of 0xRRGGBB chunks -- lets a bulk load skip building
+// a large comma-separated literal. Alpha is deliberately
 // not part of any of these forms -- OverlayRaster/Raster::poke() accepts
 // an alpha parameter but never stores it (X11 pixmaps have no alpha
 // plane, and Raster::peek() always reports 1.0), so accepting an alpha
@@ -64,6 +66,123 @@ ok=ok&&(r4!=nil)
 v4=peek(r4 0 0)
 ok=ok&&(at(v4 0)<0.1&&at(v4 1)<0.1&&at(v4 2)<0.1)
 print("4 all-zero flat values, no crash (expect ~0,0,0,1): %v\n" v4)
+
+// --- test 5: packed string(w*h UIntType) of 0xRRGGBB chunks -- avoids
+// building a large comma-separated literal for bulk pixel loads. Distinct
+// colors at asymmetric (row,col) positions catch a row/col transposition,
+// which same-colored pixels or a single checked corner would not. ---
+pixstr=string(16 UIntType)
+pidx=0
+for(pidx=0 pidx<16 pidx=pidx+1 at(pixstr pidx :set 0))
+at(pixstr 0 :set 0xff0000)   // (row 0, col 0)
+at(pixstr 7 :set 0x00ff00)   // idx 1*4+3 -> (row 1, col 3)
+at(pixstr 13 :set 0x0000ff)  // idx 3*4+1 -> (row 3, col 1)
+r5=raster(0,0,64,64 :rgb 4,4,pixstr)
+ok=ok&&(r5!=nil)
+v5a=peek(r5 0 0)
+v5b=peek(r5 3 1)
+v5c=peek(r5 1 3)
+ok=ok&&(at(v5a 0)>0.9&&at(v5a 1)<0.1&&at(v5a 2)<0.1)
+ok=ok&&(at(v5b 0)<0.1&&at(v5b 1)>0.9&&at(v5b 2)<0.1)
+ok=ok&&(at(v5c 0)<0.1&&at(v5c 1)<0.1&&at(v5c 2)>0.9)
+print("5 packed string(w*h UIntType), row/col mapping (expect ~1,0,0 / ~0,1,0 / ~0,0,1): %v %v %v\n" v5a v5b v5c)
+
+// --- test 6: a packed string shorter than w*h stops early instead of
+// reading past its own allocation, same as the list forms stop at Done() ---
+// an unpoked pixel's color comes from the raw X pixmap XCreatePixmap()
+// allocated (server-defined, not guaranteed black), so this checks only
+// what the fix actually guarantees: the 4 supplied chunks land in order
+// through the last one, and reading past them doesn't crash.
+shortstr=string(4 UIntType)
+sidx=0
+for(sidx=0 sidx<4 sidx=sidx+1 at(shortstr sidx :set 0xff0000))
+r6=raster(0,0,64,64 :rgb 4,4,shortstr)
+ok=ok&&(r6!=nil)
+v6a=peek(r6 0 0)
+v6b=peek(r6 3 0)
+v6c=peek(r6 3 3)
+ok=ok&&(at(v6a 0)>0.9&&at(v6a 1)<0.1&&at(v6a 2)<0.1)
+ok=ok&&(at(v6b 0)>0.9&&at(v6b 1)<0.1&&at(v6b 2)<0.1)
+ok=ok&&(v6c!=nil)
+print("6 short packed string stops at its own length, no crash (expect ~1,0,0 / ~1,0,0 / non-nil): %v %v %v\n" v6a v6b v6c)
+
+// --- test 7: a slice of a larger string, not a string of its own size --
+// string_ptr()'s base pointer is the parent's, so reading a slice without
+// adding its offset would silently read from the parent's start (here a
+// sentinel color) instead of the sliced window. ---
+big=string(24 UIntType)
+bidx=0
+for(bidx=0 bidx<24 bidx=bidx+1 at(big bidx :set 0))
+at(big 0 :set 0x123456)   // sentinel outside the slice window, must not appear
+slc=big@4:20
+at(slc 0 :set 0xff0000)   // idx 0 -> (row 0, col 0)
+at(slc 7 :set 0x00ff00)   // idx 1*4+3 -> (row 1, col 3)
+at(slc 13 :set 0x0000ff)  // idx 3*4+1 -> (row 3, col 1)
+r7=raster(0,0,64,64 :rgb 4,4,slc)
+ok=ok&&(r7!=nil)
+v7a=peek(r7 0 0)
+v7b=peek(r7 3 1)
+v7c=peek(r7 1 3)
+ok=ok&&(at(v7a 0)>0.9&&at(v7a 1)<0.1&&at(v7a 2)<0.1)
+ok=ok&&(at(v7b 0)<0.1&&at(v7b 1)>0.9&&at(v7b 2)<0.1)
+ok=ok&&(at(v7c 0)<0.1&&at(v7c 1)<0.1&&at(v7c 2)>0.9)
+print("7 sliced string(w*h UIntType) of a larger buffer, offset honored (expect ~1,0,0 / ~0,1,0 / ~0,0,1): %v %v %v\n" v7a v7b v7c)
+
+// --- test 8: raster()'s leading xbeg,ybeg positions the :rgb form, not
+// just an explicit :transform keyword -- two rasters at different origins
+// must land at different places on the canvas, not both at (0,0). ---
+r8a=raster(0,0,4,4 :rgb 4,4,pixstr)
+r8b=raster(100,100,104,104 :rgb 4,4,pixstr)
+lbrt_a=mbr(r8a :lbrt)
+lbrt_b=mbr(r8b :lbrt)
+dx=at(lbrt_b 0)-at(lbrt_a 0)
+dy=at(lbrt_b 1)-at(lbrt_a 1)
+ok=ok&&(dx>90&&dx<110&&dy>90&&dy<110)
+print("8 raster()'s xbeg,ybeg positions the :rgb form (expect dx,dy ~100,100): %v,%v\n" dx dy)
+
+// --- test 9: raster(:rgb ...) with no leading coords at all keeps the
+// old gravity-relative default placement -- it must land within the
+// visible viewport, not off at some untranslated drawing-space point
+// that a pan/zoom could put far outside view. ---
+r9=raster(:rgb 4,4,pixstr)
+ok=ok&&(r9!=nil)
+scrn_9=mbr(r9 :scrn)
+ok=ok&&(at(scrn_9 0)>=0&&at(scrn_9 1)>=0&&at(scrn_9 2)<=ncols()&&at(scrn_9 3)<=nrows())
+print("9 raster(:rgb ...) with no coords lands on-screen via gravity (expect within {0,0,%v,%v}): %v\n" ncols() nrows() scrn_9)
+
+// --- test 10: a :rgb raster's border shows on all 4 sides, not just the
+// top and left -- OverlayRaster's border-outline draw used to reach one
+// pixel past the pixmap on the right and bottom, which X11 silently
+// clips, leaving those two edges bare. Compare an unpoked point on each
+// edge against its opposite edge instead of asserting a color, since the
+// border's actual color depends on the foreground/background setup. A
+// single-pixel pixstr keeps every sampled point below untouched by
+// pixel data, unlike the 16-chunk pixstr used above. ---
+onepix=string(1 UIntType)
+at(onepix 0 :set 0x0000ff)
+r10=raster(0,0,64,64 :rgb 10,8,onepix)
+ok=ok&&(r10!=nil)
+left_mid=peek(r10 0 4)
+right_mid=peek(r10 9 4)
+top_mid=peek(r10 4 0)
+bot_mid=peek(r10 4 7)
+ok=ok&&(at(left_mid 0)==at(right_mid 0)&&at(left_mid 1)==at(right_mid 1)&&at(left_mid 2)==at(right_mid 2))
+ok=ok&&(at(top_mid 0)==at(bot_mid 0)&&at(top_mid 1)==at(bot_mid 1)&&at(top_mid 2)==at(bot_mid 2))
+print("10 :rgb raster's border is symmetric on all 4 sides (expect left==right, top==bot): %v,%v %v,%v\n" left_mid right_mid top_mid bot_mid)
+
+// --- test 11: the non-:rgb raster() path (bwidth=2, also used by PPM
+// import) still reaches all 4 edges -- test 10's fix must not shift
+// this pre-existing, already-correct border inward. ---
+r11=raster(0,0,10,8)
+ok=ok&&(r11!=nil)
+e11_left=peek(r11 0 4)
+e11_right=peek(r11 10 4)
+e11_top=peek(r11 4 0)
+e11_bot=peek(r11 4 8)
+e11_mid=peek(r11 5 4)
+ok=ok&&(at(e11_left 0)==at(e11_right 0)&&at(e11_left 0)==at(e11_top 0)&&at(e11_left 0)==at(e11_bot 0))
+ok=ok&&(at(e11_left 0)!=at(e11_mid 0))
+print("11 non-:rgb raster()'s bwidth=2 border still reaches all 4 edges (expect edges equal, interior different): %v %v %v %v vs %v\n" e11_left e11_right e11_top e11_bot e11_mid)
 
 pastemode(0)
 

@@ -874,8 +874,22 @@ void CreateRasterFunc::execute() {
     PasteCmd* cmd = nil;
 
     if (rgbv.is_type(ComValue::ArrayType)) {
-      
-      RasterOvComp* comp = create_from_rgb(rgbv, al);
+
+      /* xend,yend are unused for :rgb -- pixel dims come from :rgb's own
+	 w,h. xbeg,ybeg position it when given; omitted, has_coords stays
+	 false and the gravity-based default below applies instead. */
+      boolean has_coords = vect.is_type(ComValue::ArrayType) && vect.array_len() >= 2;
+      float xbeg = 0., ybeg = 0.;
+      if (has_coords) {
+	ALIterator vi;
+	AttributeValueList* vavl = vect.array_val();
+	vavl->First(vi);
+	int sx = vavl->GetAttrVal(vi)->int_val(); vavl->Next(vi);
+	int sy = vavl->GetAttrVal(vi)->int_val(); vavl->Next(vi);
+	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing(
+	  sx, sy, xbeg, ybeg);
+      }
+      RasterOvComp* comp = create_from_rgb(rgbv, al, has_coords, xbeg, ybeg);
       if (PasteModeFunc::paste_mode() == 0)
         cmd = new PasteCmd(_ed, new Clipboard(comp));
       ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
@@ -940,7 +954,10 @@ void CreateRasterFunc::execute() {
     Unref(al);
 }
 
-RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* al) {
+RasterOvComp* CreateRasterFunc::create_from_rgb(
+    ComValue& rgbv, AttributeList* al, boolean has_coords,
+    float xbeg, float ybeg
+) {
     AttributeValueList* avl = rgbv.array_val();
     ALIterator i;
     avl->First(i);
@@ -953,9 +970,23 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     OverlayRaster* raster = new OverlayRaster(w, h, 0);
     OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
 
-    /* pixel data is flat r,g,b, nested (r,g,b) triples, or legacy packed
-       0xRRGGBB ints, told apart by count; see doc/APPENDIX-B-COMTERP-EXAMPLES.md */
-    if (nval == npix*3) {
+    /* pixel data is flat r,g,b, nested (r,g,b) triples, legacy packed
+       0xRRGGBB ints, or a packed string(w*h UIntType) of 0xRRGGBB chunks;
+       told apart by count and type. */
+    ComValue pixv(nval==1 ? *avl->GetAttrVal(i) : ComValue::nullval());
+    if (nval == 1 && pixv.is_type(ComValue::StringType) &&
+	pixv.blocktype() == ComValue::UIntType && pixv.blocksz() > 0) {
+      const unsigned int* pstr =
+	(const unsigned int*)(pixv.string_ptr() +
+			       (pixv.sliced() ? pixv.sliceoff() : 0));
+      int chunksz = pixv.blocksz();
+      int cap = pixv.sliced() ? pixv.slicelen() : symbol_len(pixv.string_val());
+      int navail = cap/chunksz;
+      /* a caller-supplied string can carry fewer than w*h chunks; stop at
+	 whichever is shorter, same as the list forms stop at avl->Done(). */
+      int nread = npix<navail ? npix : navail;
+      raster->pokergb(pstr, w, h, nread);
+    } else if (nval == npix*3) {
       for (int row = 0; row < h && !avl->Done(i); row++) {
         for (int col = 0; col < w && !avl->Done(i); col++) {
           float r = avl->GetAttrVal(i)->int_val()/255.; avl->Next(i);
@@ -988,9 +1019,25 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     }
     raster->flush();
 
-    Transformer* rel = get_transformer(al);
-    if (rel) rasterrect->SetTransformer(rel);
-    Unref(rel);
+    if (has_coords) {
+      Transformer* t = new Transformer();
+      t->Translate(xbeg, ybeg);
+      rasterrect->SetTransformer(t);
+      Unref(t);
+      /* xbeg,ybeg already imply the translate above, so the viewer-relative
+	 gravity transformer would double it; an explicit :transform wins. */
+      if (al && al->find(symbol_add("transform"))) {
+	Transformer* rel = get_transformer(al);
+	rasterrect->SetTransformer(rel);
+	Unref(rel);
+      }
+    } else {
+      /* no xbeg,ybeg given -- fall back to gravity placement (or an
+	 explicit :transform), same default the :rgb form always had. */
+      Transformer* rel = get_transformer(al);
+      if (rel) rasterrect->SetTransformer(rel);
+      Unref(rel);
+    }
     set_graphic_gs(al, rasterrect);
     /* the pixels now live in the raster; drop the keyword that carried
        them, or it re-serializes as a trailing attribute alongside the raster. */
