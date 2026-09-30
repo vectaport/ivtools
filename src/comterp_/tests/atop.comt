@@ -19,12 +19,13 @@
 // lexer level (lst.0.1.2 vs lst.0 followed by a 0.1.2 float chain -- see
 // the closed PR's history). "@" sidesteps that entirely.
 //
-// tests 13-15: lst@idx=val with idx (and optionally val) a stream --
+// tests 13-16: lst@idx=val with idx (and optionally val) a stream --
 // write-side overdrive, filling a plain list or a typed string from a
 // stream of index/value pairs the same way read-side @ already fans out.
 // The expression's value is a bracket-wrapped write count ([n], print()'s
 // %v shows the brackets; == compares the bare int), not the written
-// values -- list() already exists for collecting those.
+// values -- list() already exists for collecting those. Test 16 checks
+// the count only tallies writes that actually land.
 
 ok=true
 
@@ -182,6 +183,15 @@ r15=string(5 UIntType)
 r15b=(r15@0..4=$$(11,22,33,44,55))
 ok=ok&&(r15b==5)&&(list(r15)==(11,22,33,44,55))
 print("15 r15@0..4=$$(11,22,33,44,55) on string(5 UIntType); list(r15) (expect r15b=5, {11,22,33,44,55}): %v %v\n" r15b list(r15))
+
+// --- test 16: a fixed-capacity typed string's count only tallies writes
+// that actually land -- the index stream running past its last chunk
+// mustn't inflate the count with no-op writes (a plain list never hits
+// this since @ auto-extends it, test 13/14's coverage) ---
+r16=string(5 UIntType)
+r16b=(r16@0..9=$$(1,2,3,4,5,6,7,8,9,10))
+ok=ok&&(r16b==5)&&(list(r16)==(1,2,3,4,5))
+print("16 r16@0..9=... (10 indexes) on string(5 UIntType); r16b, list(r16) (expect r16b=5, only the 5 in-range writes land): %v %v\n" r16b list(r16))
 
 print("atop: %v\n" ok)
 ok

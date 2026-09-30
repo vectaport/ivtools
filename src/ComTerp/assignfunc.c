@@ -40,6 +40,23 @@ using std::cerr;
 
 /*****************************************************************************/
 
+/* whether at()'s :set would actually write (list target :set) vs. silently
+   no-op and return nil (a fixed-capacity string index out of range) --
+   nil is also a legitimate written value, so the write's own return can't
+   tell the two apart; this mirrors ListAtFunc::execute()'s own bounds
+   check (listfunc.c) on the same target/index pair. */
+static boolean idxassign_in_range(ComValue& listv, int idx) {
+  if (idx < 0) return false;
+  if (listv.is_type(ComValue::ArrayType)) return true;
+  if (listv.is_only_string()) {
+    boolean isslice = listv.sliced();
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    int chunksz = listv.blocksz();
+    int nchunks = chunksz>0 ? cap/chunksz : cap;
+    return idx < nchunks;
+  }
+  return false;
+}
 
 AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -222,6 +239,9 @@ void AssignFunc::execute() {
 	  writeval = tick;
 	} else
 	  writeval = *operand2;
+	ComValue targetv(*pair->Get(0));
+	if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
+	  continue;
 	push_stack(*pair->Get(0));
 	push_stack(*pair->Get(1));
 	push_stack(writeval);
