@@ -326,26 +326,37 @@ void StreamFunc::execute_literal() {
   elem_offset = posoffsets_running;
   delete [] possizes;
 
-  /* keywords second */
+  /* Scan keywords backward, then append them in source order.
+     Advance offsets past each value and its keyword tag. */
   rescan = keys_start;
+  int* keysizes = nkeys()>0 ? new int[nkeys()] : nil;
+  int* keysymids = nkeys()>0 ? new int[nkeys()] : nil;
+  int* keynargs = nkeys()>0 ? new int[nkeys()] : nil;
   for (int ki = 0; ki < nkeys(); ki++) {
     ComValue& keytoken = comterp()->pfcomvals()[comterp()->pfnum()-1+rescan];
-    int key_symid = keytoken.keyid_val();
-    int key_narg = keytoken.keynarg_val();
+    keysymids[ki] = keytoken.keyid_val();
+    keynargs[ki] = keytoken.keynarg_val();
     argcnt = 0;
     skip_key_in_expr(rescan, argcnt);
+    keysizes[ki] = argcnt;
+  }
+  for (int ki = nkeys()-1; ki >= 0; ki--) {
     ComValue keymarker;
     keymarker.type(ComValue::KeywordType);
-    keymarker.symbol_ref() = key_symid;
-    keymarker.keynarg_ref() = key_narg;
+    keymarker.symbol_ref() = keysymids[ki];
+    keymarker.keynarg_ref() = keynargs[ki];
     avl->Append(new AttributeValue(keymarker));
-    if (key_narg > 0) {
+    if (keynargs[ki] > 0) {
       avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
-      avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
-      elem_offset += argcnt;
+      avl->Append(new AttributeValue(keysizes[ki], AttributeValue::IntType));
+      elem_offset += keysizes[ki];
     }
+    elem_offset++;
     nelem++;
   }
+  delete [] keysizes;
+  delete [] keysymids;
+  delete [] keynargs;
 
   /* set nremaining now that we know total element count */
   ((AttributeValue*)avl->Get(1))->int_ref() = nelem;
@@ -1302,13 +1313,13 @@ void InfoFunc::execute() {
     AttributeList* al = new AttributeList();
     static int sealed_sym = symbol_add("sealed");
     static int count_sym = symbol_add("count");
-    static int indexsize_sym = symbol_add("indexsize");
+    static int binsz_sym = symbol_add("binsz");
     ComValue sealedv(target->sealed() ? ComValue::trueval() : ComValue::falseval());
     ComValue countv(target->Number());
-    ComValue indexsizev(target->index_size());
+    ComValue binszv(target->index_size());
     al->add_attr(sealed_sym, sealedv);
     al->add_attr(count_sym, countv);
-    al->add_attr(indexsize_sym, indexsizev);
+    al->add_attr(binsz_sym, binszv);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;

@@ -475,6 +475,26 @@ prev_ok=check_fail(:ok ok)
 
 prev_ok=check_fail(:ok ok)
 
+// --- test 51: a (...) literal not led by :key, with 2+ keyword-shaped
+// top-level elements, compiles as a stream instead of an attrlist. next()
+// used to crash pulling the 2nd such element ("pushed more than a single
+// value on stack") because the keywords' captured tokbuf offsets didn't
+// account for each other's own tag tokens once more than one was present
+// (issue #660). Each keyword element now comes back as the same singleton
+// attrlist next() already returns for a single-keyword stream, in source
+// order. ---
+s51=(0 :a 1 :b 2+3)
+v51a=next(s51)
+v51b=next(s51)
+v51c=next(s51)
+v51d=next(s51)
+ok=ok&&(v51a==0)
+ok=ok&&(attrname(v51b)=="a"&&attrval(v51b)==1)
+ok=ok&&(attrname(v51c)=="b"&&attrval(v51c)==5)
+ok=ok&&(v51d==nil)
+print("51 (0 :a 1 :b 2+3) -- next() x4 (expect 0,(:a 1),(:b 5),nil): %v %v %v %v\n" v51a v51b v51c v51d)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
