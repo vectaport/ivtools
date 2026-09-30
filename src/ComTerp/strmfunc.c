@@ -871,11 +871,10 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	 fprintf(stderr, "unexpected need to fix comterp in stream_func\n");
 	 }
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
-      /* a ring's avl is persistent head/tail/count bookkeeping, not just
-	 remaining elements -- nil means "empty for now," not "exhausted,"
-	 so clearing it here would destroy a ring that's still feedable.
-	 stream_mode_raw(), not stream_mode(): the latter reports 0 once
-	 this stream's own list is empty (see attrvalue.c) */
+      /* a ring's avl is head/tail/count bookkeeping, not remaining elements --
+	 nil is "empty for now," so clearing it would destroy a feedable ring. */
+      /* stream_mode_raw(), not stream_mode(): the latter reads back 0 once
+	 this stream's own list is empty (attrvalue.c), masking STREAM_RING. */
       if (comterp->stack_top().is_null() &&
 	  comterp->stack_height()>outside_stackh &&
 	  !(streamv.stream_mode_raw()&STREAM_RING))
@@ -926,8 +925,11 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    if (comterp->stack_top().is_null() && 
 		comterp->stack_height()>inside_stackh) {
 	      
-	      /* sub-stream return null, zero it, and return null for this one */
-	      val->stream_list()->clear();
+	      /* sub-stream return null, zero it, and return null for this one --
+		 unless it's a ring, whose avl is persistent bookkeeping rather
+		 than remaining elements (see the STREAM_INTERNAL branch above) */
+	      if (!(val->stream_mode_raw()&STREAM_RING))
+		val->stream_list()->clear();
 	      streamv.stream_list()->clear();
 	      while (comterp->stack_height()>outside_stackh) comterp->pop_stack();
 	      comterp->push_stack(ComValue::nullval());
@@ -977,7 +979,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       }
 
       if (comterp->stack_top().is_null() &&
-	  comterp->stack_height() > outside_stackh) 
+	  comterp->stack_height() > outside_stackh &&
+	  !(streamv.stream_mode_raw()&STREAM_RING))
 	streamv.stream_list()->clear();
       else if (comterp->stack_height()==outside_stackh)
 	comterp->push_stack(ComValue::blankval());
@@ -1620,16 +1623,19 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
 }
 
 /* push a value into a ring FIFO's avl: a CharType (or anything char_val()
-   can coerce) pushes one byte, an unprotected StringType pushes its
-   characters in order.  Stops at the first refusal (buffer full), leaving
-   whatever already landed in place, and reports that refusal to the caller. */
-static boolean ring_push_value(AttributeValueList* avl, ComValue& v) {
-  if (streams_as_characters(v)) {
-    std::string scratch;
-    const char* s = v.cstr(scratch);
-    int len = v.sliced() ? v.slicelen() : (int)strlen(s);
+   can coerce) pushes one byte; an unprotected StringType pushes its
+   characters in order unless rawflag, which stores it as a single char
+   the same as a bquoted one.  Indexes the string's own bytes directly
+   (not cstr(), which truncates at the first embedded NUL) so a slice
+   containing one still pushes its full slicelen() bytes.  Stops at the
+   first refusal (buffer full), leaving whatever already landed in place,
+   and reports that refusal to the caller. */
+static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean rawflag) {
+  if (!rawflag && streams_as_characters(v)) {
+    const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
+    int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
     for (int k=0; k<len; k++)
-      if (!ring_push_char(avl, s[k])) return false;
+      if (!ring_push_char(avl, base[k])) return false;
     return true;
   }
   return ring_push_char(avl, v.char_val());
@@ -1689,7 +1695,7 @@ void FeedFunc::execute() {
        whole call with nil, same as next()'s empty-ring refusal */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i]);
+    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
     ComValue retval(ok ? argv[0] : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -1703,7 +1709,7 @@ void FeedFunc::execute() {
     ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
     AttributeValueList* avl = stream.stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i]);
+    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
     ComValue retval(ok ? stream : ComValue::nullval());
     delete [] argv;
     push_stack(retval);

@@ -1,8 +1,9 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 12 tests of feed(str)/:noring/next()/info() ring behavior
-// funcs: feed next info string char
+// coverage: 15 tests of feed(str)/:noring/next()/info() ring behavior,
+// incl. survival of a nested-stream drain and :raw/embedded-NUL pushes
+// funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
 // builds a fixed-capacity ring FIFO over that string's own bytes instead of
@@ -106,6 +107,37 @@ ring12=feed(`"hi")
 c12=next(ring12)
 ok=ok&&(c12=="hi")
 print("12 feed(`\"hi\") stores the string whole, not as a ring (expect \"hi\"): %v\n" c12)
+
+// --- 13: a ring survives being drained to nil as an overdrive operand --
+// next()'s external-stream branches once cleared a ring's persistent avl
+// the same way they clear an ordinary exhausted stream, permanently
+// breaking it; they now skip a ring the same way the internal branch does ---
+ring13=feed(string(3))
+feed(ring13 'a')
+combo13=ring13+0
+list(combo13)
+feed(ring13 'z')
+c13=next(ring13)
+ok=ok&&(c13=='z')
+print("13 ring survives being drained via +0 overdrive, still feedable (expect 'z'): %v\n" c13)
+
+// --- 14: :raw on a push into a ring stores an unprotected string whole,
+// same as a bquoted one, instead of splitting it into characters ---
+ring14=feed(string(10))
+feed(ring14 :raw "hi")
+ok=ok&&(info(ring14).count==1)
+print("14 feed(ring14 :raw \"hi\") pushes one slot, not two (expect 1): %v\n" info(ring14).count)
+
+// --- 15: pushing a slice containing an embedded NUL carries its full
+// slicelen(), not just the bytes up to the NUL ---
+buf15=string(5)
+at(buf15 0 :set 'A'); at(buf15 1 :set char(0)); at(buf15 2 :set 'B')
+at(buf15 3 :set 'C'); at(buf15 4 :set 'D')
+sl15=buf15@0:5
+ring15=feed(string(10))
+feed(ring15 sl15)
+ok=ok&&(info(ring15).count==5)
+print("15 a slice with an embedded NUL pushes all 5 bytes (expect 5): %v\n" info(ring15).count)
 
 print("feedring: %v\n" ok)
 ok
