@@ -51,11 +51,16 @@ void ParseFunc::execute() {
 	fptr = fileobj->fptr();
     } else {
 	PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
-	if (pipeobj && pipeobj->rdfptr()) 
+	if (pipeobj && pipeobj->rdfptr())
 	    fptr = pipeobj->rdfptr();
-	else
+    }
 
-	    push_stack(ComValue::nullval());
+    /* a closed or never-opened file/pipe (e.g. open() on a nonexistent
+       path) carries no FILE* -- report nil rather than handing a null
+       FILE* to the C parser chain, which assumes a live stream */
+    if (!fptr) {
+	push_stack(ComValue::nullval());
+	return;
     }
 
     comterpserv()->parse_next_expr(fptr);
