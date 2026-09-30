@@ -1477,10 +1477,9 @@ void InfoFunc::execute() {
        to land on the same bytes the ring itself reads and writes */
     int winoff = bufv.sliced() ? bufv.sliceoff() : 0;
     int bytecap = bufv.sliced() ? bufv.slicelen() : symbol_len(bufv.string_val());
-    /* head/tail/count above are slot counts -- one slot per element of the
-       buffer's declared type, elemsz bytes wide (1 for an ordinary
-       char-granular string) -- so cap and the buf slice below convert
-       through elemsz to land on the same bytes feed()/next() do. */
+    /* head/tail/count are slot counts, elemsz bytes each (1 for a plain
+       char-granular string) -- cap and the buf slice below convert
+       through elemsz to land on the bytes feed()/next() actually use. */
     int elemsz = bufv.blocksz()>0 ? bufv.blocksz() : 1;
     int cap = bytecap/elemsz;
 
