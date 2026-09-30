@@ -335,6 +335,14 @@ public:
     // look up the Color best matching 'red','green','blue','alpha', and
     // poke its colormap entry into the raster.
 
+    virtual void pokergb(
+        const unsigned int* pixels, unsigned long w, unsigned long h,
+        unsigned long npix
+    );
+    // poke 'npix' pixels (npix<=w*h) from a packed 0xRRGGBB-per-pixel
+    // buffer, row-major from (0,0); npix<w*h leaves the remaining pixels
+    // whatever the underlying pixmap already held.
+
     virtual void graypeek(unsigned long x, unsigned long y, unsigned int&);
     // get green pixel value at 'x','y' and convert to an unsigned int.
     virtual void graypeek(unsigned long x, unsigned long y, unsigned long&);
