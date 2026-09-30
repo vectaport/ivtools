@@ -963,8 +963,19 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  fobjv.narg(narg);
 	  fobjv.nkey(nkey);
 	  comterp->fire_funcobj(fobjv);
-	} else
+	} else {
+	  if (streamv.lhs_assign()) {
+	    /* reasserts the lvalue signal ListAtFunc reads off a stale stack
+	       slot (see ARCHITECTURE.md, "at()'s lhs flag") -- that slot is
+	       long gone by replay time, so push one flagged throwaway value
+	       and pop it right back off to leave a fresh one in its place. */
+	    ComValue sentinel(ComValue::nullval());
+	    sentinel.lhs_assign(1);
+	    comterp->push_stack(sentinel);
+	    comterp->pop_stack(false);
+	  }
 	  funcptr->exec(narg, nkey);
+	}
 
 	// recurse until not a stream
 	while (comterp->stack_top().is_stream()) {
@@ -1378,6 +1389,26 @@ void InfoFunc::execute() {
       ComValue nblocksv(cap/streamv.blocksz());
       al->add_attr(nblocks_sym, nblocksv);
     }
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  if (streamv.is_type(ComValue::ArrayType)) {
+    AttributeValueList* avl = streamv.array_val();
+    AttributeList* al = new AttributeList();
+    static int count_sym3 = symbol_add("count");
+    static int coloned_sym = symbol_add("coloned");
+    static int nested_sym = symbol_add("nested");
+    static int cutoff_sym = symbol_add("cutoff");
+    ComValue countv(avl ? avl->Number() : 0);
+    ComValue colonedv(streamv.coloned() ? ComValue::trueval() : ComValue::falseval());
+    ComValue nestedv(avl && avl->nested_insert() ? ComValue::trueval() : ComValue::falseval());
+    ComValue cutoffv(avl ? avl->max_out() : -1);
+    al->add_attr(count_sym3, countv);
+    al->add_attr(coloned_sym, colonedv);
+    al->add_attr(nested_sym, nestedv);
+    al->add_attr(cutoff_sym, cutoffv);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;

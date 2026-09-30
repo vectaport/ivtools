@@ -121,6 +121,12 @@ public:
 //                             streams report (:mode :func).
 // lst=info(streamobj :raw) -- the raw internal directory list, which is
 //                             layout-agnostic.
+// attrlst=info(lst)        -- (:count :coloned :nested :cutoff) for a
+//                             plain list; :nested is the list's own
+//                             nested_insert() flag (governs whether ','
+//                             and ':' mutate it in place or nest it),
+//                             :cutoff is its own print-elision cutoff
+//                             (max_out(), -1 meaning "inherit cutoff()").
 // attrlst=info(attrlst)    -- (:sealed :count).
 // attrlst=info(funcname)   -- a bare, unfired func by name: (:ntoks :nspans :posteval).
 // attrlst=info(fileobj)    -- (:filename :mode :open).
