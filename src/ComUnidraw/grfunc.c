@@ -874,8 +874,21 @@ void CreateRasterFunc::execute() {
     PasteCmd* cmd = nil;
 
     if (rgbv.is_type(ComValue::ArrayType)) {
-      
-      RasterOvComp* comp = create_from_rgb(rgbv, al);
+
+      /* xend,yend go unused here -- the raster's pixel dimensions come
+	 from :rgb's own w,h, not from this span -- but xbeg,ybeg still
+	 set where it's placed, same as the non-:rgb form below. */
+      float xbeg = 0., ybeg = 0.;
+      if (vect.is_type(ComValue::ArrayType) && vect.array_len() >= 2) {
+	ALIterator vi;
+	AttributeValueList* vavl = vect.array_val();
+	vavl->First(vi);
+	int sx = vavl->GetAttrVal(vi)->int_val(); vavl->Next(vi);
+	int sy = vavl->GetAttrVal(vi)->int_val(); vavl->Next(vi);
+	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing(
+	  sx, sy, xbeg, ybeg);
+      }
+      RasterOvComp* comp = create_from_rgb(rgbv, al, xbeg, ybeg);
       if (PasteModeFunc::paste_mode() == 0)
         cmd = new PasteCmd(_ed, new Clipboard(comp));
       ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
@@ -940,7 +953,9 @@ void CreateRasterFunc::execute() {
     Unref(al);
 }
 
-RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* al) {
+RasterOvComp* CreateRasterFunc::create_from_rgb(
+    ComValue& rgbv, AttributeList* al, float xbeg, float ybeg
+) {
     AttributeValueList* avl = rgbv.array_val();
     ALIterator i;
     avl->First(i);
@@ -1002,9 +1017,17 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
     }
     raster->flush();
 
-    Transformer* rel = get_transformer(al);
-    if (rel) rasterrect->SetTransformer(rel);
-    Unref(rel);
+    Transformer* t = new Transformer();
+    t->Translate(xbeg, ybeg);
+    rasterrect->SetTransformer(t);
+    Unref(t);
+    /* xbeg,ybeg already imply the translate above, so the viewer-relative
+       gravity transformer would double it; an explicit :transform wins. */
+    if (al && al->find(symbol_add("transform"))) {
+      Transformer* rel = get_transformer(al);
+      rasterrect->SetTransformer(rel);
+      Unref(rel);
+    }
     set_graphic_gs(al, rasterrect);
     /* the pixels now live in the raster; drop the keyword that carried
        them, or it re-serializes as a trailing attribute alongside the raster. */

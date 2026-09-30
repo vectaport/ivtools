@@ -128,6 +128,18 @@ ok=ok&&(at(v7b 0)<0.1&&at(v7b 1)>0.9&&at(v7b 2)<0.1)
 ok=ok&&(at(v7c 0)<0.1&&at(v7c 1)<0.1&&at(v7c 2)>0.9)
 print("7 sliced string(w*h UIntType) of a larger buffer, offset honored (expect ~1,0,0 / ~0,1,0 / ~0,0,1): %v %v %v\n" v7a v7b v7c)
 
+// --- test 8: raster()'s leading xbeg,ybeg positions the :rgb form, not
+// just an explicit :transform keyword -- two rasters at different origins
+// must land at different places on the canvas, not both at (0,0). ---
+r8a=raster(0,0,4,4 :rgb 4,4,pixstr)
+r8b=raster(100,100,104,104 :rgb 4,4,pixstr)
+lbrt_a=mbr(r8a :lbrt)
+lbrt_b=mbr(r8b :lbrt)
+dx=at(lbrt_b 0)-at(lbrt_a 0)
+dy=at(lbrt_b 1)-at(lbrt_a 1)
+ok=ok&&(dx>90&&dx<110&&dy>90&&dy<110)
+print("8 raster()'s xbeg,ybeg positions the :rgb form (expect dx,dy ~100,100): %v,%v\n" dx dy)
+
 pastemode(0)
 
 print("rasterrgb: %v\n" ok)
