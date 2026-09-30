@@ -31,18 +31,20 @@
 #include <ComTerp/listfunc.h>
 
 //: list member command for ComUnidraw
-// val=at(list|attrlist|compview [n] :set val :ins val) -- return (or set or insert after) the nth item in a list.
+// val=at(list|attrlist|compview [n] :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list.
 class GrListAtFunc : public ComFunc {
 public:
     GrListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=at(list|attrlist|compview [n] :set val :ins val) -- return (or set or insert after) the nth item in a list, or the first selected thing if n is omitted"; }
+      return "val=at(list|attrlist|compview [n] :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, or the first selected thing if n is omitted; :del applies only to a plain list, not an attribute list, string, or compview; :raw is a no-op everywhere"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
 	":ins val   insert val in list",
+	":del       delete val from a plain list, returning the deleted value -- not supported for an attribute list, string, or compview",
+	":raw       currently a no-op -- reserved for opting a coloned colon-list index out of a future dispatch on coloned()",
 	nil
       };
       return keys;

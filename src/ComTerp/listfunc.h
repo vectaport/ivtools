@@ -131,8 +131,35 @@ public:
     ListSizeFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "val=size(lst|attrlst|string) -- return the size of the list (or string)"; }
+};
+
+//: list rotate command for ComTerp.
+// lst=shift(lst [n] :reverse) -- rotate a list in place by n (default 1);
+// positive n moves the first n elements to the end, negative moves the
+// last |n| elements to the front; :reverse flips that direction, the
+// same as negating n (shift(lst n :reverse) == shift(lst -n)), so a
+// direction can be chosen without hand-negating a variable n. n is taken
+// mod the list's size, so any n works. Returns the same (now rotated)
+// list, not a copy -- shift(lst) reads naturally as "rotate lst" for its
+// side effect, as size(lst) reads as a pure query; a no-op (empty or
+// single-element list, or n a multiple of the size) still returns lst
+// unchanged.
+class ListShiftFunc : public ComFunc {
+public:
+    ListShiftFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "lst=%s(lst [n] :reverse) -- rotate a list in place by n (default 1, negative for the other direction), taken mod its size; return the same, now-rotated list"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":reverse   flip the rotation direction, same as negating n",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: , (tuple) operator.

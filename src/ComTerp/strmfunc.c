@@ -1381,6 +1381,26 @@ void InfoFunc::execute() {
     return;
   }
 
+  if (streamv.is_type(ComValue::ArrayType)) {
+    AttributeValueList* avl = streamv.array_val();
+    AttributeList* al = new AttributeList();
+    static int count_sym3 = symbol_add("count");
+    static int coloned_sym = symbol_add("coloned");
+    static int nested_sym = symbol_add("nested");
+    static int cutoff_sym = symbol_add("cutoff");
+    ComValue countv(avl ? avl->Number() : 0);
+    ComValue colonedv(streamv.coloned() ? ComValue::trueval() : ComValue::falseval());
+    ComValue nestedv(avl && avl->nested_insert() ? ComValue::trueval() : ComValue::falseval());
+    ComValue cutoffv(avl ? avl->max_out() : -1);
+    al->add_attr(count_sym3, countv);
+    al->add_attr(coloned_sym, colonedv);
+    al->add_attr(nested_sym, nestedv);
+    al->add_attr(cutoff_sym, cutoffv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
   if (!streamv.is_stream()) {
     push_stack(ComValue::nullval());
     return;
