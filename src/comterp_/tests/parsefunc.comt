@@ -1,12 +1,16 @@
-// src/comterp_/tests/parsefunc.comt -- parse(), :flat
+// src/comterp_/tests/parsefunc.comt -- parse(), :flat, :tree
 //
 // funcs: parse open close size at istype print
 //
 // parse(fileobj) parses the next expression(s) from an open file, printing
 // each token; parse(fileobj :flat) instead returns them as a list of
 // ComValues in raw postfix order, with each keyword folded together with
-// its value into a one-entry attrlist. A closed or never-opened file (a
-// failed open()) returns nil either way rather than touching the parser.
+// its value into a one-entry attrlist. parse(fileobj :tree) returns one
+// entry per top-level statement, each a list of the command symbol
+// followed by its own operands' nested trees, with a keyword operand
+// folded into a one-entry attrlist as in :flat. A closed or never-opened
+// file (a failed open()) returns nil for any of the three forms rather
+// than touching the parser.
 
 ok=true
 
@@ -45,14 +49,55 @@ ok=ok&&(print(kwelt :str)=="(:n 2)")
 close(sf)
 print("3 parse(sf :flat) folds :n 2 into (expect (:n 2)): %v\n" kwelt)
 
-// --- 4: a bad path's open() carries no FILE*, so parse() (either form)
+// --- 4: a bad path's open() carries no FILE*, so parse() (any form)
 //        reports nil instead of crashing ---
 badsf=open("/tmp/parsefunc_test_nonexistent_xyz")
 r4=parse(badsf)
 ok=ok&&(r4==nil)
 r5=parse(badsf :flat)
 ok=ok&&(r5==nil)
-print("4 parse(open(badpath)) and :flat (expect nil nil): %v %v\n" r4 r5)
+r5t=parse(badsf :tree)
+ok=ok&&(r5t==nil)
+print("4 parse(open(badpath)), :flat, :tree (expect nil nil nil): %v %v %v\n" r4 r5 r5t)
+
+// --- 5: :tree nests "x=1+2" as (assign x (add 1 2)) ---
+sf=open(tmppath)
+r6=parse(sf :tree)
+stmt=at(r6 0)
+ok=ok&&(print(at(stmt 0) :str)=="assign")
+ok=ok&&(print(at(stmt 1) :str)=="x")
+addexpr=at(stmt 2)
+ok=ok&&(print(at(addexpr 0) :str)=="add")
+ok=ok&&(print(at(addexpr 1) :str)=="1")
+ok=ok&&(print(at(addexpr 2) :str)=="2")
+close(sf)
+print("5 parse(sf :tree) on \"x=1+2\" (expect (assign x (add 1 2))): %v\n" r6)
+
+// --- 6: :tree folds a keyword operand the same way :flat does ---
+sf=open(tmppath2)
+r7=parse(sf :tree)
+stmt2=at(r7 0)
+listexpr=at(stmt2 2)
+ok=ok&&(print(at(listexpr 2) :str)=="(:n 2)")
+close(sf)
+print("6 parse(sf :tree) on \"y=list(1 :n 2)\" folds :n 2 (expect (:n 2)): %v\n" listexpr)
+
+// --- 7: :tree nests a bare command reference like global(x) as its own
+//        one-element subtree, matching comlint's assignment-shadow check ---
+tmppath3="/tmp/parsefunc_test_3.comt"
+tf=open(tmppath3 "w")
+print("global(x)=1\n" :file tf)
+close(tf)
+sf=open(tmppath3)
+r8=parse(sf :tree)
+stmt3=at(r8 0)
+globalexpr=at(stmt3 1)
+ok=ok&&(print(at(globalexpr 0) :str)=="global")
+ok=ok&&(print(at(globalexpr 1) :str)=="x")
+close(sf)
+print("7 parse(sf :tree) on \"global(x)=1\" (expect (assign (global x) 1)): %v\n" r8)
+
+shell("rm -f /tmp/parsefunc_test_3.comt")
 
 shell("rm -f /tmp/parsefunc_test_1.comt /tmp/parsefunc_test_2.comt")
 

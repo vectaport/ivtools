@@ -29,6 +29,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/postfixspan.h>
 #include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
@@ -677,7 +678,7 @@ void ComTerpServ::add_defaults() {
   }
 }
 
-AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat) {
+AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat, boolean tree) {
 
     /* save state for this interpreter */
     push_servstate();
@@ -694,7 +695,7 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat) {
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
     int tokoff = _pfoff;
 
-    AttributeValueList* avl = flat ? new AttributeValueList() : nil;
+    AttributeValueList* avl = (flat || tree) ? new AttributeValueList() : nil;
 
     /* parse a complete expression */
     int status=0;
@@ -735,6 +736,51 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat) {
 		} else
 		    avl->Append(new AttributeValue(tv));
 	    }
+	} else if (tree) {
+	    /* one forward pass, walking PostfixSpanWalk alongside so each
+	       command/keyword token's own operand spans (already correctly
+	       split into plain-positional vs. keyword-bound, the one part
+	       of this that's genuinely fiddly to get right) are known right
+	       after it steps -- 'built' holds the already-assembled subtree
+	       for every token index, so an operand span {start,count} always
+	       resolves to built[start+count-1], the subtree of whichever
+	       token ends that span */
+	    PostfixSpanWalk walker;
+	    ComValue* built = new ComValue[_pfnum];
+	    for (int i = 0; i < _pfnum; i++) {
+		walker.step(_pfbuf, i);
+		int ncons = walker.consumed_count();
+		ComValue tv(&_pfbuf[i]);
+		if (_pfbuf[i].type == TOK_KEYWORD) {
+		    AttributeList* al = new AttributeList();
+		    ComValue keyval;
+		    if (ncons == 1) {
+			PostfixSpanWalk::Span s = walker.consumed(0);
+			keyval = built[s.start + s.count - 1];
+		    } else
+			keyval = ComValue(new AttributeValueList());
+		    al->add_attr(tv.symbol_val(), keyval);
+		    built[i] = ComValue(AttributeList::class_symid(), al);
+		} else if (_pfbuf[i].type == TOK_COMMAND && ncons > 0) {
+		    AttributeValueList* node = new AttributeValueList();
+		    node->Append(new AttributeValue(tv));
+		    for (int k = 0; k < ncons; k++) {
+			PostfixSpanWalk::Span s = walker.consumed(k);
+			ComValue opnd(built[s.start + s.count - 1]);
+			node->Append(new AttributeValue(opnd));
+		    }
+		    built[i] = ComValue(node);
+		} else
+		    /* a literal, TOK_BLANK, or a bare command reference
+		       (a variable read, narg==nkey==0) is its own subtree */
+		    built[i] = tv;
+	    }
+	    for (int k = 0; k < walker.remaining_count(); k++) {
+		PostfixSpanWalk::Span s = walker.remaining(k);
+		ComValue result(built[s.start + s.count - 1]);
+		avl->Append(new AttributeValue(result));
+	    }
+	    delete [] built;
 	} else
 	    for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
     } while (status==0 && strlen(_buffer)>_bufptr);

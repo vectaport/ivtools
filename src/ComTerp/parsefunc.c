@@ -43,9 +43,12 @@ ParseFunc::ParseFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ParseFunc::execute() {
     static int flat_symid = symbol_add("flat");
+    static int tree_symid = symbol_add("tree");
     ComValue fileobjv(stack_arg(0));
     ComValue flatv(stack_key(flat_symid));
     boolean flatflag = flatv.is_true();
+    ComValue treev(stack_key(tree_symid));
+    boolean treeflag = treev.is_true();
     reset_stack();
 
     FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
@@ -66,9 +69,9 @@ void ParseFunc::execute() {
 	return;
     }
 
-    AttributeValueList* avl = comterpserv()->parse_next_expr(fptr, flatflag);
+    AttributeValueList* avl = comterpserv()->parse_next_expr(fptr, flatflag, treeflag);
 
-    if (flatflag) {
+    if (flatflag || treeflag) {
 	ComValue retval(avl ? ComValue(avl) : ComValue::nullval());
 	push_stack(retval);
     } else
