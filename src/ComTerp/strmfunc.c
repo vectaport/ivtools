@@ -1586,6 +1586,24 @@ static char* ring_buf_base(AttributeValue* bufav) {
   return (char*)bufv.string_ptr() + (bufv.sliced() ? bufv.sliceoff() : 0);
 }
 
+/* how many more ring_push_char() calls would succeed right now -- wrap
+   mode is bounded by count (tail always wraps below cap), :noring by
+   how far tail has advanced (it never wraps back, so count can trail
+   it once elements are popped). */
+static int ring_avail(AttributeValueList* avl) {
+  if (!avl || avl->Number()<5) return 0;
+  AttributeValue* bufav = (AttributeValue*)avl->Get(0);
+  AttributeValue* tailav = (AttributeValue*)avl->Get(2);
+  AttributeValue* countav = (AttributeValue*)avl->Get(3);
+  AttributeValue* wrapav = (AttributeValue*)avl->Get(4);
+  int cap = ring_buf_cap(bufav);
+  int tail = tailav->int_val();
+  if (cap<=0 || tail>=cap) return 0;
+  if (!wrapav->int_val()) return cap-tail;
+  int count = countav->int_val();
+  return count<cap ? cap-count : 0;
+}
+
 /* build a fresh ring FIFO over buf's own bytes (or its sliced window).  avl
    layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) -- wrap=0
    (:noring) never reclaims space freed from the head, wrap=1 is the
@@ -1658,6 +1676,10 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
    rather than silently truncated through char_val().  A non-string value
    pushes via char_val() as before.
 
+   Snapshots only as many bytes as ring_avail() says have room, not the
+   whole string, so pushing a long string at a full or nearly-full ring
+   copies at most what could actually land.
+
    Stops at the first refusal (buffer full or an un-splittable string),
    leaving whatever already landed in place, and reports that refusal to
    the caller. */
@@ -1665,9 +1687,13 @@ static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean raw
   if (!rawflag && streams_as_characters(v)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
-    std::string snapshot(base, len);
+    if (len==0) return true;
+    int avail = ring_avail(avl);
+    if (avail<=0) return false;
+    int tocopy = len<avail ? len : avail;
+    std::string snapshot(base, tocopy);
     for (int k=0; k<len; k++)
-      if (!ring_push_char(avl, snapshot[k])) return false;
+      if (!ring_push_char(avl, k<tocopy ? snapshot[k] : 0)) return false;
     return true;
   }
   if (v.is_type(ComValue::StringType)) {
