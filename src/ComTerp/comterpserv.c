@@ -677,11 +677,11 @@ void ComTerpServ::add_defaults() {
   }
 }
 
-AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
+AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat) {
 
     /* save state for this interpreter */
     push_servstate();
-    
+
     /* install different inputs */
     _inptr = fptr;
     _infunc = (infuncptr)&fgets;
@@ -693,16 +693,49 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
     int toklen;
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
     int tokoff = _pfoff;
-    
+
+    AttributeValueList* avl = flat ? new AttributeValueList() : nil;
+
     /* parse a complete expression */
     int status=0;
     do {
 	status = parser(_inptr,	 _infunc, _eoffunc, _errfunc, NULL, NULL,
 			_buffer, _bufsiz, &_bufptr, _token, _toksiz, &_linenum,
 			&_pfbuf, &_pfsiz, &_pfnum);
-	if (status) 
+	if (status)
 	    err_print( stdout, "parser" );
-	else
+	else if (flat) {
+	    /* one entry per token, in the same raw postfix order print_pfbuf
+	       shows -- except a TOK_KEYWORD, whose value is always the
+	       token(s) immediately before it (already appended to avl),
+	       folds together with it into a one-entry AttributeList so a
+	       keyword and its value travel as a single inspectable unit */
+	    for (int i = 0; i < _pfnum; i++) {
+		ComValue tv(&_pfbuf[i]);
+		if (_pfbuf[i].type == TOK_KEYWORD && tv.narg() <= avl->Number()) {
+		    AttributeList* al = new AttributeList();
+		    ComValue keyval;
+		    if (tv.narg() == 1) {
+			AttributeValue* prev = avl->Get(avl->Number()-1);
+			keyval = ComValue(*prev);
+			avl->Remove(prev);
+		    } else {
+			AttributeValueList* sub = new AttributeValueList();
+			for (int k = 0; k < tv.narg(); k++) {
+			    ComValue subelt(*avl->Get(avl->Number()-tv.narg()+k));
+			    sub->Append(new AttributeValue(subelt));
+			}
+			for (int k = 0; k < tv.narg(); k++)
+			    avl->Remove(avl->Get(avl->Number()-1));
+			keyval = ComValue(sub);
+		    }
+		    al->add_attr(tv.symbol_val(), keyval);
+		    ComValue alval(AttributeList::class_symid(), al);
+		    avl->Append(new AttributeValue(alval));
+		} else
+		    avl->Append(new AttributeValue(tv));
+	    }
+	} else
 	    for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
     } while (status==0 && strlen(_buffer)>_bufptr);
     // return _pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF;
@@ -710,10 +743,10 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
     /* restore tokens */
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
-    
+
     /* restore state for this interpreter */
     pop_servstate();
 
-    return nil;
+    return avl;
 
 }

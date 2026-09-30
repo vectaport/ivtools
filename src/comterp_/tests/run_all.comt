@@ -282,5 +282,9 @@ if(run("./remote_cutoff.comt")
   :then print("pass: remote_cutoff\n")
   :else print("FAIL: remote_cutoff\n");topok=false)
 
+if(run("./parsefunc.comt")
+  :then print("pass: parsefunc\n")
+  :else print("FAIL: parsefunc\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

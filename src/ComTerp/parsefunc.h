@@ -32,14 +32,14 @@ class ComTerp;
 class AttributeValueList;
 
 //: parse a single expression from a file
-// parse(fileobj) -- parse a single expression from a file
+// parse(fileobj :flat) -- parse a single expression from a file
 class ParseFunc : public ComFunc {
 public:
     ParseFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
-      return "%s(fileobj) -- parse a single expression from a file"; }
+    virtual const char* docstring() {
+      return "%s(fileobj :flat) -- parse a single expression from a file, printing its tokens (or, with :flat, returning them as a list of ComValues in raw postfix order)"; }
 
     AttributeValueList* parse_next_expr();
 };

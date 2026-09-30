@@ -1,0 +1,60 @@
+// src/comterp_/tests/parsefunc.comt -- parse(), :flat
+//
+// funcs: parse open close size at istype print
+//
+// parse(fileobj) parses the next expression(s) from an open file, printing
+// each token; parse(fileobj :flat) instead returns them as a list of
+// ComValues in raw postfix order, with each keyword folded together with
+// its value into a one-entry attrlist. A closed or never-opened file (a
+// failed open()) returns nil either way rather than touching the parser.
+
+ok=true
+
+// --- 1: existence / default form returns true on a successful parse ---
+tmppath="/tmp/parsefunc_test_1.comt"
+tf=open(tmppath "w")
+print("x=1+2\n" :file tf)
+close(tf)
+sf=open(tmppath)
+r1=parse(sf)
+ok=ok&&(r1==true)
+close(sf)
+print("1 parse(sf) on \"x=1+2\" (expect true): %v\n" r1)
+
+// --- 2: :flat returns the same expression's tokens in postfix order ---
+sf=open(tmppath)
+r2=parse(sf :flat)
+ok=ok&&(size(r2)==6)
+ok=ok&&(print(at(r2 0) :str)=="x")
+ok=ok&&(print(at(r2 1) :str)=="1")
+ok=ok&&(print(at(r2 2) :str)=="2")
+ok=ok&&(print(at(r2 3) :str)=="add")
+ok=ok&&(print(at(r2 4) :str)=="assign")
+close(sf)
+print("2 parse(sf :flat) on \"x=1+2\" (expect x 1 2 add assign ...): %v\n" r2)
+
+// --- 3: :flat folds a keyword and its value into a one-entry attrlist ---
+tmppath2="/tmp/parsefunc_test_2.comt"
+tf=open(tmppath2 "w")
+print("y=list(1 :n 2)\n" :file tf)
+close(tf)
+sf=open(tmppath2)
+r3=parse(sf :flat)
+kwelt=at(r3 2)
+ok=ok&&(print(kwelt :str)=="(:n 2)")
+close(sf)
+print("3 parse(sf :flat) folds :n 2 into (expect (:n 2)): %v\n" kwelt)
+
+// --- 4: a bad path's open() carries no FILE*, so parse() (either form)
+//        reports nil instead of crashing ---
+badsf=open("/tmp/parsefunc_test_nonexistent_xyz")
+r4=parse(badsf)
+ok=ok&&(r4==nil)
+r5=parse(badsf :flat)
+ok=ok&&(r5==nil)
+print("4 parse(open(badpath)) and :flat (expect nil nil): %v %v\n" r4 r5)
+
+shell("rm -f /tmp/parsefunc_test_1.comt /tmp/parsefunc_test_2.comt")
+
+print("parsefunc: %v\n" ok)
+ok

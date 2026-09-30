@@ -65,8 +65,12 @@ public:
     // fire a FuncObj's space-separated bodies via run_one_span(),
     // autostreaming all but the last, stopping on a control transfer.
 
-    AttributeValueList* parse_next_expr(FILE*);
-    // parse the next expression from a file.
+    AttributeValueList* parse_next_expr(FILE*, boolean flat=false);
+    // parse the next expression(s) available from a file. Debug-prints
+    // each token and returns nil by default; with 'flat' true, returns
+    // them instead as a list of ComValues in raw postfix order, with
+    // each keyword folded together with its value into a one-entry
+    // AttributeList.
     
     virtual int runfile(const char*, boolean popen_flag=0);
     // run interpreter on commands read from a file.
