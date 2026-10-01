@@ -143,9 +143,13 @@ public:
     ComValue& stack_dotname(int n);
     // unused method to get at a dotted list of names, i.e. a.b.c
 
-    ComValue stack_arg_post_eval(int n, boolean symbol=false, 
-				 ComValue& dflt=ComValue::nullval());
-    // evaluate the nth argument for this post-evaluating ComFunc.
+    ComValue stack_arg_post_eval(int n, boolean symbol=false,
+				 ComValue& dflt=ComValue::nullval(),
+				 int* wrapper_out=nil);
+    // evaluate the nth argument for this post-evaluating ComFunc.  When
+    // wrapper_out is non-nil, it receives the evaluated result's own
+    // WrapperState as it was on the stack, before the returned copy
+    // loses it -- see AttributeValue::assignval().
     int stack_arg_post_eval_size(int n);
     // return the stack size of the nth argument for this post-evaluating ComFunc.
     void print_stack_arg_post_eval(int n);
