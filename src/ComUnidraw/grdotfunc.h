@@ -52,7 +52,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "%s([compview] :bincnt) -- return attribute list of component, or a bare attrlist built from keyword args (:bincnt sizes/disables its index) if compview is omitted."; }
+      return "alst=%s([compview] | [:<name> [val]] :bincnt) -- attribute list of compview, or a bare attrlist from keyword/value pairs if compview is omitted (:bincnt sizes/disables its index)."; }
 
 };
 
