@@ -412,11 +412,11 @@ while((srcline=gets(fp))!=nil
     head=at(node 0);headstr=print(head :str);nsz=size(node);
 
     if(headstr=="dot" :then
-      worknodes=worknodes,at(node 1);workinfunc=workinfunc,infunc;
-      call=at(node 2);ci=1;csz=size(call);
-      while(ci<csz
+      call=at(node 2);ci=size(call)-1;
+      while(ci>=1
         worknodes=worknodes,at(call ci);workinfunc=workinfunc,infunc;
-        ci=ci+1);
+        ci=ci-1);
+      worknodes=worknodes,at(node 1);workinfunc=workinfunc,infunc;
       continue);
 
     if(headstr=="global"||headstr=="local" :then
@@ -432,13 +432,16 @@ while((srcline=gets(fp))!=nil
         gname0=print(at(node 1) :str);
         if(index(clearedglobal gname0)==nil :then
           clearedglobal=clearedglobal,gname0));
-      /* still queue this call's own operands -- an embedded assignment
-         inside a computed argument (e.g. local(symadd(f(x=1)))) is
-         still a real bare write to find */
-      ci=1;
-      while(ci<nsz
+      /* still queue this call's own operands, in source order (pushed
+         back to front, since the worklist pops its most recent push
+         first) -- an embedded assignment inside a computed argument
+         (e.g. local(symadd(f(x=1)))) is still a real bare write to
+         find, and a later operand's declaration/write must be seen
+         after an earlier one's, not before it */
+      ci=nsz-1;
+      while(ci>=1
         worknodes=worknodes,at(node ci);workinfunc=workinfunc,infunc;
-        ci=ci+1);
+        ci=ci-1);
       continue);
 
     isassignfam=(headstr=="assign"||headstr=="mod_assign"||headstr=="mpy_assign"||
@@ -451,9 +454,10 @@ while((srcline=gets(fp))!=nil
 
       /* queued so a global/local lvalue's own :clear is honored (and
          any nested assignment in lhs or rhs is found) whatever else
-         this statement also does */
-      worknodes=worknodes,lhs;workinfunc=workinfunc,infunc;
+         this statement also does -- rhs pushed first so it pops after
+         lhs, matching their left-to-right source order */
       worknodes=worknodes,rhs;workinfunc=workinfunc,infunc;
+      worknodes=worknodes,lhs;workinfunc=workinfunc,infunc;
 
       if((lhshead=="global"||lhshead=="local") && size(lhs)==2 :then
         gname=print(at(lhs 1) :str);
@@ -490,16 +494,21 @@ while((srcline=gets(fp))!=nil
       continue);
 
     if(headstr=="func" :then
-      fi=1;
-      while(fi<nsz
+      fi=nsz-1;
+      while(fi>=1
         worknodes=worknodes,at(node fi);workinfunc=workinfunc,true;
-        fi=fi+1);
+        fi=fi-1);
       continue);
 
-    gi=1;
-    while(gi<nsz
+    /* generic node (includes "seq", a ';'-joined statement sharing one
+       line): push operands back to front so the worklist, which pops
+       its most recent push first, processes them in their original
+       left-to-right order -- a later operand's declaration/write must
+       never be seen before an earlier one's on the same line */
+    gi=nsz-1;
+    while(gi>=1
       worknodes=worknodes,at(node gi);workinfunc=workinfunc,infunc;
-      gi=gi+1));
+      gi=gi-1));
 
   /* the command-shadow FAIL check itself, deferred out of the walk
      above (see shadownames' own comment) */
