@@ -19,6 +19,7 @@ var roundtripCases = []string{
 	`y=list(1 :n 2)`,
 	`global(x)=1`,
 	`list(1 :a 2 :b)`,
+	`func(a b;a+b*2)`,
 }
 
 // roundtripSelfTest proves unparse() is a real decompiler, not just good

@@ -191,9 +191,27 @@ func unparseList(n *Node) string {
 		return "(" + strings.Join(parts, ";") + ")"
 	}
 
-	argStrs := make([]string, len(args))
-	for i, a := range args {
-		argStrs[i] = unparse(a)
+	// A call whose own argument list mixes plain space-separated
+	// positionals with a ';'-joined tail (func(a b;body), the same
+	// grammar for/while share) folds that tail into one trailing seq
+	// item rather than keeping it flat -- reconstructing it as a
+	// parenthesized seq argument changes the parse (the paren group
+	// merges with its preceding space-separated sibling into a single
+	// value instead of staying two positional args). Splicing the seq's
+	// own pieces back into the outer space-separated argument list,
+	// semicolon only before the last, reproduces the original shape.
+	var pieces []string
+	for _, a := range args {
+		pieces = append(pieces, unparse(a))
 	}
-	return op + "(" + strings.Join(argStrs, " ") + ")"
+	if last := args[len(args)-1]; last.isList() && last.Items[0].Sym == "seq" {
+		pieces = pieces[:len(pieces)-1]
+		seqArgs := last.Items[1:]
+		for _, a := range seqArgs[:len(seqArgs)-1] {
+			pieces = append(pieces, unparse(a))
+		}
+		return op + "(" + strings.Join(pieces, " ") + ";" + unparse(seqArgs[len(seqArgs)-1]) + ")"
+	}
+
+	return op + "(" + strings.Join(pieces, " ") + ")"
 }

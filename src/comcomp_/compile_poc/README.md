@@ -53,28 +53,32 @@ the resulting tree is identical to the original (the regenerated syntax
 is allowed to differ -- `x=1` vs `assign(x 1)` -- as long as it parses
 back to the same tree).
 
-    ./compile_poc -roundtrip            # 5 cases from postfixtree.comt, all pass
+    ./compile_poc -roundtrip            # 6 cases from postfixtree.comt, all pass
     ./compile_poc -roundtrip-file somefile.comt
 
 Passes: plain expressions, `;`-joined statements, keyword args (including
-the bare-flag `(:b {})` case), `global()` lvalues, and whole multi-statement
-files via `parse(fileobj :tree)` -- as long as the file has no `func`
-definitions. `unparse()` always writes a trailing newline, since ComTerp's
-file scanner silently drops the last statement without one (found via
-this very round-trip test, not documented anywhere).
+the bare-flag `(:b {})` case), `global()` lvalues, `func(params;body)`
+definitions, and whole multi-statement files via `parse(fileobj :tree)`.
+`unparse()` always writes a trailing newline, since ComTerp's file scanner
+silently drops the last statement without one (found via this very
+round-trip test, not documented anywhere).
 
-**Known failure**: a `func(params;body)` definition does not round-trip.
-`func(a b;a+b*2)`'s tree is `{func,a,{seq,b,{add,a,{mpy,b,2}}}}` -- `func`
-folds its *n*th positional param and the `;`-joined body into one nested
-`seq` item, not *n* flat items. Reconstructing it as `func(a (b;a+b*2))`
-(bare call syntax, parenthesizing the seq like any other nested
-sub-expression) parses back to a *different* tree
-(`{func,{a,{seq,...}}}` -- `a` and the seq merged into one argument), not
-the original. This is the documented `(`-with-spaces-builds-a-stream-literal
+**`func(params;body)` needed special handling.** `func(a b;a+b*2)`'s tree
+is `{func,a,{seq,b,{add,a,{mpy,b,2}}}}` -- a call whose own argument list
+mixes plain space-separated positionals (`a`) with a `;`-joined tail,
+folds that tail into one trailing `seq` item rather than keeping every
+piece flat (confirmed by comparing against `func(a b a+b*2)`, no
+semicolon at all, whose tree is the fully flat `{func,a,b,{add,...}}}` --
+and `func(a;b;a+b*2)`, semicolons throughout, which nests *everything*
+into `{func,{seq,{seq,a,b},{add,...}}}}`). Reconstructing the first tree's
+trailing seq as a parenthesized argument (`func(a (b;a+b*2))`) parses back
+to a *different* tree -- the paren group merges with its preceding
+space-separated sibling into one combined value instead of staying two
+positional args, the documented `(`-with-spaces-builds-a-stream-literal
 trap (AGENTS.md's ComTerp scripting gotchas, issue #488) biting the
-decompiler itself: there's no single context-free rendering of "a nested
-seq as a call argument" that's correct in every position. Needs real
-design work, not a quick patch -- flagging rather than guessing.
+decompiler itself. Fixed by splicing the trailing seq's own pieces back
+into the outer space-separated argument list, with a semicolon only
+before the very last piece, instead of wrapping it in its own parens.
 
 ## What else this doesn't cover yet
 
@@ -85,4 +89,6 @@ design work, not a quick patch -- flagging rather than guessing.
   its element type at construction) as the next refinement.
 - `unparse()` handles what's been tested against real cases above; still
   not a fully general ComTerp pretty-printer (e.g. no infix sugar for
-  arithmetic, only for `assign`/`seq`).
+  arithmetic, only for `assign`/`seq`). A fully semicolon-joined call
+  (`func(a;b;a+b*2)`, nested seq-of-seq) isn't handled -- only the one
+  real shape (`func(a b;a+b*2)`) that actually came up.
