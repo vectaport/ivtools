@@ -198,9 +198,11 @@ jobs:
           lint_dir () {
             dir=$1; program=$2; runner=$3
             [ -d "$dir" ] || return 0
+            echo "-- comlint: checking $dir (program=$program) --"
             for f in "$dir"/*.comt; do
               [ -e "$f" ] || continue
               totalfiles=$((totalfiles+1))
+              echo "comlint: checking $f"
               out=$($runner comlint "$f" "$program" 2>&1)
               line=$(echo "$out" | grep -E '^comlint: [0-9]+ call')
               if [ -z "$line" ]; then
