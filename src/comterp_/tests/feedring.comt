@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 33 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 34 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -35,7 +35,10 @@
 // wrapped inside another FIFO or a chunk() adapter, and a numeric-typed
 // ring refuses a multi-byte string pulled from a stream rather than
 // silently coercing it -- an AnyType ring, which boxes a value whole
-// instead of converting it, stores one unchanged.
+// instead of converting it, stores one unchanged.  A refusal from that
+// same guard never costs the wrapper its nested element either: the FIFO
+// that wrapped the ring can still hand it back afterward, rather than
+// having it silently consumed by the blocked probe.
 
 ok=true
 
@@ -332,6 +335,20 @@ feed(ring31 'a')
 r31=feed(ring31 chunk(ring31 1))
 ok=ok&&(r31==nil)&&(info(ring31).count==1)
 print("31 feed(ring, chunk-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r31 info(ring31).count)
+
+// --- 32: a refused wrapped self-feed must not cost the wrapper its nested
+// element -- the recursive-stream guard firing partway through w32's drain
+// is a refusal, not w32 legitimately running dry, so w32 must still be able
+// to hand back ring32 afterward rather than reading nil from then on ---
+ring32=feed(string(3))
+feed(ring32 'a')
+w32=feed()
+feed(w32 ring32)
+r32=feed(ring32 w32)
+count32=info(ring32).count
+v32=next(w32)
+ok=ok&&(r32==nil)&&(!istype(r32 StreamType))&&(count32==1)&&(v32=='a')
+print("32 refused feed(ring, fifo-wrapping-ring) leaves the fifo still able to yield the ring (expect nil, 1, 'a'): %v %v %v\n" r32 count32 v32)
 
 print("feedring: %v\n" ok)
 ok
