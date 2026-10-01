@@ -105,16 +105,16 @@ eagain_test=func(
   t0=run("date +%s" :popen);
   b=0;
   while(b<batches
-    line="";
+    batchstr="";
     j=0;
     while(j<creates_per_batch
-      if(j>0 :then line=line+";");
-      line=line+print("ellipse(%d,%d,10,10)" (b*creates_per_batch+j)%500 (j*7)%500 :str);
+      if(j>0 :then batchstr=batchstr+";");
+      batchstr=batchstr+print("ellipse(%d,%d,10,10)" (b*creates_per_batch+j)%500 (j*7)%500 :str);
       j=j+1);
     /* ';' joins statements here, built with no trailing one -- a line
        ending in ';' looks incomplete to the parser, which then waits for a
        statement that never arrives rather than replying. */
-    remote(sock1 line);
+    remote(sock1 batchstr);
     b=b+1);
   t1=run("date +%s" :popen);
   print("eagain: burst of %v creates (in %v batches) took %v secs\n" total batches t1-t0 :err);

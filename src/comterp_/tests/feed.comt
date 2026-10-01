@@ -358,5 +358,17 @@ ok=ok&&(ring==nil)
 print("28 a three-FIFO ring returns nil instead of crashing (expect nil): %v\n\n" ring)
 check_fail(:ok ok)
 
+// --- test 29: each()'s own meaning (drain now, hand back the count) is
+// unaffected by a ring target's lazy default -- a FIFO already defers a
+// bare stream argument on its own (STREAM_NESTED, see test 13), so
+// feed(fifo, **stream) still means exactly what plain each() means: drain
+// the stream now and push the resulting count as an ordinary value ---
+fifo29=feed()
+feed(fifo29 **0..3)
+v29=next(fifo29)
+ok=ok&&(v29==4)&&(istype(v29 IntType))
+print("29 feed(fifo **0..3); next(fifo) (expect count 4, IntType): %v %v\n\n" v29 istype(v29 IntType))
+check_fail(:ok ok)
+
 print("\nfeed: %v\n" ok)
 ok

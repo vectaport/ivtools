@@ -1,0 +1,21 @@
+// fixture for comlint_globalshadow.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Exercises the
+// '// comlint:allow -- <reason>' override on a global-shadow WARN: a
+// plain override directly above the flagged write (gs_allow_plain), an
+// override separated from the flagged write by an unrelated whole-line
+// comment (gs_allow_gap) -- the override must still apply, since only
+// the next real statement consumes the armed flag -- and an unflagged
+// write with no override at all (gs_allow_none), which must still warn
+// so the override's absence is distinguishable from its presence.
+
+global(gs_allow_plain)=1
+// comlint:allow -- plain override right above the write
+gs_allow_plain=2
+
+global(gs_allow_gap)=1
+// comlint:allow -- override survives an intervening comment
+// unrelated explanatory comment
+gs_allow_gap=2
+
+global(gs_allow_none)=1
+gs_allow_none=2

@@ -112,6 +112,12 @@ struct _opr_tbl_default_entry {
   {"$$",         "stream",             100,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
+  // unlike "next" (which sits ABOVE "mpy" so it binds tight and does NOT
+  // swallow a trailing *), unary "each" must swallow a trailing ** (repeat)
+  // so **true**4 parses as each(true**4), not (each(true))**4 -- a prefix
+  // op's operand keeps consuming binops whose priority is >= its own, so
+  // "each" sits AT (not above) "repeat"'s priority to pull it in
+  {"**",         "each",               80,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
   // ":" pairs into a colon-list at priority 78, one above "@"(77),
   // so str@0:3 reads as str@(0:3)

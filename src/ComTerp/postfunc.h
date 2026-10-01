@@ -31,17 +31,25 @@
 class ComTerp;
 
 //: echo postfix output of parser.
-// postfix(arg1 [arg2 [arg3 ... [argn]]]) -- return unevaluated postfix arguments as string
+// postfix(arg1 [arg2 [arg3 ... [argn]]] :tree) -- return unevaluated postfix arguments as string
 // (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands
-// (narg) after keys).
+// (narg) after keys). :tree instead returns each argument's own inspectable,
+// nested tree, the same shape parse(fileobj :tree) builds.
 class PostFixFunc : public ComFunc {
 public:
     PostFixFunc(ComTerp*);
     virtual void execute();
 
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "str=%s(arg1 [arg2 [arg3 ... [argn]]]) -- return unevaluated postfix arguments as string\n(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands\n(narg) after keys)"; }
+    virtual const char* docstring() {
+      return "str=%s(arg1 [arg2 [arg3 ... [argn]]] :tree) -- return unevaluated postfix arguments as string\n(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands\n(narg) after keys); :tree instead returns each argument's own inspectable,\nnested tree (a single argument's tree is returned directly, not wrapped in a list)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":tree  return each argument's nested tree instead of a string",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: post-evaluate command for ComTerp.

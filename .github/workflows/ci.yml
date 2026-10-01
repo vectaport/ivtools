@@ -158,6 +158,106 @@ jobs:
           sudo make install
           sudo ldconfig   # refresh linker cache so /usr/local/lib *.so are found at runtime
 
+      # comlint checks every .comt script's command-shadow/global-shadow/
+      # arity/keyword conventions (src/scripts/comlint); each directory is
+      # checked against its own program's registered command set
+      # (comdraw/drawserv add commands plain comterp doesn't have) so a
+      # command real to that program isn't misflagged as unknown. Checking
+      # against comdraw/drawserv launches that binary as a subprocess even
+      # just to list its commands, so it needs a display -- run under the
+      # same xvfb-run this job already uses for the comdraw/drawserv suites
+      # below. A comlint invocation that errors before printing its own
+      # summary line (e.g. a crash, or "can't open DISPLAY" without xvfb)
+      # is reported as incomplete rather than silently counted as 0
+      # fail/0 warn, so a broken check can't read as a clean one -- and,
+      # like a real finding, fails the step. comlint's own reported
+      # "warn(s)" count already excludes any WARN a '// comlint:allow'
+      # comment overrode, so this blocks only on FAIL or a non-overridden
+      # WARN.
+      #
+      # Runs on every push now that this step blocks the merge: a SKIPPED
+      # required check still counts as passing, so skipping it on
+      # 'synchronize' (as this once did, back when the step was advisory
+      # and the ~6min scan felt wasteful to repeat per push) would let any
+      # commit after the PR's first merge with no comlint result at all --
+      # this job's workflow-level 'cancel-in-progress' means an in-flight
+      # scan for an earlier commit never even finishes before the next
+      # push replaces it. Blocking only means something if it runs against
+      # the actual head that merges.
+      - name: Lint - comlint
+        if: always()
+        timeout-minutes: 10
+        run: |
+          # comlint exits 1 whenever it finds a FAIL or non-overridden WARN --
+          # expected, since its own exit status is what a blocking caller
+          # would act on. This step's run shell defaults to '-e', which would
+          # abort right here on that exit status and skip the rest of the
+          # report (including this step's own blocking decision at the end);
+          # 'set +e' keeps every finding's output flowing into the summary
+          # regardless, and the step still ends by failing on what it found.
+          set +e
+          echo "### comlint report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          totalfail=0; totalwarn=0; totalfiles=0; totalincomplete=0
+          lint_dir () {
+            dir=$1; program=$2; runner=$3
+            [ -d "$dir" ] || return 0
+            echo "-- comlint: checking $dir (program=$program) --"
+            for f in "$dir"/*.comt; do
+              [ -e "$f" ] || continue
+              # A fixture that exists only as comlint's own test input (never
+              # run as a script, never registered in run_all.comt) is marked
+              # with this exact header phrase and is deliberately not
+              # lint-clean -- it's the data a dedicated comlint test checks
+              # comlint's output against, so skip it here rather than block
+              # CI on findings that are the fixture's whole point.
+              if head -2 "$f" | grep -q "comlint's INPUT, never run"; then
+                continue
+              fi
+              totalfiles=$((totalfiles+1))
+              echo "comlint: checking $f"
+              out=$($runner comlint "$f" "$program" 2>&1)
+              line=$(echo "$out" | grep -E '^comlint: [0-9]+ call')
+              if [ -z "$line" ]; then
+                echo "$f: comlint did not complete (no summary line) -- treated as incomplete, not clean" >> "$GITHUB_STEP_SUMMARY"
+                totalincomplete=$((totalincomplete+1))
+                continue
+              fi
+              fails=$(echo "$line" | sed -nE 's/.* ([0-9]+) fail\(s\).*/\1/p')
+              warns=$(echo "$line" | sed -nE 's/.* ([0-9]+) warn\(s\),.*/\1/p')
+              fails=${fails:-0}; warns=${warns:-0}
+              if [ "$fails" -gt 0 ] || [ "$warns" -gt 0 ]; then
+                echo "$out" | grep -E ': (FAIL|WARN):' >> "$GITHUB_STEP_SUMMARY"
+                totalfail=$((totalfail+fails))
+                totalwarn=$((totalwarn+warns))
+              fi
+              # comlint's "line(s) skipped" count is not itself a red flag --
+              # it also counts ordinary block-comment lines, which dominate
+              # it in real files, so treating any nonzero count as incomplete
+              # false-positives on nearly every script. A trailing unbalanced
+              # statement that comlint genuinely never got to check prints
+              # its own distinct "warning: unbalanced parens" line instead of
+              # (or alongside) a clean 0 fail/0 warn summary -- that specific
+              # text, not the skip count, is what means content went unchecked.
+              unbalanced=$(echo "$out" | grep -E ': warning: unbalanced parens')
+              if [ -n "$unbalanced" ]; then
+                echo "$unbalanced" >> "$GITHUB_STEP_SUMMARY"
+                totalincomplete=$((totalincomplete+1))
+              fi
+            done
+          }
+          lint_dir src/comterp_/tests comterp ""
+          lint_dir src/comdraw/tests comdraw "xvfb-run -a"
+          lint_dir src/drawserv_/tests drawserv "xvfb-run -a"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "$totalfiles file(s) checked, $totalfail fail(s), $totalwarn warn(s), $totalincomplete incomplete" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$totalfail" -gt 0 ] || [ "$totalwarn" -gt 0 ] || [ "$totalincomplete" -gt 0 ]; then
+            echo "comlint found $totalfail fail(s), $totalwarn non-overridden warn(s), $totalincomplete incomplete scan(s) -- see the step summary"
+            exit 1
+          fi
+          exit 0
+
       - name: Test - comterp unit suite
         timeout-minutes: 3   # safety net: fail fast if the interpreter hangs
         run: |

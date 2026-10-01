@@ -27,6 +27,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/iofunc.h>
+#include <ComTerp/listfunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
@@ -835,10 +836,177 @@ NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void NextFunc::execute() {
+    boolean have_var = nargsfixed()>1;
+    /* unevaluated (symbol=true), the same way AssignFunc reads its own lhs --
+       a plain var name, not whatever value it currently holds. */
+    ComValue varname(have_var ? stack_arg(1, true) : ComValue::nullval());
+
+    if (have_var && varname.type() != ComValue::SymbolType) {
+      /* not a bare name -- maybe at()/global()/local()/temp(): same lhs
+	 detection AssignFunc uses on its own arg 0, walked here for this
+	 call's arg 1 instead. Flagging the command token before evaluating
+	 it is what makes a streamed at() (e.g. r@0..3) come back as a
+	 settable stream rather than a plain read; this must happen, and
+	 arg 1 must be fully evaluated, before arg 0 is touched at all --
+	 same ordering constraint AssignFunc's own lhs has on its arg 0. */
+      int linenum = funcstate()->linenum();
+      static int global_symid = symbol_add("global");
+      static int local_symid = symbol_add("local");
+      static int temp_symid = symbol_add("temp");
+      static int at_symid = symbol_add("at");
+      static int each_symid = symbol_add("each");
+      ComValue argoff(comterp()->stack_top());
+      int offtop = argoff.int_val() - comterp()->pfnum();
+      int argcnt = 0;
+      for (int j=nargsfixed(); j>1; j--) { argcnt = 0; skip_arg_in_expr(offtop, argcnt); }
+      /* the walked-to arg's own root token sits at offtop+argcnt, not offtop --
+	 offtop is left pointing one-past the far end of its subtree. */
+      int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+      ComValue& startval = comterp()->pfcomvals()[startidx];
+      boolean from_each = false;
+      if (startval.is_type(ComValue::CommandType)) {
+	ComFunc* func = (ComFunc*)startval.obj_val();
+	if (func->funcid() == each_symid) {
+	  startval.lhs_assign(1);
+	  from_each = true;
+	} else if (func->funcid() == global_symid || func->funcid() == local_symid ||
+		   func->funcid() == temp_symid || func->funcid() == at_symid)
+	  startval.lhs_assign(1);
+      }
+      varname = stack_arg_post_eval(1, true);
+      ComValue streamv(stack_arg_post_eval(0));
+      reset_stack();
+      return execute_var_dispatch(streamv, varname, linenum, from_each);
+    }
+
+    /* a bare symbol var (or none given) -- unchanged from before the lhs
+       machinery above existed, including argument evaluation order. */
     ComValue streamv(stack_arg_post_eval(0));
     reset_stack();
-
     execute_impl(comterp(), streamv);
+    if (varname.is_type(ComValue::SymbolType)) {
+      ComValue* pulled = new ComValue(comterp()->stack_top());
+      AttributeList* tempframe = comterp()->get_tempframe();
+      AttributeList* attrlist = comterp()->get_attributes();
+      if (tempframe && tempframe->find(varname.symbol_val()))
+	tempframe->add_attribute(new Attribute(varname.symbol_val(), pulled));
+      else if (attrlist)
+	attrlist->add_attribute(new Attribute(varname.symbol_val(), pulled));
+      else
+	comterp()->assign_symval(varname.symbol_val(), pulled);
+    }
+}
+
+/* dispatch for a non-symbol, lhs-eligible var -- a streamed at() (zipper), a
+   scalar at() pair, or a dot() attribute.  Split out of execute() so the
+   plain-symbol path above can keep evaluating its two arguments in the
+   original order; this path's own arg 1 is already fully evaluated by the
+   time it's called. */
+void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum,
+				     boolean from_each) {
+    if (varname.is_stream() && varname.lhs_assign()) {
+      /* a streamed at()-destination or an each()-wrapped stream -- zip-
+	 drive the source against it (zip_assign_stream) and return the
+	 write/pull count, not a single value. */
+      ComValue idxstream(varname);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &streamv, true, linenum,
+					       from_each);
+      if (count < 0) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      ComValue retval(count, ComValue::IntType);
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
+
+    if (varname.is_array() && varname.lhs_assign()) {
+      /* var is a single at()-destination (e.g. r@2) -- pull one value,
+	 write it there, and still return the pulled value itself, same
+	 contract as the plain-symbol case in execute(). */
+      execute_impl(comterp(), streamv);
+      ComValue pulled(comterp()->stack_top());
+      NextFunc::write_at_pair(comterp(), varname, pulled);
+      return;
+    }
+
+    if (varname.is_object(Attribute::class_symid())) {
+      /* a dot()-destination -- write the pulled value into it, same as
+	 AssignFunc's al.field=val, reporting nil instead on a self-
+	 insertion refusal rather than the unwritten value. */
+      execute_impl(comterp(), streamv);
+      ComValue pulled(comterp()->stack_top());
+      Attribute* attr = (Attribute*)varname.obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner && value_contains_container(pulled, (void*)owner, true)) {
+	fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		linenum);
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+      attr->Value(new ComValue(pulled));
+      return;
+    }
+
+    if (varname.is_stream() && !varname.lhs_assign()) {
+      /* default "stream builds stream": var is a plain stream, so defer
+	 into a lazy wrapper (NextVarNextFunc) instead of draining here. */
+      static NextVarNextFunc* nvnfunc = nil;
+      if (!nvnfunc) {
+	nvnfunc = new NextVarNextFunc(comterp());
+	nvnfunc->funcid(symbol_add("nextvarnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(streamv));
+      avl->Append(new AttributeValue(varname));
+      ComValue stream(nvnfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL);
+      push_stack(stream);
+      return;
+    }
+
+    /* flagged but none of the above -- e.g. a sealed attrlist's dot lookup
+       (unknown()&&lhs_assign()) -- leaves next(stream) unchanged, same as
+       an unrecognized lhs falls through in AssignFunc (assignfunc.c). */
+    execute_impl(comterp(), streamv);
+}
+
+NextVarNextFunc::NextVarNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void NextVarNextFunc::execute() {
+    ComValue operand1(stack_arg(0));
+
+    /* invoked by the next mechanism */
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (avl) {
+      Iterator i;
+      avl->First(i);
+      AttributeValue* srcval = avl->GetAttrVal(i);  // [0] source stream
+      avl->Next(i);
+      AttributeValue* varval = avl->GetAttrVal(i);  // [1] var's own stream
+
+      /* var's stream paces this one in lockstep, same pairing as the
+	 eager zip_assign_stream loop -- its pulled value is discarded
+	 (var was never a writable destination here), but either side
+	 running dry ends the lazy sequence. */
+      ComValue varcopy(*varval);
+      NextFunc::execute_impl(comterp(), varcopy);
+      if (comterp()->stack_top().is_unknown()) {
+	comterp()->pop_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+      comterp()->pop_stack();
+
+      ComValue srccopy(*srcval);
+      NextFunc::execute_impl(comterp(), srccopy);
+      return;   // the value from execute_impl is already on the stack
+    } else
+      push_stack(ComValue::nullval());
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
@@ -887,6 +1055,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  return;
 	}
 	if (!comterp->stack_top().is_null()) {
+	  _next_depth--;
 	  return;
 	}
 	avl->Remove(val);
@@ -1042,6 +1211,83 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
     _next_depth--;
 }
 
+/* whether at()'s :set would actually write (list target :set) vs. silently
+   no-op and return nil (a fixed-capacity string index out of range) --
+   nil is also a legitimate written value, so the write's own return can't
+   tell the two apart; this mirrors ListAtFunc::execute()'s own bounds
+   check (listfunc.c) on the same target/index pair. */
+static boolean idxassign_in_range(ComValue& listv, int idx) {
+  if (idx < 0) return false;
+  if (listv.is_type(ComValue::ArrayType)) return true;
+  if (listv.is_only_string()) {
+    boolean isslice = listv.sliced();
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    int chunksz = listv.blocksz();
+    int nchunks = chunksz>0 ? cap/chunksz : cap;
+    return idx < nchunks;
+  }
+  return false;
+}
+
+ComValue NextFunc::write_at_pair(ComTerp* comterp, ComValue& pairv, ComValue& writeval) {
+  AttributeValueList* pair = pairv.array_val();
+  static int set_symid = symbol_add("set");
+  comterp->push_stack(*pair->Get(0));
+  comterp->push_stack(*pair->Get(1));
+  comterp->push_stack(writeval);
+  ComValue setkey(set_symid, 1);
+  comterp->push_stack(setkey);
+  ListAtFunc atfunc(comterp);
+  atfunc.funcid(symbol_add("at"));
+  /* narg counts non-keyword args including the value after a keyword --
+     4 pushes here mean narg=3, nkey=1, not narg=2 */
+  atfunc.exec(3, 1);
+  return comterp->pop_stack();
+}
+
+int NextFunc::zip_assign_stream(ComTerp* comterp, ComValue& idxstream,
+				 ComValue* rhsval, boolean rhs_is_stream,
+				 int linenum, boolean tolerate_nonpair) {
+  int count = 0;
+  for (;;) {
+    NextFunc::execute_impl(comterp, idxstream);
+    ComValue pairv(comterp->pop_stack());
+    if (pairv.is_null()) break;
+    AttributeValueList* pair = pairv.array_val();
+    boolean is_pair = pairv.is_array() && pairv.lhs_assign() && pair && pair->Number()==2;
+    if (!is_pair && !tolerate_nonpair) {
+      /* the streamed target isn't list/string-shaped (e.g. an attrlist) --
+	 at() has nothing writable to hand back for it, same as the
+	 non-streamed al@n=val case (test 5, atop.comt): no effect.  -1
+	 (not a partial count) matches the non-streamed case's hard nil. */
+      fprintf(stderr, "WARNING:  assignment to something other than a symbol or attribute (%s) ignored -- line %d\n",
+	      symbol_pntr(pairv.type_symid()), linenum);
+      return -1;
+    }
+    ComValue writeval;
+    if (rhs_is_stream) {
+      NextFunc::execute_impl(comterp, *rhsval);
+      ComValue tick(comterp->pop_stack());
+      if (tick.is_null()) break;
+      writeval = tick;
+    } else
+      writeval = *rhsval;
+    if (is_pair) {
+      ComValue targetv(*pair->Get(0));
+      if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
+	/* any nil ends a stream -- an out-of-range index is where at()
+	   itself would start returning nil, so the write stream ends
+	   here too, the same as the read-side index stream would. */
+	break;
+      write_at_pair(comterp, pairv, writeval);
+    }
+    /* !is_pair here only reaches this point when tolerate_nonpair is set --
+       an each()-wrapped, never-assignable target (e.g. true**4): nothing
+       to write, but the pull still counts. */
+    count++;
+  }
+  return count;
+}
 
 /*****************************************************************************/
 
@@ -1049,7 +1295,24 @@ EachFunc::EachFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void EachFunc::execute() {
+  /* lhs_assign() on this token means NextFunc's lhs-walk (strmfunc.c)
+     flagged it as a **-wrapped 2nd arg wanting a batch-drain handoff,
+     not a drained count here -- same stale-command-token convention
+     at()/global()/local() already read via stack_top() (ARCHITECTURE.md,
+     "at()'s lhs flag"); checked before stack_arg_post_eval touches
+     anything, same ordering ListAtFunc's own check uses. */
+  boolean for_batch = comterp()->stack_top(nkeys()+1).lhs_assign();
   ComValue strmv(stack_arg_post_eval(0));
+
+  if (for_batch) {
+    /* hand back the still-live driving stream itself, flagged, so the
+       caller (NextFunc) can pace its own pulls against it instead of
+       each() draining it to a count here. */
+    reset_stack();
+    strmv.lhs_assign(1);
+    push_stack(strmv);
+    return;
+  }
 
   if (strmv.is_stream()) {
     /* explicit stream argument -- traverse normally */
@@ -1863,6 +2126,23 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   return result;
 }
 
+/* push one already-pulled value onto a ring, refusing by type rather than
+   pushing something the ring can't represent: AnyType boxes a value whole
+   (comval_encode's AnyType branch), so a string there costs exactly one
+   slot like any other value -- only a numeric blocktype's lossy conversion
+   needs refusing a string outright; an untyped (byte) ring refuses a
+   multi-byte string that wouldn't fit the room actually left. */
+static boolean ring_push_one(AttributeValueList* avl, ComValue& popval, boolean rawflag) {
+  AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
+  boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
+  if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
+  if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
+    int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
+    if (len>ring_avail(avl)) return false;
+  }
+  return ring_push_value(avl, popval, rawflag);
+}
+
 /* push one feed() argument onto a ring: a stream is run, not stored --
    pulled one value at a time and each pushed in turn, stopping (without
    consuming the value that wouldn't fit) once the ring has no room left.
@@ -1874,9 +2154,16 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
    it): registering the destination in NextFunc's own recursive-stream guard
    makes a pull that bottoms out on it return nil instead of completing the
    cycle, the same way next() already refuses a stream draining itself.
-   A non-stream argument still goes straight to ring_push_value(). */
-static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
-  if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
+   A non-stream argument still goes straight to ring_push_value().  When
+   count is given, it is incremented once per element actually pushed, for
+   an each()-forced eager drain to report how many landed. */
+static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v,
+			      boolean rawflag, int* count = nil) {
+  if (rawflag || !v.is_stream()) {
+    boolean ok = ring_push_value(avl, v, rawflag);
+    if (ok && count) (*count)++;
+    return ok;
+  }
   if (v.stream_list()==avl) return false;
   if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
   DrainingAVLGuard dest_guard(avl);
@@ -1892,17 +2179,8 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
       return false;
     }
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
-    /* AnyType boxes a value whole (comval_encode's AnyType branch), so a
-       string there costs exactly one slot like any other value -- only a
-       numeric blocktype's lossy conversion needs refusing a string outright. */
-    AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
-    boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
-    if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
-    if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
-      int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
-      if (len>ring_avail(avl)) return false;
-    }
-    if (!ring_push_value(avl, popval, rawflag)) return false;
+    if (!ring_push_one(avl, popval, rawflag)) return false;
+    if (count) (*count)++;
   }
 }
 
@@ -1918,9 +2196,47 @@ void FeedFunc::execute() {
 
   int n = nargs();
   ComValue* argv = n>0 ? new ComValue[n] : nil;
-  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
-     so a bquoted symbol (e.g. `EOS) survives into storage intact */
-  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
+
+  /* each()'s batch-drain flag only means anything to a ring target -- a
+     FIFO has its own lazy default (STREAM_NESTED below) and ignores it. */
+  boolean arg1_from_each = false;
+  if (n>0) {
+    /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
+       so a bquoted symbol (e.g. `EOS) survives into storage intact */
+    argv[0] = stack_arg_post_eval(0, true);
+    boolean arg0_ring_target = (argv[0].is_stream() &&
+				 argv[0].stream_func()==(void*)ring_next_func(comterp())) ||
+      streams_as_characters(argv[0]);
+    if (nargsfixed()==2 && arg0_ring_target) {
+      /* flag an each()-wrapped 2nd arg (feed(ring **0..9)) before it
+	 evaluates, same stale-command-token convention as NextFunc's own
+	 lhs-walk above, so EachFunc hands back the live stream instead of
+	 draining it -- see docs/POSTFIX-INDEXING.md for the walk itself. */
+      /* a bare symbol can't be an each() call, so it skips the walk below. */
+      ComValue peek1(stack_arg(1, true));
+      if (peek1.type() != ComValue::SymbolType) {
+	static int each_symid = symbol_add("each");
+	ComValue argoff(comterp()->stack_top());
+	int offtop = argoff.int_val() - comterp()->pfnum();
+	int argcnt = 0;
+	/* skip any trailing keywords (:raw, :noring) before walking args,
+	   same order stack_arg_post_eval() itself uses -- a keyword token
+	   found where an arg is expected is what "unexpected keyword" means. */
+	for (int k=0; k<nkeys(); k++) { argcnt = 0; skip_key_in_expr(offtop, argcnt); }
+	skip_arg_in_expr(offtop, argcnt);
+	int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+	ComValue& startval = comterp()->pfcomvals()[startidx];
+	if (startval.is_type(ComValue::CommandType)) {
+	  ComFunc* func = (ComFunc*)startval.obj_val();
+	  if (func->funcid() == each_symid) {
+	    startval.lhs_assign(1);
+	    arg1_from_each = true;
+	  }
+	}
+      }
+    }
+  }
+  for (int i=1; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
   /* :raw -- store a stream arg as an opaque, undrained element (skip STREAM_NESTED
      tagging), so a FIFO can hold streams and rotate them, not flatten them going in */
   static int raw_symid = symbol_add("raw");
@@ -1938,14 +2254,57 @@ void FeedFunc::execute() {
   boolean arg0_is_ring = n>0 && argv[0].is_stream() &&
     argv[0].stream_func() == (void*)ring_next_func(comterp());
 
+  /* a single bare stream argument into a ring defers the push into a lazy
+     wrapper, the same "do it later" default a growable FIFO's own
+     STREAM_NESTED tagging already gives it below. */
+  /* each() (arg1_from_each) asks for "do it now" instead, which the
+     fall-through eager-drain code a few lines down still provides. */
+  if ((arg0_is_ring || (n>0 && !arg0_is_fifo && !rawflag && streams_as_characters(argv[0]))) &&
+      nargsfixed()==2 && !rawflag && argv[1].is_stream() && !arg1_from_each) {
+    ComValue ringv(arg0_is_ring ? argv[0] : ring_stream_value(comterp(), argv[0], !noringflag));
+    AttributeValueList* avl = ringv.stream_list();
+    if (argv[1].stream_list()==avl) {
+      /* the ring refused as its own source, same as the eager path below */
+      delete [] argv;
+      push_stack(ComValue::nullval());
+      return;
+    }
+    static FeedRingNextFunc* frnfunc = nil;
+    if (!frnfunc) {
+      frnfunc = new FeedRingNextFunc(comterp());
+      frnfunc->funcid(symbol_add("feedringnext"));
+    }
+    AttributeValueList* wavl = new AttributeValueList();
+    wavl->Append(new AttributeValue(ringv));
+    wavl->Append(new AttributeValue(argv[1]));
+    ComValue wrapper(frnfunc, wavl);
+    /* STREAM_RING tells NextFunc::execute_impl a nil here means refused
+       for now, not exhausted, so it keeps this wrapper's [ring,source]
+       state intact instead of clearing it. */
+    wrapper.stream_mode(STREAM_INTERNAL | STREAM_RING);
+    delete [] argv;
+    push_stack(wrapper);
+    return;
+  }
+
   if (arg0_is_ring) {
-    /* push the remaining args onto the ring's tail -- a stream argument is
-       run (pulled and pushed one value at a time) rather than stored; any
-       refusal (buffer full) fails the whole call with nil, same as next()'s
-       empty-ring refusal */
+    /* push the remaining args onto the ring's tail; a stream argument is
+       run (pulled and pushed one value at a time), and any refusal fails
+       the whole call with nil, same as next()'s empty-ring refusal. */
+    /* an each()-forced drain (arg1_from_each) reports its pushed count,
+       bracketed like next()'s own batch-drain; every other case still
+       just returns the ring. */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
+    int pushcount = 0;
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag, &pushcount);
+    if (ok && arg1_from_each) {
+      ComValue retval(pushcount, ComValue::IntType);
+      delete [] argv;
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
     ComValue retval(ok ? argv[0] : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -1960,7 +2319,15 @@ void FeedFunc::execute() {
     ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
     AttributeValueList* avl = stream.stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
+    int pushcount = 0;
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag, &pushcount);
+    if (ok && arg1_from_each) {
+      ComValue retval(pushcount, ComValue::IntType);
+      delete [] argv;
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
     ComValue retval(ok ? stream : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -2148,4 +2515,63 @@ void RingNextFunc::execute() {
 
   ComValue retval(ring_pop_char(operand1.stream_list()));
   push_stack(retval);
+}
+
+/*****************************************************************************/
+
+FeedRingNextFunc::FeedRingNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FeedRingNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* state = operand1.stream_list();
+  if (!state || state->Number()<2) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  Iterator i;
+  state->First(i);
+  AttributeValue* ringav = state->GetAttrVal(i);  // [0] ring
+  state->Next(i);
+  AttributeValue* srcav = state->GetAttrVal(i);    // [1] source stream
+
+  ComValue ringv(*ringav);
+  AttributeValueList* avl = ringv.stream_list();
+  if (!avl || ring_avail(avl)<=0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* the ring is refused outright as its own source, directly or wrapped
+     (e.g. nested inside a FIFO fed back into it), same guard ring_push_arg
+     registers for its own eager drain: flagging this ring's avl as a
+     draining destination for the span of this one pull is what makes a
+     pull that bottoms out on it (through NextFunc::execute_impl's own
+     recursive-stream check) return nil instead of cycling forever. */
+  if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
+  DrainingAVLGuard dest_guard(avl);
+
+  /* srcav's own backing stream state lives behind this copy, same
+     resume-across-calls idiom NextVarNextFunc uses for its paired streams --
+     pulling through srccopy advances the shared source, so a later pull
+     against this same wrapper resumes where this one left off. */
+  ComValue srccopy(*srcav);
+  NextFunc::execute_impl(comterp(), srccopy);
+  ComValue popval(comterp()->pop_stack());
+  if (_draining_guard_tripped_avl==avl) {
+    _draining_guard_tripped_avl = 0;
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (!ring_push_one(avl, popval, false)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  push_stack(popval);
 }

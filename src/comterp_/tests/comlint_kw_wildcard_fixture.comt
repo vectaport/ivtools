@@ -1,0 +1,20 @@
+// fixture for comlint_kw_wildcard.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Exercises comlint's
+// unrecognized-keyword check against the documented wildcard idiom
+// "[:<name> [val]]": kw_wild calls attrlist() under comdraw, where
+// ComUnidraw's GrAttrListFunc overrides the base ComTerp docstring
+// with its own compview-vs-bare-keyword-args prose -- this must stay
+// flag-free no matter what keyword names are passed, since the
+// docstring's own "[:<name> [val]]" fragment is comlint's signal that
+// the keyword set is open-ended. kw_fixed calls line(), whose
+// docstring declares no keywords at all, with a keyword no version of
+// line() has ever accepted -- the wildcard idiom must not suppress
+// this unrelated command's real finding. kw_bare calls attrlist()
+// with no arguments at all, valid since every positional and keyword
+// is optional -- the docstring's two adjacent bracketed groups
+// ("[compview] [:<name> [val]]") must both read as optional, not get
+// miscounted as a required positional (a stray unbracketed separator
+// between them once did exactly that).
+kw_wild=attrlist(:ok true :ports (1,2,3) :socks (4,5))
+kw_fixed=line(0,0,10,10 :notakeyword 1)
+kw_bare=attrlist()

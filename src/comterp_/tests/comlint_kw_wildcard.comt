@@ -1,0 +1,51 @@
+// src/comterp_/tests/comlint_kw_wildcard.comt -- regression test for
+// comlint's unrecognized-keyword check against a docstring's
+// "[:<name> [val]]" wildcard idiom, checked against comdraw's command
+// set specifically: ComUnidraw's GrAttrListFunc (grdotfunc.h)
+// overrides the base ComTerp attrlist() docstring with prose of its
+// own, and once did so without the wildcard idiom, so every
+// attrlist(:somekeyword ...) call under comdraw/drawserv falsely
+// warned regardless of keyword name -- see
+// comlint_kw_wildcard_fixture.comt.
+//
+// The comdraw check below always launches under its own 'xvfb-run -a'
+// rather than relying on whatever X connection this script's own
+// process happens to hold -- comdraw spawned from inside an already-
+// running comdraw/drawserv sharing one Xvfb display hangs (two GUI
+// clients fighting over the same canvas), where a fresh, independent
+// Xvfb display does not. That also means this test only needs
+// xvfb-run on PATH, not an ambient DISPLAY, so it runs the same way
+// from plain comterp, comdraw, or drawserv.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/comlint_kw_wildcard.comt")
+
+run("./testlib.comt")
+ok=true
+
+if(open("../../scripts/comlint" "r")!=nil :then
+  comlintpath="../../scripts/comlint";fixtureprefix=""
+  :else
+  comlintpath="src/scripts/comlint";fixtureprefix="src/comterp_/tests/")
+
+pipe1=$$open(print("xvfb-run -a comterp run %s %s%s comdraw 2>&1"
+  comlintpath fixtureprefix "comlint_kw_wildcard_fixture.comt" :str) :pipe)
+out1="";linev1=*pipe1
+while(linev1!=nil
+  out1=out1+linev1+" ";
+  linev1=*pipe1)
+
+/* checking for "attrlist(): unrecognized keyword"/"called with" rather
+   than for the kw_wild/kw_bare variable names themselves -- the
+   fixture's own filename contains "kw_wild" too, and comlint echoes
+   that filename in its own "checking ... against ..." status line
+   regardless of findings */
+wildcardclean=index(out1 "attrlist(): unrecognized keyword" :substr)==nil
+barearityclean=index(out1 "attrlist(): called with" :substr)==nil
+fixedflagged=index(out1 "line(): unrecognized keyword :notakeyword" :substr)!=nil
+ok=ok&&wildcardclean&&barearityclean&&fixedflagged
+print("1 comlint under comdraw on attrlist(:ok ... :ports ... :socks ...)\n    (wildcard docstring, expect no finding), attrlist() (bare call,\n    expect no finding), and line(... :notakeyword 1) (fixed docstring,\n    expect a finding): %v %v %v\n\n" wildcardclean barearityclean fixedflagged)
+prev_ok=check_fail(:ok ok)
+
+print("\ncomlint_kw_wildcard: %v\n" ok)
+ok
