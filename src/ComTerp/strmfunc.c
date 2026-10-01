@@ -2197,11 +2197,8 @@ void FeedFunc::execute() {
   int n = nargs();
   ComValue* argv = n>0 ? new ComValue[n] : nil;
 
-  /* each()'s own batch-drain flag (see EachFunc::execute()) only means
-     anything to a ring target -- a growable FIFO already has its own lazy
-     default (STREAM_NESTED below) and doesn't read this flag at all, so
-     flagging it there would just change what a bare feed(fifo, **s) call's
-     2nd argument evaluates to, not how feed() treats it. */
+  /* each()'s batch-drain flag only means anything to a ring target -- a
+     FIFO has its own lazy default (STREAM_NESTED below) and ignores it. */
   boolean arg1_from_each = false;
   if (n>0) {
     /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
@@ -2211,14 +2208,11 @@ void FeedFunc::execute() {
 				 argv[0].stream_func()==(void*)ring_next_func(comterp())) ||
       streams_as_characters(argv[0]);
     if (nargsfixed()==2 && arg0_ring_target) {
-      /* a two-arg call's 2nd argument may be each()-wrapped
-	 (feed(ring **0..9)), asking to push a stream into the ring now
-	 rather than defer it -- flag that each() token before it
-	 evaluates, the same stale-command-token convention NextFunc's own
-	 lhs-walk uses for its var argument (see NextFunc::execute()
-	 above), so EachFunc hands back the live stream instead of a
-	 drained value.  A bare symbol can't be an each() call, so it's
-	 skipped without the walk below. */
+      /* flag an each()-wrapped 2nd arg (feed(ring **0..9)) before it
+	 evaluates, same stale-command-token convention as NextFunc's own
+	 lhs-walk above, so EachFunc hands back the live stream instead of
+	 draining it -- see docs/POSTFIX-INDEXING.md for the walk itself. */
+      /* a bare symbol can't be an each() call, so it skips the walk below. */
       ComValue peek1(stack_arg(1, true));
       if (peek1.type() != ComValue::SymbolType) {
 	static int each_symid = symbol_add("each");
@@ -2284,12 +2278,9 @@ void FeedFunc::execute() {
     wavl->Append(new AttributeValue(ringv));
     wavl->Append(new AttributeValue(argv[1]));
     ComValue wrapper(frnfunc, wavl);
-    /* STREAM_RING here is borrowed for its one other meaning (see
-       NextFunc::execute_impl's STREAM_INTERNAL branch): nil means refused
-       for now, not exhausted, so a refusal must not clear this wrapper's
-       own [ring,source] state -- without it, a refusal (ring momentarily
-       full) would wipe the wrapper, leaving a later pull, after room
-       frees up, with nothing to resume from. */
+    /* STREAM_RING tells NextFunc::execute_impl a nil here means refused
+       for now, not exhausted, so it keeps this wrapper's [ring,source]
+       state intact instead of clearing it. */
     wrapper.stream_mode(STREAM_INTERNAL | STREAM_RING);
     delete [] argv;
     push_stack(wrapper);
@@ -2297,14 +2288,12 @@ void FeedFunc::execute() {
   }
 
   if (arg0_is_ring) {
-    /* push the remaining args onto the ring's tail -- a stream argument is
-       run (pulled and pushed one value at a time) rather than stored; any
-       refusal (buffer full) fails the whole call with nil, same as next()'s
-       empty-ring refusal. */
-    /* an each()-forced drain (arg1_from_each) reports how many elements it
-       pushed, the same bracketed-count convention next()'s own batch-drain
-       uses; every other case (multi-arg, scalar, :raw) still just returns
-       the ring, unchanged from before. */
+    /* push the remaining args onto the ring's tail; a stream argument is
+       run (pulled and pushed one value at a time), and any refusal fails
+       the whole call with nil, same as next()'s empty-ring refusal. */
+    /* an each()-forced drain (arg1_from_each) reports its pushed count,
+       bracketed like next()'s own batch-drain; every other case still
+       just returns the ring. */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
     int pushcount = 0;
