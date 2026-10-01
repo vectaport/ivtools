@@ -1840,15 +1840,25 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
 /* push one feed() argument onto a ring: a stream is run, not stored --
    pulled one value at a time and each pushed in turn, stopping (without
    consuming the value that wouldn't fit) once the ring has no room left.
+   A value this can't pull without risking loss -- because capacity is
+   already exhausted -- is never pulled, so a stream with more left after
+   exactly filling the ring is refused the same way a short one is, rather
+   than guessed at by pulling anyway.  The ring is refused outright as its
+   own source: draining and refilling the same slots never converges.
    A non-stream argument still goes straight to ring_push_value(). */
 static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
   if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
+  if (v.stream_list()==avl) return false;
   ComValue streamv(v);
   for (;;) {
     if (ring_avail(avl)<=0) return false;
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
+    if (streams_as_characters(popval)) {
+      int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
+      if (len>ring_avail(avl)) return false;
+    }
     if (!ring_push_value(avl, popval, rawflag)) return false;
   }
 }
