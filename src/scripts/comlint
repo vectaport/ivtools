@@ -268,8 +268,8 @@ while((srcline=gets(fp))!=nil
   if(substr(srcline 2)=="//" :then
     /* an unrelated whole-line comment leaves an already-armed override
        alone -- only the next real statement's own start consumes it
-       (stmtallowed=allowarmed;allowarmed=false below) -- so a second
-       comment line right after '// comlint:allow' can't cancel it */
+       (stmtallowed=allowarmed;allowarmed=false below), so the override
+       applies across any number of intervening comment lines */
     if(index(srcline "comlint:allow")!=nil :then allowarmed=true);
     continue);
 
