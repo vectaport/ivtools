@@ -2126,6 +2126,23 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   return result;
 }
 
+/* push one already-pulled value onto a ring, refusing by type rather than
+   pushing something the ring can't represent: AnyType boxes a value whole
+   (comval_encode's AnyType branch), so a string there costs exactly one
+   slot like any other value -- only a numeric blocktype's lossy conversion
+   needs refusing a string outright; an untyped (byte) ring refuses a
+   multi-byte string that wouldn't fit the room actually left. */
+static boolean ring_push_one(AttributeValueList* avl, ComValue& popval, boolean rawflag) {
+  AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
+  boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
+  if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
+  if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
+    int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
+    if (len>ring_avail(avl)) return false;
+  }
+  return ring_push_value(avl, popval, rawflag);
+}
+
 /* push one feed() argument onto a ring: a stream is run, not stored --
    pulled one value at a time and each pushed in turn, stopping (without
    consuming the value that wouldn't fit) once the ring has no room left.
@@ -2137,9 +2154,16 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
    it): registering the destination in NextFunc's own recursive-stream guard
    makes a pull that bottoms out on it return nil instead of completing the
    cycle, the same way next() already refuses a stream draining itself.
-   A non-stream argument still goes straight to ring_push_value(). */
-static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
-  if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
+   A non-stream argument still goes straight to ring_push_value().  When
+   count is given, it is incremented once per element actually pushed, for
+   an each()-forced eager drain to report how many landed. */
+static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v,
+			      boolean rawflag, int* count = nil) {
+  if (rawflag || !v.is_stream()) {
+    boolean ok = ring_push_value(avl, v, rawflag);
+    if (ok && count) (*count)++;
+    return ok;
+  }
   if (v.stream_list()==avl) return false;
   if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
   DrainingAVLGuard dest_guard(avl);
@@ -2155,17 +2179,8 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
       return false;
     }
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
-    /* AnyType boxes a value whole (comval_encode's AnyType branch), so a
-       string there costs exactly one slot like any other value -- only a
-       numeric blocktype's lossy conversion needs refusing a string outright. */
-    AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
-    boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
-    if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
-    if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
-      int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
-      if (len>ring_avail(avl)) return false;
-    }
-    if (!ring_push_value(avl, popval, rawflag)) return false;
+    if (!ring_push_one(avl, popval, rawflag)) return false;
+    if (count) (*count)++;
   }
 }
 
@@ -2181,9 +2196,47 @@ void FeedFunc::execute() {
 
   int n = nargs();
   ComValue* argv = n>0 ? new ComValue[n] : nil;
-  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
-     so a bquoted symbol (e.g. `EOS) survives into storage intact */
-  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
+
+  /* each()'s batch-drain flag only means anything to a ring target -- a
+     FIFO has its own lazy default (STREAM_NESTED below) and ignores it. */
+  boolean arg1_from_each = false;
+  if (n>0) {
+    /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
+       so a bquoted symbol (e.g. `EOS) survives into storage intact */
+    argv[0] = stack_arg_post_eval(0, true);
+    boolean arg0_ring_target = (argv[0].is_stream() &&
+				 argv[0].stream_func()==(void*)ring_next_func(comterp())) ||
+      streams_as_characters(argv[0]);
+    if (nargsfixed()==2 && arg0_ring_target) {
+      /* flag an each()-wrapped 2nd arg (feed(ring **0..9)) before it
+	 evaluates, same stale-command-token convention as NextFunc's own
+	 lhs-walk above, so EachFunc hands back the live stream instead of
+	 draining it -- see docs/POSTFIX-INDEXING.md for the walk itself. */
+      /* a bare symbol can't be an each() call, so it skips the walk below. */
+      ComValue peek1(stack_arg(1, true));
+      if (peek1.type() != ComValue::SymbolType) {
+	static int each_symid = symbol_add("each");
+	ComValue argoff(comterp()->stack_top());
+	int offtop = argoff.int_val() - comterp()->pfnum();
+	int argcnt = 0;
+	/* skip any trailing keywords (:raw, :noring) before walking args,
+	   same order stack_arg_post_eval() itself uses -- a keyword token
+	   found where an arg is expected is what "unexpected keyword" means. */
+	for (int k=0; k<nkeys(); k++) { argcnt = 0; skip_key_in_expr(offtop, argcnt); }
+	skip_arg_in_expr(offtop, argcnt);
+	int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+	ComValue& startval = comterp()->pfcomvals()[startidx];
+	if (startval.is_type(ComValue::CommandType)) {
+	  ComFunc* func = (ComFunc*)startval.obj_val();
+	  if (func->funcid() == each_symid) {
+	    startval.lhs_assign(1);
+	    arg1_from_each = true;
+	  }
+	}
+      }
+    }
+  }
+  for (int i=1; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
   /* :raw -- store a stream arg as an opaque, undrained element (skip STREAM_NESTED
      tagging), so a FIFO can hold streams and rotate them, not flatten them going in */
   static int raw_symid = symbol_add("raw");
@@ -2201,14 +2254,57 @@ void FeedFunc::execute() {
   boolean arg0_is_ring = n>0 && argv[0].is_stream() &&
     argv[0].stream_func() == (void*)ring_next_func(comterp());
 
+  /* a single bare stream argument into a ring defers the push into a lazy
+     wrapper, the same "do it later" default a growable FIFO's own
+     STREAM_NESTED tagging already gives it below. */
+  /* each() (arg1_from_each) asks for "do it now" instead, which the
+     fall-through eager-drain code a few lines down still provides. */
+  if ((arg0_is_ring || (n>0 && !arg0_is_fifo && !rawflag && streams_as_characters(argv[0]))) &&
+      nargsfixed()==2 && !rawflag && argv[1].is_stream() && !arg1_from_each) {
+    ComValue ringv(arg0_is_ring ? argv[0] : ring_stream_value(comterp(), argv[0], !noringflag));
+    AttributeValueList* avl = ringv.stream_list();
+    if (argv[1].stream_list()==avl) {
+      /* the ring refused as its own source, same as the eager path below */
+      delete [] argv;
+      push_stack(ComValue::nullval());
+      return;
+    }
+    static FeedRingNextFunc* frnfunc = nil;
+    if (!frnfunc) {
+      frnfunc = new FeedRingNextFunc(comterp());
+      frnfunc->funcid(symbol_add("feedringnext"));
+    }
+    AttributeValueList* wavl = new AttributeValueList();
+    wavl->Append(new AttributeValue(ringv));
+    wavl->Append(new AttributeValue(argv[1]));
+    ComValue wrapper(frnfunc, wavl);
+    /* STREAM_RING tells NextFunc::execute_impl a nil here means refused
+       for now, not exhausted, so it keeps this wrapper's [ring,source]
+       state intact instead of clearing it. */
+    wrapper.stream_mode(STREAM_INTERNAL | STREAM_RING);
+    delete [] argv;
+    push_stack(wrapper);
+    return;
+  }
+
   if (arg0_is_ring) {
-    /* push the remaining args onto the ring's tail -- a stream argument is
-       run (pulled and pushed one value at a time) rather than stored; any
-       refusal (buffer full) fails the whole call with nil, same as next()'s
-       empty-ring refusal */
+    /* push the remaining args onto the ring's tail; a stream argument is
+       run (pulled and pushed one value at a time), and any refusal fails
+       the whole call with nil, same as next()'s empty-ring refusal. */
+    /* an each()-forced drain (arg1_from_each) reports its pushed count,
+       bracketed like next()'s own batch-drain; every other case still
+       just returns the ring. */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
+    int pushcount = 0;
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag, &pushcount);
+    if (ok && arg1_from_each) {
+      ComValue retval(pushcount, ComValue::IntType);
+      delete [] argv;
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
     ComValue retval(ok ? argv[0] : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -2223,7 +2319,15 @@ void FeedFunc::execute() {
     ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
     AttributeValueList* avl = stream.stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
+    int pushcount = 0;
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag, &pushcount);
+    if (ok && arg1_from_each) {
+      ComValue retval(pushcount, ComValue::IntType);
+      delete [] argv;
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
     ComValue retval(ok ? stream : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -2411,4 +2515,63 @@ void RingNextFunc::execute() {
 
   ComValue retval(ring_pop_char(operand1.stream_list()));
   push_stack(retval);
+}
+
+/*****************************************************************************/
+
+FeedRingNextFunc::FeedRingNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FeedRingNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* state = operand1.stream_list();
+  if (!state || state->Number()<2) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  Iterator i;
+  state->First(i);
+  AttributeValue* ringav = state->GetAttrVal(i);  // [0] ring
+  state->Next(i);
+  AttributeValue* srcav = state->GetAttrVal(i);    // [1] source stream
+
+  ComValue ringv(*ringav);
+  AttributeValueList* avl = ringv.stream_list();
+  if (!avl || ring_avail(avl)<=0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* the ring is refused outright as its own source, directly or wrapped
+     (e.g. nested inside a FIFO fed back into it), same guard ring_push_arg
+     registers for its own eager drain: flagging this ring's avl as a
+     draining destination for the span of this one pull is what makes a
+     pull that bottoms out on it (through NextFunc::execute_impl's own
+     recursive-stream check) return nil instead of cycling forever. */
+  if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
+  DrainingAVLGuard dest_guard(avl);
+
+  /* srcav's own backing stream state lives behind this copy, same
+     resume-across-calls idiom NextVarNextFunc uses for its paired streams --
+     pulling through srccopy advances the shared source, so a later pull
+     against this same wrapper resumes where this one left off. */
+  ComValue srccopy(*srcav);
+  NextFunc::execute_impl(comterp(), srccopy);
+  ComValue popval(comterp()->pop_stack());
+  if (_draining_guard_tripped_avl==avl) {
+    _draining_guard_tripped_avl = 0;
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (!ring_push_one(avl, popval, false)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  push_stack(popval);
 }
