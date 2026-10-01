@@ -1,0 +1,61 @@
+// src/comterp_/tests/nextvar.comt -- next(stream var), the optional second
+// argument that assigns the pulled value to a variable
+//
+// coverage: 5 tests of next()'s optional 2nd arg -- scalar assignment, a
+// feed()-ring source (Scott's own motivating example), exhaustion assigning
+// nil, a non-symbol 2nd argument being ignored for backward compatibility,
+// and assignment landing in an already-existing variable's own scope
+// funcs: next feed string istype
+//
+// var is read unevaluated, the same way AssignFunc reads its own lhs: a
+// plain variable name, not whatever value it currently holds. With var,
+// next(stream var) still returns the pulled value as its own result and
+// additionally assigns that same value (including nil, on an exhausted
+// stream) to var. Omitting var, or passing something other than a bare
+// symbol, leaves next(stream) exactly as it always was.
+
+ok=true
+
+// --- 1: scalar var gets the pulled value, each call ---
+s1=$$(10 20 30)
+v1a=next(s1 out1)
+ok=ok&&(v1a==10)&&(out1==10)
+v1b=next(s1 out1)
+ok=ok&&(v1b==20)&&(out1==20)
+print("1 next(s1 out1) assigns each pulled value, out1 shown after both calls (expect 10 20 20): %v %v %v\n" v1a v1b out1)
+
+// --- 2: Scott's own motivating setup -- a typed-string ring built via
+// feed(), drained with next(ring var) ---
+r2=string(8 UIntType)
+ring2=feed(r2)
+feed(ring2 10); feed(ring2 20); feed(ring2 30)
+val2a=next(ring2 vout2)
+ok=ok&&(val2a==10)&&(vout2==10)
+val2b=next(ring2 vout2)
+ok=ok&&(val2b==20)&&(vout2==20)
+print("2 next(ring var) over a feed() ring, vout2 shown after both calls (expect 10 20 20): %v %v %v\n" val2a val2b vout2)
+
+// --- 3: an exhausted stream assigns nil to var, not just returning nil --
+s3=$$(1)
+next(s3)
+v3=next(s3 out3)
+ok=ok&&(v3==nil)&&(out3==nil)
+print("3 next(exhausted var) assigns nil to var too (expect nil nil): %v %v\n" v3 out3)
+
+// --- 4: a non-symbol 2nd argument is ignored, same as if it weren't
+// supplied -- next(stream) is unaffected by what gets passed there ---
+s4=$$(7 8)
+v4=next(s4 99)
+ok=ok&&(v4==7)
+print("4 next(s4 99) -- a literal 2nd arg doesn't crash or divert (expect 7): %v\n" v4)
+
+// --- 5: assignment lands in the variable's existing scope, updating it in
+// place rather than shadowing it with a fresh local ---
+out5=0
+s5=$$(42)
+next(s5 out5)
+ok=ok&&(out5==42)
+print("5 next(stream var) updates an already-existing var in place (expect 42): %v\n" out5)
+
+print("nextvar: %v\n" ok)
+ok

@@ -242,6 +242,10 @@ if(run("./starnext.comt")
   :then print("pass: starnext\n")
   :else print("FAIL: starnext\n");topok=false)
 
+if(run("./nextvar.comt")
+  :then print("pass: nextvar\n")
+  :else print("FAIL: nextvar\n");topok=false)
+
 if(run("./symboldrain.comt")
   :then print("pass: symboldrain\n")
   :else print("FAIL: symboldrain\n");topok=false)

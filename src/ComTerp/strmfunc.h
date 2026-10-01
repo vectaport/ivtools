@@ -266,8 +266,9 @@ public:
     virtual const char* docstring() {
       /* %1$s (not plain %s) reused twice: helpfunc.c passes only one
          substitution argument, and a second bare %s would read past it */
-      return "val=%1$s(stream) -- return next value from stream\n\
-*s is unary-prefix sugar for %1$s(s)"; }
+      return "val=%1$s(stream [var]) -- return next value from stream\n\
+*s is unary-prefix sugar for %1$s(s)\n\
+with var, also assigns the pulled value (including nil) to that variable"; }
 
     static int next_depth() { return _next_depth; }
 protected:

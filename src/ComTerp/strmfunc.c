@@ -821,9 +821,16 @@ NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void NextFunc::execute() {
     ComValue streamv(stack_arg_post_eval(0));
+    /* unevaluated (symbol=true), the same way AssignFunc reads its own lhs --
+       a plain var name, not whatever value it currently holds. */
+    ComValue varname(nargsfixed()>1 ? stack_arg(1, true) : ComValue::nullval());
     reset_stack();
 
     execute_impl(comterp(), streamv);
+
+    /* a non-symbol var (or none given) leaves next(stream) exactly as before */
+    if (varname.is_type(ComValue::SymbolType))
+      comterp()->assign_symval(varname.symbol_val(), new ComValue(comterp()->stack_top()));
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
