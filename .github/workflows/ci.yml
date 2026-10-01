@@ -173,8 +173,16 @@ jobs:
       # read as a clean one. Findings go to the step summary so they're
       # visible without failing CI; once comlint has run clean here for a
       # while this can be promoted to a real gate.
+      #
+      # Runs once per PR rather than on every push to it: a ~6min scan
+      # doesn't need to repeat on each follow-up commit, and a SKIPPED
+      # required check still counts as passing for merge, so skipping here
+      # on 'synchronize' doesn't block anything. It still runs on the PR's
+      # first open/reopen, on push to master (so the merge itself is
+      # covered), and on a manual workflow_dispatch re-run from the Actions
+      # tab any time a fresh check is wanted mid-PR.
       - name: Lint - comlint advisory (non-blocking)
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.action != 'synchronize')
         timeout-minutes: 10
         run: |
           echo "### comlint advisory report" >> "$GITHUB_STEP_SUMMARY"
