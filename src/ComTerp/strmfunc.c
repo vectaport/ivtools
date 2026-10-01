@@ -2195,43 +2195,54 @@ void FeedFunc::execute() {
   }
 
   int n = nargs();
+  ComValue* argv = n>0 ? new ComValue[n] : nil;
 
-  /* a two-arg call's 2nd argument may be each()-wrapped (feed(ring **0..9)),
-     asking to push a stream into a ring now rather than defer it -- flag
-     that each() token before it evaluates, the same stale-command-token
-     convention NextFunc's own lhs-walk uses for its var argument (see
-     NextFunc::execute() above), so EachFunc hands back the live stream
-     instead of a drained value.  Only arg 1 of a plain 2-arg call is ever
-     checked; a bare symbol can't be an each() call, so it's skipped. */
+  /* each()'s own batch-drain flag (see EachFunc::execute()) only means
+     anything to a ring target -- a growable FIFO already has its own lazy
+     default (STREAM_NESTED below) and doesn't read this flag at all, so
+     flagging it there would just change what a bare feed(fifo, **s) call's
+     2nd argument evaluates to, not how feed() treats it. */
   boolean arg1_from_each = false;
-  if (nargsfixed()==2) {
-    ComValue peek1(stack_arg(1, true));
-    if (peek1.type() != ComValue::SymbolType) {
-      static int each_symid = symbol_add("each");
-      ComValue argoff(comterp()->stack_top());
-      int offtop = argoff.int_val() - comterp()->pfnum();
-      int argcnt = 0;
-      /* skip any trailing keywords (:raw, :noring) before walking args,
-	 same order stack_arg_post_eval() itself uses -- a keyword token
-	 found where an arg is expected is what "unexpected keyword" means. */
-      for (int k=0; k<nkeys(); k++) { argcnt = 0; skip_key_in_expr(offtop, argcnt); }
-      skip_arg_in_expr(offtop, argcnt);
-      int startidx = comterp()->pfnum() + offtop + argcnt - 1;
-      ComValue& startval = comterp()->pfcomvals()[startidx];
-      if (startval.is_type(ComValue::CommandType)) {
-	ComFunc* func = (ComFunc*)startval.obj_val();
-	if (func->funcid() == each_symid) {
-	  startval.lhs_assign(1);
-	  arg1_from_each = true;
+  if (n>0) {
+    /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
+       so a bquoted symbol (e.g. `EOS) survives into storage intact */
+    argv[0] = stack_arg_post_eval(0, true);
+    boolean arg0_ring_target = (argv[0].is_stream() &&
+				 argv[0].stream_func()==(void*)ring_next_func(comterp())) ||
+      streams_as_characters(argv[0]);
+    if (nargsfixed()==2 && arg0_ring_target) {
+      /* a two-arg call's 2nd argument may be each()-wrapped
+	 (feed(ring **0..9)), asking to push a stream into the ring now
+	 rather than defer it -- flag that each() token before it
+	 evaluates, the same stale-command-token convention NextFunc's own
+	 lhs-walk uses for its var argument (see NextFunc::execute()
+	 above), so EachFunc hands back the live stream instead of a
+	 drained value.  A bare symbol can't be an each() call, so it's
+	 skipped without the walk below. */
+      ComValue peek1(stack_arg(1, true));
+      if (peek1.type() != ComValue::SymbolType) {
+	static int each_symid = symbol_add("each");
+	ComValue argoff(comterp()->stack_top());
+	int offtop = argoff.int_val() - comterp()->pfnum();
+	int argcnt = 0;
+	/* skip any trailing keywords (:raw, :noring) before walking args,
+	   same order stack_arg_post_eval() itself uses -- a keyword token
+	   found where an arg is expected is what "unexpected keyword" means. */
+	for (int k=0; k<nkeys(); k++) { argcnt = 0; skip_key_in_expr(offtop, argcnt); }
+	skip_arg_in_expr(offtop, argcnt);
+	int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+	ComValue& startval = comterp()->pfcomvals()[startidx];
+	if (startval.is_type(ComValue::CommandType)) {
+	  ComFunc* func = (ComFunc*)startval.obj_val();
+	  if (func->funcid() == each_symid) {
+	    startval.lhs_assign(1);
+	    arg1_from_each = true;
+	  }
 	}
       }
     }
   }
-
-  ComValue* argv = n>0 ? new ComValue[n] : nil;
-  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup
-     so a bquoted symbol (e.g. `EOS) survives into storage intact */
-  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
+  for (int i=1; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
   /* :raw -- store a stream arg as an opaque, undrained element (skip STREAM_NESTED
      tagging), so a FIFO can hold streams and rotate them, not flatten them going in */
   static int raw_symid = symbol_add("raw");
@@ -2249,11 +2260,11 @@ void FeedFunc::execute() {
   boolean arg0_is_ring = n>0 && argv[0].is_stream() &&
     argv[0].stream_func() == (void*)ring_next_func(comterp());
 
-  /* a single stream argument into a ring: the default (bare, no each()) is
-     "do it later" -- defer the push into a lazy wrapper instead of draining
-     here, mirroring the growable FIFO's own STREAM_NESTED default below.
-     each() asks for "do it now", the ring's original eager-drain-and-count
-     behavior, which the fall-through code a few lines down still provides. */
+  /* a single bare stream argument into a ring defers the push into a lazy
+     wrapper, the same "do it later" default a growable FIFO's own
+     STREAM_NESTED tagging already gives it below. */
+  /* each() (arg1_from_each) asks for "do it now" instead, which the
+     fall-through eager-drain code a few lines down still provides. */
   if ((arg0_is_ring || (n>0 && !arg0_is_fifo && !rawflag && streams_as_characters(argv[0]))) &&
       nargsfixed()==2 && !rawflag && argv[1].is_stream() && !arg1_from_each) {
     ComValue ringv(arg0_is_ring ? argv[0] : ring_stream_value(comterp(), argv[0], !noringflag));
@@ -2273,7 +2284,13 @@ void FeedFunc::execute() {
     wavl->Append(new AttributeValue(ringv));
     wavl->Append(new AttributeValue(argv[1]));
     ComValue wrapper(frnfunc, wavl);
-    wrapper.stream_mode(STREAM_INTERNAL);
+    /* STREAM_RING here is borrowed for its one other meaning (see
+       NextFunc::execute_impl's STREAM_INTERNAL branch): nil means refused
+       for now, not exhausted, so a refusal must not clear this wrapper's
+       own [ring,source] state -- without it, a refusal (ring momentarily
+       full) would wipe the wrapper, leaving a later pull, after room
+       frees up, with nothing to resume from. */
+    wrapper.stream_mode(STREAM_INTERNAL | STREAM_RING);
     delete [] argv;
     push_stack(wrapper);
     return;
@@ -2283,10 +2300,11 @@ void FeedFunc::execute() {
     /* push the remaining args onto the ring's tail -- a stream argument is
        run (pulled and pushed one value at a time) rather than stored; any
        refusal (buffer full) fails the whole call with nil, same as next()'s
-       empty-ring refusal.  An each()-forced drain (arg1_from_each) reports
-       how many elements it pushed, the same bracketed-count convention
-       next()'s own batch-drain uses -- an unwrapped multi-arg or scalar
-       push still just returns the ring, unchanged from before. */
+       empty-ring refusal. */
+    /* an each()-forced drain (arg1_from_each) reports how many elements it
+       pushed, the same bracketed-count convention next()'s own batch-drain
+       uses; every other case (multi-arg, scalar, :raw) still just returns
+       the ring, unchanged from before. */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
     int pushcount = 0;

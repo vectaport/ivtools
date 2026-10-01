@@ -309,6 +309,14 @@ p26b=next(r26b)
 ok=ok&&(p26b==nil)&&(info(ring26b).count==3)
 print("26b 3 pulls fill a 3-slot ring via the lazy wrapper, the 4th refuses (expect count 3, nil): %v %v\n" info(ring26b).count p26b)
 
+// a refusal must not cost the wrapper its own [ring,source] state -- it
+// has to still resume once room frees up, the same contract the eager
+// path's own test 26 (above) already proves for a bare feed() retry
+next(ring26b)
+p26c=next(r26b)
+ok=ok&&(p26c==3)
+print("26c the same lazy wrapper resumes once a slot frees up (expect 3): %v\n" p26c)
+
 // --- 27: feeding a ring its own stream is refused outright rather than
 // looping forever -- draining and refilling the same slots never
 // converges, so there is no well-defined point to stop; each() forces the
