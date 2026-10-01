@@ -854,6 +854,7 @@ void NextFunc::execute() {
       static int local_symid = symbol_add("local");
       static int temp_symid = symbol_add("temp");
       static int at_symid = symbol_add("at");
+      static int each_symid = symbol_add("each");
       ComValue argoff(comterp()->stack_top());
       int offtop = argoff.int_val() - comterp()->pfnum();
       int argcnt = 0;
@@ -862,16 +863,20 @@ void NextFunc::execute() {
 	 offtop is left pointing one-past the far end of its subtree. */
       int startidx = comterp()->pfnum() + offtop + argcnt - 1;
       ComValue& startval = comterp()->pfcomvals()[startidx];
+      boolean from_each = false;
       if (startval.is_type(ComValue::CommandType)) {
 	ComFunc* func = (ComFunc*)startval.obj_val();
-	if (func->funcid() == global_symid || func->funcid() == local_symid ||
-	    func->funcid() == temp_symid || func->funcid() == at_symid)
+	if (func->funcid() == each_symid) {
+	  startval.lhs_assign(1);
+	  from_each = true;
+	} else if (func->funcid() == global_symid || func->funcid() == local_symid ||
+		   func->funcid() == temp_symid || func->funcid() == at_symid)
 	  startval.lhs_assign(1);
       }
       varname = stack_arg_post_eval(1, true);
       ComValue streamv(stack_arg_post_eval(0));
       reset_stack();
-      return execute_var_dispatch(streamv, varname, linenum);
+      return execute_var_dispatch(streamv, varname, linenum, from_each);
     }
 
     /* a bare symbol var (or none given) -- unchanged from before the lhs
@@ -897,15 +902,20 @@ void NextFunc::execute() {
    plain-symbol path above can keep evaluating its two arguments in the
    original order; this path's own arg 1 is already fully evaluated by the
    time it's called. */
-void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum) {
+void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum,
+				     boolean from_each) {
     if (varname.is_stream() && varname.lhs_assign()) {
-      /* var is a streamed at()-destination (e.g. r@0..3) -- zipper-write
-	 every value pulled from the source stream into it, same mechanism
-	 as AssignFunc's own r@lo:hi=val (strmfunc.c, zip_assign_stream).
-	 The aggregate operation has no single "the value", so next()
-	 returns the write count here instead of a pulled value. */
+      /* var is a streamed at()-destination (e.g. r@0..3) or an each()-
+	 wrapped stream (e.g. **true**4) -- zipper-drive every value pulled
+	 from the source stream against it, same mechanism as AssignFunc's
+	 own r@lo:hi=val (strmfunc.c, zip_assign_stream); each()'s case
+	 tolerates a non-pair (non-assignable) pulled target since it was
+	 never meant to be written, just paced. The aggregate operation has
+	 no single "the value", so next() returns the write/pull count here
+	 instead of a pulled value. */
       ComValue idxstream(varname);
-      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &streamv, true, linenum);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &streamv, true, linenum,
+					       from_each);
       if (count < 0) {
 	push_stack(ComValue::nullval());
 	return;
@@ -942,10 +952,65 @@ void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int li
       return;
     }
 
+    if (varname.is_stream() && !varname.lhs_assign()) {
+      /* default: "stream builds stream" -- var is a plain stream (not
+	 each()-wrapped, not an at()/dot() destination), so next() defers
+	 itself into a lazy wrapper instead of draining inline here,
+	 mirroring DotFunc's (stream).field mechanism (dotfunc.c). */
+      static NextVarNextFunc* nvnfunc = nil;
+      if (!nvnfunc) {
+	nvnfunc = new NextVarNextFunc(comterp());
+	nvnfunc->funcid(symbol_add("nextvarnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(streamv));
+      avl->Append(new AttributeValue(varname));
+      ComValue stream(nvnfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL);
+      push_stack(stream);
+      return;
+    }
+
     /* flagged but none of the above -- e.g. a sealed attrlist's dot lookup
        (unknown()&&lhs_assign()) -- leaves next(stream) unchanged, same as
        an unrecognized lhs falls through in AssignFunc (assignfunc.c). */
     execute_impl(comterp(), streamv);
+}
+
+NextVarNextFunc::NextVarNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void NextVarNextFunc::execute() {
+    ComValue operand1(stack_arg(0));
+
+    /* invoked by the next mechanism */
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (avl) {
+      Iterator i;
+      avl->First(i);
+      AttributeValue* srcval = avl->GetAttrVal(i);  // [0] source stream
+      avl->Next(i);
+      AttributeValue* varval = avl->GetAttrVal(i);  // [1] var's own stream
+
+      /* var's stream paces this one in lockstep, same pairing as the
+	 eager zip_assign_stream loop -- its pulled value is discarded
+	 (var was never a writable destination here), but either side
+	 running dry ends the lazy sequence. */
+      ComValue varcopy(*varval);
+      NextFunc::execute_impl(comterp(), varcopy);
+      if (comterp()->stack_top().is_unknown()) {
+	comterp()->pop_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+      comterp()->pop_stack();
+
+      ComValue srccopy(*srcval);
+      NextFunc::execute_impl(comterp(), srccopy);
+      return;   // the value from execute_impl is already on the stack
+    } else
+      push_stack(ComValue::nullval());
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
@@ -1186,14 +1251,15 @@ ComValue NextFunc::write_at_pair(ComTerp* comterp, ComValue& pairv, ComValue& wr
 
 int NextFunc::zip_assign_stream(ComTerp* comterp, ComValue& idxstream,
 				 ComValue* rhsval, boolean rhs_is_stream,
-				 int linenum) {
+				 int linenum, boolean tolerate_nonpair) {
   int count = 0;
   for (;;) {
     NextFunc::execute_impl(comterp, idxstream);
     ComValue pairv(comterp->pop_stack());
     if (pairv.is_null()) break;
     AttributeValueList* pair = pairv.array_val();
-    if (!pairv.is_array() || !pairv.lhs_assign() || !pair || pair->Number()!=2) {
+    boolean is_pair = pairv.is_array() && pairv.lhs_assign() && pair && pair->Number()==2;
+    if (!is_pair && !tolerate_nonpair) {
       /* the streamed target isn't list/string-shaped (e.g. an attrlist) --
 	 at() has nothing writable to hand back for it, same as the
 	 non-streamed al@n=val case (test 5, atop.comt): no effect.  -1
@@ -1210,13 +1276,18 @@ int NextFunc::zip_assign_stream(ComTerp* comterp, ComValue& idxstream,
       writeval = tick;
     } else
       writeval = *rhsval;
-    ComValue targetv(*pair->Get(0));
-    if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
-      /* any nil ends a stream -- an out-of-range index is where at()
-	 itself would start returning nil, so the write stream ends
-	 here too, the same as the read-side index stream would. */
-      break;
-    write_at_pair(comterp, pairv, writeval);
+    if (is_pair) {
+      ComValue targetv(*pair->Get(0));
+      if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
+	/* any nil ends a stream -- an out-of-range index is where at()
+	   itself would start returning nil, so the write stream ends
+	   here too, the same as the read-side index stream would. */
+	break;
+      write_at_pair(comterp, pairv, writeval);
+    }
+    /* !is_pair here only reaches this point when tolerate_nonpair is set --
+       an each()-wrapped, never-assignable target (e.g. true**4): nothing
+       to write, but the pull still counts. */
     count++;
   }
   return count;
@@ -1228,7 +1299,24 @@ EachFunc::EachFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void EachFunc::execute() {
+  /* lhs_assign() on this token means NextFunc's lhs-walk (strmfunc.c)
+     flagged it as a **-wrapped 2nd arg wanting a batch-drain handoff,
+     not a drained count here -- same stale-command-token convention
+     at()/global()/local() already read via stack_top() (ARCHITECTURE.md,
+     "at()'s lhs flag"); checked before stack_arg_post_eval touches
+     anything, same ordering ListAtFunc's own check uses. */
+  boolean for_batch = comterp()->stack_top(nkeys()+1).lhs_assign();
   ComValue strmv(stack_arg_post_eval(0));
+
+  if (for_batch) {
+    /* hand back the still-live driving stream itself, flagged, so the
+       caller (NextFunc) can pace its own pulls against it instead of
+       each() draining it to a count here. */
+    reset_stack();
+    strmv.lhs_assign(1);
+    push_stack(strmv);
+    return;
+  }
 
   if (strmv.is_stream()) {
     /* explicit stream argument -- traverse normally */

@@ -262,18 +262,23 @@ public:
 
     virtual void execute();
     static  void execute_impl(ComTerp*, ComValue& strmv);
-    /* drains an at()-produced streamed-lvalue (idxstream, is_stream()&&
-       lhs_assign()) against a value source, writing each pulled source
-       value via at(...:set...); rhsval is read once per destination if
-       rhs_is_stream, else broadcast unchanged.  Returns the write count,
-       or -1 if the streamed target isn't list/string-shaped (e.g. an
-       attrlist) -- a hard abort, not a partial count, matching the
-       non-streamed al@n=val case's nil.  Shared by AssignFunc's
-       `lst@lo:hi=val` and NextFunc's own streamed-var zipper so the one
-       pull-then-check-exhaustion loop isn't reimplemented per caller. */
+    /* drains a streamed-lvalue (idxstream, is_stream()&&lhs_assign()) --
+       an at()-produced index stream or an each()-wrapped non-assignable
+       stream -- against a value source, writing each pulled source value
+       via at(...:set...) when the pulled target is a genuine [list,idx]
+       pair; rhsval is read once per destination if rhs_is_stream, else
+       broadcast unchanged.  Returns the write count.  A pulled target
+       that isn't a [list,idx] pair is a hard abort (-1, matching the
+       non-streamed al@n=val case's nil) unless tolerate_nonpair is set,
+       in which case it's simply not written but still counted -- the
+       each()-driven case, where the stream was never assignable to begin
+       with (next(strm **true**4) just counts four pulls).  Shared by
+       AssignFunc's `lst@lo:hi=val` and NextFunc's own streamed-var zipper
+       so the one pull-then-check-exhaustion loop isn't reimplemented per
+       caller. */
     static  int  zip_assign_stream(ComTerp*, ComValue& idxstream,
 				    ComValue* rhsval, boolean rhs_is_stream,
-				    int linenum);
+				    int linenum, boolean tolerate_nonpair = false);
     /* completes a single at()-produced [list,idx] pair's write (pairv,
        is_array()&&lhs_assign()) by re-driving at() with :set, returning
        the written result.  Shared by AssignFunc's scalar `lst@N=val` and
@@ -288,21 +293,49 @@ public:
 with var, also assigns the pulled value (including nil) to that variable\n\
 var may also be a settable expression: a streamed at() (r@lo:hi) zip-writes\n\
 each pulled value and returns the write count; a scalar at() (r@n) or a\n\
-dot() (al.field) write the one pulled value in place and still return it"; }
+dot() (al.field) write the one pulled value in place and still return it\n\
+each()/**var batch-drains var in place of the lazy default, returning the\n\
+write count (or just the pull count if var isn't itself assignable); a\n\
+var that's a stream but not each()-wrapped instead makes %1$s itself lazy,\n\
+returning a stream that performs one pull per element on later demand"; }
 
     static int next_depth() { return _next_depth; }
 protected:
     /* the non-symbol, lhs-eligible var dispatch (streamed at(), scalar
-       at(), dot()) -- split out of execute() so its own argument-evaluation
-       order (var before stream, required for the lhs postfix-buffer flag
-       to take effect) stays isolated from the plain-symbol path's original
-       order. */
-    void execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum);
+       at(), dot(), or a plain/each()-wrapped stream) -- split out of
+       execute() so its own argument-evaluation order (var before stream,
+       required for the lhs postfix-buffer flag to take effect) stays
+       isolated from the plain-symbol path's original order.  from_each
+       distinguishes an each()-wrapped var (zip_assign_stream tolerates a
+       non-pair pulled target) from a genuine at()-zip var (one doesn't
+       mean the other -- see zip_assign_stream above). */
+    void execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum,
+			       boolean from_each);
     static int _next_depth;
 
 };
 
-//: traverse stream command for ComTerp.
+//: hidden func used by next() to drive the "stream builds stream" default:
+// var is itself a stream but not each()-wrapped or an at()/dot() write
+// destination, so next(strm, var) defers itself into a lazy stream rather
+// than draining eagerly.  Holds [0] the source stream, [1] var's own
+// stream in its own stream's stream_list().  Each pull advances var's
+// stream first (paced in lockstep with the source, like the eager
+// zip_assign_stream loop, though var's own pulled value is discarded --
+// it was never a writable destination) and ends the lazy sequence the
+// moment either side runs dry; otherwise pulls and returns one element
+// from the source, same as a bare next(strm) would.
+class NextVarNextFunc : public StrmFunc {
+public:
+    NextVarNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return false; }
+    virtual const char* docstring() {
+      return "hidden func used by next command for the stream-builds-stream default."; }
+};
+
+//: traverse stream command for ComTerp; also ** (unary prefix each) operator.
 // cnt=each(strm) -- traverse stream returning its length
 class EachFunc : public ComFunc {
 public:
@@ -310,8 +343,11 @@ public:
 
     virtual void execute();
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "cnt=%s(strm) -- traverse stream returning its length"; }
+    virtual const char* docstring() {
+      return "cnt=%1$s(strm) -- traverse stream returning its length\n\
+**s is unary-prefix sugar for %1$s(s)\n\
+as next()'s 2nd arg, flags the wrapped stream as a batch-drain request\n\
+instead of running here: see NextFunc"; }
 };
 
 //: stream filter command

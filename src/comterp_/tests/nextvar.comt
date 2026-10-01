@@ -1,15 +1,18 @@
 // src/comterp_/tests/nextvar.comt -- next(stream var), the optional second
 // argument that assigns the pulled value to a variable
 //
-// coverage: 11 tests of next()'s optional 2nd arg -- scalar assignment, a
+// coverage: 13 tests of next()'s optional 2nd arg -- scalar assignment, a
 // feed()-ring source (Scott's own motivating example), exhaustion assigning
 // nil, a non-symbol 2nd argument being ignored for backward compatibility,
 // assignment landing in an already-existing variable's own scope, a
 // streamed at() destination (the next()/AssignFunc zipper), a scalar at()
 // destination, a dot() destination (vivified and pre-existing), a
 // func-local var staying in the func's own frame rather than leaking to
-// global scope, and a temp() var staying isolated per call
-// funcs: next feed string istype func temp global at dot
+// global scope, a temp() var staying isolated per call, an each()/**-
+// wrapped non-assignable var batch-draining to a pull count, and a plain
+// stream var deferring next() itself into a lazy "stream builds stream"
+// wrapper
+// funcs: next feed string istype func temp global at dot each
 
 //
 // var is read unevaluated, the same way AssignFunc reads its own lhs: a
@@ -127,6 +130,29 @@ r11a=f11()
 r11b=f11()
 ok=ok&&(r11a==5)&&(r11b==5)
 print("11 next(stream var) writes a temp() var fresh each call (expect 5 5): %v %v\n" r11a r11b)
+
+// --- 12: an each()-wrapped var (unary ** prefix) batch-drains the source
+// in place, returning the pull count, even though true**4 has nothing
+// writable -- next() just paces the pulls and counts them ---
+s12=$$(10 20 30 40 50)
+cnt12=next(s12 **true**4)
+ok=ok&&(cnt12==4)
+print("12 next(s **true**4) batch-drains, returns the pull count (expect 4): %v\n" cnt12)
+
+// --- 13: the "stream builds stream" default -- var is a plain stream
+// (not each()-wrapped, not an at()/dot() destination), so next() itself
+// becomes a lazy stream rather than draining inline; pulling it performs
+// one source pull per tick, paced by var's own stream, until either runs
+// dry ---
+s13=$$(10 20 30 40 50)
+v13=next(s13 $$(1 1 1))
+ok=ok&&istype(v13 StreamType)
+p13a=*v13
+p13b=*v13
+p13c=*v13
+p13d=*v13
+ok=ok&&(p13a==10)&&(p13b==20)&&(p13c==30)&&(p13d==nil)
+print("13 next(s plainstream) defers into a lazy stream paced by the var stream (expect 10 20 30 nil): %v %v %v %v\n" p13a p13b p13c p13d)
 
 print("nextvar: %v\n" ok)
 ok
