@@ -1844,18 +1844,24 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
    already exhausted -- is never pulled, so a stream with more left after
    exactly filling the ring is refused the same way a short one is, rather
    than guessed at by pulling anyway.  The ring is refused outright as its
-   own source: draining and refilling the same slots never converges.
+   own source, directly or wrapped (e.g. nested inside a FIFO fed back into
+   it): registering the destination in NextFunc's own recursive-stream guard
+   makes a pull that bottoms out on it return nil instead of completing the
+   cycle, the same way next() already refuses a stream draining itself.
    A non-stream argument still goes straight to ring_push_value(). */
 static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
   if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
   if (v.stream_list()==avl) return false;
+  DrainingAVLGuard dest_guard(avl);
   ComValue streamv(v);
   for (;;) {
     if (ring_avail(avl)<=0) return false;
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
-    if (streams_as_characters(popval)) {
+    boolean typed_ring = ring_buf_blocktype((AttributeValue*)avl->Get(0)) != AttributeValue::UnknownType;
+    if (typed_ring && popval.is_type(ComValue::StringType)) return false;
+    if (!typed_ring && streams_as_characters(popval)) {
       int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
       if (len>ring_avail(avl)) return false;
     }

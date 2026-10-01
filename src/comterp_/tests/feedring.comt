@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 29 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 31 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -31,7 +31,9 @@
 // as a single element the way the growable FIFO lazily nests it; a ring that
 // fills mid-stream refuses (nil) without losing the unpulled remainder, so a
 // later feed() with the same stream resumes where it left off.  Feeding a
-// ring its own stream is refused outright rather than looping forever.
+// ring its own stream is refused outright rather than looping forever, even
+// one layer wrapped inside another FIFO, and a typed ring refuses a
+// multi-byte string pulled from a stream rather than silently coercing it.
 
 ok=true
 
@@ -284,6 +286,29 @@ feed(ring27 'a')
 r27=feed(ring27 ring27)
 ok=ok&&(r27==nil)&&(info(ring27).count==1)
 print("27 feed(ring ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r27 info(ring27).count)
+
+// --- 28: a ring wrapped inside another FIFO and fed back into itself is
+// the same cycle as test 27 one layer removed -- feed(w ring)'s lazy-nested
+// element makes w's drain bottom out on ring itself, so it must refuse the
+// same way rather than popping-and-repushing forever ---
+ring28=feed(string(3))
+feed(ring28 'a')
+w28=feed()
+feed(w28 ring28)
+r28=feed(ring28 w28)
+ok=ok&&(r28==nil)&&(info(ring28).count==1)
+print("28 feed(ring, fifo-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r28 info(ring28).count)
+
+// --- 29: a typed ring refuses a multi-byte string pulled from a stream --
+// comval_encode() has no way to represent "doesn't fit this type" in a
+// fixed-width numeric slot, so silently coercing one (as at(s N :set v)
+// does for a direct string argument) would discard the string's actual
+// content rather than report the mismatch ---
+ring29=feed(string(4 UIntType))
+s29=stream(("ab" "cd"))
+r29=feed(ring29 s29)
+ok=ok&&(r29==nil)&&(info(ring29).count==0)
+print("29 feed(typed-ring, string-stream) refuses rather than coercing to garbage (expect nil, count 0): %v %v\n" r29 info(ring29).count)
 
 print("feedring: %v\n" ok)
 ok
