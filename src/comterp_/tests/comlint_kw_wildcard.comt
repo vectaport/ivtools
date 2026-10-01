@@ -35,14 +35,16 @@ while(linev1!=nil
   out1=out1+linev1+" ";
   linev1=*pipe1)
 
-/* checking for "attrlist(): unrecognized keyword" rather than for the
-   kw_wild variable name itself -- the fixture's own filename contains
-   "kw_wild" too, and comlint echoes that filename in its own
-   "checking ... against ..." status line regardless of findings */
+/* checking for "attrlist(): unrecognized keyword"/"called with" rather
+   than for the kw_wild/kw_bare variable names themselves -- the
+   fixture's own filename contains "kw_wild" too, and comlint echoes
+   that filename in its own "checking ... against ..." status line
+   regardless of findings */
 wildcardclean=index(out1 "attrlist(): unrecognized keyword" :substr)==nil
+barearityclean=index(out1 "attrlist(): called with" :substr)==nil
 fixedflagged=index(out1 "line(): unrecognized keyword :notakeyword" :substr)!=nil
-ok=ok&&wildcardclean&&fixedflagged
-print("1 comlint under comdraw on attrlist(:ok ... :ports ... :socks ...)\n    (wildcard docstring, expect no finding) and line(... :notakeyword 1)\n    (fixed docstring, expect a finding): %v %v\n\n" wildcardclean fixedflagged)
+ok=ok&&wildcardclean&&barearityclean&&fixedflagged
+print("1 comlint under comdraw on attrlist(:ok ... :ports ... :socks ...)\n    (wildcard docstring, expect no finding), attrlist() (bare call,\n    expect no finding), and line(... :notakeyword 1) (fixed docstring,\n    expect a finding): %v %v %v\n\n" wildcardclean barearityclean fixedflagged)
 prev_ok=check_fail(:ok ok)
 
 print("\ncomlint_kw_wildcard: %v\n" ok)

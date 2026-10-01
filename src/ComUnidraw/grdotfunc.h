@@ -52,7 +52,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "alst=%s([compview] | [:<name> [val]] :bincnt) -- attribute list of compview, or a bare attrlist from keyword/value pairs if compview is omitted (:bincnt sizes/disables its index)."; }
+      return "alst=%s([compview] [:<name> [val]] :bincnt) -- attribute list of compview, or a bare attrlist from keyword/value pairs if compview is omitted (:bincnt sizes/disables its index)."; }
 
 };
 
