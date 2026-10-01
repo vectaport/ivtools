@@ -36,14 +36,53 @@ back only for the two `size()` leaves, composing their results into
 native Go `+`/`*` -- proving the fallback granularity is per-primitive,
 not per-expression.
 
-## What this doesn't cover yet
+## unparse() as a decompiler, not just a fallback-arg builder
+
+`unparse()` turns a tree node back into real ComTerp source -- originally
+just to build the fallback calls above, but it's the same thing as func
+reflection: rendering a `FuncObj`'s compiled postfix body back as
+something a person can read (the kind of thing a new `info()` field could
+expose, generated only when `info()` asks for it, alongside its existing
+func dispatch -- `:ntoks`/`:nspans`/`:posteval`, PR #635). This prototype
+is in Go against the printed tree *text*; a real `info()` field would
+read a `FuncObj`'s postfix tokens directly in C++ instead.
+
+`-roundtrip` and `-roundtrip-file <path>` test it: get a real tree,
+unparse it back to source, re-parse that regenerated source, and check
+the resulting tree is identical to the original (the regenerated syntax
+is allowed to differ -- `x=1` vs `assign(x 1)` -- as long as it parses
+back to the same tree).
+
+    ./compile_poc -roundtrip            # 5 cases from postfixtree.comt, all pass
+    ./compile_poc -roundtrip-file somefile.comt
+
+Passes: plain expressions, `;`-joined statements, keyword args (including
+the bare-flag `(:b {})` case), `global()` lvalues, and whole multi-statement
+files via `parse(fileobj :tree)` -- as long as the file has no `func`
+definitions. `unparse()` always writes a trailing newline, since ComTerp's
+file scanner silently drops the last statement without one (found via
+this very round-trip test, not documented anywhere).
+
+**Known failure**: a `func(params;body)` definition does not round-trip.
+`func(a b;a+b*2)`'s tree is `{func,a,{seq,b,{add,a,{mpy,b,2}}}}` -- `func`
+folds its *n*th positional param and the `;`-joined body into one nested
+`seq` item, not *n* flat items. Reconstructing it as `func(a (b;a+b*2))`
+(bare call syntax, parenthesizing the seq like any other nested
+sub-expression) parses back to a *different* tree
+(`{func,{a,{seq,...}}}` -- `a` and the seq merged into one argument), not
+the original. This is the documented `(`-with-spaces-builds-a-stream-literal
+trap (AGENTS.md's ComTerp scripting gotchas, issue #488) biting the
+decompiler itself: there's no single context-free rendering of "a nested
+seq as a call argument" that's correct in every position. Needs real
+design work, not a quick patch -- flagging rather than guessing.
+
+## What else this doesn't cover yet
 
 - Only one primitive family (integer arithmetic) has native rules.
-- No variables/assignment, no type inference across them -- see the
-  thread discussion on inferring a variable's static type at its first
-  assignment (mirroring how a typed string commits to its element type
-  at construction) as the next refinement once this per-primitive
-  mechanism is in place.
-- `unparse()` only round-trips what this spike's fallback leaves need
-  (int/string literals, bare symbols, call syntax); not a general
-  ComTerp pretty-printer.
+- No variables/assignment in the *compiler* (separate from the decompiler
+  above) -- see the thread discussion on inferring a variable's static
+  type at its first assignment (mirroring how a typed string commits to
+  its element type at construction) as the next refinement.
+- `unparse()` handles what's been tested against real cases above; still
+  not a fully general ComTerp pretty-printer (e.g. no infix sugar for
+  arithmetic, only for `assign`/`seq`).

@@ -35,13 +35,26 @@ func bridgeEval(h C.comterp_handle, expr string) (string, error) {
 }
 
 func main() {
+	h := C.comterp_bridge_new()
+	defer C.comterp_bridge_free(h)
+
+	if len(os.Args) > 1 && os.Args[1] == "-roundtrip" {
+		if !roundtripSelfTest(func(e string) (string, error) { return bridgeEval(h, e) }) {
+			os.Exit(1)
+		}
+		return
+	}
+	if len(os.Args) > 2 && os.Args[1] == "-roundtrip-file" {
+		if !fileRoundtripSelfTest(func(e string) (string, error) { return bridgeEval(h, e) }, os.Args[2]) {
+			os.Exit(1)
+		}
+		return
+	}
+
 	expr := "1+2*3"
 	if len(os.Args) > 1 {
 		expr = os.Args[1]
 	}
-
-	h := C.comterp_bridge_new()
-	defer C.comterp_bridge_free(h)
 
 	groundTruth, err := bridgeEval(h, expr)
 	if err != nil {
