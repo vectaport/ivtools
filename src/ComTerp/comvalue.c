@@ -23,6 +23,7 @@
  */
 
 #include <cstdio>
+#include <sstream>
 #include <Unidraw/Components/grview.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
@@ -45,7 +46,6 @@
 #include <string.h>
 #include <vector>
 #include <iostream.h>
-#include <strstream>
 #include <string>
 #include <climits>
 using namespace std;
@@ -518,14 +518,9 @@ static boolean _comvalue_render_hook_installed =
   (AttributeValue::install_render_hook(comvalue_render_hook), true);
 
 const char* ComValue::String() {
-    streambuf* strmbuf = nil;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    strmbuf = new std::strstreambuf();
-    ostream out(strmbuf);
-    out << this;
-    return ((std::strstreambuf*)strmbuf)->str();
-#pragma GCC diagnostic pop
+    std::ostringstream out;
+    out << *this;
+    return strdup(out.str().c_str());
 }
 
 
