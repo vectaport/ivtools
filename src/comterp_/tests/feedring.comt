@@ -262,15 +262,17 @@ next(nring24)
 ok=ok&&(info(nring24).free==0)&&(info(nring24).count==2)
 print("24b :noring ring free after fill+1 pop, free stays 0 though count is 2: %v %v\n" info(nring24).free info(nring24).count)
 
-// --- 25-26: feed(ring, stream) runs the stream -- pulls and pushes its
-// values one at a time -- rather than storing it as a single opaque or
-// lazily-nested element the way the growable FIFO does ---
+// --- 25-26: feed(ring, stream), each()-wrapped, drains the stream and
+// pushes its values one at a time right away ("do it now") -- rather than
+// storing it as a single opaque or lazily-nested element the way the
+// growable FIFO does, or deferring it the way a bare (non-each()) stream
+// argument now does by default (see 25b-26b below) ---
 buf25=string(8)
 ring25=feed(buf25)
-r25=feed(ring25 0..2)
+r25=feed(ring25 **0..2)
 v25a=next(ring25); v25b=next(ring25); v25c=next(ring25)
-ok=ok&&(istype(r25 StreamType))&&(v25a==0)&&(v25b==1)&&(v25c==2)
-print("25 feed(ring 0..2) drains the stream into the ring (expect 0 1 2): %v %v %v\n" v25a v25b v25c)
+ok=ok&&(istype(r25 IntType))&&(v25a==0)&&(v25b==1)&&(v25c==2)
+print("25 feed(ring **0..2) drains the stream into the ring (expect 0 1 2): %v %v %v\n" v25a v25b v25c)
 
 // a stream longer than the room left stops pulling once the ring is full
 // (refusing with nil, same as any other full-ring push) without losing the
@@ -279,22 +281,43 @@ print("25 feed(ring 0..2) drains the stream into the ring (expect 0 1 2): %v %v 
 s26=0..4
 buf26=string(3)
 ring26=feed(buf26)
-r26a=feed(ring26 s26)
+r26a=feed(ring26 **s26)
 ok=ok&&(r26a==nil)&&(info(ring26).count==3)
 next(ring26)
-feed(ring26 s26)
+feed(ring26 **s26)
 v26a=next(ring26); v26b=next(ring26); v26c=next(ring26)
 ok=ok&&(v26a==1)&&(v26b==2)&&(v26c==3)
-print("26 feed(ring 0..4) over a 3-slot ring refuses once full, resumes later (expect nil, then 1 2 3): %v %v %v %v\n" r26a v26a v26b v26c)
+print("26 feed(ring **0..4) over a 3-slot ring refuses once full, resumes later (expect nil, then 1 2 3): %v %v %v %v\n" r26a v26a v26b v26c)
+
+// --- 25b-26b: the default (bare, no each()) is "do it later" -- feed(ring,
+// stream) hands back a lazy wrapper instead, which pushes one element per
+// pull against it rather than draining anything up front ---
+buf25b=string(8)
+ring25b=feed(buf25b)
+r25b=feed(ring25b 0..2)
+ok=ok&&(istype(r25b StreamType))&&(info(ring25b).count==0)
+p25b=next(r25b)
+ok=ok&&(p25b==0)&&(info(ring25b).count==1)
+print("25b feed(ring 0..2) bare defers the push (expect stream, count 0, then next(r) pushes 0): %v %v %v\n" istype(r25b StreamType) info(ring25b).count p25b)
+
+buf26b=string(3)
+ring26b=feed(buf26b)
+r26b=feed(ring26b 0..4)
+next(r26b); next(r26b); next(r26b)
+ok=ok&&(info(ring26b).count==3)
+p26b=next(r26b)
+ok=ok&&(p26b==nil)&&(info(ring26b).count==3)
+print("26b 3 pulls fill a 3-slot ring via the lazy wrapper, the 4th refuses (expect count 3, nil): %v %v\n" info(ring26b).count p26b)
 
 // --- 27: feeding a ring its own stream is refused outright rather than
 // looping forever -- draining and refilling the same slots never
-// converges, so there is no well-defined point to stop ---
+// converges, so there is no well-defined point to stop; each() forces the
+// eager drain this refusal needs to show up synchronously ---
 ring27=feed(string(3))
 feed(ring27 'a')
-r27=feed(ring27 ring27)
+r27=feed(ring27 **ring27)
 ok=ok&&(r27==nil)&&(info(ring27).count==1)
-print("27 feed(ring ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r27 info(ring27).count)
+print("27 feed(ring **ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r27 info(ring27).count)
 
 // --- 28: a ring wrapped inside another FIFO and fed back into itself is
 // the same cycle as test 27 one layer removed -- feed(w ring)'s lazy-nested
@@ -304,9 +327,9 @@ ring28=feed(string(3))
 feed(ring28 'a')
 w28=feed()
 feed(w28 ring28)
-r28=feed(ring28 w28)
+r28=feed(ring28 **w28)
 ok=ok&&(r28==nil)&&(info(ring28).count==1)
-print("28 feed(ring, fifo-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r28 info(ring28).count)
+print("28 feed(ring **fifo-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r28 info(ring28).count)
 
 // --- 29: a typed ring refuses a multi-byte string pulled from a stream --
 // comval_encode() has no way to represent "doesn't fit this type" in a
@@ -315,9 +338,9 @@ print("28 feed(ring, fifo-wrapping-ring) refuses rather than hanging (expect nil
 // content rather than report the mismatch ---
 ring29=feed(string(4 UIntType))
 s29=stream(("ab" "cd"))
-r29=feed(ring29 s29)
+r29=feed(ring29 **s29)
 ok=ok&&(r29==nil)&&(info(ring29).count==0)
-print("29 feed(typed-ring, string-stream) refuses rather than coercing to garbage (expect nil, count 0): %v %v\n" r29 info(ring29).count)
+print("29 feed(typed-ring, **string-stream) refuses rather than coercing to garbage (expect nil, count 0): %v %v\n" r29 info(ring29).count)
 
 // --- 30: an AnyType ring boxes a string whole (comval_encode's AnyType
 // branch copies the value, not a numeric conversion of it), so a string
@@ -325,10 +348,10 @@ print("29 feed(typed-ring, string-stream) refuses rather than coercing to garbag
 // way a numeric-typed ring's string refusal is ---
 ring30=feed(string(2 AnyType))
 s30=stream(("ab" "cd"))
-feed(ring30 s30)
+feed(ring30 **s30)
 v30a=next(ring30); v30b=next(ring30)
 ok=ok&&(v30a=="ab")&&(v30b=="cd")
-print("30 feed(AnyType-ring, string-stream) stores each string whole (expect \"ab\" \"cd\"): %v %v\n" v30a v30b)
+print("30 feed(AnyType-ring, **string-stream) stores each string whole (expect \"ab\" \"cd\"): %v %v\n" v30a v30b)
 
 // --- 31: a ring wrapped behind a different stream adapter (chunk(), not a
 // FIFO) and fed back into itself is the same cycle as tests 27-28 through
@@ -336,9 +359,9 @@ print("30 feed(AnyType-ring, string-stream) stores each string whole (expect \"a
 // the cycle is wrapped, since it's keyed on the ring's own backing list ---
 ring31=feed(string(3))
 feed(ring31 'a')
-r31=feed(ring31 chunk(ring31 1))
+r31=feed(ring31 **chunk(ring31 1))
 ok=ok&&(r31==nil)&&(info(ring31).count==1)
-print("31 feed(ring, chunk-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r31 info(ring31).count)
+print("31 feed(ring **chunk-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r31 info(ring31).count)
 
 // --- 32: a refused wrapped self-feed must not cost the wrapper its nested
 // element -- the recursive-stream guard firing partway through w32's drain
@@ -348,11 +371,11 @@ ring32=feed(string(3))
 feed(ring32 'a')
 w32=feed()
 feed(w32 ring32)
-r32=feed(ring32 w32)
+r32=feed(ring32 **w32)
 count32=info(ring32).count
 v32=next(w32)
 ok=ok&&(r32==nil)&&(!istype(r32 StreamType))&&(count32==1)&&(v32=='a')
-print("32 refused feed(ring, fifo-wrapping-ring) leaves the fifo still able to yield the ring (expect nil, 1, 'a'): %v %v %v\n" r32 count32 v32)
+print("32 refused feed(ring **fifo-wrapping-ring) leaves the fifo still able to yield the ring (expect nil, 1, 'a'): %v %v %v\n" r32 count32 v32)
 
 // --- 33: an unrelated ring's self-feed refusal, hit as a side effect while
 // pulling a value for a DIFFERENT ring's feed(), must not cost that other
@@ -363,11 +386,11 @@ feed(ring33b 'z')
 w33b=feed()
 feed(w33b ring33b)
 ring33a=feed(string(3))
-sidefx33=func(feed(ring33b w33b); 42)
+sidefx33=func(feed(ring33b **w33b); 42)
 s33a=$$sidefx33()
-r33a=feed(ring33a s33a)
-ok=ok&&(!(r33a==nil))&&(istype(r33a StreamType))&&(info(ring33a).count==1)
-print("33 feed(ringA, lazy stream that side-effects an unrelated ring's self-feed) still accepts ringA's value (expect non-nil, count 1): %v %v\n" (!(r33a==nil)) info(ring33a).count)
+r33a=feed(ring33a **s33a)
+ok=ok&&(!(r33a==nil))&&(istype(r33a IntType))&&(info(ring33a).count==1)
+print("33 feed(ringA, **lazy stream that side-effects an unrelated ring's self-feed) still accepts ringA's value (expect non-nil, count 1): %v %v\n" (!(r33a==nil)) info(ring33a).count)
 
 print("feedring: %v\n" ok)
 ok

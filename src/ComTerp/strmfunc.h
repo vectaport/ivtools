@@ -397,7 +397,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "fifo=%s([fifo] [val ...] :raw :noring) -- build or append to a FIFO stream; a bare string argument becomes a fixed-capacity ring over its own bytes, a bquoted one is stored whole"; }
+      return "fifo=%s([fifo] [val ...] :raw :noring) -- build or append to a FIFO stream; a bare string argument becomes a fixed-capacity ring over its own bytes, a bquoted one is stored whole; a single stream argument into an existing ring defaults to a lazy push wrapper (do it later), each() forces an eager drain now"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":raw       store a stream or string argument whole instead of taking",
@@ -463,6 +463,23 @@ public:
     virtual void execute();
     virtual const char* docstring() {
       return "hidden func used by next command for a string-backed ring FIFO"; }
+
+};
+
+//: hidden func used by next command for feed(ring, stream)'s default
+//: "do it later" lazy wrapper -- see FeedFunc::execute().  Holds
+//: [0]=ring [1]=source stream; each pull of this wrapper is one push:
+//: it pulls one value from the source and pushes it into the ring,
+//: yielding the pushed value (nil once the ring is full or the source
+//: is spent).  each() forces the "do it now" eager drain instead,
+//: bypassing this wrapper entirely.
+class FeedRingNextFunc : public StrmFunc {
+public:
+    FeedRingNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for feed(ring, stream)'s lazy push wrapper"; }
 
 };
 
