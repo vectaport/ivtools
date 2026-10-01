@@ -843,9 +843,22 @@ void NextFunc::execute() {
 
     execute_impl(comterp(), streamv);
 
-    /* a non-symbol var (or none given) leaves next(stream) exactly as before */
-    if (varname.is_type(ComValue::SymbolType))
-      comterp()->assign_symval(varname.symbol_val(), new ComValue(comterp()->stack_top()));
+    /* a non-symbol var (or none given) leaves next(stream) exactly as before.
+       Scoped exactly like AssignFunc's own bare '=' write (assignfunc.c):
+       an existing temp() name, then the active func's own frame, else
+       assign_symval()'s local/global fallback -- var must land where a
+       bare read of that name would find it, temp()'d or func-local included. */
+    if (varname.is_type(ComValue::SymbolType)) {
+      ComValue* pulled = new ComValue(comterp()->stack_top());
+      AttributeList* tempframe = comterp()->get_tempframe();
+      AttributeList* attrlist = comterp()->get_attributes();
+      if (tempframe && tempframe->find(varname.symbol_val()))
+	tempframe->add_attribute(new Attribute(varname.symbol_val(), pulled));
+      else if (attrlist)
+	attrlist->add_attribute(new Attribute(varname.symbol_val(), pulled));
+      else
+	comterp()->assign_symval(varname.symbol_val(), pulled);
+    }
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {

@@ -1,18 +1,24 @@
 // src/comterp_/tests/nextvar.comt -- next(stream var), the optional second
 // argument that assigns the pulled value to a variable
 //
-// coverage: 5 tests of next()'s optional 2nd arg -- scalar assignment, a
+// coverage: 7 tests of next()'s optional 2nd arg -- scalar assignment, a
 // feed()-ring source (Scott's own motivating example), exhaustion assigning
 // nil, a non-symbol 2nd argument being ignored for backward compatibility,
-// and assignment landing in an already-existing variable's own scope
-// funcs: next feed string istype
+// assignment landing in an already-existing variable's own scope, a
+// func-local var staying in the func's own frame rather than leaking to
+// global scope, and a temp() var staying isolated per call
+// funcs: next feed string istype func temp global
 //
 // var is read unevaluated, the same way AssignFunc reads its own lhs: a
 // plain variable name, not whatever value it currently holds. With var,
 // next(stream var) still returns the pulled value as its own result and
 // additionally assigns that same value (including nil, on an exhausted
 // stream) to var. Omitting var, or passing something other than a bare
-// symbol, leaves next(stream) exactly as it always was.
+// symbol, leaves next(stream) exactly as it always was. The write is
+// scoped exactly like a bare assignment's own (assignfunc.c): an existing
+// temp() name, then the active func's own frame, else the usual
+// local/global fallback -- var always lands where a bare read of that
+// name would already find it.
 
 ok=true
 
@@ -56,6 +62,23 @@ s5=$$(42)
 next(s5 out5)
 ok=ok&&(out5==42)
 print("5 next(stream var) updates an already-existing var in place (expect 42): %v\n" out5)
+
+// --- 6: a func-local var stays in the func's own frame -- next(stream var)
+// inside a func body must not leak the write out to global scope, the same
+// way an ordinary bare assignment to a func-local name never does ---
+gscope6=999
+f6=func(s=$$(1 2 3); v=0; next(s v); v)
+r6=f6()
+ok=ok&&(r6==1)&&(gscope6==999)
+print("6 next(stream var) inside a func writes the func's own v, not global gscope6 (expect 1, 999): %v %v\n" r6 gscope6)
+
+// --- 7: a temp() var stays isolated per call -- each call to f7() gets its
+// own v, not one shared/persisted across calls ---
+f7=func(s=$$(5 6); temp(v)=0; next(s v); v)
+r7a=f7()
+r7b=f7()
+ok=ok&&(r7a==5)&&(r7b==5)
+print("7 next(stream var) writes a temp() var fresh each call (expect 5 5): %v %v\n" r7a r7b)
 
 print("nextvar: %v\n" ok)
 ok
