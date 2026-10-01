@@ -1837,6 +1837,22 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   return result;
 }
 
+/* push one feed() argument onto a ring: a stream is run, not stored --
+   pulled one value at a time and each pushed in turn, stopping (without
+   consuming the value that wouldn't fit) once the ring has no room left.
+   A non-stream argument still goes straight to ring_push_value(). */
+static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
+  if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
+  ComValue streamv(v);
+  for (;;) {
+    if (ring_avail(avl)<=0) return false;
+    NextFunc::execute_impl(comterp, streamv);
+    ComValue popval(comterp->pop_stack());
+    if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
+    if (!ring_push_value(avl, popval, rawflag)) return false;
+  }
+}
+
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -1870,12 +1886,13 @@ void FeedFunc::execute() {
     argv[0].stream_func() == (void*)ring_next_func(comterp());
 
   if (arg0_is_ring) {
-    /* push the remaining args, one char (or string's worth of chars) at a
-       time, onto the ring's tail; any refusal (buffer full) fails the
-       whole call with nil, same as next()'s empty-ring refusal */
+    /* push the remaining args onto the ring's tail -- a stream argument is
+       run (pulled and pushed one value at a time) rather than stored; any
+       refusal (buffer full) fails the whole call with nil, same as next()'s
+       empty-ring refusal */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
     ComValue retval(ok ? argv[0] : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -1890,7 +1907,7 @@ void FeedFunc::execute() {
     ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
     AttributeValueList* avl = stream.stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
     ComValue retval(ok ? stream : ComValue::nullval());
     delete [] argv;
     push_stack(retval);

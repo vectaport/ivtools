@@ -1,13 +1,14 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 26 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 28 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
 // backing bytes, a multi-char push longer than the room left, a ring
 // built over a typed (string(n type)) buffer operating in whole elements
-// with promotion/demotion on push, and info()'s :free field
+// with promotion/demotion on push, info()'s :free field, and a stream
+// argument run into the ring rather than stored
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -25,7 +26,11 @@
 // it straddles the wrap point.  Built over a typed buffer (string(n type)),
 // a ring's slots are whole elements of that type, not raw bytes: cap counts
 // elements, and a pushed value is promoted/demoted to the type the same way
-// at(s N :set v) already does.
+// at(s N :set v) already does.  A stream argument to feed(ring ...) is run --
+// pulled and pushed into the ring one value at a time -- rather than stored
+// as a single element the way the growable FIFO lazily nests it; a ring that
+// fills mid-stream refuses (nil) without losing the unpulled remainder, so a
+// later feed() with the same stream resumes where it left off.
 
 ok=true
 
@@ -244,6 +249,31 @@ feed(nring24 'a'); feed(nring24 'b'); feed(nring24 'c')
 next(nring24)
 ok=ok&&(info(nring24).free==0)&&(info(nring24).count==2)
 print("24b :noring ring free after fill+1 pop, free stays 0 though count is 2: %v %v\n" info(nring24).free info(nring24).count)
+
+// --- 25-26: feed(ring, stream) runs the stream -- pulls and pushes its
+// values one at a time -- rather than storing it as a single opaque or
+// lazily-nested element the way the growable FIFO does ---
+buf25=string(8)
+ring25=feed(buf25)
+r25=feed(ring25 0..2)
+v25a=next(ring25); v25b=next(ring25); v25c=next(ring25)
+ok=ok&&(istype(r25 StreamType))&&(v25a==0)&&(v25b==1)&&(v25c==2)
+print("25 feed(ring 0..2) drains the stream into the ring (expect 0 1 2): %v %v %v\n" v25a v25b v25c)
+
+// a stream longer than the room left stops pulling once the ring is full
+// (refusing with nil, same as any other full-ring push) without losing the
+// unpulled values -- a later feed() with the same stream picks up where it
+// left off
+s26=0..4
+buf26=string(3)
+ring26=feed(buf26)
+r26a=feed(ring26 s26)
+ok=ok&&(r26a==nil)&&(info(ring26).count==3)
+next(ring26)
+feed(ring26 s26)
+v26a=next(ring26); v26b=next(ring26); v26c=next(ring26)
+ok=ok&&(v26a==1)&&(v26b==2)&&(v26c==3)
+print("26 feed(ring 0..4) over a 3-slot ring refuses once full, resumes later (expect nil, then 1 2 3): %v %v %v %v\n" r26a v26a v26b v26c)
 
 print("feedring: %v\n" ok)
 ok
