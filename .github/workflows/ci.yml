@@ -158,6 +158,59 @@ jobs:
           sudo make install
           sudo ldconfig   # refresh linker cache so /usr/local/lib *.so are found at runtime
 
+      # Advisory only -- never fails the build. comlint checks every .comt
+      # script's command-shadow/global-shadow/arity/keyword conventions
+      # (src/scripts/comlint); each directory is checked against its own
+      # program's registered command set (comdraw/drawserv add commands
+      # plain comterp doesn't have) so a command real to that program isn't
+      # misflagged as unknown. Checking against comdraw/drawserv launches
+      # that binary as a subprocess even just to list its commands, so it
+      # needs a display -- run under the same xvfb-run this job already
+      # uses for the comdraw/drawserv suites below. A comlint invocation
+      # that errors before printing its own summary line (e.g. a crash, or
+      # "can't open DISPLAY" without xvfb) is reported as incomplete rather
+      # than silently counted as 0 fail/0 warn, so a broken check can't
+      # read as a clean one. Findings go to the step summary so they're
+      # visible without failing CI; once comlint has run clean here for a
+      # while this can be promoted to a real gate.
+      - name: Lint - comlint advisory (non-blocking)
+        if: always()
+        timeout-minutes: 10
+        run: |
+          echo "### comlint advisory report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          totalfail=0; totalwarn=0; totalfiles=0; totalincomplete=0
+          lint_dir () {
+            dir=$1; program=$2; runner=$3
+            [ -d "$dir" ] || return 0
+            for f in "$dir"/*.comt; do
+              [ -e "$f" ] || continue
+              totalfiles=$((totalfiles+1))
+              out=$($runner comlint "$f" "$program" 2>&1)
+              line=$(echo "$out" | grep -E '^comlint: [0-9]+ call')
+              if [ -z "$line" ]; then
+                echo "$f: comlint did not complete (no summary line) -- treated as incomplete, not clean" >> "$GITHUB_STEP_SUMMARY"
+                totalincomplete=$((totalincomplete+1))
+                continue
+              fi
+              fails=$(echo "$line" | sed -nE 's/.* ([0-9]+) fail\(s\).*/\1/p')
+              warns=$(echo "$line" | sed -nE 's/.* ([0-9]+) warn\(s\),.*/\1/p')
+              fails=${fails:-0}; warns=${warns:-0}
+              if [ "$fails" -gt 0 ] || [ "$warns" -gt 0 ]; then
+                echo "$out" | grep -E ': (FAIL|WARN):' >> "$GITHUB_STEP_SUMMARY"
+                totalfail=$((totalfail+fails))
+                totalwarn=$((totalwarn+warns))
+              fi
+            done
+          }
+          lint_dir src/comterp_/tests comterp ""
+          lint_dir src/comdraw/tests comdraw "xvfb-run -a"
+          lint_dir src/drawserv_/tests drawserv "xvfb-run -a"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "$totalfiles file(s) checked, $totalfail fail(s), $totalwarn warn(s), $totalincomplete incomplete (advisory -- not blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
       - name: Test - comterp unit suite
         timeout-minutes: 3   # safety net: fail fast if the interpreter hangs
         run: |
