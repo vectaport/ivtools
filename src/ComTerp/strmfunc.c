@@ -1859,9 +1859,13 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
-    boolean typed_ring = ring_buf_blocktype((AttributeValue*)avl->Get(0)) != AttributeValue::UnknownType;
-    if (typed_ring && popval.is_type(ComValue::StringType)) return false;
-    if (!typed_ring && streams_as_characters(popval)) {
+    /* AnyType boxes a value whole (comval_encode's AnyType branch), so a
+       string there costs exactly one slot like any other value -- only a
+       numeric blocktype's lossy conversion needs refusing a string outright. */
+    AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
+    boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
+    if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
+    if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
       int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
       if (len>ring_avail(avl)) return false;
     }

@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 31 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 33 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -32,8 +32,10 @@
 // fills mid-stream refuses (nil) without losing the unpulled remainder, so a
 // later feed() with the same stream resumes where it left off.  Feeding a
 // ring its own stream is refused outright rather than looping forever, even
-// one layer wrapped inside another FIFO, and a typed ring refuses a
-// multi-byte string pulled from a stream rather than silently coercing it.
+// wrapped inside another FIFO or a chunk() adapter, and a numeric-typed
+// ring refuses a multi-byte string pulled from a stream rather than
+// silently coercing it -- an AnyType ring, which boxes a value whole
+// instead of converting it, stores one unchanged.
 
 ok=true
 
@@ -309,6 +311,27 @@ s29=stream(("ab" "cd"))
 r29=feed(ring29 s29)
 ok=ok&&(r29==nil)&&(info(ring29).count==0)
 print("29 feed(typed-ring, string-stream) refuses rather than coercing to garbage (expect nil, count 0): %v %v\n" r29 info(ring29).count)
+
+// --- 30: an AnyType ring boxes a string whole (comval_encode's AnyType
+// branch copies the value, not a numeric conversion of it), so a string
+// pulled from a stream costs exactly one slot and must not be refused the
+// way a numeric-typed ring's string refusal is ---
+ring30=feed(string(2 AnyType))
+s30=stream(("ab" "cd"))
+feed(ring30 s30)
+v30a=next(ring30); v30b=next(ring30)
+ok=ok&&(v30a=="ab")&&(v30b=="cd")
+print("30 feed(AnyType-ring, string-stream) stores each string whole (expect \"ab\" \"cd\"): %v %v\n" v30a v30b)
+
+// --- 31: a ring wrapped behind a different stream adapter (chunk(), not a
+// FIFO) and fed back into itself is the same cycle as tests 27-28 through
+// yet another wrapper shape -- the destination-avl guard catches it however
+// the cycle is wrapped, since it's keyed on the ring's own backing list ---
+ring31=feed(string(3))
+feed(ring31 'a')
+r31=feed(ring31 chunk(ring31 1))
+ok=ok&&(r31==nil)&&(info(ring31).count==1)
+print("31 feed(ring, chunk-wrapping-ring) refuses rather than hanging (expect nil, count still 1): %v %v\n" r31 info(ring31).count)
 
 print("feedring: %v\n" ok)
 ok
