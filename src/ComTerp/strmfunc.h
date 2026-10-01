@@ -39,6 +39,7 @@ class ComValue;
 #define STREAM_NESTED   4
 #define STREAM_SPREAD   8  // ~~ tag: drain into the enclosing call's positionals
 #define STREAM_FUNCOBJ 16  // packed callee is a FuncObj, not a ComFunc
+#define STREAM_RING    32  // string-backed ring FIFO -- see FeedFunc/RingNextFunc
 
 //: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {
@@ -321,9 +322,11 @@ public:
 
 };
 
-//: command to build or append to a growable FIFO stream, the write-end
-//: complement to next().
-// fifo=feed([fifo] [val ...] :raw) -- build or append to a growable FIFO stream
+//: command to build or append to a FIFO stream, the write-end
+//: complement to next().  A bare (unprotected) string first argument
+//: builds a fixed-capacity ring FIFO over that string's own bytes
+//: instead of a growable one -- see RingNextFunc.
+// fifo=feed([fifo] [val ...] :raw :noring) -- build or append to a FIFO stream
 class FeedFunc : public ComFunc {
 public:
     FeedFunc(ComTerp*);
@@ -331,12 +334,14 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "fifo=%s([fifo] [val ...] :raw) -- build or append to a growable FIFO stream; a string argument is ingested as its characters, a bquoted one whole"; }
+      return "fifo=%s([fifo] [val ...] :raw :noring) -- build or append to a FIFO stream; a bare string argument becomes a fixed-capacity ring over its own bytes, a bquoted one is stored whole"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":raw       store a stream or string argument whole instead of taking",
 	"           it apart -- applies to every argument in the call, where a",
 	"           bquoted value protects just itself",
+	":noring    for a new string-backed FIFO, refuse a push once the buffer",
+	"           fills rather than wrapping to reclaim drained space",
 	nil
       };
       return keys;
@@ -381,6 +386,20 @@ public:
     virtual void execute();
     virtual const char* docstring() {
       return "hidden func used by next command for feed-built FIFO streams"; }
+
+};
+
+//: hidden func used by next command for a string-backed ring FIFO
+//: (feed(str) -- see FeedFunc).  The stream's avl carries
+//: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1), all bytes in
+//: buf's own storage -- see FeedFunc::execute() for the write side.
+class RingNextFunc : public StrmFunc {
+public:
+    RingNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for a string-backed ring FIFO"; }
 
 };
 

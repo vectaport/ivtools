@@ -1,0 +1,249 @@
+// src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
+// over a string's own bytes
+//
+// coverage: 26 tests of feed(str)/:noring/next()/info() ring behavior,
+// incl. survival of a nested-stream drain, :raw on a push (refused over
+// one byte, honored at exactly one) and on construction, an embedded-NUL
+// push, a sliced first argument, a push overlapping the ring's own
+// backing bytes, a multi-char push longer than the room left, a ring
+// built over a typed (string(n type)) buffer operating in whole elements
+// with promotion/demotion on push, and info()'s :free field
+// funcs: feed next info string char at
+//
+// A bare (unprotected) string argument to feed(), with no existing FIFO,
+// builds a fixed-capacity ring FIFO over that string's own bytes instead of
+// a growable copy of its characters: feed(ring ch) writes at the tail and
+// wraps mod capacity, next(ring) reads at the head and advances it, both
+// refusing (nil) rather than failing -- full and empty are the same
+// "nothing to do right now" answer every other stream gives, not a
+// permanent state, so a ring can still be fed after an empty next() the
+// same way a growable feed() FIFO can (see feed.comt test 16).  :noring
+// disables wraparound: a push refuses once the buffer has filled, even
+// after elements have been popped from the front, rather than reclaiming
+// that drained space.  info() reports a ring's head/tail/count/cap/wrap/free
+// plus the live region as a slice of the backing string -- two slices when
+// it straddles the wrap point.  Built over a typed buffer (string(n type)),
+// a ring's slots are whole elements of that type, not raw bytes: cap counts
+// elements, and a pushed value is promoted/demoted to the type the same way
+// at(s N :set v) already does.
+
+ok=true
+
+// --- 1-2: building and a basic push/pop round trip ---
+buf1=string(4)
+ring1=feed(buf1)
+ok=ok&&(istype(ring1 StreamType))
+print("1 feed(string(4)) builds a stream (expect true): %v\n" istype(ring1 StreamType))
+
+feed(ring1 'a')
+c1=next(ring1)
+ok=ok&&(c1=='a')
+print("2 feed(ring1 'a');next(ring1) (expect 'a'): %v\n" c1)
+
+// --- 3-4: fill to capacity, then refuse ---
+buf2=string(3)
+ring2=feed(buf2)
+feed(ring2 'a'); feed(ring2 'b'); feed(ring2 'c')
+ok=ok&&(info(ring2).count==3)
+print("3 info(ring2).count after filling a 3-byte ring (expect 3): %v\n" info(ring2).count)
+
+r4=feed(ring2 'd')
+ok=ok&&(r4==nil)
+print("4 feed(ring2 'd') on a full ring (expect nil): %v\n" r4)
+
+// --- 5: drain to empty, then refuse ---
+next(ring2); next(ring2); next(ring2)
+c5=next(ring2)
+ok=ok&&(c5==nil)
+print("5 next(ring2) on an empty ring (expect nil): %v\n" c5)
+
+// --- 6: still feedable after an empty next(), same as a growable FIFO ---
+feed(ring2 'x')
+c6=next(ring2)
+ok=ok&&(c6=='x')
+print("6 feed(ring2 'x') after an empty next() (expect 'x'): %v\n" c6)
+
+// --- 7: wraparound, 3+ full cycles, FIFO order preserved throughout ---
+buf7=string(3)
+ring7=feed(buf7)
+w7=true
+i7=0
+while(i7<9
+  ch7=char(97+i7);
+  feed(ring7 ch7);
+  p7=next(ring7);
+  w7=w7&&(p7==ch7);
+  i7=i7+1)
+ok=ok&&w7
+print("7 9 push/pop cycles through a 3-byte ring, 3 wraps (expect all match): %v\n" w7)
+
+// --- 8: info() straddle -- the live region spans the wrap point ---
+buf8=string(4)
+ring8=feed(buf8)
+feed(ring8 'a'); feed(ring8 'b'); feed(ring8 'c')
+next(ring8); next(ring8)
+feed(ring8 'd'); feed(ring8 'e')
+i8=info(ring8)
+ok=ok&&(i8.count==3)&&(size(i8.buf)==2)
+print("8 info(ring8) after a straddling wrap (expect count 3, two buf slices): %v\n" i8)
+
+// --- 9-10: :noring -- refuses once the tail reaches capacity, never wraps ---
+buf9=string(3)
+ring9=feed(buf9 :noring)
+feed(ring9 'a'); feed(ring9 'b'); feed(ring9 'c')
+c9=next(ring9)
+ok=ok&&(c9=='a')
+print("9 :noring fills normally, first pop (expect 'a'): %v\n" c9)
+
+r10=feed(ring9 'd')
+ok=ok&&(r10==nil)
+print("10 feed(ring9 'd') on a drained :noring ring, tail still at cap (expect nil): %v\n" r10)
+
+// --- 11: a bare string with existing content seeds the ring already-queued,
+// matching what feeding a string into a FIFO meant before the ring existed
+// (stringstream.comt test 8) ---
+ring11=feed("hi")
+c11a=next(ring11)
+c11b=next(ring11)
+ok=ok&&(c11a=='h')&&(c11b=='i')
+print("11 feed(\"hi\") seeds the ring from its own content (expect 'h' 'i'): %v %v\n" c11a c11b)
+
+// --- 12: a bquoted string still stores whole, same escape as the growable
+// FIFO (stringstream.comt test 7) -- bquote protects the value from being
+// taken apart at all, ring included ---
+ring12=feed(`"hi")
+c12=next(ring12)
+ok=ok&&(c12=="hi")
+print("12 feed(`\"hi\") stores the string whole, not as a ring (expect \"hi\"): %v\n" c12)
+
+// --- 13: a ring survives being drained to nil as an overdrive operand --
+// next()'s external-stream branches once cleared a ring's persistent avl
+// the same way they clear an ordinary exhausted stream, permanently
+// breaking it; they now skip a ring the same way the internal branch does ---
+ring13=feed(string(3))
+feed(ring13 'a')
+combo13=ring13+0
+list(combo13)
+feed(ring13 'z')
+c13=next(ring13)
+ok=ok&&(c13=='z')
+print("13 ring survives being drained via +0 overdrive, still feedable (expect 'z'): %v\n" c13)
+
+// --- 14: a ring slot is one literal byte, so :raw (or a bquoted string)
+// can only be honored on a push when the string is exactly one byte --
+// a longer one is refused outright rather than silently truncated ---
+ring14=feed(string(10))
+r14a=feed(ring14 "hi" :raw)
+ok=ok&&(r14a==nil)&&(info(ring14).count==0)
+print("14a feed(ring14 \"hi\" :raw) refuses a multi-char raw push (expect nil, count 0): %v %v\n" r14a info(ring14).count)
+r14b=feed(ring14 "h" :raw)
+ok=ok&&(r14b!=nil)&&(info(ring14).count==1)
+c14b=next(ring14)
+ok=ok&&(c14b=='h')
+print("14b feed(ring14 \"h\" :raw) pushes a one-byte raw string (expect 'h'): %v\n" c14b)
+
+// --- 15: pushing a slice containing an embedded NUL carries its full
+// slicelen(), not just the bytes up to the NUL ---
+buf15=string(5)
+at(buf15 0 :set 'A'); at(buf15 1 :set char(0)); at(buf15 2 :set 'B')
+at(buf15 3 :set 'C'); at(buf15 4 :set 'D')
+sl15=buf15@0:5
+ring15=feed(string(10))
+feed(ring15 sl15)
+ok=ok&&(info(ring15).count==5)
+print("15 a slice with an embedded NUL pushes all 5 bytes (expect 5): %v\n" info(ring15).count)
+
+// --- 16: :raw on feed()'s first argument stores the string whole in a
+// growable FIFO, same as a bquoted one, instead of building a ring ---
+r16=feed("hi" :raw)
+c16=next(r16)
+ok=ok&&(c16=="hi")
+print("16 feed(\"hi\" :raw) stores the string whole, not as a ring (expect \"hi\"): %v\n" c16)
+
+// --- 17: a slice as feed()'s first argument confines the ring to the
+// slice's own window -- capacity, starting content, and info()'s reported
+// live region all come from the slice, not the full backing string ---
+s17="abcd"
+sl17=s17@1:3
+ring17=feed(sl17)
+i17=info(ring17)
+ok=ok&&(i17.cap==2)&&(i17.count==2)
+c17a=next(ring17)
+c17b=next(ring17)
+ok=ok&&(c17a=='b')&&(c17b=='c')
+print("17 feed(\"abcd\"@1:3) rings over just the slice (expect cap 2, 'b' 'c'): %v %v %v\n" i17.cap c17a c17b)
+
+// --- 18: pushing a value that overlaps the ring's own backing bytes (a
+// slice of the same string the ring is built over) must push the bytes
+// as they were before the push started, not bytes already overwritten by
+// an earlier iteration of the same push ---
+s18="abcd"
+ring18=feed(s18)
+next(ring18); next(ring18)
+feed(ring18 'X'); feed(ring18 'Y')
+next(ring18); next(ring18); next(ring18); next(ring18)
+sl18=s18@0:4
+feed(ring18 sl18)
+ok=ok&&(s18=="cdXY")
+print("18 feeding a ring a slice of its own backing string (expect \"cdXY\"): %v\n" s18)
+
+// --- 19: a multi-char push longer than the room left still lands only
+// what fits before refusing, same as pushing a string that fit entirely
+// within capacity -- copying no more of the source than the ring has
+// room for doesn't change what ends up queued ---
+buf19=string(4)
+ring19=feed(buf19)
+feed(ring19 'a'); feed(ring19 'b')
+r19=feed(ring19 "abcde")
+ok=ok&&(r19==nil)&&(info(ring19).count==4)
+print("19 feed(ring19 \"abcde\") with 2 slots free (expect nil, count 4): %v %v\n" r19 info(ring19).count)
+
+// --- 20-23: a ring built over a typed string (string(n type)) operates
+// in whole elements of that type, not raw bytes -- capacity, push, pop,
+// and info()'s live region all follow the buffer's own declared type,
+// the same width at() already uses to read/write it ---
+ring20=feed(string(4 UIntType))
+i20=info(ring20)
+ok=ok&&(i20.cap==4)&&(i20.count==0)
+print("20 feed(string(4 UIntType)) sizes the ring in elements, starts empty (expect cap 4, count 0): %v %v\n" i20.cap i20.count)
+
+// a pushed value is promoted to the ring's declared type, not truncated
+// through char_val() the way an untyped ring's push is
+feed(ring20 65)
+c20=next(ring20)
+ok=ok&&(c20==65)&&(type(c20)==`UIntType)
+print("21 feed(ring20 65);next(ring20) comes back as UIntType, not a char (expect 65 UIntType): %v %v\n" c20 type(c20))
+
+// a char pushed onto a typed ring is promoted the same way a numeric
+// value is, not stored as a raw byte
+feed(ring20 'A')
+c21=next(ring20)
+ok=ok&&(c21==65)&&(type(c21)==`UIntType)
+print("22 feed(ring20 'A') promotes the char to UIntType (expect 65 UIntType): %v %v\n" c21 type(c21))
+
+// fill to capacity, refuse, then drain in FIFO order with types intact
+feed(ring20 1); feed(ring20 2); feed(ring20 3); feed(ring20 4)
+r23=feed(ring20 99)
+v1=next(ring20); v2=next(ring20); v3=next(ring20); v4=next(ring20)
+ok=ok&&(r23==nil)&&(v1==1)&&(v2==2)&&(v3==3)&&(v4==4)
+print("23 a full UIntType ring refuses, then drains 1,2,3,4 in order (expect nil 1 2 3 4): %v %v %v %v %v\n" r23 v1 v2 v3 v4)
+
+// --- 24: info()'s :free is how many more pushes will succeed, which is
+// cap-count only in :wrap mode -- in :noring mode a pop frees an element
+// (count drops) without freeing a slot to push into, since drained space
+// never comes back into play ---
+buf24=string(3)
+wring24=feed(buf24)
+feed(wring24 'a'); feed(wring24 'b'); feed(wring24 'c')
+next(wring24)
+ok=ok&&(info(wring24).free==1)
+print("24a :wrap ring free after fill+1 pop (expect 1): %v\n" info(wring24).free)
+
+nring24=feed(string(3) :noring)
+feed(nring24 'a'); feed(nring24 'b'); feed(nring24 'c')
+next(nring24)
+ok=ok&&(info(nring24).free==0)&&(info(nring24).count==2)
+print("24b :noring ring free after fill+1 pop, free stays 0 though count is 2: %v %v\n" info(nring24).free info(nring24).count)
+
+print("feedring: %v\n" ok)
+ok

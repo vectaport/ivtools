@@ -210,6 +210,10 @@ if(run("./feed.comt")
   :then print("pass: feed\n")
   :else print("FAIL: feed\n");topok=false)
 
+if(run("./feedring.comt")
+  :then print("pass: feedring\n")
+  :else print("FAIL: feedring\n");topok=false)
+
 if(run("./chunk.comt")
   :then print("pass: chunk\n")
   :else print("FAIL: chunk\n");topok=false)
