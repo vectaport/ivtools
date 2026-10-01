@@ -400,15 +400,15 @@ r33a=feed(ring33a **s33a)
 ok=ok&&(!(r33a==nil))&&(istype(r33a IntType))&&(info(ring33a).count==1)
 print("33 feed(ringA, **lazy stream that side-effects an unrelated ring's self-feed) still accepts ringA's value (expect non-nil, count 1): %v %v\n" (!(r33a==nil)) info(ring33a).count)
 
-// --- 34: an each()-forced drain's result is still an ordinary IntType
-// count once assigned -- the [n] bracket is a top-level-echo annotation
-// (AssignFunc re-stamps it only on its own immediate push), not a tag
-// that survives into further use of the variable ---
+// --- 34: an assignment's own result keeps the [n] bracket on an
+// each()-forced drain, same as the unassigned call -- print()'s %v reads
+// its value args via the eager stack_arg() path, which is one of the few
+// places (besides the top-level echo) a wrapper survives a read ---
 ring34=feed(string(4 UIntType))
 feed(ring34 **0..3)
-s34=next(ring34 **0..1)
-ok=ok&&(s34==2)&&(istype(s34 IntType))
-print("34 s=next(ring **0..1) assigns the plain count (expect 2, IntType): %v %v\n" s34 istype(s34 IntType))
+out34=print("%v" (s34=next(ring34 **0..1)) :str)
+ok=ok&&(s34==2)&&(istype(s34 IntType))&&(out34=="[2]")
+print("34 s=next(ring **0..1) keeps its [2] echo (expect 2, IntType, \"[2]\"): %v %v %v\n" s34 istype(s34 IntType) out34)
 
 print("feedring: %v\n" ok)
 ok
