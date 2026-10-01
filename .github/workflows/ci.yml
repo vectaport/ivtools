@@ -175,15 +175,17 @@ jobs:
       # comment overrode, so this blocks only on FAIL or a non-overridden
       # WARN.
       #
-      # Runs once per PR rather than on every push to it: a ~6min scan
-      # doesn't need to repeat on each follow-up commit, and a SKIPPED
-      # required check still counts as passing for merge, so skipping here
-      # on 'synchronize' doesn't block anything. It still runs on the PR's
-      # first open/reopen, on push to master (so the merge itself is
-      # covered), and on a manual workflow_dispatch re-run from the Actions
-      # tab any time a fresh check is wanted mid-PR.
+      # Runs on every push now that this step blocks the merge: a SKIPPED
+      # required check still counts as passing, so skipping it on
+      # 'synchronize' (as this once did, back when the step was advisory
+      # and the ~6min scan felt wasteful to repeat per push) would let any
+      # commit after the PR's first merge with no comlint result at all --
+      # this job's workflow-level 'cancel-in-progress' means an in-flight
+      # scan for an earlier commit never even finishes before the next
+      # push replaces it. Blocking only means something if it runs against
+      # the actual head that merges.
       - name: Lint - comlint
-        if: always() && (github.event_name != 'pull_request' || github.event.action != 'synchronize')
+        if: always()
         timeout-minutes: 10
         run: |
           # comlint exits 1 whenever it finds a FAIL or non-overridden WARN --
