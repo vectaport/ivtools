@@ -266,7 +266,11 @@ while((srcline=gets(fp))!=nil
      the statement it was meant for ever sees it. */
   if(srcline=="\n" || size(srcline)==0 :then continue);
   if(substr(srcline 2)=="//" :then
-    if(index(srcline "comlint:allow")!=nil :then allowarmed=true :else allowarmed=false);
+    /* an unrelated whole-line comment leaves an already-armed override
+       alone -- only the next real statement's own start consumes it
+       (stmtallowed=allowarmed;allowarmed=false below) -- so a second
+       comment line right after '// comlint:allow' can't cancel it */
+    if(index(srcline "comlint:allow")!=nil :then allowarmed=true);
     continue);
 
   hasopen=index(srcline "/*");

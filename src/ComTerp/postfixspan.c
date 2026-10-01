@@ -92,12 +92,18 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
 
     if (type == TOK_KEYWORD) {
         /* A keyword marker's narg is 0 (bare flag) or 1 (keyword+value); combine
-           marker + bound value (if any) into one span, consumed as a single operand */
+           marker + bound value (if any) into one span, consumed as a single operand.
+           consumed_count() must reflect only THIS call -- a bare flag (n==0) consumes
+           nothing of its own, so it clears _consumed_count rather than leaving it at
+           whatever a previous step() (e.g. an earlier keyword's bound value) set it
+           to, which would let that stale span leak into this flag's own result. */
         int n = toks[i].narg;
         int start = i;
         if (n > 0) {
             pop_into_consumed(n);
             start = _consumed[0].start;
+        } else {
+            _consumed_count = 0;
         }
         push(Span{start, i - start + 1}, n);
         return;

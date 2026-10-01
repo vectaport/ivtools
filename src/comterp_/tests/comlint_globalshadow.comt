@@ -84,5 +84,24 @@ ok=ok&&(falsepos==nil)
 print("2 comlint on a dot-called global(), a local()-shadowed write, a\n    func(...)-body write, single- and double-cleared writes, a bare\n    global(a b), a bare read used as an rvalue, a multi-arg global()\n    call, a ';'-joined local() declaration, a global() read nested in\n    a post-eval call's arguments, a global(:clear)=val compound, a\n    whitespace-after-'.' dot-call, and a local(symadd(...))\n    non-bare-symbol declaration flags none (expect nil): %v\n\n" falsepos)
 prev_ok=check_fail(:ok ok)
 
+// --- test 3: a '// comlint:allow -- reason' line overrides the WARN on
+//     the write directly below it, the override still applies when an
+//     unrelated whole-line comment sits between the allow line and the
+//     write, and a write with no override at all still warns ---
+pipe3=$$open(print("comterp run %s %s%s 2>&1"
+  comlintpath fixtureprefix "comlint_gs_allow.comt" :str) :pipe)
+out3="";linev3=*pipe3
+while(linev3!=nil
+  out3=out3+linev3+" ";
+  linev3=*pipe3)
+plainoverridden=index(out3 "gs_allow_plain global here" :substr)!=nil&&index(out3 "WARN(overridden): global(gs_allow_plain)" :substr)!=nil
+gapoverridden=index(out3 "WARN(overridden): global(gs_allow_gap)" :substr)!=nil&&index(out3 "WARN(overridden): gs_allow_gap=" :substr)!=nil
+nonewarned=index(out3 "WARN: global(gs_allow_none)" :substr)!=nil&&index(out3 "WARN: gs_allow_none=" :substr)!=nil
+summaryline=index(out3 "0 fail(s), 1 warn(s), 2 warn(s) overridden" :substr)!=nil
+ok=ok&&plainoverridden&&gapoverridden&&nonewarned&&summaryline
+print("3 comlint:allow overrides gs_allow_plain's WARN directly, still\n    overrides gs_allow_gap's WARN across an intervening unrelated\n    comment line, and leaves gs_allow_none (no override) WARNing\n    (expect true x4): %v %v %v %v\n\n"
+  plainoverridden gapoverridden nonewarned summaryline)
+prev_ok=check_fail(:ok ok)
+
 print("\ncomlint_globalshadow: %v\n" ok)
 ok

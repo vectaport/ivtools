@@ -56,5 +56,13 @@ ok=ok&&(print(at(firstarg 1) :str)=="1")
 ok=ok&&(print(at(secondarg 1) :str)=="3")
 print("6 postfix(1+2 3+4 :tree) (expect {(add 1 2),(add 3 4)}): %v\n" r6)
 
+// --- 7: a bare flag keyword right after a valued keyword gets its own
+//        empty value, not the previous keyword's bound value ---
+r7=postfix(list(1 :a 2 :b) :tree)
+akw=at(r7 2);bkw=at(r7 3)
+ok=ok&&(print(akw :str)=="(:a 2)")
+ok=ok&&(print(bkw :str)=="(:b {})")
+print("7 postfix(list(1 :a 2 :b) :tree) :b stays bare (expect (:b {})): %v\n" bkw)
+
 print("postfixtree: %v\n" ok)
 ok
