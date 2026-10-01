@@ -878,11 +878,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	// fprintf(stderr, "NextFunc: Handling nested stream\n");
 	ComValue cval(*val);
 	NextFunc::execute_impl(comterp, cval);
-	/* a guard trip still naming a live ancestor is this call's own --
-	   nothing unrelated could have unwound it out from under us -- and
-	   means the pull was refused outright, not that the nested element
-	   ran dry; leave it in place so a later call can still recover it,
-	   rather than discarding it here. */
+	/* a trip naming a live ancestor is this call's own refusal, not the
+	   nested element running dry -- leave it in place for a later call. */
 	if (_draining_guard_tripped_avl &&
 	    std::find(_draining_avls.begin(), _draining_avls.end(), _draining_guard_tripped_avl)
 	    != _draining_avls.end()) {
@@ -1888,13 +1885,8 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
     if (ring_avail(avl)<=0) return false;
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
-    /* a trip naming this exact ring means the pull bottomed out on it
-       through some wrapper, not that the source stream legitimately ran
-       out -- refuse the whole push rather than reporting success on a
-       cycle nothing was actually transferred out of.  A trip naming some
-       other ring (pulled as a side effect while fulfilling this one) isn't
-       ours to act on -- popval is this ring's own, legitimately pulled
-       value regardless of what an unrelated drain elsewhere ran into. */
+    /* a trip naming this ring is our own refusal; a trip naming some other
+       ring isn't ours to act on, so popval is still a legitimate pull. */
     if (_draining_guard_tripped_avl==avl) {
       _draining_guard_tripped_avl = 0;
       return false;
