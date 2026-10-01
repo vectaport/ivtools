@@ -27,6 +27,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/iofunc.h>
+#include <ComTerp/listfunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
@@ -835,17 +836,49 @@ NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void NextFunc::execute() {
-    ComValue streamv(stack_arg_post_eval(0));
+    boolean have_var = nargsfixed()>1;
     /* unevaluated (symbol=true), the same way AssignFunc reads its own lhs --
        a plain var name, not whatever value it currently holds. */
-    ComValue varname(nargsfixed()>1 ? stack_arg(1, true) : ComValue::nullval());
+    ComValue varname(have_var ? stack_arg(1, true) : ComValue::nullval());
+
+    if (have_var && varname.type() != ComValue::SymbolType) {
+      /* not a bare name -- maybe at()/global()/local()/temp(): same lhs
+	 detection AssignFunc uses on its own arg 0, walked here for this
+	 call's arg 1 instead. Flagging the command token before evaluating
+	 it is what makes a streamed at() (e.g. r@0..3) come back as a
+	 settable stream rather than a plain read; this must happen, and
+	 arg 1 must be fully evaluated, before arg 0 is touched at all --
+	 same ordering constraint AssignFunc's own lhs has on its arg 0. */
+      int linenum = funcstate()->linenum();
+      static int global_symid = symbol_add("global");
+      static int local_symid = symbol_add("local");
+      static int temp_symid = symbol_add("temp");
+      static int at_symid = symbol_add("at");
+      ComValue argoff(comterp()->stack_top());
+      int offtop = argoff.int_val() - comterp()->pfnum();
+      int argcnt = 0;
+      for (int j=nargsfixed(); j>1; j--) { argcnt = 0; skip_arg_in_expr(offtop, argcnt); }
+      /* the walked-to arg's own root token sits at offtop+argcnt, not offtop --
+	 offtop is left pointing one-past the far end of its subtree. */
+      int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+      ComValue& startval = comterp()->pfcomvals()[startidx];
+      if (startval.is_type(ComValue::CommandType)) {
+	ComFunc* func = (ComFunc*)startval.obj_val();
+	if (func->funcid() == global_symid || func->funcid() == local_symid ||
+	    func->funcid() == temp_symid || func->funcid() == at_symid)
+	  startval.lhs_assign(1);
+      }
+      varname = stack_arg_post_eval(1, true);
+      ComValue streamv(stack_arg_post_eval(0));
+      reset_stack();
+      return execute_var_dispatch(streamv, varname, linenum);
+    }
+
+    /* a bare symbol var (or none given) -- unchanged from before the lhs
+       machinery above existed, including argument evaluation order. */
+    ComValue streamv(stack_arg_post_eval(0));
     reset_stack();
-
     execute_impl(comterp(), streamv);
-
-    /* a non-symbol var (or none given) leaves next(stream) unchanged -- the
-       write is scoped like AssignFunc's bare '=' (assignfunc.c): an
-       existing temp() name, then the active func's frame, else assign_symval(). */
     if (varname.is_type(ComValue::SymbolType)) {
       ComValue* pulled = new ComValue(comterp()->stack_top());
       AttributeList* tempframe = comterp()->get_tempframe();
@@ -857,6 +890,62 @@ void NextFunc::execute() {
       else
 	comterp()->assign_symval(varname.symbol_val(), pulled);
     }
+}
+
+/* dispatch for a non-symbol, lhs-eligible var -- a streamed at() (zipper), a
+   scalar at() pair, or a dot() attribute.  Split out of execute() so the
+   plain-symbol path above can keep evaluating its two arguments in the
+   original order; this path's own arg 1 is already fully evaluated by the
+   time it's called. */
+void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum) {
+    if (varname.is_stream() && varname.lhs_assign()) {
+      /* var is a streamed at()-destination (e.g. r@0..3) -- zipper-write
+	 every value pulled from the source stream into it, same mechanism
+	 as AssignFunc's own r@lo:hi=val (strmfunc.c, zip_assign_stream).
+	 The aggregate operation has no single "the value", so next()
+	 returns the write count here instead of a pulled value. */
+      ComValue idxstream(varname);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &streamv, true, linenum);
+      if (count < 0) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      ComValue retval(count, ComValue::IntType);
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
+
+    if (varname.is_array() && varname.lhs_assign()) {
+      /* var is a single at()-destination (e.g. r@2) -- pull one value,
+	 write it there, and still return the pulled value itself, same
+	 contract as the plain-symbol case in execute(). */
+      execute_impl(comterp(), streamv);
+      ComValue pulled(comterp()->stack_top());
+      NextFunc::write_at_pair(comterp(), varname, pulled);
+      return;
+    }
+
+    if (varname.is_object(Attribute::class_symid())) {
+      /* var is a dot()-destination (e.g. al.field) -- dot() always hands
+	 back the live Attribute itself (not a value needing an lhs_assign
+	 flag to tell read from write apart, unlike at()), so no flagging
+	 was needed above to reach here.  Write the pulled value directly
+	 into it, same as AssignFunc's own al.field=val (assignfunc.c), and
+	 still return the pulled value. */
+      execute_impl(comterp(), streamv);
+      ComValue pulled(comterp()->stack_top());
+      Attribute* attr = (Attribute*)varname.obj_val();
+      AttributeList* owner = attr->Owner();
+      if (!(owner && value_contains_container(pulled, (void*)owner, true)))
+	attr->Value(new ComValue(pulled));
+      return;
+    }
+
+    /* flagged but none of the above -- e.g. a sealed attrlist's dot lookup
+       (unknown()&&lhs_assign()) -- leaves next(stream) unchanged, same as
+       an unrecognized lhs falls through in AssignFunc (assignfunc.c). */
+    execute_impl(comterp(), streamv);
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
@@ -905,6 +994,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  return;
 	}
 	if (!comterp->stack_top().is_null()) {
+	  _next_depth--;
 	  return;
 	}
 	avl->Remove(val);
@@ -1060,6 +1150,77 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
     _next_depth--;
 }
 
+/* whether at()'s :set would actually write (list target :set) vs. silently
+   no-op and return nil (a fixed-capacity string index out of range) --
+   nil is also a legitimate written value, so the write's own return can't
+   tell the two apart; this mirrors ListAtFunc::execute()'s own bounds
+   check (listfunc.c) on the same target/index pair. */
+static boolean idxassign_in_range(ComValue& listv, int idx) {
+  if (idx < 0) return false;
+  if (listv.is_type(ComValue::ArrayType)) return true;
+  if (listv.is_only_string()) {
+    boolean isslice = listv.sliced();
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    int chunksz = listv.blocksz();
+    int nchunks = chunksz>0 ? cap/chunksz : cap;
+    return idx < nchunks;
+  }
+  return false;
+}
+
+ComValue NextFunc::write_at_pair(ComTerp* comterp, ComValue& pairv, ComValue& writeval) {
+  AttributeValueList* pair = pairv.array_val();
+  static int set_symid = symbol_add("set");
+  comterp->push_stack(*pair->Get(0));
+  comterp->push_stack(*pair->Get(1));
+  comterp->push_stack(writeval);
+  ComValue setkey(set_symid, 1);
+  comterp->push_stack(setkey);
+  ListAtFunc atfunc(comterp);
+  atfunc.funcid(symbol_add("at"));
+  /* narg counts non-keyword args including the value after a keyword --
+     4 pushes here mean narg=3, nkey=1, not narg=2 */
+  atfunc.exec(3, 1);
+  return comterp->pop_stack();
+}
+
+int NextFunc::zip_assign_stream(ComTerp* comterp, ComValue& idxstream,
+				 ComValue* rhsval, boolean rhs_is_stream,
+				 int linenum) {
+  int count = 0;
+  for (;;) {
+    NextFunc::execute_impl(comterp, idxstream);
+    ComValue pairv(comterp->pop_stack());
+    if (pairv.is_null()) break;
+    AttributeValueList* pair = pairv.array_val();
+    if (!pairv.is_array() || !pairv.lhs_assign() || !pair || pair->Number()!=2) {
+      /* the streamed target isn't list/string-shaped (e.g. an attrlist) --
+	 at() has nothing writable to hand back for it, same as the
+	 non-streamed al@n=val case (test 5, atop.comt): no effect.  -1
+	 (not a partial count) matches the non-streamed case's hard nil. */
+      fprintf(stderr, "WARNING:  assignment to something other than a symbol or attribute (%s) ignored -- line %d\n",
+	      symbol_pntr(pairv.type_symid()), linenum);
+      return -1;
+    }
+    ComValue writeval;
+    if (rhs_is_stream) {
+      NextFunc::execute_impl(comterp, *rhsval);
+      ComValue tick(comterp->pop_stack());
+      if (tick.is_null()) break;
+      writeval = tick;
+    } else
+      writeval = *rhsval;
+    ComValue targetv(*pair->Get(0));
+    if (!idxassign_in_range(targetv, pair->Get(1)->int_val()))
+      /* any nil ends a stream -- an out-of-range index is where at()
+	 itself would start returning nil, so the write stream ends
+	 here too, the same as the read-side index stream would. */
+      break;
+    write_at_pair(comterp, pairv, writeval);
+    count++;
+  }
+  return count;
+}
 
 /*****************************************************************************/
 

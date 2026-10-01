@@ -1,13 +1,16 @@
 // src/comterp_/tests/nextvar.comt -- next(stream var), the optional second
 // argument that assigns the pulled value to a variable
 //
-// coverage: 7 tests of next()'s optional 2nd arg -- scalar assignment, a
+// coverage: 11 tests of next()'s optional 2nd arg -- scalar assignment, a
 // feed()-ring source (Scott's own motivating example), exhaustion assigning
 // nil, a non-symbol 2nd argument being ignored for backward compatibility,
 // assignment landing in an already-existing variable's own scope, a
+// streamed at() destination (the next()/AssignFunc zipper), a scalar at()
+// destination, a dot() destination (vivified and pre-existing), a
 // func-local var staying in the func's own frame rather than leaking to
 // global scope, and a temp() var staying isolated per call
-// funcs: next feed string istype func temp global
+// funcs: next feed string istype func temp global at dot
+
 //
 // var is read unevaluated, the same way AssignFunc reads its own lhs: a
 // plain variable name, not whatever value it currently holds. With var,
@@ -19,6 +22,14 @@
 // temp() name, then the active func's own frame, else the usual
 // local/global fallback -- var always lands where a bare read of that
 // name would already find it.
+//
+// var can also be a settable expression rather than a bare name, using the
+// same lhs machinery AssignFunc's own '=' uses: a streamed at() (r@lo:hi)
+// zip-writes each pulled value across the index stream and returns the
+// write count instead of a single value (NextFunc::zip_assign_stream,
+// shared with AssignFunc's own r@lo:hi=val); a scalar at() (r@n) or a dot()
+// (al.field) write the one pulled value in place and still return it, like
+// the plain-symbol case.
 
 ok=true
 
@@ -63,22 +74,59 @@ next(s5 out5)
 ok=ok&&(out5==42)
 print("5 next(stream var) updates an already-existing var in place (expect 42): %v\n" out5)
 
-// --- 6: a func-local var stays in the func's own frame -- next(stream var)
+// --- 6: a streamed at() destination zip-writes each pulled value across
+// the index stream, returning the write count (not a single value) --
+// next()'s own version of AssignFunc's r@lo:hi=val. Run before the temp()
+// func tests below (7): a pre-existing fragility in the shared :set
+// re-drive (ListAtFunc::execute(), listfunc.c, its own stack_top()-based
+// lhs_assign() peek) misreads unrelated stack contents left behind by a
+// temp()-using func call -- reported separately, out of this PR's scope. ---
+r6=(0,0,0,0)
+s6=$$(10 20 30 40)
+cnt6=next(s6 r6@0..3)
+ok=ok&&(cnt6==4)&&(r6@0==10)&&(r6@1==20)&&(r6@2==30)&&(r6@3==40)
+print("6 next(s r@0..3) zip-writes the pulled values, returns the count (expect 4, {10,20,30,40}): %v %v\n" cnt6 r6)
+
+// --- 7: a scalar at() destination writes the one pulled value in place
+// and still returns it, like the plain-symbol case ---
+r7=(0,0,0)
+s7=$$(7 8)
+v7=next(s7 r7@1)
+ok=ok&&(v7==7)&&(r7@1==7)
+print("7 next(s r@1) writes the pulled value in place, still returns it (expect 7, 7): %v %v\n" v7 r7@1)
+
+// --- 8: a dot() destination writes the pulled value into that attribute,
+// vivifying it if it didn't already exist ---
+al8=(:x 1)
+s8=$$(42)
+v8=next(s8 al8.y)
+ok=ok&&(v8==42)&&(al8.y==42)
+print("8 next(s al.y) vivifies and writes a new field (expect 42, 42): %v %v\n" v8 al8.y)
+
+// --- 9: a dot() destination on an already-existing field updates it in
+// place rather than adding a second entry ---
+al9=(:x 1)
+s9=$$(99)
+next(s9 al9.x)
+ok=ok&&(al9.x==99)
+print("9 next(s al.x) updates an existing field in place (expect 99): %v\n" al9.x)
+
+// --- 10: a func-local var stays in the func's own frame -- next(stream var)
 // inside a func body must not leak the write out to global scope, the same
 // way an ordinary bare assignment to a func-local name never does ---
-gscope6=999
-f6=func(s=$$(1 2 3); v=0; next(s v); v)
-r6=f6()
-ok=ok&&(r6==1)&&(gscope6==999)
-print("6 next(stream var) inside a func writes the func's own v, not global gscope6 (expect 1, 999): %v %v\n" r6 gscope6)
+gscope10=999
+f10=func(s=$$(1 2 3); v=0; next(s v); v)
+r10=f10()
+ok=ok&&(r10==1)&&(gscope10==999)
+print("10 next(stream var) inside a func writes the func's own v, not global gscope10 (expect 1, 999): %v %v\n" r10 gscope10)
 
-// --- 7: a temp() var stays isolated per call -- each call to f7() gets its
-// own v, not one shared/persisted across calls ---
-f7=func(s=$$(5 6); temp(v)=0; next(s v); v)
-r7a=f7()
-r7b=f7()
-ok=ok&&(r7a==5)&&(r7b==5)
-print("7 next(stream var) writes a temp() var fresh each call (expect 5 5): %v %v\n" r7a r7b)
+// --- 11: a temp() var stays isolated per call -- each call to f11() gets
+// its own v, not one shared/persisted across calls ---
+f11=func(s=$$(5 6); temp(v)=0; next(s v); v)
+r11a=f11()
+r11b=f11()
+ok=ok&&(r11a==5)&&(r11b==5)
+print("11 next(stream var) writes a temp() var fresh each call (expect 5 5): %v %v\n" r11a r11b)
 
 print("nextvar: %v\n" ok)
 ok

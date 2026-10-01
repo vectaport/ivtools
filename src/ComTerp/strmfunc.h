@@ -262,16 +262,42 @@ public:
 
     virtual void execute();
     static  void execute_impl(ComTerp*, ComValue& strmv);
+    /* drains an at()-produced streamed-lvalue (idxstream, is_stream()&&
+       lhs_assign()) against a value source, writing each pulled source
+       value via at(...:set...); rhsval is read once per destination if
+       rhs_is_stream, else broadcast unchanged.  Returns the write count,
+       or -1 if the streamed target isn't list/string-shaped (e.g. an
+       attrlist) -- a hard abort, not a partial count, matching the
+       non-streamed al@n=val case's nil.  Shared by AssignFunc's
+       `lst@lo:hi=val` and NextFunc's own streamed-var zipper so the one
+       pull-then-check-exhaustion loop isn't reimplemented per caller. */
+    static  int  zip_assign_stream(ComTerp*, ComValue& idxstream,
+				    ComValue* rhsval, boolean rhs_is_stream,
+				    int linenum);
+    /* completes a single at()-produced [list,idx] pair's write (pairv,
+       is_array()&&lhs_assign()) by re-driving at() with :set, returning
+       the written result.  Shared by AssignFunc's scalar `lst@N=val` and
+       NextFunc's own single-target zipper case. */
+    static  ComValue write_at_pair(ComTerp*, ComValue& pairv, ComValue& writeval);
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
       /* %1$s (not plain %s) reused twice: helpfunc.c passes only one
          substitution argument, and a second bare %s would read past it */
       return "val=%1$s(stream [var]) -- return next value from stream\n\
 *s is unary-prefix sugar for %1$s(s)\n\
-with var, also assigns the pulled value (including nil) to that variable"; }
+with var, also assigns the pulled value (including nil) to that variable\n\
+var may also be a settable expression: a streamed at() (r@lo:hi) zip-writes\n\
+each pulled value and returns the write count; a scalar at() (r@n) or a\n\
+dot() (al.field) write the one pulled value in place and still return it"; }
 
     static int next_depth() { return _next_depth; }
 protected:
+    /* the non-symbol, lhs-eligible var dispatch (streamed at(), scalar
+       at(), dot()) -- split out of execute() so its own argument-evaluation
+       order (var before stream, required for the lhs postfix-buffer flag
+       to take effect) stays isolated from the plain-symbol path's original
+       order. */
+    void execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum);
     static int _next_depth;
 
 };
