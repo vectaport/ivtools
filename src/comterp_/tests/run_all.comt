@@ -210,6 +210,10 @@ if(run("./feed.comt")
   :then print("pass: feed\n")
   :else print("FAIL: feed\n");topok=false)
 
+if(run("./feedring.comt")
+  :then print("pass: feedring\n")
+  :else print("FAIL: feedring\n");topok=false)
+
 if(run("./chunk.comt")
   :then print("pass: chunk\n")
   :else print("FAIL: chunk\n");topok=false)
@@ -253,6 +257,10 @@ if(run("./bracket-brace-parity.comt")
 if(run("./atop.comt")
   :then print("pass: atop\n")
   :else print("FAIL: atop\n");topok=false)
+
+if(run("./shift.comt")
+  :then print("pass: shift\n")
+  :else print("FAIL: shift\n");topok=false)
 
 if(run("./wrapper.comt")
   :then print("pass: wrapper\n")

@@ -726,6 +726,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
       ComValue val((ComFunc*)sv.obj_val(), avl);
       // fprintf(stderr, "comterp::eval_expr_internals:  packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
       val.stream_mode(STREAM_EXTERNAL); // for external use
+      /* carried explicitly: a deferred replay needs it to build a settable
+         pair instead of reading, per element (NextFunc, strmfunc.c) */
+      val.lhs_assign(sv.lhs_assign());
       push_stack(val);
       return;
     }
@@ -1984,6 +1987,7 @@ void ComTerp::add_defaults() {
     add_command("attrlist", new AttrListFunc(this));
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
+    add_command("shift", new ListShiftFunc(this));
     add_command("tuple", new TupleFunc(this));
     add_command("colonlist", new ColonListFunc(this));
     add_command("index", new ListIndexFunc(this));

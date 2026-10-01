@@ -1,0 +1,145 @@
+// src/comterp_/tests/shift.comt -- shift(lst [n] :reverse), rotate a list
+// in place.
+//
+// funcs: shift() size() at() list() rand() srand() time()
+// coverage: 16/17 (94%)
+// missing: ~shift(fake-key)
+//
+// test 16: a "spinner" demo -- shift() rotates a carousel of quotations
+// by a random amount and the foremost (index 0) one is read off and
+// echoed, the same pattern a UI spinner/chooser would use. Two runs, a
+// known fixed seed then a genuinely random one; rand()/srand() wrap the
+// C library's own rand(), whose sequence for a given seed is not the
+// same across C libraries (e.g. glibc vs. macOS libc), so neither run
+// asserts a specific index or quote -- only that a rotation still
+// carries every quote. Both print their seed and selection for
+// reproducibility (per TESTING.md slot 12 -- rerun with srand(seed)
+// before this file to reproduce a failure).
+
+ok=true
+
+// --- test 1: existence + arity 1 -- shift(lst) defaults to n=1 ---
+lst1=10,20,30,40,50
+r1=shift(lst1)
+ok=ok&&(r1==(20,30,40,50,10))
+print("1 shift(lst1) default n=1 (expect {20,30,40,50,10}): %v\n" r1)
+
+// --- test 2: arity 2 -- an explicit positive n ---
+lst2=10,20,30,40,50
+r2=shift(lst2 2)
+ok=ok&&(r2==(30,40,50,10,20))
+print("2 shift(lst2 2) (expect {30,40,50,10,20}): %v\n" r2)
+
+// --- test 3: return type is still ListType, and it's the same list
+// object, mutated in place, not a copy (r3 and lst3 track together) ---
+lst3=1,2,3
+r3=shift(lst3)
+ok=ok&&istype(r3 ListType)
+ok=ok&&(r3==lst3)
+print("3 istype(shift(lst3) ListType), r3==lst3 (same object, in place) (expect true, true): %v %v\n" istype(r3 ListType) (r3==lst3))
+
+// --- test 4: value stress -- n negative rotates the other direction ---
+lst4=10,20,30,40,50
+r4=shift(lst4 -1)
+ok=ok&&(r4==(50,10,20,30,40))
+print("4 shift(lst4 -1) (expect {50,10,20,30,40}): %v\n" r4)
+
+// --- test 5: value stress -- n==0 is a no-op ---
+lst5=10,20,30,40,50
+r5=shift(lst5 0)
+ok=ok&&(r5==(10,20,30,40,50))
+print("5 shift(lst5 0) (expect unchanged {10,20,30,40,50}): %v\n" r5)
+
+// --- test 6: value stress -- n a multiple of size() is also a no-op ---
+lst6=10,20,30,40,50
+r6=shift(lst6 5)
+ok=ok&&(r6==(10,20,30,40,50))
+print("6 shift(lst6 5) full cycle (expect unchanged {10,20,30,40,50}): %v\n" r6)
+
+// --- test 7: value stress -- n beyond size() wraps via mod ---
+lst7=10,20,30,40,50
+r7=shift(lst7 12)
+ok=ok&&(r7==(30,40,50,10,20))
+print("7 shift(lst7 12), 12 mod 5 == 2 (expect {30,40,50,10,20}): %v\n" r7)
+
+// --- test 8: value stress -- an empty list is a no-op, not an error ---
+lst8=list()
+r8=shift(lst8)
+ok=ok&&(size(lst8)==0)
+print("8 shift(empty list) (expect size 0, no error): %v\n" size(lst8))
+
+// --- test 9: value stress -- a single-element list is a no-op ---
+lst9=(42,)
+r9=shift(lst9)
+ok=ok&&(r9==(42,))
+print("9 shift(single-elem list) (expect {42}): %v\n" r9)
+
+// --- test 10: value stress -- wrong-type first arg (not a list) returns
+// nil rather than erroring, same as at()/size() on an unsupported type ---
+r10=shift(5)
+ok=ok&&(r10==nil)
+print("10 shift(5), non-list arg (expect nil): %v\n" r10)
+
+// --- test 11: value stress -- a nil n reads as the default 1, same as
+// an absent n (nv.is_nil() catches both) ---
+lst11=10,20,30,40,50
+r11=shift(lst11 nil)
+ok=ok&&(r11==(20,30,40,50,10))
+print("11 shift(lst11 nil) (expect same as default, {20,30,40,50,10}): %v\n" r11)
+
+// --- test 12: compositional -- shift() then size(): rotation never
+// changes the count ---
+lst12=1,2,3,4
+shift(lst12 3)
+ok=ok&&(size(lst12)==4)
+print("12 size(lst12) after shift (expect unchanged 4): %v\n" size(lst12))
+
+// --- test 13: compositional -- list($$...) built from a stream, then
+// rotated; and shift() then at(), reading the rotated list back ---
+lst13=list($$(1,2,3,4,5))
+shift(lst13 2)
+ok=ok&&(lst13@0==3)&&(lst13@4==2)
+print("13 list(stream) then shift(2), read back via at() (expect lst13@0=3, lst13@4=2): %v %v\n" lst13@0 lst13@4)
+
+// --- test 14: keyword present -- :reverse flips the rotation direction,
+// same as negating n ---
+lst14=10,20,30,40,50
+r14=shift(lst14 1 :reverse)
+ok=ok&&(r14==(50,10,20,30,40))
+print("14 shift(lst14 1 :reverse) (expect same as shift(lst14 -1), {50,10,20,30,40}): %v\n" r14)
+
+// --- test 15: keyword with value -- :reverse composes with an n other
+// than the default, still equivalent to negating that n ---
+lst15=10,20,30,40,50
+r15=shift(lst15 2 :reverse)
+ok=ok&&(r15==(40,50,10,20,30))
+print("15 shift(lst15 2 :reverse) (expect same as shift(lst15 -2), {40,50,10,20,30}): %v\n" r15)
+
+// --- test 16: a spinner carousel -- shift() rotates by a random amount,
+// the foremost (index 0) quote is read off and echoed ---
+quotes16="One of my most productive days was throwing away 1000 lines of code.","C is quirky, flawed, and an enormous success.","Controlling complexity is the essence of computer programming.","The word 'free' in our name does not refer to price; it refers to freedom.","Design and programming are human activities; forget that and all is lost.","Design is not just what it looks like and feels like. Design is how it works."
+
+// known seed -- reproducible on this build, but rand()'s sequence for a
+// given seed is a property of the C library, not of this test, so only
+// structural invariants are asserted: n16 lands in range, the rotation
+// preserves every quote, and the foremost one is still one of the six
+srand(2026)
+n16=int(rand(0,size(quotes16)))
+shift(quotes16 n16)
+foremost16=quotes16@0
+ok=ok&&(size(quotes16)==6)&&(n16>=0)&&(n16<6)&&(index(quotes16 foremost16)!=nil)
+print("16a spinner, known seed 2026, n=%v; foremost: %v\n" n16 foremost16)
+
+// random seed -- printed for reproducibility, not asserted against a
+// specific quote since it's genuinely random; only that the carousel
+// still has all 6 quotes (a rotation permutes, never drops or duplicates)
+seed16=int(time(:raw :ms)%1000000)
+srand(seed16)
+n16b=int(rand(0,size(quotes16)))
+shift(quotes16 n16b)
+foremost16b=quotes16@0
+ok=ok&&(size(quotes16)==6)
+print("16b spinner, random seed %v (rerun with srand(%v) to reproduce), n=%v; foremost: %v\n" seed16 seed16 n16b foremost16b)
+
+print("shift: %v\n" ok)
+ok
