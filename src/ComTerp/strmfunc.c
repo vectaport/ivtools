@@ -811,6 +811,21 @@ int NextFunc::_next_depth = 0;
    caller. */
 static std::vector<AttributeValueList*> _draining_avls;
 
+/* set to the backing list the recursive-stream guard above matched, so a
+   null it produces can be told apart from a nested element's own,
+   legitimate exhaustion -- the two look identical on the stack (both a
+   pushed nullval()) but call for opposite handling: a legitimate nil means
+   forget this nested element and move on, while a guard-tripped nil means
+   the whole pull was refused and nothing it touched should be mutated.
+   Identifying it by avl, not just a boolean, keeps an unrelated drain's
+   trip (some other ring, pulled as a side effect while fulfilling this
+   one) from being misread as this drain's own: a trip is only "mine" if
+   the avl it names is still a live ancestor of the call reading it --
+   which, for the ring a trip actually concerns, is guaranteed for as long
+   as that ring's own DrainingAVLGuard is still on the stack, and false
+   again once an unrelated trip's guard has already unwound. */
+static AttributeValueList* _draining_guard_tripped_avl = 0;
+
 struct DrainingAVLGuard {
   DrainingAVLGuard(AttributeValueList* avl) { _draining_avls.push_back(avl); }
   ~DrainingAVLGuard() { _draining_avls.pop_back(); }
@@ -842,11 +857,14 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       return;
     }
 
+    if (_draining_avls.empty()) _draining_guard_tripped_avl = 0;
+
     AttributeValueList* self_avl = streamv.stream_list();
     if (std::find(_draining_avls.begin(), _draining_avls.end(), self_avl)
         != _draining_avls.end()) {
       fprintf(stderr, "WARNING: recursive stream -- next() returning nil instead of pulling forever\n");
       comterp->push_stack(ComValue::nullval());
+      _draining_guard_tripped_avl = self_avl;
       _next_depth--;
       return;
     }
@@ -867,6 +885,14 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	// fprintf(stderr, "NextFunc: Handling nested stream\n");
 	ComValue cval(*val);
 	NextFunc::execute_impl(comterp, cval);
+	/* a trip naming a live ancestor is this call's own refusal, not the
+	   nested element running dry -- leave it in place for a later call. */
+	if (_draining_guard_tripped_avl &&
+	    std::find(_draining_avls.begin(), _draining_avls.end(), _draining_guard_tripped_avl)
+	    != _draining_avls.end()) {
+	  _next_depth--;
+	  return;
+	}
 	if (!comterp->stack_top().is_null()) {
 	  return;
 	}
@@ -1844,6 +1870,49 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   return result;
 }
 
+/* push one feed() argument onto a ring: a stream is run, not stored --
+   pulled one value at a time and each pushed in turn, stopping (without
+   consuming the value that wouldn't fit) once the ring has no room left.
+   A value this can't pull without risking loss -- because capacity is
+   already exhausted -- is never pulled, so a stream with more left after
+   exactly filling the ring is refused the same way a short one is, rather
+   than guessed at by pulling anyway.  The ring is refused outright as its
+   own source, directly or wrapped (e.g. nested inside a FIFO fed back into
+   it): registering the destination in NextFunc's own recursive-stream guard
+   makes a pull that bottoms out on it return nil instead of completing the
+   cycle, the same way next() already refuses a stream draining itself.
+   A non-stream argument still goes straight to ring_push_value(). */
+static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
+  if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
+  if (v.stream_list()==avl) return false;
+  if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
+  DrainingAVLGuard dest_guard(avl);
+  ComValue streamv(v);
+  for (;;) {
+    if (ring_avail(avl)<=0) return false;
+    NextFunc::execute_impl(comterp, streamv);
+    ComValue popval(comterp->pop_stack());
+    /* a trip naming this ring is our own refusal; a trip naming some other
+       ring isn't ours to act on, so popval is still a legitimate pull. */
+    if (_draining_guard_tripped_avl==avl) {
+      _draining_guard_tripped_avl = 0;
+      return false;
+    }
+    if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
+    /* AnyType boxes a value whole (comval_encode's AnyType branch), so a
+       string there costs exactly one slot like any other value -- only a
+       numeric blocktype's lossy conversion needs refusing a string outright. */
+    AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
+    boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
+    if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
+    if (bt==AttributeValue::UnknownType && streams_as_characters(popval)) {
+      int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
+      if (len>ring_avail(avl)) return false;
+    }
+    if (!ring_push_value(avl, popval, rawflag)) return false;
+  }
+}
+
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -1877,12 +1946,13 @@ void FeedFunc::execute() {
     argv[0].stream_func() == (void*)ring_next_func(comterp());
 
   if (arg0_is_ring) {
-    /* push the remaining args, one char (or string's worth of chars) at a
-       time, onto the ring's tail; any refusal (buffer full) fails the
-       whole call with nil, same as next()'s empty-ring refusal */
+    /* push the remaining args onto the ring's tail -- a stream argument is
+       run (pulled and pushed one value at a time) rather than stored; any
+       refusal (buffer full) fails the whole call with nil, same as next()'s
+       empty-ring refusal */
     AttributeValueList* avl = argv[0].stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
     ComValue retval(ok ? argv[0] : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
@@ -1897,7 +1967,7 @@ void FeedFunc::execute() {
     ComValue stream(ring_stream_value(comterp(), argv[0], !noringflag));
     AttributeValueList* avl = stream.stream_list();
     boolean ok = true;
-    for (int i=1; ok && i<n; i++) ok = ring_push_value(avl, argv[i], rawflag);
+    for (int i=1; ok && i<n; i++) ok = ring_push_arg(comterp(), avl, argv[i], rawflag);
     ComValue retval(ok ? stream : ComValue::nullval());
     delete [] argv;
     push_stack(retval);
