@@ -811,15 +811,20 @@ int NextFunc::_next_depth = 0;
    caller. */
 static std::vector<AttributeValueList*> _draining_avls;
 
-/* set when the recursive-stream guard above fires, so a null it produces
-   can be told apart from a nested element's own, legitimate exhaustion --
-   the two look identical on the stack (both a pushed nullval()) but call
-   for opposite handling: a legitimate nil means forget this nested element
-   and move on, while a guard-tripped nil means the whole pull was refused
-   and nothing it touched should be mutated.  Cleared at the start of each
-   outermost call (_draining_avls empty), so it only ever reflects whether
-   the guard fired somewhere in the current call chain. */
-static boolean _draining_guard_tripped = false;
+/* set to the backing list the recursive-stream guard above matched, so a
+   null it produces can be told apart from a nested element's own,
+   legitimate exhaustion -- the two look identical on the stack (both a
+   pushed nullval()) but call for opposite handling: a legitimate nil means
+   forget this nested element and move on, while a guard-tripped nil means
+   the whole pull was refused and nothing it touched should be mutated.
+   Identifying it by avl, not just a boolean, keeps an unrelated drain's
+   trip (some other ring, pulled as a side effect while fulfilling this
+   one) from being misread as this drain's own: a trip is only "mine" if
+   the avl it names is still a live ancestor of the call reading it --
+   which, for the ring a trip actually concerns, is guaranteed for as long
+   as that ring's own DrainingAVLGuard is still on the stack, and false
+   again once an unrelated trip's guard has already unwound. */
+static AttributeValueList* _draining_guard_tripped_avl = 0;
 
 struct DrainingAVLGuard {
   DrainingAVLGuard(AttributeValueList* avl) { _draining_avls.push_back(avl); }
@@ -845,14 +850,14 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       return;
     }
 
-    if (_draining_avls.empty()) _draining_guard_tripped = false;
+    if (_draining_avls.empty()) _draining_guard_tripped_avl = 0;
 
     AttributeValueList* self_avl = streamv.stream_list();
     if (std::find(_draining_avls.begin(), _draining_avls.end(), self_avl)
         != _draining_avls.end()) {
       fprintf(stderr, "WARNING: recursive stream -- next() returning nil instead of pulling forever\n");
       comterp->push_stack(ComValue::nullval());
-      _draining_guard_tripped = true;
+      _draining_guard_tripped_avl = self_avl;
       _next_depth--;
       return;
     }
@@ -873,10 +878,15 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	// fprintf(stderr, "NextFunc: Handling nested stream\n");
 	ComValue cval(*val);
 	NextFunc::execute_impl(comterp, cval);
-	/* a guard-tripped nil means this pull was refused outright, not that
-	   the nested element ran dry -- leave it in place so a later call
-	   can still recover it, rather than discarding it here. */
-	if (_draining_guard_tripped) {
+	/* a guard trip still naming a live ancestor is this call's own --
+	   nothing unrelated could have unwound it out from under us -- and
+	   means the pull was refused outright, not that the nested element
+	   ran dry; leave it in place so a later call can still recover it,
+	   rather than discarding it here. */
+	if (_draining_guard_tripped_avl &&
+	    std::find(_draining_avls.begin(), _draining_avls.end(), _draining_guard_tripped_avl)
+	    != _draining_avls.end()) {
+	  _next_depth--;
 	  return;
 	}
 	if (!comterp->stack_top().is_null()) {
@@ -1871,18 +1881,24 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
 static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
   if (rawflag || !v.is_stream()) return ring_push_value(avl, v, rawflag);
   if (v.stream_list()==avl) return false;
-  _draining_guard_tripped = false;
+  if (_draining_guard_tripped_avl==avl) _draining_guard_tripped_avl = 0;
   DrainingAVLGuard dest_guard(avl);
   ComValue streamv(v);
   for (;;) {
     if (ring_avail(avl)<=0) return false;
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
-    /* a guard-tripped nil means the pull bottomed out on this same ring
+    /* a trip naming this exact ring means the pull bottomed out on it
        through some wrapper, not that the source stream legitimately ran
        out -- refuse the whole push rather than reporting success on a
-       cycle nothing was actually transferred out of. */
-    if (_draining_guard_tripped) return false;
+       cycle nothing was actually transferred out of.  A trip naming some
+       other ring (pulled as a side effect while fulfilling this one) isn't
+       ours to act on -- popval is this ring's own, legitimately pulled
+       value regardless of what an unrelated drain elsewhere ran into. */
+    if (_draining_guard_tripped_avl==avl) {
+      _draining_guard_tripped_avl = 0;
+      return false;
+    }
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
     /* AnyType boxes a value whole (comval_encode's AnyType branch), so a
        string there costs exactly one slot like any other value -- only a

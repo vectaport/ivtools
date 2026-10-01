@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 34 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 35 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -38,7 +38,11 @@
 // instead of converting it, stores one unchanged.  A refusal from that
 // same guard never costs the wrapper its nested element either: the FIFO
 // that wrapped the ring can still hand it back afterward, rather than
-// having it silently consumed by the blocked probe.
+// having it silently consumed by the blocked probe.  A trip from that
+// guard is scoped to the ring it actually concerns, so one ring's
+// self-feed refusal, hit as a side effect while pulling a value for a
+// different ring's feed(), never costs that other ring its own
+// legitimately pulled value.
 
 ok=true
 
@@ -349,6 +353,21 @@ count32=info(ring32).count
 v32=next(w32)
 ok=ok&&(r32==nil)&&(!istype(r32 StreamType))&&(count32==1)&&(v32=='a')
 print("32 refused feed(ring, fifo-wrapping-ring) leaves the fifo still able to yield the ring (expect nil, 1, 'a'): %v %v %v\n" r32 count32 v32)
+
+// --- 33: an unrelated ring's self-feed refusal, hit as a side effect while
+// pulling a value for a DIFFERENT ring's feed(), must not cost that other
+// ring its own legitimately pulled value -- the guard trip is identified by
+// which ring it concerns, not just that some trip happened somewhere ---
+ring33b=feed(string(3))
+feed(ring33b 'z')
+w33b=feed()
+feed(w33b ring33b)
+ring33a=feed(string(3))
+sidefx33=func(feed(ring33b w33b); 42)
+s33a=$$sidefx33()
+r33a=feed(ring33a s33a)
+ok=ok&&(!(r33a==nil))&&(istype(r33a StreamType))&&(info(ring33a).count==1)
+print("33 feed(ringA, lazy stream that side-effects an unrelated ring's self-feed) still accepts ringA's value (expect non-nil, count 1): %v %v\n" (!(r33a==nil)) info(ring33a).count)
 
 print("feedring: %v\n" ok)
 ok
