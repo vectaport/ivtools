@@ -2208,10 +2208,9 @@ void FeedFunc::execute() {
 				 argv[0].stream_func()==(void*)ring_next_func(comterp())) ||
       streams_as_characters(argv[0]);
     if (nargsfixed()==2 && arg0_ring_target) {
-      /* flag an each()-wrapped 2nd arg (feed(ring **0..9)) before it
-	 evaluates, same stale-command-token convention as NextFunc's own
-	 lhs-walk above, so EachFunc hands back the live stream instead of
-	 draining it -- see docs/POSTFIX-INDEXING.md for the walk itself. */
+      /* flags an each()-wrapped 2nd arg before it evaluates, the same
+	 stale-command-token convention as NextFunc's own lhs-walk above
+	 (see doc/POSTFIX-INDEXING.md for the walk itself). */
       /* a bare symbol can't be an each() call, so it skips the walk below. */
       ComValue peek1(stack_arg(1, true));
       if (peek1.type() != ComValue::SymbolType) {
