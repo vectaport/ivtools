@@ -905,14 +905,9 @@ void NextFunc::execute() {
 void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int linenum,
 				     boolean from_each) {
     if (varname.is_stream() && varname.lhs_assign()) {
-      /* var is a streamed at()-destination (e.g. r@0..3) or an each()-
-	 wrapped stream (e.g. **true**4) -- zipper-drive every value pulled
-	 from the source stream against it, same mechanism as AssignFunc's
-	 own r@lo:hi=val (strmfunc.c, zip_assign_stream); each()'s case
-	 tolerates a non-pair (non-assignable) pulled target since it was
-	 never meant to be written, just paced. The aggregate operation has
-	 no single "the value", so next() returns the write/pull count here
-	 instead of a pulled value. */
+      /* a streamed at()-destination or an each()-wrapped stream -- zip-
+	 drive the source against it (zip_assign_stream) and return the
+	 write/pull count, not a single value. */
       ComValue idxstream(varname);
       int count = NextFunc::zip_assign_stream(comterp(), idxstream, &streamv, true, linenum,
 					       from_each);
@@ -937,26 +932,27 @@ void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int li
     }
 
     if (varname.is_object(Attribute::class_symid())) {
-      /* var is a dot()-destination (e.g. al.field) -- dot() always hands
-	 back the live Attribute itself (not a value needing an lhs_assign
-	 flag to tell read from write apart, unlike at()), so no flagging
-	 was needed above to reach here.  Write the pulled value directly
-	 into it, same as AssignFunc's own al.field=val (assignfunc.c), and
-	 still return the pulled value. */
+      /* a dot()-destination -- write the pulled value into it, same as
+	 AssignFunc's al.field=val, reporting nil instead on a self-
+	 insertion refusal rather than the unwritten value. */
       execute_impl(comterp(), streamv);
       ComValue pulled(comterp()->stack_top());
       Attribute* attr = (Attribute*)varname.obj_val();
       AttributeList* owner = attr->Owner();
-      if (!(owner && value_contains_container(pulled, (void*)owner, true)))
-	attr->Value(new ComValue(pulled));
+      if (owner && value_contains_container(pulled, (void*)owner, true)) {
+	fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		linenum);
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+      attr->Value(new ComValue(pulled));
       return;
     }
 
     if (varname.is_stream() && !varname.lhs_assign()) {
-      /* default: "stream builds stream" -- var is a plain stream (not
-	 each()-wrapped, not an at()/dot() destination), so next() defers
-	 itself into a lazy wrapper instead of draining inline here,
-	 mirroring DotFunc's (stream).field mechanism (dotfunc.c). */
+      /* default "stream builds stream": var is a plain stream, so defer
+	 into a lazy wrapper (NextVarNextFunc) instead of draining here. */
       static NextVarNextFunc* nvnfunc = nil;
       if (!nvnfunc) {
 	nvnfunc = new NextVarNextFunc(comterp());
