@@ -29,12 +29,14 @@
 #include <ComTerp/iofunc.h>
 #include <ComTerp/listfunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/postfixspan.h>
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
 #include <algorithm>
+#include <sstream>
 #include <vector>
 
 #define TITLE "StrmFunc"
@@ -1541,6 +1543,133 @@ void StreamLiteralNextFunc::execute() {
 /*****************************************************************************/
 
 
+/* is_command_node -- true if a postfix_nest_into()-built node is a call
+   whose operator is the given symbol (an "assign" or "seq" node, say) --
+   distinct from a leaf symbol reference, which carries no operand list. */
+static boolean is_command_node(ComValue& node, int opsymid) {
+  if (node.type() != ComValue::ArrayType) return false;
+  AttributeValueList* avl = node.array_val();
+  if (!avl || avl->Number() == 0) return false;
+  ComValue op(*avl->Get(0));
+  return op.is_type(ComValue::SymbolType) && op.symbol_val() == opsymid;
+}
+
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp);
+
+/* Prints avl's entries from index 'first' on, separated by 'sep', eliding
+   past comterp's cutoff() the same way ArrayType printing already does
+   (comvalue.c's ArrayType case) -- "{N more}" standing in for the rest. */
+static void funcobj_unparse_list(AttributeValueList* avl, int first, const char* sep,
+                                  ostream& out, ComTerp* comterp) {
+  int total = avl->Number() - first;
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << sep;
+    ComValue elt(*avl->Get(first + i));
+    funcobj_unparse(elt, out, comterp);
+  }
+  if (shown < total) out << sep << "{" << (total - shown) << " more}";
+}
+
+/* funcobj_unparse -- reconstructs ComTerp source for one node of the
+   nested tree postfix_nest_into() builds (the same {op,arg1,arg2} shape
+   postfix(expr :tree) exposes), for InfoFunc's :source field below. A
+   leaf (int, string, float, a bare symbol reference, ...) is printed by
+   ComValue's own operator<< in brief mode, which already renders every
+   such type as valid source; only a command node's own operator symbol is
+   read directly off its ComValue, since operator<< would instead emit
+   its narg/nkey token-count annotation (that ComValue still carries the
+   raw postfix_token's arity fields, the way help()'s tree-walk needs
+   them, which a plain source rendering doesn't want). */
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp) {
+  if (node.type() == ComValue::ObjectType &&
+      node.class_symid() == AttributeList::class_symid()) {
+    /* a keyword tuple, folded by postfix_nest_into into a one-entry
+       attrlist -- a bare flag's value is an empty list */
+    AttributeList* al = (AttributeList*)node.obj_val();
+    Attribute* attr = al->GetAttr(0);
+    ComValue val(*attr->Value());
+    out << ":" << symbol_pntr(attr->SymbolId());
+    if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
+      out << " ";
+      funcobj_unparse(val, out, comterp);
+    }
+    return;
+  }
+
+  static int assign_symid = symbol_add("assign");
+  static int seq_symid = symbol_add("seq");
+  if (is_command_node(node, assign_symid) && node.array_val()->Number() == 3) {
+    AttributeValueList* avl = node.array_val();
+    ComValue lhs(*avl->Get(1)), rhs(*avl->Get(2));
+    funcobj_unparse(lhs, out, comterp);
+    out << "=";
+    funcobj_unparse(rhs, out, comterp);
+    return;
+  }
+  if (is_command_node(node, seq_symid)) {
+    out << "(";
+    funcobj_unparse_list(node.array_val(), 1, ";", out, comterp);
+    out << ")";
+    return;
+  }
+  if (node.type() == ComValue::ArrayType) {
+    AttributeValueList* avl = node.array_val();
+    out << symbol_pntr(ComValue(*avl->Get(0)).symbol_val()) << "(";
+    funcobj_unparse_list(avl, 1, " ", out, comterp);
+    out << ")";
+    return;
+  }
+
+  node.comterp(comterp);
+  out << node;
+}
+
+/* funcobj_source -- info(func)'s :source field: reconstructs readable
+   ComTerp source for a FuncObj's own compiled body, one space-separated
+   positional per span (func()/for()/while()'s own body-list grammar --
+   see AGENTS.md's ComTerp scripting gotchas). Only the FINAL span can
+   ever be a ';'-chain (the grammar allows semicolons only in the trailing
+   bundle), and that chain is spliced in bare rather than parenthesized:
+   a parenthesized group right after a space is valid syntax, but a
+   DIFFERENT one -- it merges with the preceding positional into a single
+   combined value instead of staying a separate argument (the same
+   "("-with-spaces-builds-a-stream-literal trap AGENTS.md documents). */
+static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
+  boolean oldbrief = comterp ? comterp->brief() : false;
+  if (comterp) comterp->brief(true);
+
+  AttributeValueList* spans = new AttributeValueList();
+  int offset = 0;
+  for (int i = 0; i < fo->nspans(); i++) {
+    int len = fo->spanlen(i);
+    postfix_nest_into(fo->toks() + offset, len, spans);
+    offset += len;
+  }
+
+  static int seq_symid = symbol_add("seq");
+  std::ostringstream out;
+  out << "func(";
+  int nspans = spans->Number();
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && nspans > cutoff) ? cutoff : nspans;
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << " ";
+    ComValue span(*spans->Get(i));
+    if (i == shown - 1 && i == nspans - 1 && is_command_node(span, seq_symid))
+      funcobj_unparse_list(span.array_val(), 1, ";", out, comterp);
+    else
+      funcobj_unparse(span, out, comterp);
+  }
+  if (shown < nspans) out << " {" << (nspans - shown) << " more}";
+  out << ")";
+
+  delete spans;
+  if (comterp) comterp->brief(oldbrief);
+  return out.str();
+}
+
 InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
@@ -1574,12 +1703,15 @@ void InfoFunc::execute() {
     static int ntoks_sym = symbol_add("ntoks");
     static int nspans_sym = symbol_add("nspans");
     static int posteval_sym = symbol_add("posteval");
+    static int source_sym = symbol_add("source");
     ComValue ntoksv(peeked_fo->ntoks());
     ComValue nspansv(peeked_fo->nspans());
     ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
+    ComValue sourcev(funcobj_source(peeked_fo, comterp()).c_str());
     al->add_attr(ntoks_sym, ntoksv);
     al->add_attr(nspans_sym, nspansv);
     al->add_attr(posteval_sym, postevalv);
+    al->add_attr(source_sym, sourcev);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;

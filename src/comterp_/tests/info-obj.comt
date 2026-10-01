@@ -1,5 +1,5 @@
-// info-obj.comt version 1
-print("info-obj.comt version 1\n")
+// info-obj.comt version 2
+print("info-obj.comt version 2\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -11,6 +11,11 @@ print("info-obj.comt version 1\n")
 //            the exact spec: f=func(a+b+c); info((f.)) == (:sealed true :count 3)
 //   test 3:  info(f) on a bare func name -- (:ntoks :nspans :posteval),
 //            and f itself is never called (no side effect fires)
+//   test 3b: info(f).source reconstructs a func(params;body) definition's
+//            compiled body as readable ComTerp source, round-tripping to
+//            the same ntoks/nspans when reparsed
+//   test 3c: info(f).source on a keyword/global-assign body
+//   test 3d: info(f).source respects cutoff() on a func with many bodies
 //   test 4:  info(f) with :posteval true reports it
 //   test 5:  info(fileobj) -- (:filename :mode :open), and :open flips
 //            to false after close()
@@ -62,6 +67,41 @@ i3=info(f3)
 ok3=(class(i3)==`AttributeList)&&(i3.ntoks>0)&&(sideeffect==0)
 ok=ok&&ok3
 print("3 info(f3) on a bare func name -- class AttributeList, ntoks>0, f3 never called (expect true): %v\n" ok3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3b: info(f).source reconstructs func(a b;a+b*2)'s compiled
+// body, and the reconstruction reparses to the same ntoks/nspans ---
+errmsg(:clear)
+f3b=func(a b;a+b*2)
+i3b=info(f3b)
+g3b=func(a b;add(a mpy(b 2)))
+ig3b=info(g3b)
+ok3b=(i3b.source=="func(a b;add(a mpy(b 2)))")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
+ok=ok&&ok3b
+print("3b f3b=func(a b;a+b*2); info(f3b).source (expect func(a b;add(a mpy(b 2)))): %v\n" i3b.source)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3c: info(f).source on a keyword/global-assign body, proving
+// the keyword-tuple and assign-infix rendering paths both round-trip ---
+errmsg(:clear)
+f3c=func(x;global(y)=x*2)
+i3c=info(f3c)
+ok3c=(i3c.source=="func(x;global(y)=mpy(x 2))")
+ok=ok&&ok3c
+print("3c f3c=func(x;global(y)=x*2); info(f3c).source (expect func(x;global(y)=mpy(x 2))): %v\n" i3c.source)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3d: info(f).source elides a func with many space-separated
+// bodies past cutoff(), same "{N more}" convention as a list ---
+errmsg(:clear)
+orig_cutoff3d=cutoff()
+cutoff(2)
+f3d=func(1 2 3 4 5)
+i3d=info(f3d)
+ok3d=(i3d.source=="func(1 2 {3 more})")
+cutoff(orig_cutoff3d)
+ok=ok&&ok3d
+print("3d f3d=func(1 2 3 4 5) at cutoff(2); info(f3d).source (expect func(1 2 {3 more})): %v\n" i3d.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: info(f :posteval) reports true for a lazy func ---
