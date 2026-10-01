@@ -231,6 +231,19 @@ jobs:
                 totalfail=$((totalfail+fails))
                 totalwarn=$((totalwarn+warns))
               fi
+              # comlint's "line(s) skipped" count is not itself a red flag --
+              # it also counts ordinary block-comment lines, which dominate
+              # it in real files, so treating any nonzero count as incomplete
+              # false-positives on nearly every script. A trailing unbalanced
+              # statement that comlint genuinely never got to check prints
+              # its own distinct "warning: unbalanced parens" line instead of
+              # (or alongside) a clean 0 fail/0 warn summary -- that specific
+              # text, not the skip count, is what means content went unchecked.
+              unbalanced=$(echo "$out" | grep -E ': warning: unbalanced parens')
+              if [ -n "$unbalanced" ]; then
+                echo "$unbalanced" >> "$GITHUB_STEP_SUMMARY"
+                totalincomplete=$((totalincomplete+1))
+              fi
             done
           }
           lint_dir src/comterp_/tests comterp ""
