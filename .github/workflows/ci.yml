@@ -185,6 +185,13 @@ jobs:
         if: always() && (github.event_name != 'pull_request' || github.event.action != 'synchronize')
         timeout-minutes: 10
         run: |
+          # comlint exits 1 whenever it finds a FAIL or WARN -- expected, since
+          # its own exit status is what a blocking caller would act on. This
+          # step's run shell defaults to '-e', which would abort right here on
+          # that exit status and skip the rest of the report (including the
+          # 'exit 0' at the end that makes the step advisory); 'set +e' keeps
+          # every finding's output flowing into the summary regardless.
+          set +e
           echo "### comlint advisory report" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           totalfail=0; totalwarn=0; totalfiles=0; totalincomplete=0
