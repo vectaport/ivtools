@@ -61,6 +61,7 @@ print("3c export==reimport==export (expect equal): %v\n\n" eq(s1 s2))
 // --- test 4: discrimination -- the gs rides in on the command, not editor state.
 //             set the editor to B (Blue/Yellow), re-create the A-command, and
 //             confirm the new rect still exports as A ---
+// comlint:allow -- select() has no :none keyword (falls through to a bare selection query); harmless here since this test doesn't depend on the selection itself
 select(:none); brush(0,0); colors(`Blue `Yellow)
 s3=export(run(s1 :str) :string :percomp)
 ok=ok&&(eq(s1 s3))
@@ -150,6 +151,7 @@ print("9 raster export re-creates and re-exports identically (expect true): %v\n
 //              as its own command.  The list also ran onto the preceding value
 //              for want of a separator, ":transform 1,0,0,1,89,163:myattr 7". ---
 each(delete($$select(:all)))
+// comlint:allow -- :myattr/:other are arbitrary attribute names carried through verbatim by rect(), not keywords it interprets itself
 ab=rect(0,0,50,50 :myattr 7 :other "x")
 as1=export(ab :string :percomp)
 each(delete($$select(:all)))

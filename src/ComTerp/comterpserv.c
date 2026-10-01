@@ -29,6 +29,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/postfixspan.h>
 #include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
@@ -677,11 +678,11 @@ void ComTerpServ::add_defaults() {
   }
 }
 
-AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
+AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr, boolean flat, boolean tree) {
 
     /* save state for this interpreter */
     push_servstate();
-    
+
     /* install different inputs */
     _inptr = fptr;
     _infunc = (infuncptr)&fgets;
@@ -693,15 +694,21 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
     int toklen;
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
     int tokoff = _pfoff;
-    
+
+    AttributeValueList* avl = (flat || tree) ? new AttributeValueList() : nil;
+
     /* parse a complete expression */
     int status=0;
     do {
 	status = parser(_inptr,	 _infunc, _eoffunc, _errfunc, NULL, NULL,
 			_buffer, _bufsiz, &_bufptr, _token, _toksiz, &_linenum,
 			&_pfbuf, &_pfsiz, &_pfnum);
-	if (status) 
+	if (status)
 	    err_print( stdout, "parser" );
+	else if (flat)
+	    postfix_flatten_into(_pfbuf, _pfnum, avl);
+	else if (tree)
+	    postfix_nest_into(_pfbuf, _pfnum, avl);
 	else
 	    for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
     } while (status==0 && strlen(_buffer)>_bufptr);
@@ -710,10 +717,10 @@ AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
     /* restore tokens */
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
-    
+
     /* restore state for this interpreter */
     pop_servstate();
 
-    return nil;
+    return avl;
 
 }

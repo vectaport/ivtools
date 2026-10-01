@@ -45,6 +45,10 @@ if(run("./comlint_globalshadow.comt")
   :then print("pass: comlint_globalshadow\n")
   :else print("FAIL: comlint_globalshadow\n");topok=false)
 
+if(run("./comlint_kw_wildcard.comt")
+  :then print("pass: comlint_kw_wildcard\n")
+  :else print("FAIL: comlint_kw_wildcard\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
@@ -293,6 +297,14 @@ if(run("./list_string_cutoff.comt")
 if(run("./remote_cutoff.comt")
   :then print("pass: remote_cutoff\n")
   :else print("FAIL: remote_cutoff\n");topok=false)
+
+if(run("./parsefunc.comt")
+  :then print("pass: parsefunc\n")
+  :else print("FAIL: parsefunc\n");topok=false)
+
+if(run("./postfixtree.comt")
+  :then print("pass: postfixtree\n")
+  :else print("FAIL: postfixtree\n");topok=false)
 
 print("\nrun_all: %v\n" topok)
 topok

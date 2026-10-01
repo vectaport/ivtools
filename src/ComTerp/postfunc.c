@@ -28,6 +28,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/funcobjscan.h>
+#include <ComTerp/postfixspan.h>
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
@@ -54,12 +55,62 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void PostFixFunc::execute() {
+  static int tree_symid = symbol_add("tree");
+  ComValue treev(stack_key_post_eval(tree_symid));
+  boolean treeflag = treev.is_true();
+
+  if (treeflag) {
+    /* each fixed argument's own unevaluated span, copied out and
+       concatenated back to back (as FuncObjFunc does for multiple
+       func() bodies) so postfix_nest_into can walk them as one buffer --
+       with no command joining separate arguments, each keeps its own
+       top-level result rather than nesting into the others' */
+    int numargs = nargsfixed();
+    postfix_token** argbufs = numargs>0 ? new postfix_token*[numargs] : nil;
+    int* arglens = numargs>0 ? new int[numargs] : nil;
+    int total = 0;
+    for (int i = 0; i < numargs; i++) {
+      argbufs[i] = copy_stack_arg_post_eval(i, arglens[i]);
+      if (argbufs[i]) total += arglens[i];
+    }
+    reset_stack();
+
+    AttributeValueList* avl = new AttributeValueList();
+    if (total > 0) {
+      postfix_token* tokbuf = new postfix_token[total];
+      int offset = 0;
+      for (int i = 0; i < numargs; i++) {
+	if (!argbufs[i]) continue;
+	for (int j = 0; j < arglens[i]; j++) tokbuf[offset+j] = argbufs[i][j];
+	offset += arglens[i];
+      }
+      postfix_nest_into(tokbuf, total, avl);
+      delete [] tokbuf;
+    }
+    for (int i = 0; i < numargs; i++) delete [] argbufs[i];
+    delete [] argbufs;
+    delete [] arglens;
+
+    /* a single argument (comlint's own use, and the common case) yields
+       exactly one top-level result -- return it directly rather than
+       wrapped in a one-element list */
+    if (avl->Number() == 1) {
+      ComValue retval(*avl->Get(0));
+      delete avl;
+      push_stack(retval);
+    } else {
+      ComValue retval(avl);
+      push_stack(retval);
+    }
+    return;
+  }
+
   // print everything on the stack for this function
   // use strstreambuf + fputs to avoid FILEBUF destructor closing
   // stdout fd
   std::strstreambuf sbuf;
   ostream out(&sbuf);
- 
+
   boolean oldbrief = comterp()->brief();
   comterp()->brief(true);
   int numargs = nargspost();

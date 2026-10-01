@@ -42,24 +42,38 @@ ParseFunc::ParseFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ParseFunc::execute() {
+    static int flat_symid = symbol_add("flat");
+    static int tree_symid = symbol_add("tree");
     ComValue fileobjv(stack_arg(0));
+    ComValue flatv(stack_key(flat_symid));
+    boolean flatflag = flatv.is_true();
+    ComValue treev(stack_key(tree_symid));
+    boolean treeflag = treev.is_true();
     reset_stack();
-    
+
     FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
     FILE* fptr = NULL;
     if (fileobj && fileobj->fptr()) {
 	fptr = fileobj->fptr();
     } else {
 	PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
-	if (pipeobj && pipeobj->rdfptr()) 
+	if (pipeobj && pipeobj->rdfptr())
 	    fptr = pipeobj->rdfptr();
-	else
-
-	    push_stack(ComValue::nullval());
     }
 
-    comterpserv()->parse_next_expr(fptr);
+    /* a closed or never-opened file/pipe (e.g. open() on a nonexistent
+       path) carries no FILE* -- report nil rather than handing a null
+       FILE* to the C parser chain, which assumes a live stream */
+    if (!fptr) {
+	push_stack(ComValue::nullval());
+	return;
+    }
 
-    push_stack(ComValue::trueval());
-    
+    AttributeValueList* avl = comterpserv()->parse_next_expr(fptr, flatflag, treeflag);
+
+    if (flatflag || treeflag) {
+	ComValue retval(avl ? ComValue(avl) : ComValue::nullval());
+	push_stack(retval);
+    } else
+	push_stack(ComValue::trueval());
 }

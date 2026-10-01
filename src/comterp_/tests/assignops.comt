@@ -73,6 +73,7 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 6: %= on a global-table symbol mutates the global in place ---
 global(gmod)=17
+// comlint:allow -- deliberately exercises a compound-assign landing in the global, the exact behavior under test
 gmod%=5
 r6=global(gmod)
 ok=ok&&(r6==2)

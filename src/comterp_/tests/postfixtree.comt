@@ -1,0 +1,68 @@
+// src/comterp_/tests/postfixtree.comt -- postfix(expr :tree)
+//
+// funcs: postfix at print
+//
+// postfix(expr) (without :tree) returns the parsed expression's postfix
+// annotation as a string, unchanged by this test; postfix(expr :tree)
+// instead returns the same nested, inspectable tree parse(fileobj :tree)
+// builds, without touching the filesystem -- a single argument's tree is
+// returned directly, not wrapped in a one-element list. A keyword operand
+// folds into a one-entry attrlist, same as parse(:tree).
+
+ok=true
+
+// --- 1: default string form is unaffected by :tree's addition ---
+r1=postfix(x=1+2)
+ok=ok&&(istype(r1 StringType))
+print("1 postfix(x=1+2) (expect a string): %v\n" r1)
+
+// --- 2: :tree nests "x=1+2" as (assign x (add 1 2)), unwrapped ---
+r2=postfix(x=1+2 :tree)
+ok=ok&&(print(at(r2 0) :str)=="assign")
+ok=ok&&(print(at(r2 1) :str)=="x")
+addexpr=at(r2 2)
+ok=ok&&(print(at(addexpr 0) :str)=="add")
+ok=ok&&(print(at(addexpr 1) :str)=="1")
+ok=ok&&(print(at(addexpr 2) :str)=="2")
+print("2 postfix(x=1+2 :tree) (expect (assign x (add 1 2))): %v\n" r2)
+
+// --- 3: a ';'-joined statement nests under seq, not two top-level results ---
+r3=postfix((x=1;y=2) :tree)
+ok=ok&&(print(at(r3 0) :str)=="seq")
+first=at(r3 1);second=at(r3 2)
+ok=ok&&(print(at(first 0) :str)=="assign")
+ok=ok&&(print(at(second 0) :str)=="assign")
+print("3 postfix((x=1;y=2) :tree) (expect (seq (assign x 1) (assign y 2))): %v\n" r3)
+
+// --- 4: a keyword operand folds into a one-entry attrlist, as in :flat ---
+r4=postfix(y=list(1 :n 2) :tree)
+listexpr=at(r4 2)
+ok=ok&&(print(at(listexpr 2) :str)=="(:n 2)")
+print("4 postfix(y=list(1 :n 2) :tree) folds :n 2 (expect (:n 2)): %v\n" at(listexpr 2))
+
+// --- 5: global(x) nests as its own subtree, same as parse(:tree) ---
+r5=postfix(global(x)=1 :tree)
+globalexpr=at(r5 1)
+ok=ok&&(print(at(globalexpr 0) :str)=="global")
+ok=ok&&(print(at(globalexpr 1) :str)=="x")
+print("5 postfix(global(x)=1 :tree) (expect (assign (global x) 1)): %v\n" r5)
+
+// --- 6: multiple positional arguments each keep their own top-level
+//        result rather than nesting into each other ---
+r6=postfix(1+2 3+4 :tree)
+ok=ok&&(size(r6)==2)
+firstarg=at(r6 0);secondarg=at(r6 1)
+ok=ok&&(print(at(firstarg 1) :str)=="1")
+ok=ok&&(print(at(secondarg 1) :str)=="3")
+print("6 postfix(1+2 3+4 :tree) (expect {(add 1 2),(add 3 4)}): %v\n" r6)
+
+// --- 7: a bare flag keyword right after a valued keyword gets its own
+//        empty value, not the previous keyword's bound value ---
+r7=postfix(list(1 :a 2 :b) :tree)
+akw=at(r7 2);bkw=at(r7 3)
+ok=ok&&(print(akw :str)=="(:a 2)")
+ok=ok&&(print(bkw :str)=="(:b {})")
+print("7 postfix(list(1 :a 2 :b) :tree) :b stays bare (expect (:b {})): %v\n" bkw)
+
+print("postfixtree: %v\n" ok)
+ok

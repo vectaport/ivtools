@@ -163,6 +163,7 @@ prev_ok=check_fail(:ok ok)
 // --- test 20: a keyword bracketed as optional in the signature (islist's
 //     "[:any]", since every keyword is optional) is still a real keyword,
 //     unlike a value-form colon glued onto a preceding identifier ---
+// comlint:allow -- help(cmd :key name) introspection reads as a glue-collapse call to comlint's postfix-based arity check; islist itself is never invoked here
 ka=help(islist :key any)
 ok=ok&&(ka==true)
 print("20 help(islist :key any) returns true (expect true): %v\n" ka)

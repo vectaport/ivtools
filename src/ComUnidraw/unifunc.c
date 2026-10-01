@@ -436,7 +436,7 @@ ExportFunc::ExportFunc(ComTerp* comterp, Editor* editor,
 
 const char* ExportFunc::docstring() {
   const char* df =
-    "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :idraw) -- export in %s format ";
+    "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :eps :idraw :percomp) -- export in %s format ";
   if (!_docstring) {
     _docstring = new char[strlen(df)+strlen(appname())+1];
     sprintf(_docstring, df, "%s", appname() );
@@ -450,7 +450,9 @@ const char** ExportFunc::dockeys() {
     ":port int              port number on remote host\n",
     ":socket                use existing socket connection\n",
     ":string|str            export to string\n",
+    ":eps                   export in idraw/eps format (alias for :idraw)\n",
     ":idraw                 export in idraw format\n",
+    ":percomp               emit each component as its own runnable command, not a drawtool() document\n",
     nil
   };
   return keys;

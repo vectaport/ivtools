@@ -25,7 +25,11 @@
 // declaration; gs_quotedlocal's local(name "s") passes a quoted
 // second positional argument -- rejected by the runtime without
 // creating a local shadow -- so the earlier global declaration still
-// stands and the later bare write still lands in that global.
+// stands and the later bare write still lands in that global;
+// gs_samelinewrite's declaration AND its later bare write are both on
+// one line (one statement, parsing as a "seq" of the two), so the
+// declaration must be seen before the write even though both are
+// processed in the same worklist pass over that one statement's tree.
 
 global(gs_p)=1
 gs_p=2
@@ -57,3 +61,5 @@ local(symadd("y"+print(gs_embedded=2 :str)))=3
 global(gs_quotedlocal)=1
 local(gs_quotedlocal "s")=2
 gs_quotedlocal=3
+
+global(gs_samelinewrite)=1;gs_samelinewrite=2
