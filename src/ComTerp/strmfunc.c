@@ -1289,6 +1289,63 @@ int NextFunc::zip_assign_stream(ComTerp* comterp, ComValue& idxstream,
   return count;
 }
 
+AssignAtNextFunc::AssignAtNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void AssignAtNextFunc::execute() {
+    ComValue operand1(stack_arg(0));
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (!avl) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    Iterator i;
+    avl->First(i);
+    AttributeValue* idxval = avl->GetAttrVal(i);   // [0] write-index stream
+    avl->Next(i);
+    AttributeValue* rhsval = avl->GetAttrVal(i);   // [1] rhs value or stream
+
+    ComValue idxcopy(*idxval);
+    NextFunc::execute_impl(comterp(), idxcopy);
+    ComValue pairv(comterp()->pop_stack());
+    if (pairv.is_null()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    AttributeValueList* pair = pairv.array_val();
+    boolean is_pair = pairv.is_array() && pairv.lhs_assign() && pair && pair->Number()==2;
+    if (!is_pair) {
+      fprintf(stderr, "WARNING:  assignment to something other than a symbol or attribute (%s) ignored -- line %d\n",
+	      symbol_pntr(pairv.type_symid()), funcstate()->linenum());
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComValue writeval;
+    if (rhsval->is_stream()) {
+      ComValue rhscopy(*rhsval);
+      NextFunc::execute_impl(comterp(), rhscopy);
+      ComValue tick(comterp()->pop_stack());
+      if (tick.is_null()) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      writeval = tick;
+    } else
+      writeval = *rhsval;
+
+    ComValue targetv(*pair->Get(0));
+    if (!idxassign_in_range(targetv, pair->Get(1)->int_val())) {
+      /* any nil ends a stream -- an out-of-range index is where at() itself
+	 would start returning nil, so the write stream ends here too. */
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue written(NextFunc::write_at_pair(comterp(), pairv, writeval));
+    push_stack(written);
+}
+
 /*****************************************************************************/
 
 EachFunc::EachFunc(ComTerp* comterp) : ComFunc(comterp) {

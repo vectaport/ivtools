@@ -22,11 +22,16 @@
 // tests 13-17: lst@idx=val with idx (and optionally val) a stream --
 // write-side overdrive, filling a plain list or a typed string from a
 // stream of index/value pairs the same way read-side @ already fans out.
-// The expression's value is a bracket-wrapped write count ([n], print()'s
-// %v shows the brackets; == compares the bare int), not the written
-// values -- list() already exists for collecting those. Tests 16-17
-// check that the first out-of-range index ends the write stream there
-// (any nil ends a stream), rather than being skipped over.
+// Without **, lst@idx=val defers into a lazy stream (stream builds stream,
+// same default a plain var assignment gets) that writes one element per
+// pull; **(lst@idx)=val batch-drains it immediately instead, same as
+// next()'s own **var convention, and its value is a bracket-wrapped write
+// count ([n], print()'s %v shows the brackets; == compares the bare int),
+// not the written values -- list() already exists for collecting those.
+// ** binds tighter than @, so it must wrap the parenthesized @ expression,
+// not the bare lhs. Tests 16-17 check that the first out-of-range index
+// ends the write stream there (any nil ends a stream), rather than being
+// skipped over.
 
 ok=true
 
@@ -164,35 +169,35 @@ print("12 list(lst5@0,,lst5@1) (expect {10,20}): %v\n" result12)
 // every indexed slot -- ".." (range) produces the index stream, same
 // operator test 7a already uses for reads ---
 lst13=1,2,3,4,5
-r13=(lst13@0..2=9)
+r13=(**(lst13@0..2)=9)
 ok=ok&&(r13==3)&&(lst13==(9,9,9,4,5))
-print("13 lst13@0..2=9; lst13 (expect r13=3, lst13={9,9,9,4,5}): %v %v\n" r13 lst13)
+print("13 **(lst13@0..2)=9; lst13 (expect r13=3, lst13={9,9,9,4,5}): %v %v\n" r13 lst13)
 
 // --- test 14: lst@idx=val with both idx and val streams zips them,
 // writing one value per index in lockstep -- the same pairing overdrive
 // already gives at(lst idx :set val) when called directly ---
 lst14=1,2,3,4,5
-r14=(lst14@$$(0,2,4)=$$(10,30,50))
+r14=(**(lst14@$$(0,2,4))=$$(10,30,50))
 ok=ok&&(r14==3)&&(lst14==(10,2,30,4,50))
-print("14 lst14@$$(0,2,4)=$$(10,30,50); lst14 (expect r14=3, lst14={10,2,30,4,50}): %v %v\n" r14 lst14)
+print("14 **(lst14@$$(0,2,4))=$$(10,30,50); lst14 (expect r14=3, lst14={10,2,30,4,50}): %v %v\n" r14 lst14)
 
 // --- test 15: the motivating case (#653) -- filling a typed (UIntType)
 // string from a stream through the @ operator, not just at(...:set...).
 // Each write decodes/encodes a 4-byte chunk (blocksz()), same as a
 // scalar r@0=val already does per listat.comt/SLICES.md ---
 r15=string(5 UIntType)
-r15b=(r15@0..4=$$(11,22,33,44,55))
+r15b=(**(r15@0..4)=$$(11,22,33,44,55))
 ok=ok&&(r15b==5)&&(list(r15)==(11,22,33,44,55))
-print("15 r15@0..4=$$(11,22,33,44,55) on string(5 UIntType); list(r15) (expect r15b=5, {11,22,33,44,55}): %v %v\n" r15b list(r15))
+print("15 **(r15@0..4)=$$(11,22,33,44,55) on string(5 UIntType); list(r15) (expect r15b=5, {11,22,33,44,55}): %v %v\n" r15b list(r15))
 
 // --- test 16: a fixed-capacity typed string's count only tallies writes
 // that actually land -- the index stream running past its last chunk
 // mustn't inflate the count with no-op writes (a plain list never hits
 // this since @ auto-extends it, test 13/14's coverage) ---
 r16=string(5 UIntType)
-r16b=(r16@0..9=$$(1,2,3,4,5,6,7,8,9,10))
+r16b=(**(r16@0..9)=$$(1,2,3,4,5,6,7,8,9,10))
 ok=ok&&(r16b==5)&&(list(r16)==(1,2,3,4,5))
-print("16 r16@0..9=... (10 indexes) on string(5 UIntType); r16b, list(r16) (expect r16b=5, only the 5 in-range writes land): %v %v\n" r16b list(r16))
+print("16 **(r16@0..9)=... (10 indexes) on string(5 UIntType); r16b, list(r16) (expect r16b=5, only the 5 in-range writes land): %v %v\n" r16b list(r16))
 
 // --- test 17: any nil ends the stream -- the first out-of-range index
 // stops the write there, same as a read-side index stream ending at the
@@ -201,9 +206,20 @@ print("16 r16@0..9=... (10 indexes) on string(5 UIntType); r16b, list(r16) (expe
 // that merely skips invalid indexes and keeps going ---
 r17=string(5 UIntType)
 idx17=$$(0,1,2,3,4,5,2)
-r17b=(r17@idx17=$$(10,11,12,13,14,999,777))
+r17b=(**(r17@idx17)=$$(10,11,12,13,14,999,777))
 ok=ok&&(r17b==5)&&(list(r17)==(10,11,12,13,14))
-print("17 r17@idx17=..., idx17 revisits index 2 after an out-of-range 5; r17b, list(r17) (expect r17b=5, the revisit never happens: {10,11,12,13,14}): %v %v\n" r17b list(r17))
+print("17 **(r17@idx17)=..., idx17 revisits index 2 after an out-of-range 5; r17b, list(r17) (expect r17b=5, the revisit never happens: {10,11,12,13,14}): %v %v\n" r17b list(r17))
+
+// --- test 18: without **, lst@idx=val is lazy -- the write itself hasn't
+// happened yet, and the result is a stream, not a count; each() forces the
+// same batch-drain **(...) gets up front, one pull at a time instead ---
+r18=string(5 UIntType)
+s18=(r18@0..4=$$(1,2,3,4,5))
+is_lazy18=istype(s18 StreamType);
+unwritten18=list(r18);
+n18=each(s18)
+ok=ok&&is_lazy18&&(unwritten18==(0,0,0,0,0))&&(n18==5)&&(list(r18)==(1,2,3,4,5))
+print("18 r18@0..4=... (no **) is lazy until each(); is-stream, list(r18) before, n18, list(r18) after (expect true, {0,0,0,0,0}, n18=5, {1,2,3,4,5}): %v %v %v %v\n" is_lazy18 unwritten18 n18 list(r18))
 
 print("atop: %v\n" ok)
 ok
