@@ -503,6 +503,15 @@ void GreaterThanFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
+    /* nil/blank on either side has no magnitude to compare -- propagate
+       nil rather than answer against whatever promote() left behind */
+    if (operand1.is_unknown() || operand2.is_unknown() ||
+        operand1.is_blank() || operand2.is_blank()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
@@ -601,6 +610,15 @@ void GreaterThanOrEqualFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
+    /* nil/blank on either side has no magnitude to compare -- propagate
+       nil rather than answer against whatever promote() left behind */
+    if (operand1.is_unknown() || operand2.is_unknown() ||
+        operand1.is_blank() || operand2.is_blank()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
@@ -694,6 +712,15 @@ void LessThanFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
+    /* nil/blank on either side has no magnitude to compare -- propagate
+       nil rather than answer against whatever promote() left behind */
+    if (operand1.is_unknown() || operand2.is_unknown() ||
+        operand1.is_blank() || operand2.is_blank()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
@@ -792,6 +819,15 @@ void LessThanOrEqualFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
+    /* nil/blank on either side has no magnitude to compare -- propagate
+       nil rather than answer against whatever promote() left behind */
+    if (operand1.is_unknown() || operand2.is_unknown() ||
+        operand1.is_blank() || operand2.is_blank()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
