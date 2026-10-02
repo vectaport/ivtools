@@ -227,7 +227,7 @@ public:
     AttrListFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "alst=%s([:<name> [val]] :bincnt) -- create attribute list from keyword/value pairs"; }
+      return "alst=%s([:<name> [val]] :bincnt n) -- create attribute list from keyword/value pairs"; }
 };
 
 #endif /* !defined(_listfunc_h) */
