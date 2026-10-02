@@ -63,7 +63,7 @@ public:
     void execute_literal();  // handle (val val ...) stream literal syntax
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "strm=%s(strm|list|attrlist|str|val|fileobj|pipeobj) -- copy stream or convert list (unary $$); a string streams its characters, a bquoted one is carried whole"; }
+      return "strm=%s(strm|list|attrlist|str|val|fileobj|pipeobj [val ...]) -- copy stream, convert list, or (given more than one value) build a stream literal from them; a string streams its characters, a bquoted one is carried whole"; }
 
 
 protected:

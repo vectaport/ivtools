@@ -1,0 +1,28 @@
+// fixture for comlint_extrapos.comt -- comlint's INPUT, never run
+// directly (never registered in run_all.comt). Exercises the
+// max-positional-arguments check: ep_noThen calls if() with a second
+// positional instead of :then, the exact motivating case for this
+// check (if()'s own signature declares one positional plus :then/
+// :else keywords, so the second positional here is never evaluated at
+// all -- confirmed against IfThenElseFunc::execute(), which only ever
+// pulls stack_arg_post_eval(0) and the :then/:else keywords); ep_then
+// is the same test written correctly, with :then, and must stay
+// unflagged; ep_switch calls switch() with several key/body pairs and
+// no keywords -- switch()'s docstring repeats its "[key body]" group
+// with a trailing "...", so any number of pairs must stay unflagged;
+// ep_open calls open() with two positionals (name and mode), both
+// optional but nested ([filename [modestr]]) -- both must count
+// toward the max, not just the outer bracket, so this bare case must
+// also stay unflagged; ep_allow is a second missing-:then call
+// overridden by a preceding comlint:allow line.
+
+ep_noThen=if(1 2)
+
+ep_then=if(1 :then 2 :else 3)
+
+ep_switch=switch(1 `a 10 `b 20 `c 30)
+
+ep_open=open("/dev/null" "r")
+
+// comlint:allow -- deliberately missing :then, exercised for the override
+ep_allow=if(1 2)

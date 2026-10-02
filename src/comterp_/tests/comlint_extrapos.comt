@@ -1,0 +1,48 @@
+// src/comterp_/tests/comlint_extrapos.comt -- regression test for
+// comlint's max-positional-arguments check: asserts its exact
+// diagnostic output on a fixture script, rather than only that comlint
+// runs without crashing -- see comlint_extrapos_fixture.comt for what
+// each case exercises.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/comlint_extrapos.comt")
+
+run("./testlib.comt")
+ok=true
+
+/* see comlint_globalshadow.comt's own comment for why this probe and
+   this per-line drain exist */
+if(open("../../scripts/comlint" "r")!=nil :then
+  comlintpath="../../scripts/comlint";fixtureprefix=""
+  :else
+  comlintpath="src/scripts/comlint";fixtureprefix="src/comterp_/tests/")
+
+pipe1=$$open(print("comterp run %s %s%s 2>&1"
+  comlintpath fixtureprefix "comlint_extrapos_fixture.comt" :str) :pipe)
+out1="";linev1=*pipe1
+while(linev1!=nil
+  out1=out1+linev1+" ";
+  linev1=*pipe1)
+
+// --- line 19 (ep_noThen=if(1 2), missing :then) is flagged plainly,
+//     the exact motivating case (test 1); line 21 (ep_then, written
+//     correctly with :then) and line 23 (ep_switch, any number of
+//     switch()'s repeating [key body] ... pairs) are not flagged
+//     (tests 2-3); line 25 (ep_open, two bare positionals against
+//     open()'s nested [filename [modestr]] group) is not flagged,
+//     confirming both nested positions count toward the max, not just
+//     the outer bracket (test 4); line 28 (ep_allow, the same missing-
+//     :then call) is overridden by its comlint:allow line rather than
+//     plainly flagged (test 5) ---
+noThenFlagged=index(out1 "fixture.comt:19: WARN: if(): called with 2 positional argument(s), but if accepts at most 1" :substr)!=nil
+thenClean=index(out1 "fixture.comt:21:" :substr)==nil
+switchClean=index(out1 "fixture.comt:23:" :substr)==nil
+openClean=index(out1 "fixture.comt:25:" :substr)==nil
+allowOverridden=index(out1 "fixture.comt:28: WARN(overridden): if(): called with 2 positional argument(s), but if accepts at most 1" :substr)!=nil
+ok=ok&&noThenFlagged&&thenClean&&switchClean&&openClean&&allowOverridden
+print("1 comlint flags if(1 2)'s missing :then (expect true), leaves\n    if(1 :then 2 :else 3) and switch()'s any-length [key body] ...\n    pairs unflagged (expect true x2), leaves open()'s two nested-\n    bracket positionals unflagged (expect true), and overrides the\n    second if(1 2) via comlint:allow rather than flagging it plainly\n    (expect true): %v %v %v %v %v\n\n"
+  noThenFlagged thenClean switchClean openClean allowOverridden)
+prev_ok=check_fail(:ok ok)
+
+print("\ncomlint_extrapos: %v\n" ok)
+ok

@@ -271,8 +271,16 @@ while((srcline=gets(fp))!=nil
     /* an unrelated whole-line comment leaves an already-armed override
        alone -- only the next real statement's own start consumes it
        (stmtallowed=allowarmed;allowarmed=false below), so the override
-       applies across any number of intervening comment lines */
-    if(index(srcline "comlint:allow")!=nil :then allowarmed=true);
+       applies across any number of intervening comment lines. The
+       comment's own text (past "//" and any leading spaces) must
+       start with "comlint:allow", not merely mention it anywhere --
+       a plain substring search would also arm on unrelated prose that
+       happens to name the override, such as a header comment
+       documenting this very feature. */
+    cmtbody=substr(srcline 2 :after);
+    while(size(cmtbody)>0 && substr(cmtbody 1)==" "
+      cmtbody=substr(cmtbody 1 :after));
+    if(substr(cmtbody 13)=="comlint:allow" :then allowarmed=true);
     continue);
 
   hasopen=index(srcline "/*");
@@ -547,10 +555,15 @@ while((srcline=gets(fp))!=nil
     rb=index(tok "]" :last);
     if(rb==nil :then continue);
 
-    isundef=(substr(tok size(tok)-1 :after)=="*");
-    if(isundef :then continue);
-
     name=substr(tok "[");
+    /* dot's docstring documents the "." operator via a parenthetical
+       aside ahead of its real signature ("(.) makes compound
+       variables | dotlst=dot(name) -- ..."), which the arg-list
+       extraction below mistakes for the signature itself, misreading
+       its arity for every dot-access expression in a script -- skip
+       it by name until that docstring parses cleanly on its own */
+    if(name=="dot" :then continue);
+
     counts=substr(substr(tok lb+1 :after) "]");
     ctoks=split(counts :tokstr '|');
     if(size(ctoks)<2 :then continue);
@@ -700,7 +713,11 @@ while((srcline=gets(fp))!=nil
 
     op=index(sig "(");
     dd=index(sig " -- ");
-    if(op==nil || dd==nil :then continue);
+    /* a "(" found only past " -- " belongs to the free-text
+       description (e.g. spread's "...into a stream (or list)..."),
+       not a signature -- this docstring has no real one, so it must
+       be treated the same as op==nil rather than mined for an arglist */
+    if(op==nil || dd==nil || op>dd :then continue);
     arglist=substr(substr(substr(sig op+1 :after) " -- ") ")");
     if(arglist==nil :then arglist="");
 
