@@ -28,7 +28,9 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("to a name that also names a registered command -- ComTerp\n");
     print("itself refuses the assignment, so it's a guaranteed no-op.\n\n");
     print("WARN: a call passing fewer positional arguments than the\n");
-    print("command requires; a :keyword the command doesn't declare in\n");
+    print("command requires, or more than it accepts (a command whose\n");
+    print("signature ends '...' takes an unbounded number and is never\n");
+    print("flagged for too many); a :keyword the command doesn't declare in\n");
     print("its own signature or dockeys() (pass 'nokeys' to disable this\n");
     print("one check entirely); a bare write to a name already declared\n");
     print("global() earlier in the script (see doc/LANGUAGE.md for how\n");
@@ -704,22 +706,38 @@ while((srcline=gets(fp))!=nil
 
     argtoks=split(arglist :tokstr ' ');
     required=0;
+    maxopt=0;
+    unbounded=false;
     inbracket=0;
     ai=0;
     while(ai<size(argtoks)
       at2=at(argtoks ai);
       ai=ai+1;
       if(size(at2)==0 :then continue);
+      /* "..." marks the group it trails as repeating any number of
+         times, making the positional count unbounded -- checked as a
+         substring, not an exact token match, since it can be its own
+         token (attrlist's [:<name> [val]] ...) or glued onto a
+         bracket with no separating space (help's [command...]); either
+         way the max-positional check below is skipped entirely for
+         this command */
+      if(index(at2 "...")!=nil :then unbounded=true);
       if(inbracket>0 :then
+        /* a nested "[" (e.g. open's [filename [modestr]]) opens
+           another optional slot of its own, counted the same as a
+           top-level one -- the preceding slot already made the whole
+           thing optional, so this one only adds to how many more
+           positionals a call may supply, never fewer */
+        if(substr(at2 1)=="[" :then maxopt=maxopt+1);
         if(index(at2 "]")!=nil :then inbracket=0);
         continue);
       if(substr(at2 1)==":" :then break);
       if(substr(at2 1)=="[" :then
+        maxopt=maxopt+1;
         if(index(at2 "]")==nil :then inbracket=1);
         continue);
-      /* a bare "..." means "the preceding bracketed group repeats" --
-         e.g. attrlist([:<name> [val]] ...) -- not an argument of its
-         own, so it must not fall through to the required-count below */
+      /* a bare "..." is not an argument of its own, so it must not
+         fall through to the required-count below */
       if(at2=="..." :then continue);
       required=required+1);
 
@@ -727,6 +745,13 @@ while((srcline=gets(fp))!=nil
       wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
       print("%s:%v: %s: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
         target stmtline wtag name obsnarg name required);
+      if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1));
+
+    maxargs=required+maxopt;
+    if(!unbounded && obsnarg>maxargs :then
+      wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+      print("%s:%v: %s: %s(): called with %v positional argument(s), but %s accepts at most %v -- likely a missing keyword before this argument, or an extra argument\n"
+        target stmtline wtag name obsnarg name maxargs);
       if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1))))
 
 if(stmtnlines>0 :then
