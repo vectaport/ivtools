@@ -239,10 +239,17 @@ void AttrListFunc::execute() {
       delete raw;
     }
 
-    /* stamp every FuncObj member with this attrlist as its home, so a
-       sibling member it calls bare can see this attrlist's live values
-       instead of its own frozen declaration-time captures (fire_funcobj,
-       comterp.c) -- "inside the attrlist" means inside it for reads too. */
+    stamp_home_attrs(al);
+
+    ComValue retval(AttributeList::class_symid(), al);
+    push_stack(retval);
+}
+
+/* stamp every FuncObj member with this attrlist as its home, so a
+   sibling member it calls bare can see this attrlist's live values
+   instead of its own frozen declaration-time captures (fire_funcobj,
+   comterp.c) -- "inside the attrlist" means inside it for reads too. */
+void AttrListFunc::stamp_home_attrs(AttributeList* al) {
     ComValue homeval(AttributeList::class_symid(), al);
     ALIterator hi;
     for (al->First(hi); !al->Done(hi); al->Next(hi)) {
@@ -250,9 +257,6 @@ void AttrListFunc::execute() {
       if (hv->is_object(FuncObj::class_symid()))
         ((FuncObj*)hv->obj_val())->home_attrs(homeval);
     }
-
-    ComValue retval(AttributeList::class_symid(), al);
-    push_stack(retval);
 }
 
 /*****************************************************************************/
