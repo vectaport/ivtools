@@ -226,6 +226,16 @@ class FuncObj : public Resource {
   boolean posteval() { return _posteval; }
   void posteval(boolean p) { _posteval = p; }
 
+  // The attrlist this func was built as a member of (set once, by
+  // AttrListFunc::execute(), for every FuncObj-valued attribute of a new
+  // attrlist literal).  UnknownType means none -- a func built outside any
+  // attrlist literal, the common case for a plain local func(). Checked
+  // ahead of a capture's own frozen snapshot (ComTerp::fire_funcobj) so a
+  // sibling func sees that attrlist's current value for a shared name
+  // instead of whatever the name held back when this func was defined.
+  ComValue& home_attrs() { return _home_attrs; }
+  void home_attrs(ComValue& al) { _home_attrs = al; }
+
   CLASS_SYMID("FuncObj");
 
  protected:
@@ -235,6 +245,7 @@ class FuncObj : public Resource {
   int _nspans;
   ComValue _captures;
   boolean _posteval;
+  ComValue _home_attrs;
 };
 
 //: marker for one still-unevaluated arg/keyword of a :posteval FuncObj call.
