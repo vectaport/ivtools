@@ -1,5 +1,5 @@
-// info-obj.comt version 2
-print("info-obj.comt version 2\n")
+// info-obj.comt version 3
+print("info-obj.comt version 3\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -16,6 +16,10 @@ print("info-obj.comt version 2\n")
 //            the same ntoks/nspans when reparsed
 //   test 3c: info(f).source on a keyword/global-assign body
 //   test 3d: info(f).source respects cutoff() on a func with many bodies
+//   test 3e: info(a.f) finds the FuncObj behind a dot expression without
+//            firing it; a non-func dotted field falls through to the
+//            ordinary dispatch on its own value
+//   test 3f: info(a.b.f) follows a nested dot chain
 //   test 4:  info(f) with :posteval true reports it
 //   test 5:  info(fileobj) -- (:filename :mode :open), and :open flips
 //            to false after close()
@@ -102,6 +106,28 @@ ok3d=(i3d.source=="func(1 2 {3 more})")
 cutoff(orig_cutoff3d)
 ok=ok&&ok3d
 print("3d f3d=func(1 2 3 4 5) at cutoff(2); info(f3d).source (expect func(1 2 {3 more})): %v\n" i3d.source)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3e: info(a.f) finds the FuncObj behind a dot expression
+// without firing it, and a non-func dotted field falls through to its
+// own ordinary info() dispatch instead of nil ---
+errmsg(:clear)
+sideeffect3e=0
+al3e=attrlist(:f func(sideeffect3e=sideeffect3e+1; sideeffect3e) :x 42)
+i3e=info(al3e.f)
+i3ex=info(al3e.x)
+ok3e=(class(i3e)==`AttributeList)&&(i3e.ntoks>0)&&(sideeffect3e==0)&&(i3ex==nil)
+ok=ok&&ok3e
+print("3e info(al3e.f) finds the FuncObj, never fires it; info(al3e.x) on a plain int falls through (expect true): %v\n" ok3e)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3f: info(a.b.f) follows a nested dot chain to the FuncObj ---
+errmsg(:clear)
+al3f=attrlist(:b attrlist(:f func(1+2)))
+i3f=info(al3f.b.f)
+ok3f=(i3f.source=="func(add(1 2))")
+ok=ok&&ok3f
+print("3f info(al3f.b.f) follows a nested dot chain (expect func(add(1 2))): %v\n" i3f.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: info(f :posteval) reports true for a lazy func ---

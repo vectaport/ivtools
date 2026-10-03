@@ -1752,7 +1752,30 @@ void InfoFunc::execute() {
       peeked_fo = (FuncObj*) resolved.obj_val();
   }
 
-  ComValue streamv(peeked_fo ? ComValue::nullval() : stack_arg_post_eval(0));
+  /* info(a.f) -- fire the pending "dot" call via stack_arg_post_eval(),
+     the same mechanism help(a.f) uses (helpfunc.c), and inspect whatever
+     it returns. symbol=true keeps the raw dotted-pair Attribute so a
+     FuncObj found there is identified without actually calling it; any
+     other field value is unwrapped and falls through to the ordinary
+     dispatch below, same as if it had been info()'s argument directly. */
+  static int dot_symid = symbol_add("dot");
+  boolean dot_fired = false;
+  ComValue dotval;
+  if (!peeked_fo && peekval.is_type(AttributeValue::CommandType) &&
+      peekval.command_symid()==dot_symid && peekval.narg()==2) {
+    dotval = stack_arg_post_eval(0, true);
+    dot_fired = true;
+    if (dotval.class_symid()==Attribute::class_symid()) {
+      Attribute* attr = (Attribute*) dotval.obj_val();
+      if (attr->Value()->is_object(FuncObj::class_symid()))
+	peeked_fo = (FuncObj*) attr->Value()->obj_val();
+      else
+	dotval = ComValue(*attr->Value());
+    }
+  }
+
+  ComValue streamv(peeked_fo ? ComValue::nullval() :
+		    dot_fired ? dotval : stack_arg_post_eval(0));
   reset_stack();
 
   if (peeked_fo) {
