@@ -84,7 +84,7 @@ rast=(
     temp(cnt)=0;
     for(temp(i)=0 i<size(krn) i++
       temp(k)=krn@i;
-      if(k!= nil :then cnt++;summ+=k))
+      if(k!= nil :then cnt++;summ+=k));
     return(summ/cnt)
   )
 
