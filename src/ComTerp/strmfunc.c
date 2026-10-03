@@ -1629,23 +1629,19 @@ static void funcobj_unparse_list(AttributeValueList* avl, int first, const char*
   if (shown < total) out << sep << "{" << (total - shown) << " more}";
 }
 
-/* funcobj_unparse -- reconstructs ComTerp source for one node of the
-   nested tree postfix_nest_into() builds (the same {op,arg1,arg2} shape
-   postfix(expr :tree) exposes), for InfoFunc's :source field below. A
-   leaf (int, string, float, a bare symbol reference, ...) is printed by
-   ComValue's own operator<< in brief mode, which already renders every
-   such type as valid source; only a command node's own operator symbol is
-   read directly off its ComValue, since operator<< would instead emit
-   its narg/nkey token-count annotation (that ComValue still carries the
-   raw postfix_token's arity fields, the way help()'s tree-walk needs
-   them, which a plain source rendering doesn't want). */
+/* funcobj_unparse -- renders one postfix_nest_into() tree node as source
+   for :source below. A leaf streams via ComValue's own brief operator<<;
+   a call's own operator symbol is read directly to skip its narg/nkey
+   token-count annotation. */
 static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp) {
   if (node.type() == ComValue::ObjectType &&
       node.class_symid() == AttributeList::class_symid()) {
     /* a keyword tuple, folded by postfix_nest_into into a one-entry
        attrlist -- a bare flag's value is an empty list */
     AttributeList* al = (AttributeList*)node.obj_val();
-    Attribute* attr = al->GetAttr(0);
+    ALIterator ai;
+    al->First(ai);
+    Attribute* attr = al->GetAttr(ai);
     ComValue val(*attr->Value());
     out << ":" << symbol_pntr(attr->SymbolId());
     if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
@@ -1683,16 +1679,9 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp) {
   out << node;
 }
 
-/* funcobj_source -- info(func)'s :source field: reconstructs readable
-   ComTerp source for a FuncObj's own compiled body, one space-separated
-   positional per span (func()/for()/while()'s own body-list grammar --
-   see AGENTS.md's ComTerp scripting gotchas). Only the FINAL span can
-   ever be a ';'-chain (the grammar allows semicolons only in the trailing
-   bundle), and that chain is spliced in bare rather than parenthesized:
-   a parenthesized group right after a space is valid syntax, but a
-   DIFFERENT one -- it merges with the preceding positional into a single
-   combined value instead of staying a separate argument (the same
-   "("-with-spaces-builds-a-stream-literal trap AGENTS.md documents). */
+/* funcobj_source -- info(func)'s :source field: one space-separated
+   positional per FuncObj span, final span's ';'-chain spliced bare
+   (not parenthesized -- the paren-after-space trap, AGENTS.md). */
 static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
   boolean oldbrief = comterp ? comterp->brief() : false;
   if (comterp) comterp->brief(true);
@@ -1752,12 +1741,9 @@ void InfoFunc::execute() {
       peeked_fo = (FuncObj*) resolved.obj_val();
   }
 
-  /* info(a.f) -- fire the pending "dot" call via stack_arg_post_eval(),
-     the same mechanism help(a.f) uses (helpfunc.c), and inspect whatever
-     it returns. symbol=true keeps the raw dotted-pair Attribute so a
-     FuncObj found there is identified without actually calling it; any
-     other field value is unwrapped and falls through to the ordinary
-     dispatch below, same as if it had been info()'s argument directly. */
+  /* info(a.f) -- peek-fire a pending "dot" call, same as help(a.f)
+     (helpfunc.c): a FuncObj field is identified without being called;
+     any other field value is unwrapped for the dispatch below. */
   static int dot_symid = symbol_add("dot");
   boolean dot_fired = false;
   ComValue dotval;

@@ -12,8 +12,8 @@ print("info-obj.comt version 3\n")
 //   test 3:  info(f) on a bare func name -- (:ntoks :nspans :posteval),
 //            and f itself is never called (no side effect fires)
 //   test 3b: info(f).source reconstructs a func(params;body) definition's
-//            compiled body as readable ComTerp source, round-tripping to
-//            the same ntoks/nspans when reparsed
+//            compiled body as readable ComTerp source; run()-ing that
+//            returned string back round-trips to the same ntoks/nspans
 //   test 3c: info(f).source on a keyword/global-assign body
 //   test 3d: info(f).source respects cutoff() on a func with many bodies
 //   test 3e: info(a.f) finds the FuncObj behind a dot expression without
@@ -74,11 +74,12 @@ print("3 info(f3) on a bare func name -- class AttributeList, ntoks>0, f3 never 
 prev_ok=check_fail(:ok ok)
 
 // --- test 3b: info(f).source reconstructs func(a b;a+b*2)'s compiled
-// body, and the reconstruction reparses to the same ntoks/nspans ---
+// body, and PARSING THAT RETURNED STRING back (not a separately
+// hand-written expression) reparses to the same ntoks/nspans ---
 errmsg(:clear)
 f3b=func(a b;a+b*2)
 i3b=info(f3b)
-g3b=func(a b;add(a mpy(b 2)))
+g3b=run(i3b.source :str)
 ig3b=info(g3b)
 ok3b=(i3b.source=="func(a b;add(a mpy(b 2)))")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
 ok=ok&&ok3b
