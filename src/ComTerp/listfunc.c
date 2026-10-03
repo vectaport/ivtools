@@ -239,10 +239,10 @@ void AttrListFunc::execute() {
       delete raw;
     }
 
-    /* al must be ref'd by retval before stamp_home_attrs runs: stamping a
-       funcless attrlist takes and releases its own transient ref with
-       nothing else yet holding one, freeing al right here -- a confirmed
-       ASan use-after-free that hit any funcless (:k v ...) literal. */
+    /* retval must hold al's permanent ref before stamp_home_attrs runs:
+       stamp_home_attrs only takes a transient ref of its own, so al needs
+       a longer-lived holder in place first for an attrlist with no
+       FuncObj members to pick one up. */
     ComValue retval(AttributeList::class_symid(), al);
     stamp_home_attrs(al);
     push_stack(retval);
