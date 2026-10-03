@@ -1611,11 +1611,8 @@ static boolean is_command_node(ComValue& node, int opsymid) {
   return op.is_type(ComValue::SymbolType) && op.symbol_val() == opsymid;
 }
 
-/* is_seq_node -- true only for a well-formed binary seq node (op + exactly
-   2 operands); ";" is OPTYPE_BINARY (optable.c), so this is the shape every
-   genuine seq node has. Guards funcobj_flatten_seq's Get(1)/Get(2), which
-   would otherwise dereference a null AttributeValue* on a malformed node
-   with fewer entries -- Get() returns nil past Number(), it doesn't error. */
+/* is_seq_node -- true for a well-formed binary seq node: op + exactly 2
+   operands, the shape ";" (OPTYPE_BINARY, optable.c) always produces. */
 static boolean is_seq_node(ComValue& node, int seq_symid) {
   return is_command_node(node, seq_symid) && node.array_val()->Number() == 3;
 }
