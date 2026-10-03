@@ -252,18 +252,14 @@ void DeleteFunc::execute() {
   int nf = nargsfixed();
   ComValue* args = new ComValue[nf];
   for (int i=0; i<nf; i++)
-    /* symbol=true -- an ordinary stack_arg() fetch auto-dereferences an
-       Attribute-typed arg (e.g. the result of "al.x") into its Value(),
-       the same lookup assignfunc.c bypasses the same way for its lhs.
-       A plain variable reference is resolved by hand below instead, so
-       it still works -- only the attribute case skips the lookup. */
+    /* symbol=true keeps an Attribute-typed arg (e.g. "al.x") from being
+       auto-dereferenced before execute() sees it; symbols are resolved
+       by hand below instead, same as assignfunc.c's lhs fetch. */
     args[i] = stack_arg(i, true);
   reset_stack();
 
-  /* the removed item itself is returned, not a copy of its value -- an
-     Attribute still auto-expands into its value wherever that's read
-     (same lookup_symval() path "al.x" itself goes through), so the
-     caller sees a plain value unless it specifically wants the Attribute. */
+  /* returns the removed item itself, not a copy of its value -- an
+     Attribute still auto-expands into its value on ordinary read. */
   AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
   ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {

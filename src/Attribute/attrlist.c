@@ -197,12 +197,14 @@ void AttributeList::InsertBefore (ALIterator i, Attribute* v) {
 
 void AttributeList::Remove (ALIterator& i) {
     AList* doomed = Elem(i);
-    int symid = Attr(doomed)->SymbolId();
+    Attribute* attr = Attr(doomed);
+    int symid = attr->SymbolId();
 
     Next(i);
     _alist->Remove(doomed);
     delete doomed;
     --_count;
+    attr->_owner = nil;
 
     if (_index) {
 	Attribute* indexed = nil;
@@ -219,6 +221,7 @@ void AttributeList::Remove (Attribute* p) {
 	_alist->Remove(temp);
         delete temp;
 	--_count;
+	p->_owner = nil;
         Resource::unref(p);
 
 	if (_index) {

@@ -1698,19 +1698,15 @@ void GrDeleteFunc::execute() {
 
   ComValue* args = new ComValue[nf];
   for (int i=0; i<nf; i++)
-    /* symbol=true -- an ordinary stack_arg() fetch auto-dereferences an
-       Attribute-typed arg (e.g. the result of "al.x") into its Value().
-       A plain variable reference is resolved by hand below instead, so
-       it still works -- only the attribute case skips the lookup. */
+    /* symbol=true keeps an Attribute-typed arg from being auto-dereferenced
+       before execute() sees it; symbols are resolved by hand below. */
     args[i] = stack_arg(i, true);
   reset_stack();
 
   Clipboard* delcb = new Clipboard();
 
-  /* the removed item itself is returned, not a copy of its value -- an
-     Attribute still auto-expands into its value wherever that's read (see
-     the base ComTerp delete()); a compview comes back intact so it can be
-     handed to something like paste(). */
+  /* returns the removed item itself; an Attribute auto-expands into its
+     value on ordinary read. A deleted compview stays nil (see below). */
   AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
   ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
@@ -1719,9 +1715,8 @@ void GrDeleteFunc::execute() {
       comterp()->lookup_symval(obj);
     ComValue val(ComValue::nullval());
     if (obj.is_attribute()) {
-      /* removing an attribute is never a Unidraw command -- it's the same
-         AttributeList::Remove() the base ComTerp delete() uses, so it
-         can't be undone/redone the way a graphic deletion is. */
+      /* not a Unidraw command -- same AttributeList::Remove() as the
+         base delete(), so it has no undo/redo. */
       Attribute* attr = (Attribute*) obj.obj_val();
       AttributeList* owner = attr->Owner();
       if (owner) {
@@ -1729,10 +1724,8 @@ void GrDeleteFunc::execute() {
         owner->Remove(attr);
       }
     } else if (obj.object_compview()) {
-      /* val stays nil here -- DeleteCmd::Execute() below actually destroys
-         the comp (this call keeps no undo history), so returning the
-         compview would hand back a stale reference, not something
-         repaste-able. */
+      /* val stays nil -- DeleteCmd::Execute() below destroys the comp
+         with no undo retention, so the compview would come back stale. */
       ComponentView* comview = (ComponentView*)obj.obj_val();
       OverlayComp* comp = (OverlayComp*)comview->GetSubject();
       if (comp) delcb->Append(comp);
