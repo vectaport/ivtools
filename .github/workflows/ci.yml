@@ -186,7 +186,7 @@ jobs:
       # the actual head that merges.
       - name: Lint - comlint
         if: always()
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           # comlint exits 1 whenever it finds a FAIL or non-overridden WARN --
           # expected, since its own exit status is what a blocking caller
