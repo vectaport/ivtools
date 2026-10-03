@@ -268,6 +268,9 @@ prev_ok=check_fail(:ok ok)
 // AFTER fix: [] parses like a zero-arg stream() call, matching how {}
 // and () construct an empty list/attrlist; next() returns nil right away.
 errmsg(:clear)
+// comlint:allow -- [] parses as a genuine zero-arg stream() call (that's
+// the behavior under test), which postfix() tags the same as a bare
+// command-name reference; comlint's arity scanner can't tell them apart
 s19=[]
 e19=errmsg(:last)
 ok19=(e19==nil)

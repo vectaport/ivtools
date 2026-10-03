@@ -63,7 +63,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon :bytes :hex :cutoff n) -- create list, copy list, or convert stream (unary $)"; }
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon :bytes :hex :cutoff n) -- create list, copy list, or convert stream (unary $); given more than one value, builds a list literal from them, and any val may be preceded by a bare :keyword name tagging it, the keyword's own name chosen freely by the caller"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":strmlst   return list inside stream for debug",

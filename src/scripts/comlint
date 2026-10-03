@@ -191,6 +191,77 @@ mlbal=0
 incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 
+/* a call marker is a "name[nargs|nkeys|misc]" token, optionally suffixed
+   '*' -- always a trailing shape with nothing after it, which is what
+   distinguishes a real one from a plain string-literal token that merely
+   contains '[' and ']' characters of its own (e.g. a pgrep pattern like
+   "'[d]rawserv'") and would otherwise be misread as a call.
+   subtreestart(toks idx) is called as
+   subtreestart(attrlist(:pftoks toks :pfidx idx)) -- a single packed
+   argument, read back as arg(0) -- never as two positional args
+   ("list(toks idx)" doesn't pack either: list() takes exactly one
+   value and copies/converts it, so a second positional arg is
+   silently dropped). This script re-execs a textually patched copy of
+   its own source under comdraw/drawserv (see "program" above), which
+   finds-and-replaces the literal text "arg(1)"/"arg(2)"/"arg(3)"/
+   "arg(4)" ANYWHERE in the file, oblivious to func scoping -- a second
+   positional func arg here would read back as the OUTER script's own
+   target/program/nokeysarg instead of this func's real argument. */
+global(comlint_pf)=(:subtreestart func(
+  /* walking backward from a call's own marker token to find its
+     supplied keywords (see the :then/:else search below) must skip
+     clean over a NESTED call's entire argument/keyword span, never
+     wander into it token-by-token -- a nested call's own keyword
+     markers would otherwise be mistaken for the outer call's. This
+     returns the index of the first token of the value/call subtree
+     whose own last token sits at idx, so the caller can jump straight
+     there instead of stepping backward one token at a time. */
+  temp(packed)=arg(0);temp(toks)=packed.pftoks;temp(idx)=packed.pfidx;
+  temp(tok)=at(toks idx);
+  temp(lb)=index(tok "[");
+  temp(rb)=if(lb!=nil :then index(tok "]" :last) :else nil);
+  temp(tsz)=size(tok);
+  temp(iscall)=(lb!=nil && rb!=nil &&
+    (rb==tsz-1 || (rb==tsz-2 && substr(tok tsz-1 :after)=="*")));
+  if(!iscall :then
+    /* a string literal containing an embedded newline renders back
+       through postfix() as several comma-joined fragments, one token
+       each -- a fragment that isn't the first carries the whole
+       preceding fragment as one more token to skip */
+    temp(res)=idx;temp(more)=true;
+    while(more && res>0
+      temp(ptok)=at(toks res-1);temp(plen)=size(ptok);
+      temp(iscont)=(plen>=2 && substr(ptok plen-2 :after)=="\",");
+      if(iscont :then res=res-1 :else more=false));
+    return(res));
+  temp(counts)=substr(substr(tok lb+1 :after) "]");
+  temp(ctoks)=split(counts :tokstr '|');
+  if(size(ctoks)<2 :then return(idx));
+  temp(cnargs)=int(at(ctoks 0));temp(cnkeys)=int(at(ctoks 1));
+  temp(j)=idx-1;
+  temp(kcovered)=0;
+  temp(ki)=0;
+  while(ki<cnkeys && j>=0
+    temp(ktok)=at(toks j);
+    temp(kp)=index(ktok "(");
+    temp(kargn)=1;
+    if(kp!=nil :then
+      temp(kcountstr)=substr(substr(ktok kp+1 :after) ")");
+      if(size(kcountstr)>0 :then kargn=int(kcountstr)));
+    j=j-1;
+    temp(vi)=0;
+    while(vi<kargn && j>=0
+      j=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx j))-1;
+      vi=vi+1);
+    kcovered=kcovered+kargn;
+    ki=ki+1);
+  temp(ai)=0;
+  temp(remaining)=cnargs-kcovered;
+  while(ai<remaining && j>=0
+    j=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx j))-1;
+    ai=ai+1);
+  j+1))
+
 /* armed by a '// comlint:allow -- <reason>' comment line and consumed by
    the next statement's own first line, whatever blank lines or other
    comments sit in between -- only a non-matching comment line clears it
@@ -687,20 +758,37 @@ while((srcline=gets(fp))!=nil
 
       if(!wildcard :then
         /* the keyword markers this call actually supplied are the
-           obsnkey nearest keyword-shaped tokens walking back from
+           obsnkey nearest keyword-shaped markers walking back from
            this call's own marker -- keywords are always the last
            thing evaluated before a call fires ("Fixed Before Keywords
            Always", doc/LANGUAGE.md), so they're the nearest matches in
-           the flat postfix stream regardless of how many plain values
-           or nested calls sit between them */
+           the flat postfix stream. A keyword's own value (e.g. if()'s
+           :then/:else branch) is skipped wholesale via subtreestart()
+           once its marker is found, rather than walked token-by-token
+           -- that value may itself be, or contain, a nested call using
+           its own keywords, which must never be mistaken for this
+           call's. A non-keyword call marker met before any keyword of
+           this call's own is skipped the same way, for the same
+           reason. */
         kfound=0;kidx=ti-2;
         while(kfound<obsnkey && kidx>=0
           ktok=at(toks kidx);
-          kidx=kidx-1;
-          if(substr(ktok 1)!=":" :then continue);
+          iskw=(substr(ktok 1)==":" && index(ktok "(")!=nil);
+          if(!iskw :then
+            if(index(ktok "[")!=nil :then
+              kidx=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx kidx))-1
+            :else
+              kidx=kidx-1);
+            continue);
           kp=index(ktok "(");
-          if(kp==nil :then continue);
           kwname=substr(ktok "(");
+          kcountstr=substr(substr(ktok kp+1 :after) ")");
+          kargn=if(size(kcountstr)>0 :then int(kcountstr) :else 1);
+          kidx=kidx-1;
+          kvi=0;
+          while(kvi<kargn && kidx>=0
+            kidx=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx kidx))-1;
+            kvi=kvi+1);
           if(size(kwname)<=1 :then continue);
           kfound=kfound+1;
           /* bound the search in its own variable rather than writing
