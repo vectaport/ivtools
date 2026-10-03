@@ -335,6 +335,26 @@ public:
       return "hidden func used by next command for the stream-builds-stream default."; }
 };
 
+//: hidden func used by AssignFunc to drive `@`-slice's stream-builds-stream
+// default: holds [0] the write-index stream (is_stream()&&lhs_assign(), e.g.
+// r@lo:hi) and [1] the rhs value, broadcast unchanged each pull unless it's
+// itself a stream.  Each pull performs one write (zip_assign_stream's own
+// per-step body, one step at a time instead of drained in a loop there) and
+// ends the lazy sequence the moment either side runs dry or the written
+// index falls out of range -- the same termination conditions
+// zip_assign_stream uses for its own eager, drain-it-all-now call, which an
+// each()-wrapped lhs (`**r@lo:hi=val`) still goes through directly instead
+// of this lazy wrapper.
+class AssignAtNextFunc : public StrmFunc {
+public:
+    AssignAtNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return false; }
+    virtual const char* docstring() {
+      return "hidden func used by assign command for @-slice's stream-builds-stream default."; }
+};
+
 //: traverse stream command for ComTerp; also ** (unary prefix each) operator.
 // cnt=each(strm) -- traverse stream returning its length
 class EachFunc : public ComFunc {

@@ -240,7 +240,13 @@ public:
     DeleteFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s([attribute ...]) -- remove attribute(s), returning the removed value(s)"; }
+      return "alst=%s([:<name> [val]] ... :bincnt) -- create attribute list from keyword/value pairs"; }
+
+    /* stamp every FuncObj member of a freshly-built attrlist literal with
+       it as their home (see comterp.c's fire_funcobj) -- shared with
+       GrAttrListFunc (ComUnidraw/grdotfunc.c), comdraw/drawserv's own
+       bare-literal path, so both stay in step. */
+    static void stamp_home_attrs(AttributeList* al);
 };
 
 #endif /* !defined(_listfunc_h) */
