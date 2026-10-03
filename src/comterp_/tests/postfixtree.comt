@@ -35,6 +35,8 @@ ok=ok&&(print(at(second 0) :str)=="assign")
 print("3 postfix((x=1;y=2) :tree) (expect (seq (assign x 1) (assign y 2))): %v\n" r3)
 
 // --- 4: a keyword operand folds into a one-entry attrlist, as in :flat ---
+// comlint:allow -- list(1 :n 2) is postfix()'s argument, never executed;
+// :n isn't a real list() keyword, only a shape for exercising the parser
 r4=postfix(y=list(1 :n 2) :tree)
 listexpr=at(r4 2)
 ok=ok&&(print(at(listexpr 2) :str)=="(:n 2)")
@@ -58,6 +60,8 @@ print("6 postfix(1+2 3+4 :tree) (expect {(add 1 2),(add 3 4)}): %v\n" r6)
 
 // --- 7: a bare flag keyword right after a valued keyword gets its own
 //        empty value, not the previous keyword's bound value ---
+// comlint:allow -- list(1 :a 2 :b) is postfix()'s argument, never
+// executed; :a/:b aren't real list() keywords, only a parser-testing shape
 r7=postfix(list(1 :a 2 :b) :tree)
 akw=at(r7 2);bkw=at(r7 3)
 ok=ok&&(print(akw :str)=="(:a 2)")
