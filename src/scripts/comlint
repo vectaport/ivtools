@@ -601,6 +601,13 @@ while((srcline=gets(fp))!=nil
     helpcmd=print("help(%s)" name :str);
     helptext=eval(helpcmd);
     if(!istype(helptext StringType) :then continue);
+    /* help() on a name this comlint process never defined (a local
+       func() the target script only creates via its own run(), which
+       comlint deliberately never executes) answers "" rather than
+       nil -- the same "nothing to validate against" case as an
+       unparseable signature below, just arriving as an empty string
+       instead of a missing one */
+    if(size(helptext)==0 :then continue);
     helplines=split(helptext :tokstr '\n');
     sig=at(helplines 0);
 
