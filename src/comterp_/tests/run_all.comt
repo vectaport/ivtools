@@ -49,6 +49,10 @@ if(run("./comlint_kw_wildcard.comt")
   :then print("pass: comlint_kw_wildcard\n")
   :else print("FAIL: comlint_kw_wildcard\n");topok=false)
 
+if(run("./comlint_extrapos.comt")
+  :then print("pass: comlint_extrapos\n")
+  :else print("FAIL: comlint_extrapos\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)

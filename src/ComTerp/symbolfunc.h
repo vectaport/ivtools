@@ -194,7 +194,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump)|global(:cnt) -- designate a symbol instance as global"; }
+      return "sym|lst=%s(sym [sym ...])|global(sym)=val|global(sym :clear)|global(:dump)|global(:cnt) -- designate a symbol instance (or several, read back as a list) as global"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from global table",
@@ -220,7 +220,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym=%s(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- designate a symbol instance as local, skipping any func frame"; }
+      return "sym|lst=%s(sym [sym ...])|local(sym)=val|local(sym :clear)|local(:cnt) -- designate a symbol instance (or several, read back as a list) as local, skipping any func frame"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from the default symbol table",
@@ -246,7 +246,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym=%s(sym)|temp(sym)=val -- designate a symbol instance as private to the current func call"; }
+      return "sym|lst=%s(sym [sym ...])|temp(sym)=val -- designate a symbol instance (or several, read back as a list) as private to the current func call"; }
 };
 
 

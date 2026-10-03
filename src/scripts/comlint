@@ -28,7 +28,9 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("to a name that also names a registered command -- ComTerp\n");
     print("itself refuses the assignment, so it's a guaranteed no-op.\n\n");
     print("WARN: a call passing fewer positional arguments than the\n");
-    print("command requires; a :keyword the command doesn't declare in\n");
+    print("command requires, or more than it accepts (a command whose\n");
+    print("signature ends '...' takes an unbounded number and is never\n");
+    print("flagged for too many); a :keyword the command doesn't declare in\n");
     print("its own signature or dockeys() (pass 'nokeys' to disable this\n");
     print("one check entirely); a bare write to a name already declared\n");
     print("global() earlier in the script (see doc/LANGUAGE.md for how\n");
@@ -269,8 +271,16 @@ while((srcline=gets(fp))!=nil
     /* an unrelated whole-line comment leaves an already-armed override
        alone -- only the next real statement's own start consumes it
        (stmtallowed=allowarmed;allowarmed=false below), so the override
-       applies across any number of intervening comment lines */
-    if(index(srcline "comlint:allow")!=nil :then allowarmed=true);
+       applies across any number of intervening comment lines. The
+       comment's own text (past "//" and any leading spaces or tabs) must
+       start with "comlint:allow", not merely mention it anywhere --
+       a plain substring search would also arm on unrelated prose that
+       happens to name the override, such as a header comment
+       documenting this very feature. */
+    cmtbody=substr(srcline 2 :after);
+    while(size(cmtbody)>0 && (substr(cmtbody 1)==" " || substr(cmtbody 1)=="\t")
+      cmtbody=substr(cmtbody 1 :after));
+    if(substr(cmtbody 13)=="comlint:allow" :then allowarmed=true);
     continue);
 
   hasopen=index(srcline "/*");
@@ -545,10 +555,15 @@ while((srcline=gets(fp))!=nil
     rb=index(tok "]" :last);
     if(rb==nil :then continue);
 
-    isundef=(substr(tok size(tok)-1 :after)=="*");
-    if(isundef :then continue);
-
     name=substr(tok "[");
+    /* dot's docstring documents the "." operator via a parenthetical
+       aside ahead of its real signature ("(.) makes compound
+       variables | dotlst=dot(name) -- ..."), which the arg-list
+       extraction below mistakes for the signature itself, misreading
+       its arity for every dot-access expression in a script -- skip
+       it by name until that docstring parses cleanly on its own */
+    if(name=="dot" :then continue);
+
     counts=substr(substr(tok lb+1 :after) "]");
     ctoks=split(counts :tokstr '|');
     if(size(ctoks)<2 :then continue);
@@ -698,35 +713,141 @@ while((srcline=gets(fp))!=nil
 
     op=index(sig "(");
     dd=index(sig " -- ");
-    if(op==nil || dd==nil :then continue);
-    arglist=substr(substr(substr(sig op+1 :after) " -- ") ")");
+    /* a "(" found only past " -- " belongs to the free-text
+       description (e.g. spread's "...into a stream (or list)..."),
+       not a signature -- this docstring has no real one, so it must
+       be treated the same as op==nil rather than mined for an arglist */
+    if(op==nil || dd==nil || op>dd :then continue);
+
+    /* cutting at the first ")" (rather than the one matching the "("
+       just found) truncates a signature whose own arg list embeds a
+       parenthetical before its real close, e.g. time()'s
+       "...:min(local)|y:Mon..." -- stopping at "(local)"'s ")" drops
+       everything after it, including the "]" that would otherwise
+       close its enclosing bracket and credit it toward maxopt */
+    after=substr(sig op+1 :after);
+    achars=split(after);
+    pdepth=0;
+    pci=0;
+    pend=nil;
+    while(pci<size(achars) && pend==nil
+      pc=at(achars pci);
+      if(pc=='(' :then pdepth=pdepth+1);
+      if(pc==')' :then
+        if(pdepth==0 :then pend=pci :else pdepth=pdepth-1));
+      pci=pci+1);
+    if(pend==nil :then continue);
+    arglist=substr(after pend);
     if(arglist==nil :then arglist="");
 
-    argtoks=split(arglist :tokstr ' ');
-    required=0;
-    inbracket=0;
-    ai=0;
-    while(ai<size(argtoks)
-      at2=at(argtoks ai);
-      ai=ai+1;
-      if(size(at2)==0 :then continue);
-      if(inbracket>0 :then
-        if(index(at2 "]")!=nil :then inbracket=0);
+    /* scanned character by character, not space-tokenized: a bracket
+       group can hold several space-separated names (gridspacing's
+       "[xsize ysize]", both count toward the max, not just the one
+       slot the group itself occupies) and "|" alternatives -- at the
+       top level (substr's "str n|str", at's "list|attrlist|compview")
+       or inside a group (colors' "[fgcolornum bgcolornum |
+       fgcolorname bgcolorname]") -- take the max of either side's
+       count, not their sum, since only one side is ever supplied at
+       once. run0/max0 is the top level (feeding required the same way
+       a bracket feeds maxopt); run1-3/max1-3 track up to 3 levels of
+       "[" nesting (open's "[filename [modestr]]" is 2). runN is the
+       token count since level N's last "|" (or its start), maxN the
+       highest count an alternative at that level has reached so far.
+       bdepth (not "depth") -- comdraw/drawserv register a depth()
+       command of their own, and this script runs under whichever
+       program it's checking. */
+    argchars=split(arglist);
+    maxopt=0;
+    unbounded=false;
+    bdepth=0;
+    run0=0;run1=0;run2=0;run3=0;
+    max0=0;max1=0;max2=0;max3=0;
+    word="";
+    donescan=false;
+    aci=0;
+    while(aci<size(argchars) && !donescan
+      ch=at(argchars aci);
+      aci=aci+1;
+      /* split() yields CharType elements, not 1-char strings -- '['
+         compares a CharType literal against them; a quoted "[" would
+         silently and permanently compare false (no CharType/StringType
+         coercion), making isstruct always false and this whole scan a
+         no-op that just accumulates the entire arglist into one word */
+      isstruct=(ch=='[' || ch==']' || ch=='|' || ch==' ');
+      if(!isstruct :then word=word+ch;continue);
+
+      if(size(word)>0 :then
+        /* checked as a substring, not an exact token match, since
+           "..." can be glued onto a bracket with no separating space
+           (help's [command...]) or onto a value name (sum()'s
+           "valn..."/"...,valn") -- either way this word is a repeat
+           marker, not a positional slot of its own, and it makes the
+           max-positional check skipped entirely for this command */
+        haselip=(index(word "...")!=nil);
+        if(haselip :then unbounded=true);
+        iskw=(substr(word 1)==":");
+        if(bdepth==0 && iskw :then donescan=true);
+        if(!donescan && !iskw && !haselip :then
+          if(bdepth==0 :then run0=run0+1);
+          if(bdepth==1 :then run1=run1+1);
+          if(bdepth==2 :then run2=run2+1);
+          if(bdepth==3 :then run3=run3+1));
+        word="");
+
+      if(donescan :then continue);
+
+      if(ch=='[' :then
+        bdepth=bdepth+1;
+        if(bdepth==1 :then run1=0;max1=0);
+        if(bdepth==2 :then run2=0;max2=0);
+        if(bdepth==3 :then run3=0;max3=0);
         continue);
-      if(substr(at2 1)==":" :then break);
-      if(substr(at2 1)=="[" :then
-        if(index(at2 "]")==nil :then inbracket=1);
+
+      if(ch=='|' :then
+        if(bdepth==0 :then max0=if(run0>max0 :then run0 :else max0);run0=0);
+        if(bdepth==1 :then max1=if(run1>max1 :then run1 :else max1);run1=0);
+        if(bdepth==2 :then max2=if(run2>max2 :then run2 :else max2);run2=0);
+        if(bdepth==3 :then max3=if(run3>max3 :then run3 :else max3);run3=0);
         continue);
-      /* a bare "..." means "the preceding bracketed group repeats" --
-         e.g. attrlist([:<name> [val]] ...) -- not an argument of its
-         own, so it must not fall through to the required-count below */
-      if(at2=="..." :then continue);
-      required=required+1);
+
+      if(ch==']' :then
+        if(bdepth==1 :then
+          cand=if(run1>max1 :then run1 :else max1);
+          maxopt=maxopt+cand;
+          bdepth=0);
+        if(bdepth==2 :then
+          cand=if(run2>max2 :then run2 :else max2);
+          bdepth=1;
+          run1=run1+cand);
+        if(bdepth==3 :then
+          cand=if(run3>max3 :then run3 :else max3);
+          bdepth=2;
+          run2=run2+cand);
+        continue));
+
+    /* flush a trailing word never followed by a space/bracket/pipe --
+       doesn't occur for any signature in this codebase today (every
+       arglist either ends in "]" or a lone required name before the
+       closing paren already stripped off by the substr() above), kept
+       only so a future signature shaped that way doesn't silently
+       drop its last positional */
+    if(size(word)>0 && !donescan && bdepth==0 :then
+      if(index(word "...")==nil && substr(word 1)!=":" :then
+        run0=run0+1));
+
+    required=if(run0>max0 :then run0 :else max0);
 
     if(obsnarg<required :then
       wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
       print("%s:%v: %s: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse; check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
         target stmtline wtag name obsnarg name required);
+      if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1));
+
+    maxargs=required+maxopt;
+    if(!unbounded && obsnarg>maxargs :then
+      wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
+      print("%s:%v: %s: %s(): called with %v positional argument(s), but %s accepts at most %v -- likely a missing keyword before this argument, or an extra argument\n"
+        target stmtline wtag name obsnarg name maxargs);
       if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1))))
 
 if(stmtnlines>0 :then
