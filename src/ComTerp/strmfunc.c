@@ -1611,6 +1611,15 @@ static boolean is_command_node(ComValue& node, int opsymid) {
   return op.is_type(ComValue::SymbolType) && op.symbol_val() == opsymid;
 }
 
+/* is_seq_node -- true only for a well-formed binary seq node (op + exactly
+   2 operands); ";" is OPTYPE_BINARY (optable.c), so this is the shape every
+   genuine seq node has. Guards funcobj_flatten_seq's Get(1)/Get(2), which
+   would otherwise dereference a null AttributeValue* on a malformed node
+   with fewer entries -- Get() returns nil past Number(), it doesn't error. */
+static boolean is_seq_node(ComValue& node, int seq_symid) {
+  return is_command_node(node, seq_symid) && node.array_val()->Number() == 3;
+}
+
 static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth);
 
 static const char* INDENT_UNIT = "  ";
@@ -1648,7 +1657,7 @@ static void funcobj_flatten_seq(ComValue& node, AttributeValueList* out) {
   static int seq_symid = symbol_add("seq");
   AttributeValueList* avl = node.array_val();
   ComValue left(*avl->Get(1));
-  if (is_command_node(left, seq_symid))
+  if (is_seq_node(left, seq_symid))
     funcobj_flatten_seq(left, out);
   else
     out->Append(new AttributeValue(left));
@@ -1699,7 +1708,7 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
       /* a ';'-chain value splices bare, like func's own last span --
          a keyword slot already accepts it unwrapped, and parens here
          would reparse as a different, larger token stream. */
-      if (is_command_node(val, seq_symid)) {
+      if (is_seq_node(val, seq_symid)) {
         AttributeValueList* flat = new AttributeValueList();
         funcobj_flatten_seq(val, flat);
         funcobj_unparse_stmts(flat, 0, out, comterp, depth);
@@ -1718,7 +1727,7 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     funcobj_unparse(rhs, out, comterp, depth);
     return;
   }
-  if (is_command_node(node, seq_symid)) {
+  if (is_seq_node(node, seq_symid)) {
     AttributeValueList* flat = new AttributeValueList();
     funcobj_flatten_seq(node, flat);
     out << "(\n" << funcobj_indent(depth + 1);
@@ -1766,7 +1775,7 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
   int nstmts = shown;
   if (shown == nspans && shown > 0) {
     ComValue last(*spans->Get(shown - 1));
-    if (is_command_node(last, seq_symid)) {
+    if (is_seq_node(last, seq_symid)) {
       lastflat = new AttributeValueList();
       funcobj_flatten_seq(last, lastflat);
       nstmts += lastflat->Number() - 1;
