@@ -1,0 +1,69 @@
+// src/comterp_/tests/attrlist_delete.comt -- test delete() removing an
+// attribute from its owning AttributeList
+//
+// coverage: delete(al.name) -- AttributeList::Remove() via Attribute::Owner(),
+// keeping _alist and the symid index in sync; non-attribute/no-owner args
+// are skipped rather than erroring.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/attrlist_delete.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: delete(al.x) removes x, leaves the other attributes ---
+al=attrlist(:x 1 :y 2 :z 3)
+cnt0=info(al).count
+delete(al.x)
+cnt1=info(al).count
+ok=ok&&(cnt0==3)&&(cnt1==2)&&(al.y==2)&&(al.z==3)
+print("1 delete(al.x) count before,after, al.y, al.z (expect 3 2 2 3): %v %v %v %v\n" cnt0 cnt1 al.y al.z)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: the deleted name reads back nil, not its old value ---
+xafter=al.x
+ok=ok&&(xafter==nil)
+print("2 al.x after delete (expect nil): %v\n" xafter)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: a never-present name nets to a no-op -- al2.b auto-vivifies
+// b (dot access on a missing name creates it with a nil value), and
+// delete() immediately removes that same entry, netting count back to 1 ---
+al2=attrlist(:a 1)
+delete(al2.b)
+cnt2=info(al2).count
+ok=ok&&(cnt2==1)&&(al2.a==1)
+print("3 delete(al2.b), never-present name nets to a no-op (expect count 1, a unchanged): %v %v\n" cnt2 al2.a)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: delete() on a non-attribute argument is ignored, not an error ---
+c=3
+delete(c)
+ok=ok&&(c==3)
+print("4 delete(c), non-attribute argument (expect c unchanged, 3): %v\n" c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: delete() with no arguments is a no-op ---
+r=delete()
+ok=ok&&(r==nil)
+print("5 delete() with no args (expect nil): %v\n" r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: delete() returns the removed attribute's value, already
+// expanded -- not the Attribute wrapper itself ---
+al3=attrlist(:w 42)
+rw=delete(al3.w)
+ok=ok&&(rw==42)&&(class(rw)==nil)
+print("6 delete(al3.w) returns the removed value (expect 42, class nil): %v %v\n" rw class(rw))
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: delete() with multiple attribute arguments returns a list
+// of the removed values, in order ---
+al4=attrlist(:p 10 :q 20)
+rl=delete(al4.p al4.q)
+ok=ok&&(size(rl)==2)&&(at(rl 0)==10)&&(at(rl 1)==20)
+print("7 delete(al4.p al4.q) returns {10,20}: %v\n" rl)
+prev_ok=check_fail(:ok ok)
+
+print("\nattrlist_delete: %v\n" ok)
+ok

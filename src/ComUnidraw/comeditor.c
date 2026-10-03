@@ -187,7 +187,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("setattr", new SetAttrFunc(comterp, this));
 
     comterp->add_command("select", new SelectFunc(comterp, this));
-    comterp->add_command("delete", new DeleteFunc(comterp, this));
+    comterp->add_command("delete", new GrDeleteFunc(comterp, this));
     comterp->add_command("move", new MoveFunc(comterp, this));
     comterp->add_command("scale", new ScaleFunc(comterp, this));
     comterp->add_command("rotate", new RotateFunc(comterp, this));

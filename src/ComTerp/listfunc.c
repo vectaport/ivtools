@@ -239,8 +239,70 @@ void AttrListFunc::execute() {
       delete raw;
     }
 
+    /* retval must hold al's permanent ref before stamp_home_attrs runs:
+       stamp_home_attrs only takes a transient ref of its own, so al needs
+       a longer-lived holder in place first for an attrlist with no
+       FuncObj members to pick one up. */
     ComValue retval(AttributeList::class_symid(), al);
+    stamp_home_attrs(al);
     push_stack(retval);
+}
+
+/* stamp every FuncObj member with this attrlist as its home, so a
+   sibling member it calls bare can see this attrlist's live values
+   instead of its own frozen declaration-time captures (fire_funcobj,
+   comterp.c) -- "inside the attrlist" means inside it for reads too. */
+void AttrListFunc::stamp_home_attrs(AttributeList* al) {
+    ComValue homeval(AttributeList::class_symid(), al);
+    ALIterator hi;
+    for (al->First(hi); !al->Done(hi); al->Next(hi)) {
+      AttributeValue* hv = al->GetAttr(hi)->Value();
+      if (hv->is_object(FuncObj::class_symid()))
+        ((FuncObj*)hv->obj_val())->home_attrs(homeval);
+    }
+}
+
+/*****************************************************************************/
+
+DeleteFunc::DeleteFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DeleteFunc::execute() {
+  int nf = nargsfixed();
+  ComValue* args = new ComValue[nf];
+  for (int i=0; i<nf; i++)
+    /* symbol=true keeps an Attribute-typed arg (e.g. "al.x") from being
+       auto-dereferenced before execute() sees it; symbols are resolved
+       by hand below instead, same as assignfunc.c's lhs fetch. */
+    args[i] = stack_arg(i, true);
+  reset_stack();
+
+  /* returns the removed item itself, not a copy of its value -- an
+     Attribute still auto-expands into its value on ordinary read. */
+  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  ComValue removedval(ComValue::nullval());
+  for (int i=0; i<nf; i++) {
+    ComValue val(ComValue::nullval());
+    if (args[i].is_attribute()) {
+      Attribute* attr = (Attribute*) args[i].obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner) {
+        val = args[i];
+        owner->Remove(attr);
+      }
+    } else if (args[i].is_symbol()) {
+      comterp()->lookup_symval(args[i]);
+    }
+    if (removed) removed->Append(new AttributeValue(val));
+    else removedval = val;
+  }
+  delete [] args;
+
+  if (removed) {
+    ComValue retval(removed);
+    push_stack(retval);
+  } else
+    push_stack(removedval);
 }
 
 /*****************************************************************************/

@@ -51,13 +51,10 @@ NumFunc::NumFunc(ComTerp* comterp) : ComFunc(comterp) {
 void NumFunc::promote(ComValue& op1, ComValue& op2) {
     if (op1.type() == op2.type()) return;
 
-#if 0
-    if (op1.is_unknown() || op2.is_unknown()) {
-      op1.type(ComValue::UnknownType);
-      op2.type(ComValue::UnknownType);
-      return;
-    }
-#endif
+    /* nil/blank carry no numeric value to promote toward -- leave both
+       operands exactly as they are so a caller's own is_unknown()/is_blank()
+       check still sees the real type instead of a coerced zero */
+    if (op1.is_unknown() || op2.is_unknown() || op1.is_blank() || op2.is_blank()) return;
 
     boolean op1bigger = op1.type()!=ComValue::BooleanType ? op1.type() > op2.type() : false;
     ComValue* greater = op1bigger ? &op1 : &op2;

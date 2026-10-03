@@ -294,6 +294,10 @@ if(run("./attrlist_bincnt.comt")
   :then print("pass: attrlist_bincnt\n")
   :else print("FAIL: attrlist_bincnt\n");topok=false)
 
+if(run("./attrlist_delete.comt")
+  :then print("pass: attrlist_delete\n")
+  :else print("FAIL: attrlist_delete\n");topok=false)
+
 if(run("./list_string_cutoff.comt")
   :then print("pass: list_string_cutoff\n")
   :else print("FAIL: list_string_cutoff\n");topok=false)

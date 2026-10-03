@@ -226,6 +226,22 @@ class FuncObj : public Resource {
   boolean posteval() { return _posteval; }
   void posteval(boolean p) { _posteval = p; }
 
+  // The attrlist this func was built as a member of (set by AttrListFunc::
+  // execute() for each FuncObj member of a new attrlist literal);
+  // UnknownType means none. Checked ahead of a capture's own frozen
+  // snapshot in ComTerp::fire_funcobj, so a sibling func sees the
+  // attrlist's current value for a shared name instead of the value at
+  // this func's own definition time.
+  //
+  // Stored as a ComValue, not a raw pointer: a FuncObj can be saved out
+  // and outlive the attrlist that built it (`g=obj.getx`), so a raw
+  // back-pointer would dangle. The ref it holds on the attrlist in
+  // return is a known, separately tracked leak under this codebase's
+  // intrusive refcounting (no cycle collector) -- safe but leaky, not
+  // leak-free.
+  ComValue& home_attrs() { return _home_attrs; }
+  void home_attrs(ComValue& al) { _home_attrs = al; }
+
   CLASS_SYMID("FuncObj");
 
  protected:
@@ -235,6 +251,7 @@ class FuncObj : public Resource {
   int _nspans;
   ComValue _captures;
   boolean _posteval;
+  ComValue _home_attrs;
 };
 
 //: marker for one still-unevaluated arg/keyword of a :posteval FuncObj call.
