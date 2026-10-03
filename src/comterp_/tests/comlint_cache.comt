@@ -1,0 +1,53 @@
+// src/comterp_/tests/comlint_cache.comt -- regression test for
+// comlint's per-command docstring cache: asserts its exact diagnostic
+// output on a fixture script, rather than only that comlint runs
+// without crashing -- see comlint_cache_fixture.comt for what each
+// case exercises.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/comlint_cache.comt")
+
+run("./testlib.comt")
+ok=true
+
+/* see comlint_globalshadow.comt's own comment for why this probe and
+   this per-line drain exist */
+if(open("../../scripts/comlint" "r")!=nil :then
+  comlintpath="../../scripts/comlint";fixtureprefix=""
+  :else
+  comlintpath="src/scripts/comlint";fixtureprefix="src/comterp_/tests/")
+
+pipe1=$$open(print("comterp run %s %s%s 2>&1"
+  comlintpath fixtureprefix "comlint_cache_fixture.comt" :str) :pipe)
+out1="";linev1=*pipe1
+while(linev1!=nil
+  out1=out1+linev1+" ";
+  linev1=*pipe1)
+
+// --- cc_if1/cc_if2 (lines 17/19, if() called with :then/:else) stay
+//     clean on both the cache-miss and cache-hit call (test 1-2);
+//     cc_if3 (line 21, if() called with :bogus) still gets flagged on
+//     a cache hit, proving the cached declared-set still catches a
+//     real violation rather than just going quiet (test 3); cc_at1/
+//     cc_at2 (lines 23/25, at() called with its ordinary 2 positionals)
+//     stay clean on both the cache-miss and cache-hit call (test 4-5);
+//     cc_at3 (line 27, at() called with 3 positionals) still gets
+//     flagged on a cache hit, proving the cached arity facts still
+//     catch a real violation (test 6); cc_mixed (line 29, switch()
+//     called with :case keywords, after if()'s own cache entry is
+//     already populated) stays clean, confirming each command's cache
+//     entry is independent (test 7) ---
+if1Clean=index(out1 "fixture.comt:17:" :substr)==nil
+if2Clean=index(out1 "fixture.comt:19:" :substr)==nil
+if3Flagged=index(out1 "fixture.comt:21: WARN: if(): unrecognized keyword :bogus" :substr)!=nil
+at1Clean=index(out1 "fixture.comt:23:" :substr)==nil
+at2Clean=index(out1 "fixture.comt:25:" :substr)==nil
+at3Flagged=index(out1 "fixture.comt:27: WARN: at(): called with 4 positional argument(s), but at accepts at most 2" :substr)!=nil
+mixedClean=index(out1 "fixture.comt:29:" :substr)==nil
+ok=ok&&if1Clean&&if2Clean&&if3Flagged&&at1Clean&&at2Clean&&at3Flagged&&mixedClean
+print("1 comlint caches if()'s keyword set and at()'s arity facts after\n    their first call, but a cached entry still catches a real\n    violation on a later call rather than going quiet (if(1 :bogus 2)\n    and at() with an extra argument, expect true x7), and switch()'s\n    own cache entry stays independent of if()'s (expect true): %v %v %v %v %v %v %v\n\n"
+  if1Clean if2Clean if3Flagged at1Clean at2Clean at3Flagged mixedClean)
+prev_ok=check_fail(:ok ok)
+
+print("\ncomlint_cache: %v\n" ok)
+ok

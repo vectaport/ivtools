@@ -51,7 +51,7 @@ i = 0;
 for(i=0 i<nw i++ draw_wedge(:wi i));
 
 /* --- white pole cap so the wedges read as a sphere --- */
-cap = ellipse(cx cy r/6 r/6);
+cap = ellipse(cx,cy,r/6,r/6);
 select(cap);
 colors("#ffffff" "#ffffff");
 

@@ -191,6 +191,88 @@ mlbal=0
 incomm=0
 idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
 
+/* a command's declared-keyword-set and positional-arity facts are both
+   pure functions of its docstring, so each is scanned from help() at
+   most once per distinct command name and kept in a global variable
+   named by symvar()/symval() (not dot-attributes, which namespace by
+   the lexical token at the call site, not by the symbol value a
+   variable holds -- confirmed by trial against the interpreter) --
+   reused by every later call site for that command, whether checking
+   keywords or positional arity */
+kwcachepfx="_comlint_kwcache_"
+aritycachepfx="_comlint_aritycache_"
+
+/* a call marker is a "name[nargs|nkeys|misc]" token, optionally suffixed
+   '*' -- always a trailing shape with nothing after it, which is what
+   distinguishes a real one from a plain string-literal token that merely
+   contains '[' and ']' characters of its own (e.g. a pgrep pattern like
+   "'[d]rawserv'") and would otherwise be misread as a call. */
+/* subtreestart(toks idx) is called as
+   subtreestart(attrlist(:pftoks toks :pfidx idx)) -- a single packed
+   argument, read back as arg(0) -- never as two positional args
+   ("list(toks idx)" doesn't pack either: list() takes exactly one
+   value and copies/converts it, so a second positional arg is
+   silently dropped). This script re-execs a textually patched copy of
+   its own source under comdraw/drawserv (see "program" above), which
+   finds-and-replaces the literal text "arg(1)"/"arg(2)"/"arg(3)"/
+   "arg(4)" ANYWHERE in the file, oblivious to func scoping -- a second
+   positional func arg here would read back as the OUTER script's own
+   target/program/nokeysarg instead of this func's real argument. */
+global(comlint_pf)=(:subtreestart func(
+  /* walking backward from a call's own marker token to find its
+     supplied keywords (see the :then/:else search below) must skip
+     clean over a NESTED call's entire argument/keyword span, never
+     wander into it token-by-token -- a nested call's own keyword
+     markers would otherwise be mistaken for the outer call's. This
+     returns the index of the first token of the value/call subtree
+     whose own last token sits at idx, so the caller can jump straight
+     there instead of stepping backward one token at a time. */
+  temp(packed)=arg(0);temp(toks)=packed.pftoks;temp(idx)=packed.pfidx;
+  temp(tok)=at(toks idx);
+  temp(lb)=index(tok "[");
+  temp(rb)=if(lb!=nil :then index(tok "]" :last) :else nil);
+  temp(tsz)=size(tok);
+  temp(iscall)=(lb!=nil && rb!=nil &&
+    (rb==tsz-1 || (rb==tsz-2 && substr(tok tsz-1 :after)=="*")));
+  if(!iscall :then
+    /* a string literal containing an embedded newline renders back
+       through postfix() as several comma-joined fragments, one token
+       each -- a fragment that isn't the first carries the whole
+       preceding fragment as one more token to skip */
+    temp(res)=idx;temp(more)=true;
+    while(more && res>0
+      temp(ptok)=at(toks res-1);temp(plen)=size(ptok);
+      temp(iscont)=(plen>=2 && substr(ptok plen-2 :after)=="\",");
+      if(iscont :then res=res-1 :else more=false));
+    return(res));
+  temp(counts)=substr(substr(tok lb+1 :after) "]");
+  temp(ctoks)=split(counts :tokstr '|');
+  if(size(ctoks)<2 :then return(idx));
+  temp(cnargs)=int(at(ctoks 0));temp(cnkeys)=int(at(ctoks 1));
+  temp(j)=idx-1;
+  temp(kcovered)=0;
+  temp(ki)=0;
+  while(ki<cnkeys && j>=0
+    temp(ktok)=at(toks j);
+    temp(kp)=index(ktok "(");
+    temp(kargn)=1;
+    if(kp!=nil :then
+      temp(kcountstr)=substr(substr(ktok kp+1 :after) ")");
+      if(size(kcountstr)>0 :then kargn=int(kcountstr)));
+    j=j-1;
+    temp(vi)=0;
+    while(vi<kargn && j>=0
+      j=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx j))-1;
+      vi=vi+1);
+    kcovered=kcovered+kargn;
+    ki=ki+1);
+  temp(ai)=0;
+  temp(remaining)=cnargs-kcovered;
+  while(ai<remaining && j>=0
+    j=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx j))-1;
+    ai=ai+1);
+  j+1))
+
 /* armed by a '// comlint:allow -- <reason>' comment line and consumed by
    the next statement's own first line, whatever blank lines or other
    comments sit in between -- only a non-matching comment line clears it
@@ -598,12 +680,6 @@ while((srcline=gets(fp))!=nil
 
     nchecked=nchecked+1;
 
-    helpcmd=print("help(%s)" name :str);
-    helptext=eval(helpcmd);
-    if(!istype(helptext StringType) :then continue);
-    helplines=split(helptext :tokstr '\n');
-    sig=at(helplines 0);
-
     if(obsnkey>0 :then
       /* a call that supplies a keyword commonly uses an alternate
          calling convention (e.g. class(:comps), global(:dump)) that
@@ -611,89 +687,134 @@ while((srcline=gets(fp))!=nil
          validate -- skip that check, but the keyword names themselves
          are still checkable against the command's declared set,
          independent of arity */
-      declared=" ";wildcard=false;hli=0;
-      while(hli<size(helplines) && !wildcard
-        hline=at(helplines hli);
-        hli=hli+1;
-        /* three documented wildcard idioms mean any keyword name is
-           accepted: ":<name>" (attrlist's [:<name> [val]]),
-           ":key val..." (echo's [:key val...]), and ":keyword value"
-           (setattr's [:keyword value [...]]) -- skip this whole
-           command's keyword check rather than flag a name it
-           deliberately doesn't enumerate */
-        if(index(hline ":<")!=nil || index(hline ":key ")!=nil ||
-          index(hline ":keyword ")!=nil :then
-          wildcard=true;continue);
-        /* a dockeys() line is always "        :name[ placeholder]
-           <padding>description..." (helpfunc.c pads every entry with
-           a fixed 8-space indent) -- but split(:tokstr) trims that
-           indent off, so the reliable signal left is that a dockeys
-           line's first character is ':' where a signature line's
-           never is (it always leads with a return-value prefix or the
-           command name itself). The declared name on a dockeys line is
-           only its first token. A signature line has no comparable
-           indent to strip, and a keyword there can glue straight onto
-           an opening paren with no separating space (e.g. beep's
-           "beep(:count)"), so it needs a character scan rather than
-           space-tokenizing, bounded to before " -- " so a free-text
-           description mentioning :name-shaped return-value fields
-           (e.g. grid's "grid(:table) -- ... list of (:grid :comptype
-           ...) rows") is never read as more accepted keywords */
-        isdockeys=(substr(hline 1)==":");
-        if(isdockeys :then
-          htoks=split(hline :tokstr ' ');hti=0;firsttok=nil;
-          while(hti<size(htoks) && firsttok==nil
-            htok=at(htoks hti);
-            hti=hti+1;
-            if(size(htok)>0 :then firsttok=htok));
-          if(firsttok!=nil :then
-            atoks=split(firsttok :tokstr '|');ati=0;
-            while(ati<size(atoks)
-              atok=at(atoks ati);
-              ati=ati+1;
-              if(substr(atok 1)!=":" :then continue);
-              /* ":str|:string" aliases two spellings for one keyword --
-                 check each alias separately */
-              nm=":";nci=1;nchars=split(atok);
-              while(nci<size(nchars)
-                nc=at(nchars nci);
-                nci=nci+1;
-                if(index(idchars nc)==nil :then break);
-                nm=nm+nc);
+      kwcsym=symadd(kwcachepfx+name);
+      kwcval=symval(kwcsym);
+      kwcachehit=istype(kwcval ObjectType);
+      if(kwcachehit :then
+        declared=kwcval.declared;
+        wildcard=kwcval.wildcard);
+      if(!kwcachehit :then
+        /* fetching and re-parsing help()'s text is the whole cost this
+           cache exists to avoid, so it only happens here, on a miss --
+           a repeat call to an already-cached command never touches
+           help() at all */
+        helpcmd=print("help(%s)" name :str);
+        helptext=eval(helpcmd);
+        if(!istype(helptext StringType) :then continue);
+        /* help() on a name this comlint process never defined (a local
+           func() the target script only creates via its own run(),
+           which comlint deliberately never executes) answers ""
+           rather than nil -- the same "nothing to validate against"
+           case as an unparseable signature below, just arriving as an
+           empty string instead of a missing one */
+        if(size(helptext)==0 :then continue);
+        helplines=split(helptext :tokstr '\n');
+        declared=" ";wildcard=false;hli=0;
+        while(hli<size(helplines) && !wildcard
+          hline=at(helplines hli);
+          hli=hli+1;
+          /* three documented wildcard idioms mean any keyword name is
+             accepted: ":<name>" (attrlist's [:<name> [val]]),
+             ":key val..." (echo's [:key val...]), and ":keyword value"
+             (setattr's [:keyword value [...]]) -- skip this whole
+             command's keyword check rather than flag a name it
+             deliberately doesn't enumerate */
+          if(index(hline ":<")!=nil || index(hline ":key ")!=nil ||
+            index(hline ":keyword ")!=nil :then
+            wildcard=true;continue);
+          /* a dockeys() line is always "        :name[ placeholder]
+             <padding>description..." (helpfunc.c pads every entry with
+             a fixed 8-space indent) -- but split(:tokstr) trims that
+             indent off, so the reliable signal left is that a dockeys
+             line's first character is ':' where a signature line's
+             never is (it always leads with a return-value prefix or the
+             command name itself). The declared name on a dockeys line is
+             only its first token. A signature line has no comparable
+             indent to strip, and a keyword there can glue straight onto
+             an opening paren with no separating space (e.g. beep's
+             "beep(:count)"), so it needs a character scan rather than
+             space-tokenizing, bounded to before " -- " so a free-text
+             description mentioning :name-shaped return-value fields
+             (e.g. grid's "grid(:table) -- ... list of (:grid :comptype
+             ...) rows") is never read as more accepted keywords */
+          isdockeys=(substr(hline 1)==":");
+          if(isdockeys :then
+            htoks=split(hline :tokstr ' ');hti=0;firsttok=nil;
+            while(hti<size(htoks) && firsttok==nil
+              htok=at(htoks hti);
+              hti=hti+1;
+              if(size(htok)>0 :then firsttok=htok));
+            if(firsttok!=nil :then
+              atoks=split(firsttok :tokstr '|');ati=0;
+              while(ati<size(atoks)
+                atok=at(atoks ati);
+                ati=ati+1;
+                if(substr(atok 1)!=":" :then continue);
+                /* ":str|:string" aliases two spellings for one keyword --
+                   check each alias separately */
+                nm=":";nci=1;nchars=split(atok);
+                while(nci<size(nchars)
+                  nc=at(nchars nci);
+                  nci=nci+1;
+                  if(index(idchars nc)==nil :then break);
+                  nm=nm+nc);
+                if(size(nm)>1 :then declared=declared+nm+" "))));
+          if(!isdockeys :then
+            dd=index(hline " -- ");
+            if(dd==nil :then scanpart=hline);
+            if(dd!=nil :then scanpart=substr(hline dd));
+            schars=split(scanpart);sci=0;
+            while(sci<size(schars)
+              sc=at(schars sci);
+              sci=sci+1;
+              if(sc!=':' :then continue);
+              nm=":";innerdone=false;
+              while(sci<size(schars) && !innerdone
+                sc2=at(schars sci);
+                if(index(idchars sc2)==nil :then innerdone=true;continue);
+                nm=nm+sc2;
+                sci=sci+1);
               if(size(nm)>1 :then declared=declared+nm+" "))));
-        if(!isdockeys :then
-          dd=index(hline " -- ");
-          if(dd==nil :then scanpart=hline);
-          if(dd!=nil :then scanpart=substr(hline dd));
-          schars=split(scanpart);sci=0;
-          while(sci<size(schars)
-            sc=at(schars sci);
-            sci=sci+1;
-            if(sc!=':' :then continue);
-            nm=":";innerdone=false;
-            while(sci<size(schars) && !innerdone
-              sc2=at(schars sci);
-              if(index(idchars sc2)==nil :then innerdone=true;continue);
-              nm=nm+sc2;
-              sci=sci+1);
-            if(size(nm)>1 :then declared=declared+nm+" "))));
+        /* attrlist(:declared declared ...) with the value variable named
+           the same as its own keyword parses the value as a bare symbol
+           instead of evaluating the variable -- alias to a differently
+           named local first */
+        kwdeclared=declared;kwwildcard=wildcard;
+        symvar(kwcsym)=attrlist(:declared kwdeclared :wildcard kwwildcard));
 
       if(!wildcard :then
         /* the keyword markers this call actually supplied are the
-           obsnkey nearest keyword-shaped tokens walking back from
+           obsnkey nearest keyword-shaped markers walking back from
            this call's own marker -- keywords are always the last
            thing evaluated before a call fires ("Fixed Before Keywords
            Always", doc/LANGUAGE.md), so they're the nearest matches in
-           the flat postfix stream regardless of how many plain values
-           or nested calls sit between them */
+           the flat postfix stream. A keyword's own value (e.g. if()'s
+           :then/:else branch) is skipped wholesale via subtreestart()
+           once its marker is found, rather than walked token-by-token
+           -- that value may itself be, or contain, a nested call using
+           its own keywords, which must never be mistaken for this
+           call's. A non-keyword call marker met before any keyword of
+           this call's own is skipped the same way, for the same
+           reason. */
         kfound=0;kidx=ti-2;
         while(kfound<obsnkey && kidx>=0
           ktok=at(toks kidx);
-          kidx=kidx-1;
-          if(substr(ktok 1)!=":" :then continue);
+          iskw=(substr(ktok 1)==":" && index(ktok "(")!=nil);
+          if(!iskw :then
+            if(index(ktok "[")!=nil :then
+              kidx=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx kidx))-1
+            :else
+              kidx=kidx-1);
+            continue);
           kp=index(ktok "(");
-          if(kp==nil :then continue);
           kwname=substr(ktok "(");
+          kcountstr=substr(substr(ktok kp+1 :after) ")");
+          kargn=if(size(kcountstr)>0 :then int(kcountstr) :else 1);
+          kidx=kidx-1;
+          kvi=0;
+          while(kvi<kargn && kidx>=0
+            kidx=global(comlint_pf).subtreestart(attrlist(:pftoks toks :pfidx kidx))-1;
+            kvi=kvi+1);
           if(size(kwname)<=1 :then continue);
           kfound=kfound+1;
           /* bound the search in its own variable rather than writing
@@ -711,131 +832,153 @@ while((srcline=gets(fp))!=nil
             if(stmtallowed :then nwarnok=nwarnok+1 :else nwarn=nwarn+1))));
       continue);
 
-    op=index(sig "(");
-    dd=index(sig " -- ");
-    /* a "(" found only past " -- " belongs to the free-text
-       description (e.g. spread's "...into a stream (or list)..."),
-       not a signature -- this docstring has no real one, so it must
-       be treated the same as op==nil rather than mined for an arglist */
-    if(op==nil || dd==nil || op>dd :then continue);
+    acsym=symadd(aritycachepfx+name);
+    acval=symval(acsym);
+    acachehit=istype(acval ObjectType);
+    if(acachehit :then
+      noarity=acval.noarity;
+      required=acval.required;
+      maxopt=acval.maxopt;
+      unbounded=acval.unbounded);
+    if(!acachehit :then
+      helpcmd=print("help(%s)" name :str);
+      helptext=eval(helpcmd);
+      if(!istype(helptext StringType) :then continue);
+      if(size(helptext)==0 :then continue);
+      helplines=split(helptext :tokstr '\n');
+      sig=at(helplines 0);
+      op=index(sig "(");
+      dd=index(sig " -- ");
+      /* a "(" found only past " -- " belongs to the free-text
+         description (e.g. spread's "...into a stream (or list)..."),
+         not a signature -- this docstring has no real one, so it must
+         be treated the same as op==nil rather than mined for an arglist */
+      noarity=(op==nil || dd==nil || op>dd);
+      if(!noarity :then
+        /* cutting at the first ")" (rather than the one matching the "("
+           just found) truncates a signature whose own arg list embeds a
+           parenthetical before its real close, e.g. time()'s
+           "...:min(local)|y:Mon..." -- stopping at "(local)"'s ")" drops
+           everything after it, including the "]" that would otherwise
+           close its enclosing bracket and credit it toward maxopt */
+        after=substr(sig op+1 :after);
+        achars=split(after);
+        pdepth=0;
+        pci=0;
+        pend=nil;
+        while(pci<size(achars) && pend==nil
+          pc=at(achars pci);
+          if(pc=='(' :then pdepth=pdepth+1);
+          if(pc==')' :then
+            if(pdepth==0 :then pend=pci :else pdepth=pdepth-1));
+          pci=pci+1);
+        noarity=(pend==nil);
+        if(!noarity :then
+          arglist=substr(after pend);
+          if(arglist==nil :then arglist="");
 
-    /* cutting at the first ")" (rather than the one matching the "("
-       just found) truncates a signature whose own arg list embeds a
-       parenthetical before its real close, e.g. time()'s
-       "...:min(local)|y:Mon..." -- stopping at "(local)"'s ")" drops
-       everything after it, including the "]" that would otherwise
-       close its enclosing bracket and credit it toward maxopt */
-    after=substr(sig op+1 :after);
-    achars=split(after);
-    pdepth=0;
-    pci=0;
-    pend=nil;
-    while(pci<size(achars) && pend==nil
-      pc=at(achars pci);
-      if(pc=='(' :then pdepth=pdepth+1);
-      if(pc==')' :then
-        if(pdepth==0 :then pend=pci :else pdepth=pdepth-1));
-      pci=pci+1);
-    if(pend==nil :then continue);
-    arglist=substr(after pend);
-    if(arglist==nil :then arglist="");
+          /* scanned character by character, not space-tokenized: a bracket
+             group can hold several space-separated names (gridspacing's
+             "[xsize ysize]", both count toward the max, not just the one
+             slot the group itself occupies) and "|" alternatives -- at the
+             top level (substr's "str n|str", at's "list|attrlist|compview")
+             or inside a group (colors' "[fgcolornum bgcolornum |
+             fgcolorname bgcolorname]") -- take the max of either side's
+             count, not their sum, since only one side is ever supplied at
+             once. run0/max0 is the top level (feeding required the same way
+             a bracket feeds maxopt); run1-3/max1-3 track up to 3 levels of
+             "[" nesting (open's "[filename [modestr]]" is 2). runN is the
+             token count since level N's last "|" (or its start), maxN the
+             highest count an alternative at that level has reached so far.
+             bdepth (not "depth") -- comdraw/drawserv register a depth()
+             command of their own, and this script runs under whichever
+             program it's checking. */
+          argchars=split(arglist);
+          maxopt=0;
+          unbounded=false;
+          bdepth=0;
+          run0=0;run1=0;run2=0;run3=0;
+          max0=0;max1=0;max2=0;max3=0;
+          word="";
+          donescan=false;
+          aci=0;
+          while(aci<size(argchars) && !donescan
+            ch=at(argchars aci);
+            aci=aci+1;
+            /* split() yields CharType elements, not 1-char strings -- '['
+               compares a CharType literal against them; a quoted "[" would
+               silently and permanently compare false (no CharType/StringType
+               coercion), making isstruct always false and this whole scan a
+               no-op that just accumulates the entire arglist into one word */
+            isstruct=(ch=='[' || ch==']' || ch=='|' || ch==' ');
+            if(!isstruct :then word=word+ch;continue);
 
-    /* scanned character by character, not space-tokenized: a bracket
-       group can hold several space-separated names (gridspacing's
-       "[xsize ysize]", both count toward the max, not just the one
-       slot the group itself occupies) and "|" alternatives -- at the
-       top level (substr's "str n|str", at's "list|attrlist|compview")
-       or inside a group (colors' "[fgcolornum bgcolornum |
-       fgcolorname bgcolorname]") -- take the max of either side's
-       count, not their sum, since only one side is ever supplied at
-       once. run0/max0 is the top level (feeding required the same way
-       a bracket feeds maxopt); run1-3/max1-3 track up to 3 levels of
-       "[" nesting (open's "[filename [modestr]]" is 2). runN is the
-       token count since level N's last "|" (or its start), maxN the
-       highest count an alternative at that level has reached so far.
-       bdepth (not "depth") -- comdraw/drawserv register a depth()
-       command of their own, and this script runs under whichever
-       program it's checking. */
-    argchars=split(arglist);
-    maxopt=0;
-    unbounded=false;
-    bdepth=0;
-    run0=0;run1=0;run2=0;run3=0;
-    max0=0;max1=0;max2=0;max3=0;
-    word="";
-    donescan=false;
-    aci=0;
-    while(aci<size(argchars) && !donescan
-      ch=at(argchars aci);
-      aci=aci+1;
-      /* split() yields CharType elements, not 1-char strings -- '['
-         compares a CharType literal against them; a quoted "[" would
-         silently and permanently compare false (no CharType/StringType
-         coercion), making isstruct always false and this whole scan a
-         no-op that just accumulates the entire arglist into one word */
-      isstruct=(ch=='[' || ch==']' || ch=='|' || ch==' ');
-      if(!isstruct :then word=word+ch;continue);
+            if(size(word)>0 :then
+              /* checked as a substring, not an exact token match, since
+                 "..." can be glued onto a bracket with no separating space
+                 (help's [command...]) or onto a value name (sum()'s
+                 "valn..."/"...,valn") -- either way this word is a repeat
+                 marker, not a positional slot of its own, and it makes the
+                 max-positional check skipped entirely for this command */
+              haselip=(index(word "...")!=nil);
+              if(haselip :then unbounded=true);
+              iskw=(substr(word 1)==":");
+              if(bdepth==0 && iskw :then donescan=true);
+              if(!donescan && !iskw && !haselip :then
+                if(bdepth==0 :then run0=run0+1);
+                if(bdepth==1 :then run1=run1+1);
+                if(bdepth==2 :then run2=run2+1);
+                if(bdepth==3 :then run3=run3+1));
+              word="");
 
-      if(size(word)>0 :then
-        /* checked as a substring, not an exact token match, since
-           "..." can be glued onto a bracket with no separating space
-           (help's [command...]) or onto a value name (sum()'s
-           "valn..."/"...,valn") -- either way this word is a repeat
-           marker, not a positional slot of its own, and it makes the
-           max-positional check skipped entirely for this command */
-        haselip=(index(word "...")!=nil);
-        if(haselip :then unbounded=true);
-        iskw=(substr(word 1)==":");
-        if(bdepth==0 && iskw :then donescan=true);
-        if(!donescan && !iskw && !haselip :then
-          if(bdepth==0 :then run0=run0+1);
-          if(bdepth==1 :then run1=run1+1);
-          if(bdepth==2 :then run2=run2+1);
-          if(bdepth==3 :then run3=run3+1));
-        word="");
+            if(donescan :then continue);
 
-      if(donescan :then continue);
+            if(ch=='[' :then
+              bdepth=bdepth+1;
+              if(bdepth==1 :then run1=0;max1=0);
+              if(bdepth==2 :then run2=0;max2=0);
+              if(bdepth==3 :then run3=0;max3=0);
+              continue);
 
-      if(ch=='[' :then
-        bdepth=bdepth+1;
-        if(bdepth==1 :then run1=0;max1=0);
-        if(bdepth==2 :then run2=0;max2=0);
-        if(bdepth==3 :then run3=0;max3=0);
-        continue);
+            if(ch=='|' :then
+              if(bdepth==0 :then max0=if(run0>max0 :then run0 :else max0);run0=0);
+              if(bdepth==1 :then max1=if(run1>max1 :then run1 :else max1);run1=0);
+              if(bdepth==2 :then max2=if(run2>max2 :then run2 :else max2);run2=0);
+              if(bdepth==3 :then max3=if(run3>max3 :then run3 :else max3);run3=0);
+              continue);
 
-      if(ch=='|' :then
-        if(bdepth==0 :then max0=if(run0>max0 :then run0 :else max0);run0=0);
-        if(bdepth==1 :then max1=if(run1>max1 :then run1 :else max1);run1=0);
-        if(bdepth==2 :then max2=if(run2>max2 :then run2 :else max2);run2=0);
-        if(bdepth==3 :then max3=if(run3>max3 :then run3 :else max3);run3=0);
-        continue);
+            if(ch==']' :then
+              if(bdepth==1 :then
+                cand=if(run1>max1 :then run1 :else max1);
+                maxopt=maxopt+cand;
+                bdepth=0);
+              if(bdepth==2 :then
+                cand=if(run2>max2 :then run2 :else max2);
+                bdepth=1;
+                run1=run1+cand);
+              if(bdepth==3 :then
+                cand=if(run3>max3 :then run3 :else max3);
+                bdepth=2;
+                run2=run2+cand);
+              continue));
 
-      if(ch==']' :then
-        if(bdepth==1 :then
-          cand=if(run1>max1 :then run1 :else max1);
-          maxopt=maxopt+cand;
-          bdepth=0);
-        if(bdepth==2 :then
-          cand=if(run2>max2 :then run2 :else max2);
-          bdepth=1;
-          run1=run1+cand);
-        if(bdepth==3 :then
-          cand=if(run3>max3 :then run3 :else max3);
-          bdepth=2;
-          run2=run2+cand);
-        continue));
+          /* flush a trailing word never followed by a space/bracket/pipe --
+             doesn't occur for any signature in this codebase today (every
+             arglist either ends in "]" or a lone required name before the
+             closing paren already stripped off by the substr() above), kept
+             only so a future signature shaped that way doesn't silently
+             drop its last positional */
+          if(size(word)>0 && !donescan && bdepth==0 :then
+            if(index(word "...")==nil && substr(word 1)!=":" :then
+              run0=run0+1));
 
-    /* flush a trailing word never followed by a space/bracket/pipe --
-       doesn't occur for any signature in this codebase today (every
-       arglist either ends in "]" or a lone required name before the
-       closing paren already stripped off by the substr() above), kept
-       only so a future signature shaped that way doesn't silently
-       drop its last positional */
-    if(size(word)>0 && !donescan && bdepth==0 :then
-      if(index(word "...")==nil && substr(word 1)!=":" :then
-        run0=run0+1));
+          required=if(run0>max0 :then run0 :else max0)));
+      /* same value/keyword name-collision pitfall as the keyword cache
+         above -- alias before building the attrlist */
+      acnoarity=noarity;acrequired=required;acmaxopt=maxopt;acunbounded=unbounded;
+      symvar(acsym)=attrlist(:noarity acnoarity :required acrequired :maxopt acmaxopt :unbounded acunbounded));
 
-    required=if(run0>max0 :then run0 :else max0);
+    if(noarity :then continue);
 
     if(obsnarg<required :then
       wtag=if(stmtallowed :then "WARN(overridden)" :else "WARN");
