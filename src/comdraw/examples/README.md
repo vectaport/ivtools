@@ -94,9 +94,9 @@ the drawing (and any funcs the script defined) live in the session.
 - **rast.comt** -- no graphics yet, the imaging-side building block: a
   sliding row-window over a packed `string(w*h UIntType)` raster, sized
   for kernel filters (blur, sharpen, edge detection) without ever
-  materializing the whole window at once. `rast.window` holds only the
+  materializing the whole window at once. `rast.sldwin` holds only the
   rows the current kernel height needs around the row being processed;
-  `rast.origin` is that row's index within `rast.window`. Calling
+  `rast.krnorig` is that row's index within `rast.sldwin`. Calling
   `rast.advance()` once per output row grows the window from nothing at
   the top edge, holds it steady in the middle, and shrinks it again at
   the bottom -- the column direction gets edge handling for free from a

@@ -95,7 +95,14 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]]) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
+      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]] :body) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":body      deprecated legacy sole-body idiom, ignored when a positional body is also given",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: while-loop command for ComTerp.
@@ -107,11 +114,12 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "val=%s(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until ) -- while loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
+      return "val=%s(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until :body) -- while loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":nilchk    check testexpr for nil instead of false",
 	":until     evaluate testexpr after bodyexpr",
+	":body      deprecated legacy sole-body idiom, ignored when a positional body is also given",
 	nil
       };
       return keys;
