@@ -1699,9 +1699,13 @@ static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& o
 static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
   static int seq_symid = symbol_add("seq");
   if (is_seq_node(node, seq_symid)) {
+    /* 'depth' is where the chain's first statement already sits (the
+       caller's own manual indent); funcobj_unparse_stmts adds its own +1
+       for continuation lines, so back off by one here to land them at
+       that same depth instead of one past it. */
     AttributeValueList* flat = new AttributeValueList();
     funcobj_flatten_seq(node, flat);
-    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth - 1);
     delete flat;
   } else
     funcobj_unparse(node, out, comterp, depth);
