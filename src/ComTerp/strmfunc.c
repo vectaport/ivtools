@@ -29,12 +29,14 @@
 #include <ComTerp/iofunc.h>
 #include <ComTerp/listfunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/postfixspan.h>
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
 #include <algorithm>
+#include <sstream>
 #include <vector>
 
 #define TITLE "StrmFunc"
@@ -1598,6 +1600,271 @@ void StreamLiteralNextFunc::execute() {
 /*****************************************************************************/
 
 
+/* is_command_node -- true if a postfix_nest_into()-built node is a call
+   whose operator is the given symbol (an "assign" or "seq" node, say) --
+   distinct from a leaf symbol reference, which carries no operand list. */
+static boolean is_command_node(ComValue& node, int opsymid) {
+  if (node.type() != ComValue::ArrayType) return false;
+  AttributeValueList* avl = node.array_val();
+  if (!avl || avl->Number() == 0) return false;
+  ComValue op(*avl->Get(0));
+  return op.is_type(ComValue::SymbolType) && op.symbol_val() == opsymid;
+}
+
+/* is_seq_node -- true for a well-formed binary seq node: op + exactly 2
+   operands, the shape ";" (OPTYPE_BINARY, optable.c) always produces. */
+static boolean is_seq_node(ComValue& node, int seq_symid) {
+  return is_command_node(node, seq_symid) && node.array_val()->Number() == 3;
+}
+
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth);
+static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth);
+
+static const char* INDENT_UNIT = "  ";
+
+static std::string funcobj_indent(int depth) {
+  std::string ind;
+  for (int i = 0; i < depth; i++) ind += INDENT_UNIT;
+  return ind;
+}
+
+/* Prints avl's entries from index 'first' on, separated by 'sep', eliding
+   past comterp's cutoff() the same way ArrayType printing already does
+   (comvalue.c's ArrayType case) -- "{N more}" standing in for the rest.
+   'count' caps how many entries from 'first' are considered (e.g. for()'s
+   first 3 args, its 4th rendered separately); -1 means the rest of avl.
+   'bare', for a for()/while() body list, splices a ';'-chain element the
+   same unwrapped way funcobj_unparse_bare does (each body slot accepts
+   one independently, same as func()'s own last span). */
+static void funcobj_unparse_list(AttributeValueList* avl, int first, const char* sep,
+                                  ostream& out, ComTerp* comterp, int depth, int count = -1,
+                                  boolean bare = false) {
+  int total = avl->Number() - first;
+  if (count >= 0 && count < total) total = count;
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << sep;
+    ComValue elt(*avl->Get(first + i));
+    if (bare) funcobj_unparse_bare(elt, out, comterp, depth);
+    else funcobj_unparse(elt, out, comterp, depth);
+  }
+  if (shown < total) out << sep << "{" << (total - shown) << " more}";
+}
+
+/* funcobj_flatten_seq -- a ';'-chain of N statements nests as N-1 strictly
+   binary seq nodes, left-associative (a;b;c;d is {seq,{seq,{seq,a,b},c},d}).
+   Flattens that left spine into 'out' in left-to-right statement order, so
+   it renders as one flat list instead of mirroring the parse nesting. Only
+   the left/first operand is descended into; a right operand that is itself
+   a seq node (from an explicit, non-default right-grouping) is kept as one
+   statement rather than flattened, preserving its deliberate grouping. */
+static void funcobj_flatten_seq(ComValue& node, AttributeValueList* out) {
+  static int seq_symid = symbol_add("seq");
+  AttributeValueList* avl = node.array_val();
+  ComValue left(*avl->Get(1));
+  if (is_seq_node(left, seq_symid))
+    funcobj_flatten_seq(left, out);
+  else
+    out->Append(new AttributeValue(left));
+  ComValue right(*avl->Get(2));
+  out->Append(new AttributeValue(right));
+}
+
+/* funcobj_unparse_stmts -- renders a flat statement list one statement per
+   line, indented one level past 'depth'; 'depth' is the chain's own
+   enclosing indent. Callers flatten a seq node via funcobj_flatten_seq
+   first, so a multi-statement ';'-chain renders at one uniform depth
+   rather than staircasing deeper per statement. */
+static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& out,
+                                   ComTerp* comterp, int depth) {
+  std::string ind = funcobj_indent(depth + 1);
+  int total = avl->Number() - first;
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << ";\n" << ind;
+    ComValue elt(*avl->Get(first + i));
+    funcobj_unparse(elt, out, comterp, depth + 1);
+  }
+  if (shown < total) out << ";\n" << ind << "{" << (total - shown) << " more}";
+}
+
+/* funcobj_unparse_bare -- renders a slot that already accepts a bare
+   ';'-chain unwrapped (a keyword value, or the sole body of while()/for(),
+   same as func()'s own last span) -- parenthesizing it there would reparse
+   as a different, larger token stream, so a seq node splices its flattened
+   statements directly instead of going through funcobj_unparse's generic,
+   always-parenthesizing seq branch. */
+static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
+  static int seq_symid = symbol_add("seq");
+  if (is_seq_node(node, seq_symid)) {
+    AttributeValueList* flat = new AttributeValueList();
+    funcobj_flatten_seq(node, flat);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+    delete flat;
+  } else
+    funcobj_unparse(node, out, comterp, depth);
+}
+
+/* funcobj_unparse -- renders one postfix_nest_into() tree node as source
+   for :source below. A leaf streams via ComValue's own brief operator<<;
+   a call's own operator symbol is read directly to skip its narg/nkey
+   token-count annotation. 'depth' is this node's own indent level, used
+   only by a nested ';'-chain to indent one level deeper. */
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
+  static int assign_symid = symbol_add("assign");
+  static int seq_symid = symbol_add("seq");
+  static int if_symid = symbol_add("if");
+  static int for_symid = symbol_add("for");
+  static int while_symid = symbol_add("while");
+
+  if (node.type() == ComValue::ObjectType &&
+      node.class_symid() == AttributeList::class_symid()) {
+    /* a keyword tuple, folded by postfix_nest_into into a one-entry
+       attrlist -- a bare flag's value is an empty list. */
+    AttributeList* al = (AttributeList*)node.obj_val();
+    ALIterator ai;
+    al->First(ai);
+    Attribute* attr = al->GetAttr(ai);
+    ComValue val(*attr->Value());
+    out << ":" << symbol_pntr(attr->SymbolId());
+    if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
+      out << " ";
+      funcobj_unparse_bare(val, out, comterp, depth);
+    }
+    return;
+  }
+
+  if (is_command_node(node, assign_symid) && node.array_val()->Number() == 3) {
+    AttributeValueList* avl = node.array_val();
+    ComValue lhs(*avl->Get(1)), rhs(*avl->Get(2));
+    funcobj_unparse(lhs, out, comterp, depth);
+    out << "=";
+    funcobj_unparse(rhs, out, comterp, depth);
+    return;
+  }
+  if (is_seq_node(node, seq_symid)) {
+    AttributeValueList* flat = new AttributeValueList();
+    funcobj_flatten_seq(node, flat);
+    out << "(\n" << funcobj_indent(depth + 1);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+    out << "\n" << funcobj_indent(depth) << ")";
+    delete flat;
+    return;
+  }
+  /* if(cond :then ... [:else ...]) -- each keyword clause's value ends
+     a line, so :else and the closing paren start their own lines at
+     if('s own depth rather than trailing the previous clause. */
+  if (is_command_node(node, if_symid) && node.array_val()->Number() >= 3) {
+    AttributeValueList* avl = node.array_val();
+    int nkw = avl->Number() - 2;
+    out << "if(";
+    ComValue cond(*avl->Get(1));
+    funcobj_unparse(cond, out, comterp, depth);
+    for (int i = 0; i < nkw; i++) {
+      if (i == 0) out << " ";
+      ComValue kw(*avl->Get(2 + i));
+      funcobj_unparse(kw, out, comterp, depth);
+      if (i < nkw - 1) out << "\n" << funcobj_indent(depth);
+    }
+    out << "\n" << funcobj_indent(depth) << ")";
+    return;
+  }
+  /* for(init test step body) -- the body (its 4th argument) starts its
+     own indented line rather than trailing init/test/step. */
+  if (is_command_node(node, for_symid) && node.array_val()->Number() == 5) {
+    AttributeValueList* avl = node.array_val();
+    out << "for(";
+    funcobj_unparse_list(avl, 1, " ", out, comterp, depth, 3);
+    out << "\n" << funcobj_indent(depth + 1);
+    ComValue body(*avl->Get(4));
+    funcobj_unparse_bare(body, out, comterp, depth + 1);
+    out << ")";
+    return;
+  }
+  /* while(test body...) -- the body (one or more space-joined bodies,
+     per func()/for()'s own convention) starts its own indented line
+     rather than trailing the test expression. */
+  if (is_command_node(node, while_symid) && node.array_val()->Number() >= 3) {
+    AttributeValueList* avl = node.array_val();
+    out << "while(";
+    ComValue test(*avl->Get(1));
+    funcobj_unparse(test, out, comterp, depth);
+    out << "\n" << funcobj_indent(depth + 1);
+    funcobj_unparse_list(avl, 2, " ", out, comterp, depth + 1, -1, true);
+    out << ")";
+    return;
+  }
+  if (node.type() == ComValue::ArrayType) {
+    AttributeValueList* avl = node.array_val();
+    out << symbol_pntr(ComValue(*avl->Get(0)).symbol_val()) << "(";
+    funcobj_unparse_list(avl, 1, " ", out, comterp, depth);
+    out << ")";
+    return;
+  }
+
+  node.comterp(comterp);
+  out << node;
+}
+
+/* funcobj_source -- info(func)'s :source field: one space-separated
+   positional per FuncObj span, final span's ';'-chain spliced bare
+   (not parenthesized -- the paren-after-space trap, AGENTS.md). */
+static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
+  boolean oldbrief = comterp ? comterp->brief() : false;
+  if (comterp) comterp->brief(true);
+
+  AttributeValueList* spans = new AttributeValueList();
+  int offset = 0;
+  for (int i = 0; i < fo->nspans(); i++) {
+    int len = fo->spanlen(i);
+    postfix_nest_into(fo->toks() + offset, len, spans);
+    offset += len;
+  }
+
+  static int seq_symid = symbol_add("seq");
+  int nspans = spans->Number();
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && nspans > cutoff) ? cutoff : nspans;
+
+  /* a newline is plain whitespace to the parser, so a multi-statement
+     func reads better one statement per indented line; a single
+     statement stays on one line. */
+  AttributeValueList* lastflat = NULL;
+  int nstmts = shown;
+  if (shown == nspans && shown > 0) {
+    ComValue last(*spans->Get(shown - 1));
+    if (is_seq_node(last, seq_symid)) {
+      lastflat = new AttributeValueList();
+      funcobj_flatten_seq(last, lastflat);
+      nstmts += lastflat->Number() - 1;
+    }
+  }
+  boolean multiline = nstmts > 1;
+  std::string ind = funcobj_indent(1);
+  const char* sep = multiline ? "\n" : " ";
+
+  std::ostringstream out;
+  out << "func(" << (multiline ? "\n" + ind : "");
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << sep << (multiline ? ind : "");
+    if (i == shown - 1 && i == nspans - 1 && lastflat)
+      funcobj_unparse_stmts(lastflat, 0, out, comterp, 0);
+    else {
+      ComValue span(*spans->Get(i));
+      funcobj_unparse(span, out, comterp, 1);
+    }
+  }
+  if (shown < nspans) out << sep << (multiline ? ind : "") << "{" << (nspans - shown) << " more}";
+  out << (multiline ? "\n" : "") << ")";
+
+  delete lastflat;
+  delete spans;
+  if (comterp) comterp->brief(oldbrief);
+  return out.str();
+}
+
 InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
@@ -1623,7 +1890,27 @@ void InfoFunc::execute() {
       peeked_fo = (FuncObj*) resolved.obj_val();
   }
 
-  ComValue streamv(peeked_fo ? ComValue::nullval() : stack_arg_post_eval(0));
+  /* info(a.f) -- peek-fire a pending "dot" call, same as help(a.f)
+     (helpfunc.c): a FuncObj field is identified without being called;
+     any other field value is unwrapped for the dispatch below. */
+  static int dot_symid = symbol_add("dot");
+  boolean dot_fired = false;
+  ComValue dotval;
+  if (!peeked_fo && peekval.is_type(AttributeValue::CommandType) &&
+      peekval.command_symid()==dot_symid && peekval.narg()==2) {
+    dotval = stack_arg_post_eval(0, true);
+    dot_fired = true;
+    if (dotval.class_symid()==Attribute::class_symid()) {
+      Attribute* attr = (Attribute*) dotval.obj_val();
+      if (attr->Value()->is_object(FuncObj::class_symid()))
+	peeked_fo = (FuncObj*) attr->Value()->obj_val();
+      else
+	dotval = ComValue(*attr->Value());
+    }
+  }
+
+  ComValue streamv(peeked_fo ? ComValue::nullval() :
+		    dot_fired ? dotval : stack_arg_post_eval(0));
   reset_stack();
 
   if (peeked_fo) {
@@ -1631,12 +1918,15 @@ void InfoFunc::execute() {
     static int ntoks_sym = symbol_add("ntoks");
     static int nspans_sym = symbol_add("nspans");
     static int posteval_sym = symbol_add("posteval");
+    static int source_sym = symbol_add("source");
     ComValue ntoksv(peeked_fo->ntoks());
     ComValue nspansv(peeked_fo->nspans());
     ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
+    ComValue sourcev(funcobj_source(peeked_fo, comterp()).c_str());
     al->add_attr(ntoks_sym, ntoksv);
     al->add_attr(nspans_sym, nspansv);
     al->add_attr(posteval_sym, postevalv);
+    al->add_attr(source_sym, sourcev);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;

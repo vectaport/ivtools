@@ -44,6 +44,7 @@ print("4 delete(c), non-attribute argument (expect c unchanged, 3): %v\n" c)
 prev_ok=check_fail(:ok ok)
 
 // --- test 5: delete() with no arguments is a no-op ---
+// comlint:allow -- deliberately calls delete() with 0 args to exercise the no-op behavior under test
 r=delete()
 ok=ok&&(r==nil)
 print("5 delete() with no args (expect nil): %v\n" r)
