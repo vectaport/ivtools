@@ -1,5 +1,5 @@
-// info-obj.comt version 4
-print("info-obj.comt version 4\n")
+// info-obj.comt version 5
+print("info-obj.comt version 5\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -17,6 +17,8 @@ print("info-obj.comt version 4\n")
 //            to the same ntoks/nspans
 //   test 3c: info(f).source on a keyword/global-assign body
 //   test 3d: info(f).source respects cutoff() on a func with many bodies
+//   test 3g: info(f).source indents a ';'-chain nested inside a keyword
+//            value too, not just the top-level one
 //   test 3e: info(a.f) finds the FuncObj behind a dot expression without
 //            firing it; a non-func dotted field falls through to the
 //            ordinary dispatch on its own value
@@ -82,7 +84,7 @@ f3b=func(a b;a+b*2)
 i3b=info(f3b)
 g3b=run(i3b.source :str)
 ig3b=info(g3b)
-ok3b=(i3b.source=="func(\n\ta\n\tb;\n\tadd(a mpy(b 2))\n)")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
+ok3b=(i3b.source=="func(\n  a\n  b;\n  add(a mpy(b 2))\n)")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
 ok=ok&&ok3b
 print("3b f3b=func(a b;a+b*2); info(f3b).source, one statement per line: %v\n" i3b.source)
 prev_ok=check_fail(:ok ok)
@@ -92,7 +94,7 @@ prev_ok=check_fail(:ok ok)
 errmsg(:clear)
 f3c=func(x;global(y)=x*2)
 i3c=info(f3c)
-ok3c=(i3c.source=="func(\n\tx;\n\tglobal(y)=mpy(x 2)\n)")
+ok3c=(i3c.source=="func(\n  x;\n  global(y)=mpy(x 2)\n)")
 ok=ok&&ok3c
 print("3c f3c=func(x;global(y)=x*2); info(f3c).source, one statement per line: %v\n" i3c.source)
 prev_ok=check_fail(:ok ok)
@@ -104,10 +106,24 @@ orig_cutoff3d=cutoff()
 cutoff(2)
 f3d=func(1 2 3 4 5)
 i3d=info(f3d)
-ok3d=(i3d.source=="func(\n\t1\n\t2\n\t{3 more}\n)")
+ok3d=(i3d.source=="func(\n  1\n  2\n  {3 more}\n)")
 cutoff(orig_cutoff3d)
 ok=ok&&ok3d
 print("3d f3d=func(1 2 3 4 5) at cutoff(2); info(f3d).source, elided (expect func(1 2 {3 more}) with newlines): %v\n" i3d.source)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3g: info(f).source breaks a ';'-chain nested inside a keyword
+// value onto its own indented lines too, spliced bare like a func's own
+// last span rather than wrapped in parens (which would reparse as a
+// different, larger token stream) ---
+errmsg(:clear)
+f3g=func(x;if(x>0 :then y=1;return(y)))
+i3g=info(f3g)
+gg3g=run(i3g.source :str)
+igg3g=info(gg3g)
+ok3g=(i3g.source=="func(\n  x;\n  if(gt(x 0) :then y=1;\n    return(y))\n)")&&(igg3g.ntoks==i3g.ntoks)
+ok=ok&&ok3g
+print("3g f3g=func(x;if(x>0 :then y=1;return(y))); info(f3g).source, nested ';'-chain indented: %v\n" i3g.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3e: info(a.f) finds the FuncObj behind a dot expression

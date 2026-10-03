@@ -1611,33 +1611,62 @@ static boolean is_command_node(ComValue& node, int opsymid) {
   return op.is_type(ComValue::SymbolType) && op.symbol_val() == opsymid;
 }
 
-static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp);
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth);
+
+static const char* INDENT_UNIT = "  ";
+
+static std::string funcobj_indent(int depth) {
+  std::string ind;
+  for (int i = 0; i < depth; i++) ind += INDENT_UNIT;
+  return ind;
+}
 
 /* Prints avl's entries from index 'first' on, separated by 'sep', eliding
    past comterp's cutoff() the same way ArrayType printing already does
    (comvalue.c's ArrayType case) -- "{N more}" standing in for the rest. */
 static void funcobj_unparse_list(AttributeValueList* avl, int first, const char* sep,
-                                  ostream& out, ComTerp* comterp) {
+                                  ostream& out, ComTerp* comterp, int depth) {
   int total = avl->Number() - first;
   int cutoff = comterp ? comterp->cutoff() : 0;
   int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
   for (int i = 0; i < shown; i++) {
     if (i > 0) out << sep;
     ComValue elt(*avl->Get(first + i));
-    funcobj_unparse(elt, out, comterp);
+    funcobj_unparse(elt, out, comterp, depth);
   }
   if (shown < total) out << sep << "{" << (total - shown) << " more}";
+}
+
+/* funcobj_unparse_stmts -- renders a ';'-joined statement chain (a seq
+   node's own children) one statement per line, indented one level past
+   'depth'; 'depth' is the chain's own enclosing indent. */
+static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& out,
+                                   ComTerp* comterp, int depth) {
+  std::string ind = funcobj_indent(depth + 1);
+  int total = avl->Number() - first;
+  int cutoff = comterp ? comterp->cutoff() : 0;
+  int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
+  for (int i = 0; i < shown; i++) {
+    if (i > 0) out << ";\n" << ind;
+    ComValue elt(*avl->Get(first + i));
+    funcobj_unparse(elt, out, comterp, depth + 1);
+  }
+  if (shown < total) out << ";\n" << ind << "{" << (total - shown) << " more}";
 }
 
 /* funcobj_unparse -- renders one postfix_nest_into() tree node as source
    for :source below. A leaf streams via ComValue's own brief operator<<;
    a call's own operator symbol is read directly to skip its narg/nkey
-   token-count annotation. */
-static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp) {
+   token-count annotation. 'depth' is this node's own indent level, used
+   only by a nested ';'-chain to indent one level deeper. */
+static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
+  static int assign_symid = symbol_add("assign");
+  static int seq_symid = symbol_add("seq");
+
   if (node.type() == ComValue::ObjectType &&
       node.class_symid() == AttributeList::class_symid()) {
     /* a keyword tuple, folded by postfix_nest_into into a one-entry
-       attrlist -- a bare flag's value is an empty list */
+       attrlist -- a bare flag's value is an empty list. */
     AttributeList* al = (AttributeList*)node.obj_val();
     ALIterator ai;
     al->First(ai);
@@ -1646,31 +1675,35 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp) {
     out << ":" << symbol_pntr(attr->SymbolId());
     if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
       out << " ";
-      funcobj_unparse(val, out, comterp);
+      /* a ';'-chain value splices bare, like func's own last span --
+         a keyword slot already accepts it unwrapped, and parens here
+         would reparse as a different, larger token stream. */
+      if (is_command_node(val, seq_symid))
+        funcobj_unparse_stmts(val.array_val(), 1, out, comterp, depth);
+      else
+        funcobj_unparse(val, out, comterp, depth);
     }
     return;
   }
 
-  static int assign_symid = symbol_add("assign");
-  static int seq_symid = symbol_add("seq");
   if (is_command_node(node, assign_symid) && node.array_val()->Number() == 3) {
     AttributeValueList* avl = node.array_val();
     ComValue lhs(*avl->Get(1)), rhs(*avl->Get(2));
-    funcobj_unparse(lhs, out, comterp);
+    funcobj_unparse(lhs, out, comterp, depth);
     out << "=";
-    funcobj_unparse(rhs, out, comterp);
+    funcobj_unparse(rhs, out, comterp, depth);
     return;
   }
   if (is_command_node(node, seq_symid)) {
-    out << "(";
-    funcobj_unparse_list(node.array_val(), 1, ";", out, comterp);
-    out << ")";
+    out << "(\n" << funcobj_indent(depth + 1);
+    funcobj_unparse_stmts(node.array_val(), 1, out, comterp, depth);
+    out << "\n" << funcobj_indent(depth) << ")";
     return;
   }
   if (node.type() == ComValue::ArrayType) {
     AttributeValueList* avl = node.array_val();
     out << symbol_pntr(ComValue(*avl->Get(0)).symbol_val()) << "(";
-    funcobj_unparse_list(avl, 1, " ", out, comterp);
+    funcobj_unparse_list(avl, 1, " ", out, comterp, depth);
     out << ")";
     return;
   }
@@ -1709,19 +1742,20 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
       nstmts += last.array_val()->Number() - 2;
   }
   boolean multiline = nstmts > 1;
-  const char* sep = multiline ? "\n\t" : " ";
+  std::string ind = funcobj_indent(1);
+  const char* sep = multiline ? "\n" : " ";
 
   std::ostringstream out;
-  out << "func(" << (multiline ? "\n\t" : "");
+  out << "func(" << (multiline ? "\n" + ind : "");
   for (int i = 0; i < shown; i++) {
-    if (i > 0) out << sep;
+    if (i > 0) out << sep << (multiline ? ind : "");
     ComValue span(*spans->Get(i));
     if (i == shown - 1 && i == nspans - 1 && is_command_node(span, seq_symid))
-      funcobj_unparse_list(span.array_val(), 1, multiline ? ";\n\t" : ";", out, comterp);
+      funcobj_unparse_stmts(span.array_val(), 1, out, comterp, 0);
     else
-      funcobj_unparse(span, out, comterp);
+      funcobj_unparse(span, out, comterp, 1);
   }
-  if (shown < nspans) out << sep << "{" << (nspans - shown) << " more}";
+  if (shown < nspans) out << sep << (multiline ? ind : "") << "{" << (nspans - shown) << " more}";
   out << (multiline ? "\n" : "") << ")";
 
   delete spans;
