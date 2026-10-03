@@ -58,7 +58,7 @@ rast=(
     // full row window, time to remove the front and add to back
     cury=cury+1;
     at(sldwin 0 :del);
-    sldwin,in@(w*cury):(w*(cury+1));
+    sldwin,in@(w*(cury+half)):(w*(cury+half+1));
     return(cury)
 
   )
