@@ -1,5 +1,5 @@
-// info-obj.comt version 3
-print("info-obj.comt version 3\n")
+// info-obj.comt version 4
+print("info-obj.comt version 4\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -12,8 +12,9 @@ print("info-obj.comt version 3\n")
 //   test 3:  info(f) on a bare func name -- (:ntoks :nspans :posteval),
 //            and f itself is never called (no side effect fires)
 //   test 3b: info(f).source reconstructs a func(params;body) definition's
-//            compiled body as readable ComTerp source; run()-ing that
-//            returned string back round-trips to the same ntoks/nspans
+//            compiled body as readable ComTerp source, one statement per
+//            indented line; run()-ing that returned string back round-trips
+//            to the same ntoks/nspans
 //   test 3c: info(f).source on a keyword/global-assign body
 //   test 3d: info(f).source respects cutoff() on a func with many bodies
 //   test 3e: info(a.f) finds the FuncObj behind a dot expression without
@@ -81,9 +82,9 @@ f3b=func(a b;a+b*2)
 i3b=info(f3b)
 g3b=run(i3b.source :str)
 ig3b=info(g3b)
-ok3b=(i3b.source=="func(a b;add(a mpy(b 2)))")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
+ok3b=(i3b.source=="func(\n\ta\n\tb;\n\tadd(a mpy(b 2))\n)")&&(ig3b.ntoks==i3b.ntoks)&&(ig3b.nspans==i3b.nspans)
 ok=ok&&ok3b
-print("3b f3b=func(a b;a+b*2); info(f3b).source (expect func(a b;add(a mpy(b 2)))): %v\n" i3b.source)
+print("3b f3b=func(a b;a+b*2); info(f3b).source, one statement per line: %v\n" i3b.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3c: info(f).source on a keyword/global-assign body, proving
@@ -91,9 +92,9 @@ prev_ok=check_fail(:ok ok)
 errmsg(:clear)
 f3c=func(x;global(y)=x*2)
 i3c=info(f3c)
-ok3c=(i3c.source=="func(x;global(y)=mpy(x 2))")
+ok3c=(i3c.source=="func(\n\tx;\n\tglobal(y)=mpy(x 2)\n)")
 ok=ok&&ok3c
-print("3c f3c=func(x;global(y)=x*2); info(f3c).source (expect func(x;global(y)=mpy(x 2))): %v\n" i3c.source)
+print("3c f3c=func(x;global(y)=x*2); info(f3c).source, one statement per line: %v\n" i3c.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3d: info(f).source elides a func with many space-separated
@@ -103,10 +104,10 @@ orig_cutoff3d=cutoff()
 cutoff(2)
 f3d=func(1 2 3 4 5)
 i3d=info(f3d)
-ok3d=(i3d.source=="func(1 2 {3 more})")
+ok3d=(i3d.source=="func(\n\t1\n\t2\n\t{3 more}\n)")
 cutoff(orig_cutoff3d)
 ok=ok&&ok3d
-print("3d f3d=func(1 2 3 4 5) at cutoff(2); info(f3d).source (expect func(1 2 {3 more})): %v\n" i3d.source)
+print("3d f3d=func(1 2 3 4 5) at cutoff(2); info(f3d).source, elided (expect func(1 2 {3 more}) with newlines): %v\n" i3d.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3e: info(a.f) finds the FuncObj behind a dot expression

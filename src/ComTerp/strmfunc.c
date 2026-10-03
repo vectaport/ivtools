@@ -1695,21 +1695,34 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
   }
 
   static int seq_symid = symbol_add("seq");
-  std::ostringstream out;
-  out << "func(";
   int nspans = spans->Number();
   int cutoff = comterp ? comterp->cutoff() : 0;
   int shown = (cutoff > 0 && nspans > cutoff) ? cutoff : nspans;
+
+  /* a newline is plain whitespace to the parser, so a multi-statement
+     func reads better one statement per indented line; a single
+     statement stays on one line. */
+  int nstmts = shown;
+  if (shown == nspans && shown > 0) {
+    ComValue last(*spans->Get(shown - 1));
+    if (is_command_node(last, seq_symid))
+      nstmts += last.array_val()->Number() - 2;
+  }
+  boolean multiline = nstmts > 1;
+  const char* sep = multiline ? "\n\t" : " ";
+
+  std::ostringstream out;
+  out << "func(" << (multiline ? "\n\t" : "");
   for (int i = 0; i < shown; i++) {
-    if (i > 0) out << " ";
+    if (i > 0) out << sep;
     ComValue span(*spans->Get(i));
     if (i == shown - 1 && i == nspans - 1 && is_command_node(span, seq_symid))
-      funcobj_unparse_list(span.array_val(), 1, ";", out, comterp);
+      funcobj_unparse_list(span.array_val(), 1, multiline ? ";\n\t" : ";", out, comterp);
     else
       funcobj_unparse(span, out, comterp);
   }
-  if (shown < nspans) out << " {" << (nspans - shown) << " more}";
-  out << ")";
+  if (shown < nspans) out << sep << "{" << (nspans - shown) << " more}";
+  out << (multiline ? "\n" : "") << ")";
 
   delete spans;
   if (comterp) comterp->brief(oldbrief);
