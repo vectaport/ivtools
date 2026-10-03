@@ -322,11 +322,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (temp_escape_pos(escapes, nescapes, varsymid, &tpos) && operand.start >= tpos) continue;
 
             if (k == 0 && symid == assign_symid) {
-                /* the target's own token sits before its rhs in the buffer
-                   (naming the target is bookkeeping, not the write), so the
-                   write itself only takes effect once assign fires -- use
-                   this command's own token index, not the target's earlier
-                   one, as the write's position. */
+                /* the write happens at assign, after its rhs runs; the
+                   target's earlier token only names what to write. */
                 note_event(recs, nrecs, recs_cap, varsymid, EvWrite, i);
             } else if (k == 0 && is_compound_assign) {
                 note_event(recs, nrecs, recs_cap, varsymid, EvReadThenWrite, i);

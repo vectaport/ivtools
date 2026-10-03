@@ -482,5 +482,18 @@ ok=ok&&(r95c==2)
 print("22 obj59=(:n 1); obj59.getn=func(n); obj59.bumpthenread=func(n=n+1;getn()); obj59.bumpthenread() (expect 2 -- post-hoc-assigned getn() still sees the live n): %v\n\n" r95c)
 check_fail(:ok ok)
 
+// --- test 23: a bare leading statement that's just a read (x;x=1;x) is
+// classified ReadBeforeWrite, not WriteBeforeRead -- help() shows the
+// capture, and a self-bound call reverts it instead of leaking a
+// permanent field onto the receiver ---
+f60=func(x60;x60=1;x60)
+r96=help(f60)
+obj60=(:dummy60 0 :f60 func(x60;x60=1;x60))
+obj60.f60()
+r97=obj60.x60
+ok=ok&&(r96=="f60(:x60)")&&(r97==nil)
+print("23 f60=func(x60;x60=1;x60); help(f60), obj60.f60();obj60.x60 (expect \"f60(:x60)\" nil -- bare leading read x60 is captured, not leaked): %v %v\n\n" r96 r97)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
