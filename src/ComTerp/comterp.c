@@ -2006,6 +2006,7 @@ void ComTerp::add_defaults() {
 
     add_command("list", new ListFunc(this));
     add_command("attrlist", new AttrListFunc(this));
+    add_command("delete", new DeleteFunc(this));
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("shift", new ListShiftFunc(this));

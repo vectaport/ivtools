@@ -227,7 +227,20 @@ public:
     AttrListFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "alst=%s([:<name> [val]] :bincnt) -- create attribute list from keyword/value pairs"; }
+      return "alst=%s([:<name> [val]] :bincnt n) -- create attribute list from keyword/value pairs"; }
+};
+
+//: delete command, for removing an Attribute from its AttributeList.
+// delete(attribute [attribute ...]) -- remove each attribute from the list
+// it belongs to (Attribute::Owner()), returning its removed value (or a
+// list of them for multiple arguments); an argument that isn't an
+// Attribute, or has no owner, is skipped and its slot reads nil.
+class DeleteFunc : public ComFunc {
+public:
+    DeleteFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "alst=%s([:<name> [val]] ... :bincnt) -- create attribute list from keyword/value pairs"; }
 
     /* stamp every FuncObj member of a freshly-built attrlist literal with
        it as their home (see comterp.c's fire_funcobj) -- shared with

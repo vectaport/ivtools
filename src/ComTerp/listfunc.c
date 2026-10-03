@@ -264,6 +264,49 @@ void AttrListFunc::stamp_home_attrs(AttributeList* al) {
 
 /*****************************************************************************/
 
+DeleteFunc::DeleteFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DeleteFunc::execute() {
+  int nf = nargsfixed();
+  ComValue* args = new ComValue[nf];
+  for (int i=0; i<nf; i++)
+    /* symbol=true keeps an Attribute-typed arg (e.g. "al.x") from being
+       auto-dereferenced before execute() sees it; symbols are resolved
+       by hand below instead, same as assignfunc.c's lhs fetch. */
+    args[i] = stack_arg(i, true);
+  reset_stack();
+
+  /* returns the removed item itself, not a copy of its value -- an
+     Attribute still auto-expands into its value on ordinary read. */
+  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  ComValue removedval(ComValue::nullval());
+  for (int i=0; i<nf; i++) {
+    ComValue val(ComValue::nullval());
+    if (args[i].is_attribute()) {
+      Attribute* attr = (Attribute*) args[i].obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner) {
+        val = args[i];
+        owner->Remove(attr);
+      }
+    } else if (args[i].is_symbol()) {
+      comterp()->lookup_symval(args[i]);
+    }
+    if (removed) removed->Append(new AttributeValue(val));
+    else removedval = val;
+  }
+  delete [] args;
+
+  if (removed) {
+    ComValue retval(removed);
+    push_stack(retval);
+  } else
+    push_stack(removedval);
+}
+
+/*****************************************************************************/
+
 ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

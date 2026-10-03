@@ -1683,35 +1683,68 @@ void SelectFunc::execute() {
 
 /*****************************************************************************/
 
-DeleteFunc::DeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+GrDeleteFunc::GrDeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-void DeleteFunc::execute() {
+void GrDeleteFunc::execute() {
   Viewer* viewer = _ed->GetViewer();
 
   int nf=nargsfixed();
   if (nf==0) {
     reset_stack();
+    push_stack(ComValue::nullval());
     return;
   }
 
+  ComValue* args = new ComValue[nf];
+  for (int i=0; i<nf; i++)
+    /* symbol=true keeps an Attribute-typed arg from being auto-dereferenced
+       before execute() sees it; symbols are resolved by hand below. */
+    args[i] = stack_arg(i, true);
+  reset_stack();
+
   Clipboard* delcb = new Clipboard();
 
+  /* returns the removed item itself; an Attribute auto-expands into its
+     value on ordinary read. A deleted compview stays nil (see below). */
+  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
-    ComValue& obj = stack_arg(i);
-    if (obj.object_compview()) {
+    ComValue& obj = args[i];
+    if (!obj.is_attribute() && obj.is_symbol())
+      comterp()->lookup_symval(obj);
+    ComValue val(ComValue::nullval());
+    if (obj.is_attribute()) {
+      /* not a Unidraw command -- same AttributeList::Remove() as the
+         base delete(), so it has no undo/redo. */
+      Attribute* attr = (Attribute*) obj.obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner) {
+        val = obj;
+        owner->Remove(attr);
+      }
+    } else if (obj.object_compview()) {
+      /* val stays nil -- DeleteCmd::Execute() below destroys the comp
+         with no undo retention, so the compview would come back stale. */
       ComponentView* comview = (ComponentView*)obj.obj_val();
       OverlayComp* comp = (OverlayComp*)comview->GetSubject();
       if (comp) delcb->Append(comp);
     }
+    if (removed) removed->Append(new AttributeValue(val));
+    else removedval = val;
   }
+  delete [] args;
 
   DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
   delcmd->Execute();
   unidraw->Update();
   delete delcmd;
 
-  reset_stack();
+  if (removed) {
+    ComValue retval(removed);
+    push_stack(retval);
+  } else
+    push_stack(removedval);
 }
 
 /*****************************************************************************/
