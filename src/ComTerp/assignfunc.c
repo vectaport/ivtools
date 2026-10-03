@@ -75,7 +75,9 @@ void AssignFunc::execute() {
         }
         operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
     }
-    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */));
+    int rhs_wrapper = AttributeValue::NoWrapper;
+    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */,
+							   ComValue::nullval(), &rhs_wrapper));
 #ifdef POSTEVAL_EXPERIMENT
     if (operand2->is_attribute() || operand2->is_symbol()) lookup_symval(*operand2);
 #else
@@ -212,6 +214,9 @@ void AssignFunc::execute() {
     }
     reset_stack();
     push_stack(*operand2);
+    /* carries a bracketed count (e.g. next()/feed()'s each()-forced drain)
+       through assignment, so s=next(ring **0..3) still echoes [4]. */
+    if (rhs_wrapper != AttributeValue::NoWrapper) comterp()->stack_top().wrapper(rhs_wrapper);
     if (!operand2_owned) delete operand2;
 }
 
