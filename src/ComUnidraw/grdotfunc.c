@@ -26,6 +26,7 @@
 #include <Unidraw/Components/compview.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/listfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <fstream>
@@ -140,7 +141,10 @@ void GrAttrListFunc::execute() {
       delete raw;
     }
 
+    /* retval must hold al's permanent ref before stamp_home_attrs runs --
+       same ordering requirement as AttrListFunc::execute() (listfunc.c). */
     ComValue retval(AttributeList::class_symid(), al);
+    AttrListFunc::stamp_home_attrs(al);
     push_stack(retval);
   }
 }
