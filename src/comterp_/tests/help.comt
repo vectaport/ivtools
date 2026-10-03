@@ -139,6 +139,9 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 17: help(cmd :key name) also resolves a name that is itself a
 //     registered command (e.g. posteval), not just a bare symbol ---
+// comlint:allow -- posteval here is a bare command-name reference used as
+// data (the :key value), not a call; postfix() tags it the same as a
+// genuine zero-arg call, which comlint's arity scanner can't tell apart
 kp=help(help :key posteval)
 ok=ok&&(type(kp)==`StringType)
 ok=ok&&(kp=="return help on commands that post evaluate arguments")
