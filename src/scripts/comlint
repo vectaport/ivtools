@@ -206,8 +206,8 @@ aritycachepfx="_comlint_aritycache_"
    '*' -- always a trailing shape with nothing after it, which is what
    distinguishes a real one from a plain string-literal token that merely
    contains '[' and ']' characters of its own (e.g. a pgrep pattern like
-   "'[d]rawserv'") and would otherwise be misread as a call. */
-/* subtreestart(toks idx) is called as
+   "'[d]rawserv'") and would otherwise be misread as a call.
+   subtreestart(toks idx) is called as
    subtreestart(attrlist(:pftoks toks :pfidx idx)) -- a single packed
    argument, read back as arg(0) -- never as two positional args
    ("list(toks idx)" doesn't pack either: list() takes exactly one

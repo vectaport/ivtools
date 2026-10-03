@@ -1699,9 +1699,11 @@ static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& o
 static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
   static int seq_symid = symbol_add("seq");
   if (is_seq_node(node, seq_symid)) {
+    /* The caller places the first statement at depth; offset the extra
+       level added by funcobj_unparse_stmts for later statements. */
     AttributeValueList* flat = new AttributeValueList();
     funcobj_flatten_seq(node, flat);
-    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth - 1);
     delete flat;
   } else
     funcobj_unparse(node, out, comterp, depth);
@@ -1753,9 +1755,9 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     delete flat;
     return;
   }
-  /* if(cond :then ... [:else ...]) -- each keyword clause's value ends
-     a line, so :else and the closing paren start their own lines at
-     if('s own depth rather than trailing the previous clause. */
+  /* if(cond :then ...[:else ...]) -- each clause's value starts its own
+     line right after the keyword, at the same depth a nested value's
+     own closing paren uses. */
   if (is_command_node(node, if_symid) && node.array_val()->Number() >= 3) {
     AttributeValueList* avl = node.array_val();
     int nkw = avl->Number() - 2;
@@ -1764,9 +1766,25 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     funcobj_unparse(cond, out, comterp, depth);
     for (int i = 0; i < nkw; i++) {
       if (i == 0) out << " ";
-      ComValue kw(*avl->Get(2 + i));
-      funcobj_unparse(kw, out, comterp, depth);
-      if (i < nkw - 1) out << "\n" << funcobj_indent(depth);
+      else out << "\n" << funcobj_indent(depth);
+      ComValue kwnode(*avl->Get(2 + i));
+      if (kwnode.type() != ComValue::ObjectType ||
+          kwnode.class_symid() != AttributeList::class_symid()) {
+        /* a positional arg in if()'s keyword slots (e.g. the literal
+           call if(1 2)) -- not valid if() usage, but still renderable. */
+        funcobj_unparse(kwnode, out, comterp, depth);
+        continue;
+      }
+      AttributeList* al = (AttributeList*)kwnode.obj_val();
+      ALIterator ai;
+      al->First(ai);
+      Attribute* attr = al->GetAttr(ai);
+      ComValue val(*attr->Value());
+      out << ":" << symbol_pntr(attr->SymbolId());
+      if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
+        out << "\n" << funcobj_indent(depth + 1);
+        funcobj_unparse_bare(val, out, comterp, depth + 1);
+      }
     }
     out << "\n" << funcobj_indent(depth) << ")";
     return;
