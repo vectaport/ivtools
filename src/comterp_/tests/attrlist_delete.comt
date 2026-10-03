@@ -49,5 +49,21 @@ ok=ok&&(r==nil)
 print("5 delete() with no args (expect nil): %v\n" r)
 prev_ok=check_fail(:ok ok)
 
+// --- test 6: delete() returns the removed attribute's value, already
+// expanded -- not the Attribute wrapper itself ---
+al3=attrlist(:w 42)
+rw=delete(al3.w)
+ok=ok&&(rw==42)&&(class(rw)==nil)
+print("6 delete(al3.w) returns the removed value (expect 42, class nil): %v %v\n" rw class(rw))
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: delete() with multiple attribute arguments returns a list
+// of the removed values, in order ---
+al4=attrlist(:p 10 :q 20)
+rl=delete(al4.p al4.q)
+ok=ok&&(size(rl)==2)&&(at(rl 0)==10)&&(at(rl 1)==20)
+print("7 delete(al4.p al4.q) returns {10,20}: %v\n" rl)
+prev_ok=check_fail(:ok ok)
+
 print("\nattrlist_delete: %v\n" ok)
 ok

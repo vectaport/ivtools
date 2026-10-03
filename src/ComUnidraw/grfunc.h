@@ -321,13 +321,15 @@ public:
 
 //: command to delete graphics or attributes in comdraw.
 // delete(compview|attribute [compview|attribute ...]) -- delete graphic(s)
-// and/or remove attribute(s) from their owning attribute list.
+// and/or remove attribute(s) from their owning attribute list, returning
+// each removed attribute's value (nil for a compview, or a list when
+// given more than one argument).
 class GrDeleteFunc : public UnidrawFunc {
 public:
     GrDeleteFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "%s([compview|attribute ...]) -- delete graphic(s) and/or remove attribute(s)"; }
+	return "val=%s([compview|attribute ...]) -- delete graphic(s) and/or remove attribute(s)"; }
 };
 
 //: command to move current selection in comdraw

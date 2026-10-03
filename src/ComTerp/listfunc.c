@@ -260,18 +260,34 @@ void DeleteFunc::execute() {
     args[i] = stack_arg(i, true);
   reset_stack();
 
+  /* the removed item itself is returned, not a copy of its value -- an
+     Attribute still auto-expands into its value wherever that's read
+     (same lookup_symval() path "al.x" itself goes through), so the
+     caller sees a plain value unless it specifically wants the Attribute. */
+  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
+    ComValue val(ComValue::nullval());
     if (args[i].is_attribute()) {
       Attribute* attr = (Attribute*) args[i].obj_val();
       AttributeList* owner = attr->Owner();
-      if (owner) owner->Remove(attr);
+      if (owner) {
+        val = args[i];
+        owner->Remove(attr);
+      }
     } else if (args[i].is_symbol()) {
       comterp()->lookup_symval(args[i]);
     }
+    if (removed) removed->Append(new AttributeValue(val));
+    else removedval = val;
   }
   delete [] args;
 
-  push_stack(ComValue::nullval());
+  if (removed) {
+    ComValue retval(removed);
+    push_stack(retval);
+  } else
+    push_stack(removedval);
 }
 
 /*****************************************************************************/

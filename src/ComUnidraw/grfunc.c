@@ -1707,22 +1707,38 @@ void GrDeleteFunc::execute() {
 
   Clipboard* delcb = new Clipboard();
 
+  /* the removed item itself is returned, not a copy of its value -- an
+     Attribute still auto-expands into its value wherever that's read (see
+     the base ComTerp delete()); a compview comes back intact so it can be
+     handed to something like paste(). */
+  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
     ComValue& obj = args[i];
     if (!obj.is_attribute() && obj.is_symbol())
       comterp()->lookup_symval(obj);
+    ComValue val(ComValue::nullval());
     if (obj.is_attribute()) {
       /* removing an attribute is never a Unidraw command -- it's the same
          AttributeList::Remove() the base ComTerp delete() uses, so it
          can't be undone/redone the way a graphic deletion is. */
       Attribute* attr = (Attribute*) obj.obj_val();
       AttributeList* owner = attr->Owner();
-      if (owner) owner->Remove(attr);
+      if (owner) {
+        val = obj;
+        owner->Remove(attr);
+      }
     } else if (obj.object_compview()) {
+      /* val stays nil here -- DeleteCmd::Execute() below actually destroys
+         the comp (this call keeps no undo history), so returning the
+         compview would hand back a stale reference, not something
+         repaste-able. */
       ComponentView* comview = (ComponentView*)obj.obj_val();
       OverlayComp* comp = (OverlayComp*)comview->GetSubject();
       if (comp) delcb->Append(comp);
     }
+    if (removed) removed->Append(new AttributeValue(val));
+    else removedval = val;
   }
   delete [] args;
 
@@ -1731,7 +1747,11 @@ void GrDeleteFunc::execute() {
   unidraw->Update();
   delete delcmd;
 
-  push_stack(ComValue::nullval());
+  if (removed) {
+    ComValue retval(removed);
+    push_stack(retval);
+  } else
+    push_stack(removedval);
 }
 
 /*****************************************************************************/

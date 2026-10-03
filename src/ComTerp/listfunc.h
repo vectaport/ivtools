@@ -232,14 +232,15 @@ public:
 
 //: delete command, for removing an Attribute from its AttributeList.
 // delete(attribute [attribute ...]) -- remove each attribute from the list
-// it belongs to (Attribute::Owner()); an argument that isn't an Attribute,
-// or has no owner, is skipped rather than reported as an error.
+// it belongs to (Attribute::Owner()), returning its removed value (or a
+// list of them for multiple arguments); an argument that isn't an
+// Attribute, or has no owner, is skipped and its slot reads nil.
 class DeleteFunc : public ComFunc {
 public:
     DeleteFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "%s([attribute ...]) -- remove attribute(s) from their owning attribute list"; }
+      return "val=%s([attribute ...]) -- remove attribute(s), returning the removed value(s)"; }
 };
 
 #endif /* !defined(_listfunc_h) */
