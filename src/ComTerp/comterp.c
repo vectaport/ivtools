@@ -461,14 +461,9 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      :keyword with no value would. */
   AttributeList* home = callee_fo->home_attrs().is_object(AttributeList::class_symid())
     ? (AttributeList*)callee_fo->home_attrs().obj_val() : nil;
-  /* al starts as a snapshot copy of home (not home itself), so every
-     sibling field -- including other FuncObj members -- stays visible to
-     a nested bare call inside this body at any depth, the same visibility
-     a dot-bound call already gets by running with home as its live
-     attributes list. Being a copy keeps it disposable: a write the body
-     makes to a field it didn't declare as a capture still never reaches
-     the real home list, matching standalone-call semantics unchanged by
-     this. */
+  /* al starts as a copy of home so a sibling call nested at any depth
+     can still find other receiver fields; being a copy, not home itself,
+     keeps an undeclared write from reaching the real receiver. */
   AttributeList* al = home ? new AttributeList(home) : new AttributeList();
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
