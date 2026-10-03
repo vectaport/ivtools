@@ -379,8 +379,8 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
          takes the capture's place here too -- the bracket should always
          show the value a call will actually see, not the frozen snapshot
          it's about to be overridden with. */
-      if (fo->home_attrs().is_object(AttributeList::class_symid())) {
-        AttributeValue* homeval = ((AttributeList*)fo->home_attrs().obj_val())->find(attr->SymbolId());
+      if (fo->home_attrs()) {
+        AttributeValue* homeval = fo->home_attrs()->find(attr->SymbolId());
         if (homeval && !ComValue(*homeval).is_unknown()) capval = homeval;
       }
       boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
@@ -460,8 +460,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      receiver's own fields. A nil-valued home member doesn't override --
      an unset field defers to the func's own default, same as a bare
      :keyword with no value would. */
-  AttributeList* home = callee_fo->home_attrs().is_object(AttributeList::class_symid())
-    ? (AttributeList*)callee_fo->home_attrs().obj_val() : nil;
+  AttributeList* home = callee_fo->home_attrs();
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     ALIterator capit;

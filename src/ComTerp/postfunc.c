@@ -444,6 +444,7 @@ FuncObj::FuncObj(postfix_token* toks, int ntoks, int* spanlens, int nspans) {
     _nspans = 1;
   }
   _posteval = false;
+  _home_attrs = nil;
 }
 
 FuncObj::~FuncObj() {

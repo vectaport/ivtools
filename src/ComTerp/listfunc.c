@@ -250,12 +250,11 @@ void AttrListFunc::execute() {
    instead of its own frozen declaration-time captures (fire_funcobj,
    comterp.c) -- "inside the attrlist" means inside it for reads too. */
 void AttrListFunc::stamp_home_attrs(AttributeList* al) {
-    ComValue homeval(AttributeList::class_symid(), al);
     ALIterator hi;
     for (al->First(hi); !al->Done(hi); al->Next(hi)) {
       AttributeValue* hv = al->GetAttr(hi)->Value();
       if (hv->is_object(FuncObj::class_symid()))
-        ((FuncObj*)hv->obj_val())->home_attrs(homeval);
+        ((FuncObj*)hv->obj_val())->home_attrs(al);
     }
 }
 

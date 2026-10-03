@@ -190,15 +190,10 @@ void AssignFunc::execute() {
 	return;
       }
       attr->Value(operand2);
-      /* a FuncObj written onto an existing attrlist this way (obj.f=func(...),
-	 after obj was already built) gets the same home-attrlist stamp
-	 AttrListFunc::execute() gives a literal's own members, so a sibling
-	 calling it bare sees obj's live values too -- not just a func already
-	 present when obj was constructed. */
-      if (owner && operand2->is_object(FuncObj::class_symid())) {
-	ComValue homeval(AttributeList::class_symid(), owner);
-	((FuncObj*)operand2->obj_val())->home_attrs(homeval);
-      }
+      /* same home-attrlist stamp a literal's members get (AttrListFunc::
+	 execute()), for a func written onto an existing attrlist. */
+      if (owner && operand2->is_object(FuncObj::class_symid()))
+	((FuncObj*)operand2->obj_val())->home_attrs(owner);
       operand2_owned = true;
     } else if (operand1.is_array() && operand1.lhs_assign()) {
       /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,

@@ -228,13 +228,16 @@ class FuncObj : public Resource {
 
   // The attrlist this func was built as a member of (set once, by
   // AttrListFunc::execute(), for every FuncObj-valued attribute of a new
-  // attrlist literal).  UnknownType means none -- a func built outside any
+  // attrlist literal).  nil means none -- a func built outside any
   // attrlist literal, the common case for a plain local func(). Checked
   // ahead of a capture's own frozen snapshot (ComTerp::fire_funcobj) so a
   // sibling func sees that attrlist's current value for a shared name
   // instead of whatever the name held back when this func was defined.
-  ComValue& home_attrs() { return _home_attrs; }
-  void home_attrs(ComValue& al) { _home_attrs = al; }
+  // A raw, non-owning pointer: the attrlist already owns this FuncObj
+  // through its own member attribute, so an owning reference here would
+  // close a ref cycle neither side's refcount could ever break.
+  AttributeList* home_attrs() { return _home_attrs; }
+  void home_attrs(AttributeList* al) { _home_attrs = al; }
 
   CLASS_SYMID("FuncObj");
 
@@ -245,7 +248,7 @@ class FuncObj : public Resource {
   int _nspans;
   ComValue _captures;
   boolean _posteval;
-  ComValue _home_attrs;
+  AttributeList* _home_attrs;
 };
 
 //: marker for one still-unevaluated arg/keyword of a :posteval FuncObj call.
