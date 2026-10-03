@@ -49,5 +49,25 @@ print("1 comlint caches if()'s keyword set and at()'s arity facts after\n    the
   if1Clean if2Clean if3Flagged at1Clean at2Clean at3Flagged mixedClean)
 prev_ok=check_fail(:ok ok)
 
+// --- the fixture's 8 statements name only 5 distinct commands
+//     (tuple, for sampleList's list literal; assign, for every "x="
+//     statement; if; at; switch) -- a help() cache miss is only
+//     incurred once per distinct command, so a passing run reports
+//     exactly 5, not one per statement. A cache that silently
+//     stopped caching (every call falling through to help() again)
+//     would still pass tests 1-7 above, since each individual
+//     diagnostic is unchanged either way -- only this count would
+//     catch that regression. ---
+misscount=nil;msidx=index(out1 "help() cache miss(es)" :substr)
+if(msidx!=nil :then
+  pre=substr(out1 msidx);
+  nstart=1+index(pre "," :last);
+  misscount=int(substr(pre nstart :after)))
+cachedNotRescanned=(misscount==5)
+ok=ok&&cachedNotRescanned
+print("2 exactly 5 help() cache misses across the fixture's 5 distinct\n    commands (tuple, assign, if, at, switch), proving repeat calls\n    hit the cache rather than re-scanning help() every time (expect 5): %v\n\n"
+  misscount)
+prev_ok=check_fail(:ok ok)
+
 print("\ncomlint_cache: %v\n" ok)
 ok

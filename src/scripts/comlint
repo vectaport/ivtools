@@ -186,6 +186,7 @@ nwarn=0
 nwarnok=0
 nchecked=0
 nskipped=0
+nhelpcalls=0
 lineno=0
 mlbal=0
 incomm=0
@@ -700,6 +701,7 @@ while((srcline=gets(fp))!=nil
            help() at all */
         helpcmd=print("help(%s)" name :str);
         helptext=eval(helpcmd);
+        nhelpcalls=nhelpcalls+1;
         if(!istype(helptext StringType) :then continue);
         /* help() on a name this comlint process never defined (a local
            func() the target script only creates via its own run(),
@@ -843,6 +845,7 @@ while((srcline=gets(fp))!=nil
     if(!acachehit :then
       helpcmd=print("help(%s)" name :str);
       helptext=eval(helpcmd);
+      nhelpcalls=nhelpcalls+1;
       if(!istype(helptext StringType) :then continue);
       if(size(helptext)==0 :then continue);
       helplines=split(helptext :tokstr '\n');
@@ -1000,7 +1003,7 @@ if(stmtnlines>0 :then
 
 close(fp)
 
-print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v fail(s), %v warn(s), %v warn(s) overridden\n"
-  nchecked nskipped nfail nwarn nwarnok)
+print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v fail(s), %v warn(s), %v warn(s) overridden, %v help() cache miss(es)\n"
+  nchecked nskipped nfail nwarn nwarnok nhelpcalls)
 if(nfail>0 || nwarn>0 :then exit(1))
 exit(0)
