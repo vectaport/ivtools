@@ -1683,35 +1683,55 @@ void SelectFunc::execute() {
 
 /*****************************************************************************/
 
-DeleteFunc::DeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+GrDeleteFunc::GrDeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-void DeleteFunc::execute() {
+void GrDeleteFunc::execute() {
   Viewer* viewer = _ed->GetViewer();
 
   int nf=nargsfixed();
   if (nf==0) {
     reset_stack();
+    push_stack(ComValue::nullval());
     return;
   }
+
+  ComValue* args = new ComValue[nf];
+  for (int i=0; i<nf; i++)
+    /* symbol=true -- an ordinary stack_arg() fetch auto-dereferences an
+       Attribute-typed arg (e.g. the result of "al.x") into its Value().
+       A plain variable reference is resolved by hand below instead, so
+       it still works -- only the attribute case skips the lookup. */
+    args[i] = stack_arg(i, true);
+  reset_stack();
 
   Clipboard* delcb = new Clipboard();
 
   for (int i=0; i<nf; i++) {
-    ComValue& obj = stack_arg(i);
-    if (obj.object_compview()) {
+    ComValue& obj = args[i];
+    if (!obj.is_attribute() && obj.is_symbol())
+      comterp()->lookup_symval(obj);
+    if (obj.is_attribute()) {
+      /* removing an attribute is never a Unidraw command -- it's the same
+         AttributeList::Remove() the base ComTerp delete() uses, so it
+         can't be undone/redone the way a graphic deletion is. */
+      Attribute* attr = (Attribute*) obj.obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner) owner->Remove(attr);
+    } else if (obj.object_compview()) {
       ComponentView* comview = (ComponentView*)obj.obj_val();
       OverlayComp* comp = (OverlayComp*)comview->GetSubject();
       if (comp) delcb->Append(comp);
     }
   }
+  delete [] args;
 
   DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
   delcmd->Execute();
   unidraw->Update();
   delete delcmd;
 
-  reset_stack();
+  push_stack(ComValue::nullval());
 }
 
 /*****************************************************************************/

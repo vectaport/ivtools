@@ -245,6 +245,37 @@ void AttrListFunc::execute() {
 
 /*****************************************************************************/
 
+DeleteFunc::DeleteFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DeleteFunc::execute() {
+  int nf = nargsfixed();
+  ComValue* args = new ComValue[nf];
+  for (int i=0; i<nf; i++)
+    /* symbol=true -- an ordinary stack_arg() fetch auto-dereferences an
+       Attribute-typed arg (e.g. the result of "al.x") into its Value(),
+       the same lookup assignfunc.c bypasses the same way for its lhs.
+       A plain variable reference is resolved by hand below instead, so
+       it still works -- only the attribute case skips the lookup. */
+    args[i] = stack_arg(i, true);
+  reset_stack();
+
+  for (int i=0; i<nf; i++) {
+    if (args[i].is_attribute()) {
+      Attribute* attr = (Attribute*) args[i].obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner) owner->Remove(attr);
+    } else if (args[i].is_symbol()) {
+      comterp()->lookup_symval(args[i]);
+    }
+  }
+  delete [] args;
+
+  push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
