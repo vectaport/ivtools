@@ -1,5 +1,5 @@
-// info-obj.comt version 5
-print("info-obj.comt version 5\n")
+// info-obj.comt version 6
+print("info-obj.comt version 6\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -19,6 +19,8 @@ print("info-obj.comt version 5\n")
 //   test 3d: info(f).source respects cutoff() on a func with many bodies
 //   test 3g: info(f).source indents a ';'-chain nested inside a keyword
 //            value too, not just the top-level one
+//   test 3h: info(f).source on a 3+ statement ';'-chain renders a flat
+//            one-statement-per-line list, not a staircase of nested parens
 //   test 3e: info(a.f) finds the FuncObj behind a dot expression without
 //            firing it; a non-func dotted field falls through to the
 //            ordinary dispatch on its own value
@@ -124,6 +126,19 @@ igg3g=info(gg3g)
 ok3g=(i3g.source=="func(\n  x;\n  if(gt(x 0) :then y=1;\n    return(y))\n)")&&(igg3g.ntoks==i3g.ntoks)
 ok=ok&&ok3g
 print("3g f3g=func(x;if(x>0 :then y=1;return(y))); info(f3g).source, nested ';'-chain indented: %v\n" i3g.source)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3h: a ';'-chain of 3+ statements parses as a left-nested chain
+// of binary seq nodes (a;b;c;d is {seq,{seq,{seq,a,b},c},d}); info(f).source
+// flattens that spine into one statement per line at a single indent level
+// rather than staircasing deeper parens per statement ---
+f3h=func(a;b;c;d)
+i3h=info(f3h)
+g3h=run(i3h.source :str)
+ig3h=info(g3h)
+ok3h=(i3h.source=="func(\n  a;\n  b;\n  c;\n  d\n)")&&(ig3h.ntoks==i3h.ntoks)
+ok=ok&&ok3h
+print("3h f3h=func(a;b;c;d); info(f3h).source, flat 4-statement chain: %v\n" i3h.source)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3e: info(a.f) finds the FuncObj behind a dot expression

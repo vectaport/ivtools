@@ -1637,9 +1637,30 @@ static void funcobj_unparse_list(AttributeValueList* avl, int first, const char*
   if (shown < total) out << sep << "{" << (total - shown) << " more}";
 }
 
-/* funcobj_unparse_stmts -- renders a ';'-joined statement chain (a seq
-   node's own children) one statement per line, indented one level past
-   'depth'; 'depth' is the chain's own enclosing indent. */
+/* funcobj_flatten_seq -- a ';'-chain of N statements nests as N-1 strictly
+   binary seq nodes, left-associative (a;b;c;d is {seq,{seq,{seq,a,b},c},d}).
+   Flattens that left spine into 'out' in left-to-right statement order, so
+   it renders as one flat list instead of mirroring the parse nesting. Only
+   the left/first operand is descended into; a right operand that is itself
+   a seq node (from an explicit, non-default right-grouping) is kept as one
+   statement rather than flattened, preserving its deliberate grouping. */
+static void funcobj_flatten_seq(ComValue& node, AttributeValueList* out) {
+  static int seq_symid = symbol_add("seq");
+  AttributeValueList* avl = node.array_val();
+  ComValue left(*avl->Get(1));
+  if (is_command_node(left, seq_symid))
+    funcobj_flatten_seq(left, out);
+  else
+    out->Append(new AttributeValue(left));
+  ComValue right(*avl->Get(2));
+  out->Append(new AttributeValue(right));
+}
+
+/* funcobj_unparse_stmts -- renders a flat statement list one statement per
+   line, indented one level past 'depth'; 'depth' is the chain's own
+   enclosing indent. Callers flatten a seq node via funcobj_flatten_seq
+   first, so a multi-statement ';'-chain renders at one uniform depth
+   rather than staircasing deeper per statement. */
 static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& out,
                                    ComTerp* comterp, int depth) {
   std::string ind = funcobj_indent(depth + 1);
@@ -1678,9 +1699,12 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
       /* a ';'-chain value splices bare, like func's own last span --
          a keyword slot already accepts it unwrapped, and parens here
          would reparse as a different, larger token stream. */
-      if (is_command_node(val, seq_symid))
-        funcobj_unparse_stmts(val.array_val(), 1, out, comterp, depth);
-      else
+      if (is_command_node(val, seq_symid)) {
+        AttributeValueList* flat = new AttributeValueList();
+        funcobj_flatten_seq(val, flat);
+        funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+        delete flat;
+      } else
         funcobj_unparse(val, out, comterp, depth);
     }
     return;
@@ -1695,9 +1719,12 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     return;
   }
   if (is_command_node(node, seq_symid)) {
+    AttributeValueList* flat = new AttributeValueList();
+    funcobj_flatten_seq(node, flat);
     out << "(\n" << funcobj_indent(depth + 1);
-    funcobj_unparse_stmts(node.array_val(), 1, out, comterp, depth);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
     out << "\n" << funcobj_indent(depth) << ")";
+    delete flat;
     return;
   }
   if (node.type() == ComValue::ArrayType) {
@@ -1735,11 +1762,15 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
   /* a newline is plain whitespace to the parser, so a multi-statement
      func reads better one statement per indented line; a single
      statement stays on one line. */
+  AttributeValueList* lastflat = NULL;
   int nstmts = shown;
   if (shown == nspans && shown > 0) {
     ComValue last(*spans->Get(shown - 1));
-    if (is_command_node(last, seq_symid))
-      nstmts += last.array_val()->Number() - 2;
+    if (is_command_node(last, seq_symid)) {
+      lastflat = new AttributeValueList();
+      funcobj_flatten_seq(last, lastflat);
+      nstmts += lastflat->Number() - 1;
+    }
   }
   boolean multiline = nstmts > 1;
   std::string ind = funcobj_indent(1);
@@ -1749,15 +1780,17 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
   out << "func(" << (multiline ? "\n" + ind : "");
   for (int i = 0; i < shown; i++) {
     if (i > 0) out << sep << (multiline ? ind : "");
-    ComValue span(*spans->Get(i));
-    if (i == shown - 1 && i == nspans - 1 && is_command_node(span, seq_symid))
-      funcobj_unparse_stmts(span.array_val(), 1, out, comterp, 0);
-    else
+    if (i == shown - 1 && i == nspans - 1 && lastflat)
+      funcobj_unparse_stmts(lastflat, 0, out, comterp, 0);
+    else {
+      ComValue span(*spans->Get(i));
       funcobj_unparse(span, out, comterp, 1);
+    }
   }
   if (shown < nspans) out << sep << (multiline ? ind : "") << "{" << (nspans - shown) << " more}";
   out << (multiline ? "\n" : "") << ")";
 
+  delete lastflat;
   delete spans;
   if (comterp) comterp->brief(oldbrief);
   return out.str();
