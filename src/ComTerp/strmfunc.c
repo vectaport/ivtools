@@ -1621,6 +1621,7 @@ static boolean is_seq_node(ComValue& node, int seq_symid) {
 }
 
 static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth);
+static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth);
 
 static const char* INDENT_UNIT = "  ";
 
@@ -1632,16 +1633,24 @@ static std::string funcobj_indent(int depth) {
 
 /* Prints avl's entries from index 'first' on, separated by 'sep', eliding
    past comterp's cutoff() the same way ArrayType printing already does
-   (comvalue.c's ArrayType case) -- "{N more}" standing in for the rest. */
+   (comvalue.c's ArrayType case) -- "{N more}" standing in for the rest.
+   'count' caps how many entries from 'first' are considered (e.g. for()'s
+   first 3 args, its 4th rendered separately); -1 means the rest of avl.
+   'bare', for a for()/while() body list, splices a ';'-chain element the
+   same unwrapped way funcobj_unparse_bare does (each body slot accepts
+   one independently, same as func()'s own last span). */
 static void funcobj_unparse_list(AttributeValueList* avl, int first, const char* sep,
-                                  ostream& out, ComTerp* comterp, int depth) {
+                                  ostream& out, ComTerp* comterp, int depth, int count = -1,
+                                  boolean bare = false) {
   int total = avl->Number() - first;
+  if (count >= 0 && count < total) total = count;
   int cutoff = comterp ? comterp->cutoff() : 0;
   int shown = (cutoff > 0 && total > cutoff) ? cutoff : total;
   for (int i = 0; i < shown; i++) {
     if (i > 0) out << sep;
     ComValue elt(*avl->Get(first + i));
-    funcobj_unparse(elt, out, comterp, depth);
+    if (bare) funcobj_unparse_bare(elt, out, comterp, depth);
+    else funcobj_unparse(elt, out, comterp, depth);
   }
   if (shown < total) out << sep << "{" << (total - shown) << " more}";
 }
@@ -1684,6 +1693,23 @@ static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& o
   if (shown < total) out << ";\n" << ind << "{" << (total - shown) << " more}";
 }
 
+/* funcobj_unparse_bare -- renders a slot that already accepts a bare
+   ';'-chain unwrapped (a keyword value, or the sole body of while()/for(),
+   same as func()'s own last span) -- parenthesizing it there would reparse
+   as a different, larger token stream, so a seq node splices its flattened
+   statements directly instead of going through funcobj_unparse's generic,
+   always-parenthesizing seq branch. */
+static void funcobj_unparse_bare(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
+  static int seq_symid = symbol_add("seq");
+  if (is_seq_node(node, seq_symid)) {
+    AttributeValueList* flat = new AttributeValueList();
+    funcobj_flatten_seq(node, flat);
+    funcobj_unparse_stmts(flat, 0, out, comterp, depth);
+    delete flat;
+  } else
+    funcobj_unparse(node, out, comterp, depth);
+}
+
 /* funcobj_unparse -- renders one postfix_nest_into() tree node as source
    for :source below. A leaf streams via ComValue's own brief operator<<;
    a call's own operator symbol is read directly to skip its narg/nkey
@@ -1692,6 +1718,9 @@ static void funcobj_unparse_stmts(AttributeValueList* avl, int first, ostream& o
 static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int depth) {
   static int assign_symid = symbol_add("assign");
   static int seq_symid = symbol_add("seq");
+  static int if_symid = symbol_add("if");
+  static int for_symid = symbol_add("for");
+  static int while_symid = symbol_add("while");
 
   if (node.type() == ComValue::ObjectType &&
       node.class_symid() == AttributeList::class_symid()) {
@@ -1705,16 +1734,7 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     out << ":" << symbol_pntr(attr->SymbolId());
     if (!(val.type() == ComValue::ArrayType && val.array_val()->Number() == 0)) {
       out << " ";
-      /* a ';'-chain value splices bare, like func's own last span --
-         a keyword slot already accepts it unwrapped, and parens here
-         would reparse as a different, larger token stream. */
-      if (is_seq_node(val, seq_symid)) {
-        AttributeValueList* flat = new AttributeValueList();
-        funcobj_flatten_seq(val, flat);
-        funcobj_unparse_stmts(flat, 0, out, comterp, depth);
-        delete flat;
-      } else
-        funcobj_unparse(val, out, comterp, depth);
+      funcobj_unparse_bare(val, out, comterp, depth);
     }
     return;
   }
@@ -1734,6 +1754,49 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
     funcobj_unparse_stmts(flat, 0, out, comterp, depth);
     out << "\n" << funcobj_indent(depth) << ")";
     delete flat;
+    return;
+  }
+  /* if(cond :then ... [:else ...]) -- each keyword clause's value ends
+     a line, so :else and the closing paren start their own lines at
+     if('s own depth rather than trailing the previous clause. */
+  if (is_command_node(node, if_symid) && node.array_val()->Number() >= 3) {
+    AttributeValueList* avl = node.array_val();
+    int nkw = avl->Number() - 2;
+    out << "if(";
+    ComValue cond(*avl->Get(1));
+    funcobj_unparse(cond, out, comterp, depth);
+    for (int i = 0; i < nkw; i++) {
+      if (i == 0) out << " ";
+      ComValue kw(*avl->Get(2 + i));
+      funcobj_unparse(kw, out, comterp, depth);
+      if (i < nkw - 1) out << "\n" << funcobj_indent(depth);
+    }
+    out << "\n" << funcobj_indent(depth) << ")";
+    return;
+  }
+  /* for(init test step body) -- the body (its 4th argument) starts its
+     own indented line rather than trailing init/test/step. */
+  if (is_command_node(node, for_symid) && node.array_val()->Number() == 5) {
+    AttributeValueList* avl = node.array_val();
+    out << "for(";
+    funcobj_unparse_list(avl, 1, " ", out, comterp, depth, 3);
+    out << "\n" << funcobj_indent(depth + 1);
+    ComValue body(*avl->Get(4));
+    funcobj_unparse_bare(body, out, comterp, depth + 1);
+    out << ")";
+    return;
+  }
+  /* while(test body...) -- the body (one or more space-joined bodies,
+     per func()/for()'s own convention) starts its own indented line
+     rather than trailing the test expression. */
+  if (is_command_node(node, while_symid) && node.array_val()->Number() >= 3) {
+    AttributeValueList* avl = node.array_val();
+    out << "while(";
+    ComValue test(*avl->Get(1));
+    funcobj_unparse(test, out, comterp, depth);
+    out << "\n" << funcobj_indent(depth + 1);
+    funcobj_unparse_list(avl, 2, " ", out, comterp, depth + 1, -1, true);
+    out << ")";
     return;
   }
   if (node.type() == ComValue::ArrayType) {
