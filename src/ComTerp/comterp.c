@@ -375,6 +375,14 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
       if (fo->captures().is_object(AttributeList::class_symid())) {
         capval = ((AttributeList*)fo->captures().obj_val())->find(attr->SymbolId());
       }
+      /* a live, non-nil home-attrlist value (fire_funcobj's own override)
+         takes the capture's place here too -- the bracket should always
+         show the value a call will actually see, not the frozen snapshot
+         it's about to be overridden with. */
+      if (fo->home_attrs().is_object(AttributeList::class_symid())) {
+        AttributeValue* homeval = ((AttributeList*)fo->home_attrs().obj_val())->find(attr->SymbolId());
+        if (homeval && !ComValue(*homeval).is_unknown()) capval = homeval;
+      }
       boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
       if (defval) {
         /* render the detected default inline as :name [value],
@@ -444,12 +452,25 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   /* seed al from this funcobj's declaration-time captures first,
      so an explicit :x val overrides one via add_attr's replace-by-symid */
   FuncObj* callee_fo = (FuncObj*)val.obj_val();
+  /* a capture whose name is also a live, non-nil member of this func's
+     home attrlist (AttrListFunc::execute() stamps it there) reads that
+     attrlist's current value instead of the frozen declaration-time
+     snapshot -- a sibling func reading a name another sibling just wrote
+     sees the write, the same as a dot-bound call already does for its
+     receiver's own fields. A nil-valued home member doesn't override --
+     an unset field defers to the func's own default, same as a bare
+     :keyword with no value would. */
+  AttributeList* home = callee_fo->home_attrs().is_object(AttributeList::class_symid())
+    ? (AttributeList*)callee_fo->home_attrs().obj_val() : nil;
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     ALIterator capit;
     for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
       Attribute* capattr = caps->GetAttr(capit);
-      al->add_attr(capattr->SymbolId(), *capattr->Value());
+      Attribute* homeattr = home ? home->GetAttr(capattr->SymbolId()) : nil;
+      AttributeValue* homeval = homeattr ? homeattr->Value() : nil;
+      al->add_attr(capattr->SymbolId(),
+		   (homeval && !homeval->is_unknown()) ? *homeval : *capattr->Value());
     }
   }
   if (extra_keys) {
@@ -1985,6 +2006,7 @@ void ComTerp::add_defaults() {
 
     add_command("list", new ListFunc(this));
     add_command("attrlist", new AttrListFunc(this));
+    add_command("delete", new DeleteFunc(this));
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("shift", new ListShiftFunc(this));

@@ -26,6 +26,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/listfunc.h>
+#include <ComTerp/postfunc.h>
 #include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
@@ -45,6 +46,7 @@ AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 
 void AssignFunc::execute() {
+    boolean from_each = false;
     ComValue operand1(stack_arg(0, true));
     if (operand1.is_command() && stack_arg_post_eval_size(0)==1) {
         cout << "WARNING:  assignment to command \"" << operand1.command_name() << "\" without args not allowed -- line " << funcstate()->linenum() << "\n";
@@ -52,7 +54,7 @@ void AssignFunc::execute() {
 	push_stack(ComValue::nullval());
 	return;
     }
-    
+
     if (operand1.type() != ComValue::SymbolType) {
         // if lhs is global()/local()/at() (including lst@N=val),
         // set lhs_assign on its ComValue to distinguish lhs from rhs context
@@ -60,6 +62,7 @@ void AssignFunc::execute() {
         static int local_symid = symbol_add("local");
         static int temp_symid = symbol_add("temp");
         static int at_symid = symbol_add("at");
+        static int each_symid = symbol_add("each");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();
         int arg0top = offtop;
@@ -72,10 +75,29 @@ void AssignFunc::execute() {
             if (func->funcid() == global_symid || func->funcid() == local_symid ||
                 func->funcid() == temp_symid || func->funcid() == at_symid)
                 startval.lhs_assign(1);
+            else if (func->funcid() == each_symid) {
+                /* **lhs: flag each()'s own token so it hands back its
+                   stream instead of draining it itself (EachFunc), then
+                   flag the at()/global/local/temp token each() wraps --
+                   its own root token sits immediately before each()'s,
+                   the same postfix layout NextFunc's lhs-walk relies on --
+                   the same way as an unwrapped lhs just above. */
+                startval.lhs_assign(1);
+                from_each = true;
+                ComValue& innerval = comterp()->pfcomvals()[startidx - 1];
+                if (innerval.is_type(ComValue::CommandType)) {
+                    ComFunc* innerfunc = (ComFunc*)innerval.obj_val();
+                    if (innerfunc->funcid() == global_symid || innerfunc->funcid() == local_symid ||
+                        innerfunc->funcid() == temp_symid || innerfunc->funcid() == at_symid)
+                        innerval.lhs_assign(1);
+                }
+            }
         }
         operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
     }
-    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */));
+    int rhs_wrapper = AttributeValue::NoWrapper;
+    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */,
+							   ComValue::nullval(), &rhs_wrapper));
 #ifdef POSTEVAL_EXPERIMENT
     if (operand2->is_attribute() || operand2->is_symbol()) lookup_symval(*operand2);
 #else
@@ -168,6 +190,12 @@ void AssignFunc::execute() {
 	return;
       }
       attr->Value(operand2);
+      /* same home-attrlist stamp a literal's members get (AttrListFunc::
+	 execute()), for a func written onto an existing attrlist. */
+      if (owner && operand2->is_object(FuncObj::class_symid())) {
+	ComValue homeval(AttributeList::class_symid(), owner);
+	((FuncObj*)operand2->obj_val())->home_attrs(homeval);
+      }
       operand2_owned = true;
     } else if (operand1.is_array() && operand1.lhs_assign()) {
       /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,
@@ -175,25 +203,44 @@ void AssignFunc::execute() {
       ComValue result(NextFunc::write_at_pair(comterp(), operand1, *operand2));
       *operand2 = result;
     } else if (operand1.is_stream() && operand1.lhs_assign()) {
-      /* @ with a streamed index, e.g. r@0..9=val(s): zip-writes operand2
-	 alongside the streamed index, or broadcasts it if operand2 isn't
-	 itself a stream -- see NextFunc::zip_assign_stream (strmfunc.c),
-	 the shared drain-and-write loop next()'s own zipper also uses. */
-      boolean rhs_is_stream = operand2->is_stream();
-      ComValue idxstream(operand1);
-      int count = NextFunc::zip_assign_stream(comterp(), idxstream, operand2, rhs_is_stream,
-					       funcstate()->linenum());
-      delete operand2;
-      reset_stack();
-      if (count < 0) {
-	push_stack(ComValue::nullval());
+      if (from_each) {
+	/* **lst@lo:hi=val(s): batch-drain now -- zip-writes operand2
+	   alongside the streamed index, or broadcasts it if operand2 isn't
+	   itself a stream -- see NextFunc::zip_assign_stream (strmfunc.c),
+	   the shared drain-and-write loop next()'s own zipper also uses. */
+	boolean rhs_is_stream = operand2->is_stream();
+	ComValue idxstream(operand1);
+	int count = NextFunc::zip_assign_stream(comterp(), idxstream, operand2, rhs_is_stream,
+						 funcstate()->linenum());
+	delete operand2;
+	reset_stack();
+	if (count < 0) {
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	ComValue retval(count, ComValue::IntType);
+	push_stack(retval);
+	/* count, not the written values -- list() already exists for
+	   collecting those, and building both would double the work */
+	comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 	return;
       }
-      ComValue retval(count, ComValue::IntType);
-      push_stack(retval);
-      /* count, not the written values -- list() already exists for
-	 collecting those, and building both would double the work */
-      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      /* lst@lo:hi=val(s), no ** -- stream builds stream: defer into a lazy
+	 wrapper (AssignAtNextFunc) that writes one element per pull, rather
+	 than draining here, matching a plain var's own default. */
+      static AssignAtNextFunc* aanfunc = nil;
+      if (!aanfunc) {
+	aanfunc = new AssignAtNextFunc(comterp());
+	aanfunc->funcid(symbol_add("assignatnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(operand1));
+      avl->Append(new AttributeValue(*operand2));
+      delete operand2;
+      ComValue stream(aanfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL);
+      reset_stack();
+      push_stack(stream);
       return;
     } else if (operand1.unknown() && operand1.lhs_assign()) {
       /* a locked attrlist's dot lookup found no such entry -- the write
@@ -212,6 +259,9 @@ void AssignFunc::execute() {
     }
     reset_stack();
     push_stack(*operand2);
+    /* carries a bracketed count (e.g. next()/feed()'s each()-forced drain)
+       through assignment, so s=next(ring **0..3) still echoes [4]. */
+    if (rhs_wrapper != AttributeValue::NoWrapper) comterp()->stack_top().wrapper(rhs_wrapper);
     if (!operand2_owned) delete operand2;
 }
 

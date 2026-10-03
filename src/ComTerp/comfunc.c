@@ -139,9 +139,10 @@ ComValue& ComFunc::stack_dotname(int n) {
     return _comterp->stack_top(n+1+npops());
 }
 
-ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
+ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt, int* wrapper_out) {
   /* nothing to fire means no anchor is needed either --
      keeps an empty {} or [] literal's own construction a silent no-op */
+  if (wrapper_out) *wrapper_out = AttributeValue::NoWrapper;
   if (nkeys()==0 && n>=nargsfixed()) return dflt;
 
   ComValue argoff(comterp()->stack_top());
@@ -168,12 +169,13 @@ ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
     skip_arg_in_expr(offtop, argcnt);
   }
 
-  comterp()->post_eval_expr(argcnt, offtop, pedepth()+1 
+  comterp()->post_eval_expr(argcnt, offtop, pedepth()+1
 #ifdef POSTEVAL_EXPERIMENT
 			    , symbol
 #endif
 			    );
 
+  if (wrapper_out) *wrapper_out = comterp()->stack_top().wrapper();
   return comterp()->pop_stack(!symbol);
 }
 

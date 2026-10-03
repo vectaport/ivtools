@@ -91,6 +91,20 @@ the drawing (and any funcs the script defined) live in the session.
   was observed to hang comterp's postfix re-evaluation.  *The slot is the
   seat; the photo just circulates.*
 
+- **rast.comt** -- no graphics yet, the imaging-side building block: a
+  sliding row-window over a packed `string(w*h UIntType)` raster, sized
+  for kernel filters (blur, sharpen, edge detection) without ever
+  materializing the whole window at once. `rast.window` holds only the
+  rows the current kernel height needs around the row being processed;
+  `rast.origin` is that row's index within `rast.window`. Calling
+  `rast.advance()` once per output row grows the window from nothing at
+  the top edge, holds it steady in the middle, and shrinks it again at
+  the bottom -- the column direction gets edge handling for free from a
+  plain `@` index (past a string's length is nil, same as a stream past
+  its end), but the row direction is bulk-loaded a whole row at a time,
+  so it tracks its own grow/shrink state explicitly instead.
+  *The window is just the rows you actually need.*
+
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,
 the drawserv distribution path) is `doc/SPATIAL-APPLICATIONS.md`.

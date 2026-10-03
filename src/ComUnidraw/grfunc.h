@@ -319,14 +319,17 @@ public:
     }
 };
 
-//: command to delete graphics in comdraw.
-// delete(compview [compview ...]) -- delete graphic(s)
-class DeleteFunc : public UnidrawFunc {
+//: command to delete graphics or attributes in comdraw.
+// delete(compview|attribute [compview|attribute ...]) -- delete graphic(s)
+// and/or remove attribute(s) from their owning attribute list, returning
+// each removed attribute's value (nil for a compview, or a list when
+// given more than one argument).
+class GrDeleteFunc : public UnidrawFunc {
 public:
-    DeleteFunc(ComTerp*,Editor*);
+    GrDeleteFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "%s([compview ...]) -- delete graphic(s)"; }
+    virtual const char* docstring() {
+	return "val=%s([compview|attribute ...]) -- delete graphic(s) and/or remove attribute(s)"; }
 };
 
 //: command to move current selection in comdraw

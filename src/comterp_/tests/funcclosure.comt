@@ -461,5 +461,26 @@ ok=ok&&(r94==nil)&&(r95==2)
 print("20i g57=func(arg(0).z57=1);f57=func(g57 w57);a57=dot(f57); f57.g57(a57), size(dot(f57)) (expect nil 2 -- a saved alias can't grow the sealed list mid-call either): %v %v\n\n" r94 r95)
 check_fail(:ok ok)
 
+// --- test 21: a bare nested call from inside one method's body to a
+// sibling method reads that sibling's CURRENT field value, not the
+// snapshot frozen at the sibling's own declaration time -- for a func
+// that was already a member when the attrlist literal was built ---
+obj58=(:n 1 :getn func(n) :bumpthenread func(n=n+1; getn()))
+r95b=obj58.bumpthenread()
+ok=ok&&(r95b==2)
+print("21 obj58=(:n 1 :getn func(n) :bumpthenread func(n=n+1;getn())); obj58.bumpthenread() (expect 2 -- bare getn() sees the n this call just wrote): %v\n\n" r95b)
+check_fail(:ok ok)
+
+// --- test 22: same live-sibling-read behavior for a func assigned onto
+// an attrlist AFTER it was built (obj.f=func(...)), not just one present
+// at literal-construction time ---
+obj59=(:n 1)
+obj59.getn=func(n)
+obj59.bumpthenread=func(n=n+1; getn())
+r95c=obj59.bumpthenread()
+ok=ok&&(r95c==2)
+print("22 obj59=(:n 1); obj59.getn=func(n); obj59.bumpthenread=func(n=n+1;getn()); obj59.bumpthenread() (expect 2 -- post-hoc-assigned getn() still sees the live n): %v\n\n" r95c)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
