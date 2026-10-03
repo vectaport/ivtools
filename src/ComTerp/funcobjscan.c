@@ -39,6 +39,7 @@ enum VarEvent { EvRead, EvWrite, EvReadThenWrite };
 struct VarRecord {
     int symid;
     VarEvent first_event;
+    int first_pos;      // token position first_event was recorded at
     boolean ever_written;
 };
 
@@ -103,15 +104,23 @@ static boolean temp_escape_pos(EscapeRecord* escapes, int n, int symid, int* pos
     return false;
 }
 
-/* Records a plain-var occurrence's event -- called once per occurrence, in
-   body order, so "first_event" naturally lands on whichever occurrence is
-   seen first. */
-static void note_event(VarRecord*& recs, int& n, int& cap, int symid, VarEvent ev) {
+/* Records a plain-var occurrence's event, keyed by the occurrence's own
+   token position rather than scan order -- a command token can sit far
+   from the operand it consumes (e.g. a bare leading statement "x;..." is
+   only consumed by the trailing seq node), so the command that gets
+   walked first isn't necessarily the one whose operand comes first in
+   the source. Keeping the lowest-position event as first_event makes
+   "first" mean source order, not scan order. */
+static void note_event(VarRecord*& recs, int& n, int& cap, int symid, VarEvent ev, int pos) {
     boolean is_new;
     VarRecord* r = find_or_add_var(recs, n, cap, symid, &is_new);
     if (is_new) {
         r->first_event = ev;
+        r->first_pos = pos;
         r->ever_written = false;   /* new VarRecord[] leaves this uninitialized */
+    } else if (pos < r->first_pos) {
+        r->first_event = ev;
+        r->first_pos = pos;
     }
     if (ev == EvWrite || ev == EvReadThenWrite) r->ever_written = true;
 }
@@ -313,11 +322,13 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (temp_escape_pos(escapes, nescapes, varsymid, &tpos) && operand.start >= tpos) continue;
 
             if (k == 0 && symid == assign_symid) {
-                note_event(recs, nrecs, recs_cap, varsymid, EvWrite);
+                /* the write happens at assign, after its rhs runs; the
+                   target's earlier token only names what to write. */
+                note_event(recs, nrecs, recs_cap, varsymid, EvWrite, i);
             } else if (k == 0 && is_compound_assign) {
-                note_event(recs, nrecs, recs_cap, varsymid, EvReadThenWrite);
+                note_event(recs, nrecs, recs_cap, varsymid, EvReadThenWrite, i);
             } else {
-                note_event(recs, nrecs, recs_cap, varsymid, EvRead);
+                note_event(recs, nrecs, recs_cap, varsymid, EvRead, operand.start);
             }
         }
     }
@@ -334,6 +345,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         find_or_add_var(recs, nrecs, recs_cap, symid, &is_new);
         if (is_new) {
             recs[nrecs-1].first_event = EvRead;
+            recs[nrecs-1].first_pos = span.start;
             recs[nrecs-1].ever_written = false;
         }
     }
