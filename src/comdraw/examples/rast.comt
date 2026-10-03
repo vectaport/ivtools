@@ -2,9 +2,9 @@
 // raster, for building kernel filters (blur, sharpen, edge detection)
 // without materializing the whole window up front.
 //
-// rast.window holds only the rows a kernel of height :kernel@1 actually
+// rast.sldwin holds only the rows a kernel of height :kernszl@1 actually
 // needs around the row currently being processed; rast.origin is the
-// index of that row within rast.window. Near the top/bottom edge the window
+// index of that row within rast.kernel. Near the top/bottom edge the kernel
 // is simply shorter (2 rows instead of 3, 3 instead of 5, ...) rather
 // than padded with nils -- the column direction gets edge handling for
 // free from a plain @ index (a string @ past its length is nil, same
@@ -13,60 +13,94 @@
 //
 // Call rast.advance() once per output row, in row order starting at 0;
 // each call returns the row it just centered on and updates
-// rast.window/rast.origin/rast.row to match. See src/comdraw/examples/README.md.
+// rast.sldwin/rast.origin/rast.row to match. See src/comdraw/examples/README.md.
 
 rast=(
   :w 16
   :h 12
-  :kernel 3,3
-  :input string(w*h UIntType)
-  :output string(w*h UIntType)
-  :window list
-  :row 0
-  :origin 0
+  :kernszx 3
+  :kernszy 3
+  :in string(w*h UIntType)
+  :out string(w*h UIntType)
+  :sldwin list
+  :krnorig 0
+  :curx 0
+  :cury 0
 
   :paint func(
-    input@0..(w*h-1)=0..(w*h-1)
+    in@0..(w*h-1)=0..(w*h-1)
   )
 
   :advance func(
 
-    y=1;
-    half=kernel@y/2;
-    if(size(window)==0 :then
-      for(p=0 p<=half p++ window,input@(w*p):(w*(p+1)));
-      origin=0;
+    temp(half)=kernszy/2;
+    if(size(sldwin)==0 :then
+      for(temp(p)=0 p<=half p++ sldwin,in@(w*p):(w*(p+1)));
+      krnorig=0;
+      cury=0;
       return(0)
     )
-    if(row<half :then
-      row=row+1;
-      rowoff=size(window);
-      window,input@(w*rowoff):(w*(rowoff+1));
-      origin++;
-      return(row)
+
+    if(cury<half :then
+      cury=cury+1;
+      rowoff=size(sldwin);
+      sldwin,in@(w*rowoff):(w*(rowoff+1));
+      krnorig++;
+      return(cury)
     )
 
-    if (row+half>=h-1 :then
-      row=row+1;
-      at(window 0 :del);
-      return(row)
+    if (cury+half>=h-1 :then
+      cury=cury+1;
+      at(sldwin 0 :del);
+      return(cury)
     )
 
     // full row window, time to remove the front and add to back
-    row=row+1;
-    at(window 0 :del);
-    window,input@(w*(row+half)):(w*(row+half+1));
-    return(row)
+    cury=cury+1;
+    at(sldwin 0 :del);
+    sldwin,in@(w*cury):(w*(cury+1));
+    return(cury)
 
+  )
 
+  :getker func(
+    sldwin@(krnorig+arg(1))@(curx+arg(0))
+  )
+  
+  :kern func(
+    if(krn==nil :then krn=string(kernszx*kernszy AnyType));
+    temp(ki)=0;
+    temp(halfx)=kernszx>>1;
+    temp(evenx)=cond(halfx*2==kernszx 1 0);
+    temp(halfy)=kernszy>>1;
+    temp(eveny)=cond(halfy*2==kernszy 1 0);
+    for(temp(j)=-halfy j<=halfy-eveny j++
+      for(temp(i)=-halfx i<=halfx-evenx i++
+        krn@(ki++)=getker(i j :curx curx :cury cury)));
+    krn)
+
+  :smooth func(
+    temp(summ)=0L;
+    temp(cnt)=0;
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k!= nil :then cnt++;summ+=k))
+    return(summ/cnt)
+  )
+
+  :smoothxy func(
+  )
+
+  :runrow func(
+    out@0..(w-1)=100..(100+w-1)
   )
 
 )
 
-rast.paint();
-i=0;
-while(i<rast.h
-  r=rast.advance();
-  print("row %d: window holds %d row(s), centered at window@%d\n" r size(rast.window) rast.origin);
-  i=i+1
-)
+rast.paint()
+rast.advance()
+rast.kern()
+rast.smooth()
+s=rast.runrow()
+
+
