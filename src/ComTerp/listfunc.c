@@ -239,9 +239,12 @@ void AttrListFunc::execute() {
       delete raw;
     }
 
-    stamp_home_attrs(al);
-
+    /* al must be ref'd by retval before stamp_home_attrs runs: stamping a
+       funcless attrlist takes and releases its own transient ref with
+       nothing else yet holding one, freeing al right here -- a confirmed
+       ASan use-after-free that hit any funcless (:k v ...) literal. */
     ComValue retval(AttributeList::class_symid(), al);
+    stamp_home_attrs(al);
     push_stack(retval);
 }
 
@@ -250,11 +253,12 @@ void AttrListFunc::execute() {
    instead of its own frozen declaration-time captures (fire_funcobj,
    comterp.c) -- "inside the attrlist" means inside it for reads too. */
 void AttrListFunc::stamp_home_attrs(AttributeList* al) {
+    ComValue homeval(AttributeList::class_symid(), al);
     ALIterator hi;
     for (al->First(hi); !al->Done(hi); al->Next(hi)) {
       AttributeValue* hv = al->GetAttr(hi)->Value();
       if (hv->is_object(FuncObj::class_symid()))
-        ((FuncObj*)hv->obj_val())->home_attrs(al);
+        ((FuncObj*)hv->obj_val())->home_attrs(homeval);
     }
 }
 

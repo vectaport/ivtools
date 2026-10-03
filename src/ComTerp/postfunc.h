@@ -228,16 +228,23 @@ class FuncObj : public Resource {
 
   // The attrlist this func was built as a member of (set once, by
   // AttrListFunc::execute(), for every FuncObj-valued attribute of a new
-  // attrlist literal).  nil means none -- a func built outside any
+  // attrlist literal).  UnknownType means none -- a func built outside any
   // attrlist literal, the common case for a plain local func(). Checked
   // ahead of a capture's own frozen snapshot (ComTerp::fire_funcobj) so a
   // sibling func sees that attrlist's current value for a shared name
   // instead of whatever the name held back when this func was defined.
-  // A raw, non-owning pointer: the attrlist already owns this FuncObj
-  // through its own member attribute, so an owning reference here would
-  // close a ref cycle neither side's refcount could ever break.
-  AttributeList* home_attrs() { return _home_attrs; }
-  void home_attrs(AttributeList* al) { _home_attrs = al; }
+  // A ComValue, like _captures, so its constructor/destructor manage the
+  // AttributeList refcount automatically -- a raw back-pointer here can
+  // outlive the attrlist it points at whenever a FuncObj is saved out on
+  // its own (e.g. `g=obj.getx`) and then called after the attrlist that
+  // built it is otherwise dropped, a confirmed ASan use-after-free. The
+  // owning-attrlist/owned-FuncObj reference cycle this reintroduces is a
+  // real, separately tracked leak (see HACKING.md/PR #673 discussion) --
+  // safe-but-leaky, not safe-and-correct; the actual fix is making "home"
+  // a property of which call is executing, not a field stored on the
+  // FuncObj at all.
+  ComValue& home_attrs() { return _home_attrs; }
+  void home_attrs(ComValue& al) { _home_attrs = al; }
 
   CLASS_SYMID("FuncObj");
 
@@ -248,7 +255,7 @@ class FuncObj : public Resource {
   int _nspans;
   ComValue _captures;
   boolean _posteval;
-  AttributeList* _home_attrs;
+  ComValue _home_attrs;
 };
 
 //: marker for one still-unevaluated arg/keyword of a :posteval FuncObj call.

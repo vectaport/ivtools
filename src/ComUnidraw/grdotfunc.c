@@ -141,9 +141,10 @@ void GrAttrListFunc::execute() {
       delete raw;
     }
 
-    AttrListFunc::stamp_home_attrs(al);
-
+    /* al must be ref'd by retval before stamp_home_attrs runs -- see
+       AttrListFunc::execute()'s identical ordering fix (listfunc.c). */
     ComValue retval(AttributeList::class_symid(), al);
+    AttrListFunc::stamp_home_attrs(al);
     push_stack(retval);
   }
 }
