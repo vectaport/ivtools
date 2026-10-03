@@ -442,7 +442,6 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   /* keywords sit above the positionals on the stack, so pop them first;
      positional count is narg minus keyword values consumed, not narg-nkey */
   int npos = val.narg();
-  AttributeList* al = new AttributeList();
   /* symids this call supplied by keyword, gating kwoverride() below since
      a write can copy the tag into an unrelated capture (other=flag). */
   int nkwoverrides = 0;
@@ -462,6 +461,15 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      :keyword with no value would. */
   AttributeList* home = callee_fo->home_attrs().is_object(AttributeList::class_symid())
     ? (AttributeList*)callee_fo->home_attrs().obj_val() : nil;
+  /* al starts as a snapshot copy of home (not home itself), so every
+     sibling field -- including other FuncObj members -- stays visible to
+     a nested bare call inside this body at any depth, the same visibility
+     a dot-bound call already gets by running with home as its live
+     attributes list. Being a copy keeps it disposable: a write the body
+     makes to a field it didn't declare as a capture still never reaches
+     the real home list, matching standalone-call semantics unchanged by
+     this. */
+  AttributeList* al = home ? new AttributeList(home) : new AttributeList();
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     ALIterator capit;
