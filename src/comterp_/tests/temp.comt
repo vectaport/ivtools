@@ -88,7 +88,12 @@ prev_ok=check_fail(:ok ok)
 // because carousel.comt's scratch vars were shared, un-isolated fields on
 // the receiver's own attrlist -- a nested call driven by update() from
 // within an outer call's body could rewrite them out from under it)
-obj9=(:count func(temp(y)=arg(0) if(arg(0)>0 obj9.count(arg(0)-1)) y))
+// obj9 is declared global() and the recursive call looks it up via
+// global(obj9) rather than the bare name -- a bare reference inside the
+// func body would resolve to the definition-time-captured default,
+// which is unassigned at the moment this literal is still being built,
+// not the finished object the call site sees.
+global(obj9)=(:count func(temp(y)=arg(0) if(arg(0)>0 :then global(obj9).count(arg(0)-1)) y))
 r9=obj9.count(3)
 ok=ok&&(r9==3)
 print("9 obj9.count(3) recursing through obj9.count(2,1,0): outer temp(y) survives nested calls (expect 3): %v\n\n" r9)
