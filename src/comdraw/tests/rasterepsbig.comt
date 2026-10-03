@@ -37,7 +37,7 @@ epspath=print("/tmp/ivtools-rasterepsbig-test-%d.eps" epssuffix :str)
 // --- test 1: a real, non-square, normal-image-size raster ---
 ra=raster(0,0,640,480)
 ok=ok&&(ra!=nil)
-print("1 raster() created, 640x480 requested (expect true): %v (reported ncols=%v nrows=%v)\n" (ra!=nil) ncols(ra) nrows(ra))
+print("1 raster() created, 640x480 requested (expect true): %v\n" (ra!=nil))
 
 // --- paint five distinct, non-gray landmark pixels: the four corners and
 //     the center of the requested 640x480 extent. everything else stays

@@ -7,22 +7,36 @@
 // all -- confirmed against IfThenElseFunc::execute(), which only ever
 // pulls stack_arg_post_eval(0) and the :then/:else keywords); ep_then
 // is the same test written correctly, with :then, and must stay
-// unflagged; ep_switch calls switch() with several key/body pairs and
-// no keywords -- switch()'s docstring repeats its "[key body]" group
-// with a trailing "...", so any number of pairs must stay unflagged;
+// unflagged; ep_switch calls switch() the real way, with its
+// dynamically-named :case keywords -- a call supplying any keyword is
+// already outside what the positional-arity check validates, so this
+// must stay unflagged regardless of how many :case pairs it carries;
 // ep_open calls open() with two positionals (name and mode), both
 // optional but nested ([filename [modestr]]) -- both must count
 // toward the max, not just the outer bracket, so this bare case must
 // also stay unflagged; ep_allow is a second missing-:then call
-// overridden by a preceding comlint:allow line.
+// overridden by a preceding comlint:allow line; ep_atOk calls at()
+// the ordinary way (list, index) -- at()'s signature leads with a
+// top-level alternation ("list|attrlist|compview"), which must count
+// as ONE required slot (whichever alternative is supplied), not three
+// (one per alternative); ep_allowTab is a third missing-:then call
+// whose comlint:allow comment has a literal tab between "//" and the
+// text instead of a space, exercised for the override.
+
+sampleList=(1,2,3)
 
 ep_noThen=if(1 2)
 
 ep_then=if(1 :then 2 :else 3)
 
-ep_switch=switch(1 `a 10 `b 20 `c 30)
+ep_switch=switch(1 :case1 10 :case2 20 :case3 30)
 
 ep_open=open("/dev/null" "r")
 
+ep_atOk=at(sampleList 0)
+
 // comlint:allow -- deliberately missing :then, exercised for the override
 ep_allow=if(1 2)
+
+//	comlint:allow -- same, but a tab separates "//" from the text
+ep_allowTab=if(1 2)

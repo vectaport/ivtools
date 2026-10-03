@@ -172,7 +172,7 @@ public:
 };
 
 //: switch command for ComTerp.
-// switch(val [key body] ...) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
+// switch(val [:<key> body] ...) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
 class SwitchFunc : public ComFunc {
 public:
     SwitchFunc(ComTerp*);
@@ -180,7 +180,7 @@ public:
     virtual boolean post_eval() { return true; }
     virtual void execute();
     virtual const char* docstring() {
-      return "switch(val [key body] ...) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)"; }
+      return "switch(val [:<key> body] ...) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)"; }
 
 };
 
