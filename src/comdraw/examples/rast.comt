@@ -71,8 +71,7 @@ rast=(
   )
   
   :kern func(
-    // since krn is not declared above this
-    // reuses its string kept on the func.
+    // krn is a receiver field; reuse its string across calls.
     if(krn==nil :then
       krn=string(kernszx*kernszy AnyType));
     temp(ki)=0;
