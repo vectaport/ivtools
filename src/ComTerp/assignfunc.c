@@ -148,14 +148,22 @@ void AssignFunc::execute() {
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);
 	    operand2_owned = true;
-	} else if (attrlist && value_contains_container(*operand2, (void*)attrlist, true)) {
-	    fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
-		    funcstate()->linenum());
-	    delete operand2;
-	    reset_stack();
-	    push_stack(ComValue::nullval());
-	    return;
 	} else {
+	    /* the self-insert guard only applies when the write actually
+	       targets attrlist -- write_funcscope_symval() diverts anything
+	       else (an existing temp() name, or a brand-new one) to the
+	       call-local temp frame, which can't form a permanent cycle. */
+	    AttributeList* tempframe = comterp()->get_tempframe();
+	    boolean targets_attrlist = attrlist && attrlist->GetAttr(operand1.symbol_val()) &&
+	      !(tempframe && tempframe->find(operand1.symbol_val()));
+	    if (targets_attrlist && value_contains_container(*operand2, (void*)attrlist, true)) {
+	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		      funcstate()->linenum());
+	      delete operand2;
+	      reset_stack();
+	      push_stack(ComValue::nullval());
+	      return;
+	    }
 	    /* bare write mirrors a bare read's own scoping: an existing temp()
 	       name or already-declared attrlist field is updated in place; a
 	       brand-new name is call-local scratch, kept off a shared receiver

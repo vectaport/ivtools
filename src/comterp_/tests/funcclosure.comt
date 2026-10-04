@@ -591,5 +591,14 @@ ok=ok&&(r106=="abc!")&&(r107==2)&&(r108==nil)
 print("29 obj65.grow65() appends to declared s65 and writes undeclared scratch65 (expect s65 \"abc!\", size 2, scratch65 nil): %v %v %v\n\n" r106 r107 r108)
 check_fail(:ok ok)
 
+// --- test 30: a temp()-held reference to the call's own receiver is not
+// mistaken for an attrlist self-insert, since it's written to the private
+// temp frame rather than onto the receiver (issue #685 follow-up) ---
+global(obj66)=(:f66 func(temp(saved66)=0; saved66=global(obj66); saved66))
+r109=obj66.f66()
+ok=ok&&(r109==obj66)
+print("30 obj66.f66() holds global(obj66) in temp(saved66) (expect the receiver itself, not nil): %v\n\n" r109==obj66)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
