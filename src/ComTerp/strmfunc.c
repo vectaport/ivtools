@@ -888,14 +888,7 @@ void NextFunc::execute() {
     execute_impl(comterp(), streamv);
     if (varname.is_type(ComValue::SymbolType)) {
       ComValue* pulled = new ComValue(comterp()->stack_top());
-      AttributeList* tempframe = comterp()->get_tempframe();
-      AttributeList* attrlist = comterp()->get_attributes();
-      if (tempframe && tempframe->find(varname.symbol_val()))
-	tempframe->add_attribute(new Attribute(varname.symbol_val(), pulled));
-      else if (attrlist)
-	attrlist->add_attribute(new Attribute(varname.symbol_val(), pulled));
-      else
-	comterp()->assign_symval(varname.symbol_val(), pulled);
+      comterp()->write_funcscope_symval(varname.symbol_val(), pulled);
     }
 }
 

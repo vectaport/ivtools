@@ -259,6 +259,16 @@ public:
     // on a future replace/removal, never by the caller after this call).
     // Shared by AssignFunc's plain '=' and AppendFunc's by-name write-back,
     // so both use the same bare-write scoping.
+    void write_funcscope_symval(int symid, ComValue* newval);
+    // bare-write scoping inside a func call: an existing temp() name, or a
+    // name the call's attrlist (get_attributes()) already declares, is
+    // updated in place -- visible to a sibling call sharing that attrlist
+    // immediately, the same as a dot-bound write. A name neither already
+    // has is call-local scratch, written into the temp frame instead so it
+    // never becomes a permanent field on a shared receiver. Outside any
+    // func call, falls back to assign_symval(). 'newval' becomes
+    // list/table-owned, like assign_symval(). Shared by AssignFunc's plain
+    // '=', AppendFunc's by-name write-back, and NextFunc's bare-var pull.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
     const char* errmsg() { return _errbuf; }
     const char* last_errmsg() { return _errbuf2; }

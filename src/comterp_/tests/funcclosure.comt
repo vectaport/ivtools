@@ -551,5 +551,45 @@ ok=ok&&(at(r100 0)==99)&&(at(r101 0)==99)
 print("26 obj62=(:krn62 nil ...); obj62.runner62() bare-calls kern62(), which fills the declared-nil krn62 (expect 99 99 -- the fill persists, not reverted to nil): %v %v\n\n" at(r100 0) at(r101 0))
 check_fail(:ok ok)
 
+// --- test 27: a BARE call (not dot-bound) to a func that's a member of an
+// attrlist no longer leaks an undeclared scratch write onto the receiver --
+// only a pre-declared field persists (issue #685) ---
+obj63=(
+  :n63 0
+  :f63 func(n63=n63+1; scratch63=1)
+  :runner63 func(f63())
+)
+obj63.runner63()
+r102=size(obj63)
+r103=obj63.scratch63
+ok=ok&&(r102==3)&&(r103==nil)
+print("27 obj63.runner63() bare-calls f63(), which writes undeclared scratch63 (expect size 3, scratch63 nil -- doesn't leak): %v %v\n\n" r102 r103)
+check_fail(:ok ok)
+
+// --- test 28: the same undeclared-scratch guard applies to a direct
+// dot-bound call too, not just a bare call reusing the home attrlist ---
+obj64=(:n64 0 :f64 func(n64=n64+1; scratch64=1))
+obj64.f64()
+r104=size(obj64)
+r105=obj64.scratch64
+ok=ok&&(r104==2)&&(r105==nil)
+print("28 obj64.f64() dot-bound directly, writes undeclared scratch64 (expect size 2, scratch64 nil -- doesn't leak): %v %v\n\n" r104 r105)
+check_fail(:ok ok)
+
+// --- test 29: append()'s by-name write-back follows the same scoping as
+// a bare '=' -- a pre-declared field grows in place, an undeclared scratch
+// name used alongside it still doesn't leak ---
+obj65=(
+  :s65 "abc"
+  :grow65 func(append(s65 "!"); scratch65="x")
+)
+obj65.grow65()
+r106=obj65.s65
+r107=size(obj65)
+r108=obj65.scratch65
+ok=ok&&(r106=="abc!")&&(r107==2)&&(r108==nil)
+print("29 obj65.grow65() appends to declared s65 and writes undeclared scratch65 (expect s65 \"abc!\", size 2, scratch65 nil): %v %v %v\n\n" r106 r107 r108)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
