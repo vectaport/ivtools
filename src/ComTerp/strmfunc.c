@@ -2093,6 +2093,27 @@ void InfoFunc::execute() {
     return;
   }
 
+  /* STREAM_FUNCOBJ packs a bare FuncObj* in the func slot (comterp.c's
+     try_stream_funcobj), not a ComFunc* -- funcid() on it is undefined
+     behavior, so report it on its own rather than falling into the
+     ComFunc-shaped paths below. */
+  if (streamv.stream_mode()&STREAM_FUNCOBJ) {
+    FuncObj* fo = (FuncObj*) streamv.stream_func();
+    AttributeList* al = new AttributeList();
+    static int mode_sym_fo = symbol_add("mode");
+    static int ntoks_sym_fo = symbol_add("ntoks");
+    static int nargs_sym_fo = symbol_add("nargs");
+    ComValue modeval("funcobj");
+    ComValue ntoksv(fo ? fo->ntoks() : 0);
+    ComValue nargsv(avl ? avl->Number() : 0);
+    al->add_attr(mode_sym_fo, modeval);
+    al->add_attr(ntoks_sym_fo, ntoksv);
+    al->add_attr(nargs_sym_fo, nargsv);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
   /* identify a literal-backed stream; others have different list layouts */
   static int slnf_symid = -1;
   if (slnf_symid == -1) slnf_symid = symbol_add("streamliteralnext");
