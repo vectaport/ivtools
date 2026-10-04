@@ -505,5 +505,24 @@ ok=ok&&(r96=="f60(:x60)")&&(r97==nil)
 print("23 f60=func(x60;x60=1;x60); help(f60), obj60.f60();obj60.x60 (expect \"f60(:x60)\" nil -- bare leading read x60 is captured, not leaked): %v %v\n\n" r96 r97)
 check_fail(:ok ok)
 
+// --- test 24: a write to a pre-declared field made by a BARE call (not
+// dot-bound) is visible to a sibling that same bare call nests further
+// down, the same as a dot-bound call already provides -- and a name the
+// bare call introduces that was never pre-declared still doesn't leak a
+// permanent field onto the receiver ---
+obj61=(
+  :curx61 0
+  :getker61 func(curx61+arg(0))
+  :kern61 func(getker61(0))
+  :smoothxy61 func(temp(x)=arg(0); curx61=x; newfield61=x+100; kern61())
+  :runrow61 func(for(temp(xx)=0 xx<3 xx++ smoothxy61(xx)))
+)
+obj61.runrow61()
+r98b=obj61.curx61
+r99=size(obj61)
+ok=ok&&(r98b==2)&&(r99==5)
+print("24 obj61.runrow61() bare-calls smoothxy61(0,1,2), which bare-writes curx61 then bare-calls kern61()->getker61() (expect curx61 2, size(obj61) 5 unchanged -- the pre-declared field's last write persists, newfield61 never leaks on): %v %v\n\n" r98b r99)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
