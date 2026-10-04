@@ -146,6 +146,13 @@ public:
     // true iff _alist holds a still-pending FuncObjPendingArg marker under
     // 'id' -- an existence check that never pulls or evaluates anything.
 
+    boolean is_frame_bound(int id);
+    // true iff 'id' is a non-global symbol found in _alist (a func's own
+    // keyword/capture frame) or _tempframe (its temp() scratch frame) --
+    // either way, a scope the call discards when it returns, so a scalar
+    // operand bound this way must be captured now rather than left as a
+    // deferred symbol a later stream replay would look up too late.
+
     ComValue& fire_if_funcobj(ComValue& val);
     // if 'val' resolves to a bare FuncObj, fire it niladically and return a
     // reference to the result.  The result lands in _fire_scratch_pool rather

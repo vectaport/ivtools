@@ -592,6 +592,10 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   delete [] posvals;
 }
 
+boolean ComTerp::is_frame_bound(int id) {
+  return (_alist && _alist->find(id)) || (_tempframe && _tempframe->find(id));
+}
+
 boolean ComTerp::try_stream_funcobj(FuncObj* fo, int narg, int nkey) {
   int nall = narg + nkey;
   boolean has_streams = false;
@@ -611,15 +615,20 @@ boolean ComTerp::try_stream_funcobj(FuncObj* fo, int narg, int nkey) {
   AttributeValueList* avl = new AttributeValueList();
   for(int i=0; i<nall; i++) {
     /* resolve every stream-valued arg so it zips per-element like a literal;
-       scalars stay unresolved for per-element broadcast */
+       scalars stay unresolved for per-element broadcast, except one bound
+       to the current call's own frame (_alist/_tempframe), which is gone
+       by the time a deferred replay would look it up */
     boolean argstream;
+    boolean frame_bound = false;
     if (!stack_top().is_symbol() && !stack_top().is_attribute())
       argstream = stack_top().is_stream();
     else {
+      if (!stack_top().global_flag() && is_frame_bound(stack_top().symbol_val()))
+	frame_bound = true;
       AttributeValue* tv = lookup_symval(&stack_top(), false);
       argstream = tv ? tv->is_stream() : false;
     }
-    ComValue topval(pop_stack(argstream));
+    ComValue topval(pop_stack(argstream || frame_bound));
     avl->Prepend(new AttributeValue(topval));
   }
   /* FuncObj rides in the same void* slot a ComFunc* normally uses;
@@ -752,10 +761,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	if (!stack_top().is_symbol() && !stack_top().is_attribute())
 	  argstream = stack_top().is_stream();
 	else {
-	  /* a symbol bound through _alist (func-local keyword/capture) is fixed
-	     for the call; a true global stays deferred */
-	  if (!stack_top().global_flag() && _alist &&
-	      _alist->find(stack_top().symbol_val()))
+	  /* a symbol bound to the current call's own frame (_alist's
+	     func-local keyword/capture, or _tempframe's temp() scratch) is
+	     fixed for the call -- that scope is gone once the call returns,
+	     so it must be captured now rather than left for a later stream
+	     replay to look up too late. A true global stays deferred. */
+	  if (!stack_top().global_flag() && is_frame_bound(stack_top().symbol_val()))
 	    alist_bound = true;
 	  AttributeValue* tv = lookup_symval(&stack_top(), false);
 	  argstream = tv ? tv->is_stream() : false;
