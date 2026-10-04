@@ -156,11 +156,55 @@ void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captu
 /* fires fo once, self-bound to al, with one resolved set of positional/
    keyword args -- the inject-fire-revert dispatch shared by a direct
    obj.method(args) call and, per pulled element, a streamed one. */
+/* add_attr() never consults sealed() -- dispatch straight at the real
+   list, seal untouched, so a nested named-field write (even through an
+   alias) still rejects for the whole call.  Snapshot/strip bracket each
+   individual firing (not just the call that creates a deferred stream),
+   so a per-pull body run through DotMethodNextFunc is covered too. */
+static int* seal_snapshot(AttributeList* al, boolean& was_sealed, int& npresymids) {
+  npresymids = 0;
+  was_sealed = al && al->sealed();
+  if (!was_sealed) return nil;
+  npresymids = al->Number();
+  int* presymids = npresymids>0 ? new int[npresymids] : nil;
+  ALIterator pit;
+  int pi = 0;
+  for (al->First(pit); !al->Done(pit); al->Next(pit))
+    presymids[pi++] = al->GetAttr(pit)->SymbolId();
+  return presymids;
+}
+
+static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids, int npresymids) {
+  if (!was_sealed) return;
+  Attribute** newattrs = new Attribute*[al->Number()];
+  int nnewattrs = 0;
+  ALIterator it;
+  for (al->First(it); !al->Done(it); al->Next(it)) {
+    Attribute* attr = al->GetAttr(it);
+    int symid = attr->SymbolId();
+    boolean was_present = false;
+    for (int i=0; i<npresymids; i++)
+      if (presymids[i]==symid) { was_present = true; break; }
+    if (!was_present) newattrs[nnewattrs++] = attr;
+  }
+  for (int i=0; i<nnewattrs; i++)
+    al->Remove(newattrs[i]);
+  delete [] newattrs;
+  delete [] presymids;
+}
+
 static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
 					   AttributeList* al, FuncObj* fo,
 					   int method_nkey,
 					   AttributeValueList* poslist,
 					   AttributeList* kwlist, int npos) {
+  /* snapshot al's field set before any capture/keyword injection below adds
+     to it, so the post-call strip only removes names that were genuinely
+     absent beforehand -- not keywords/captures this same call just injected */
+  boolean was_sealed;
+  int npresymids;
+  int* presymids = seal_snapshot(al, was_sealed, npresymids);
+
   ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
   if (npos>0) {
     for (int i=0; i<npos; i++)
@@ -275,6 +319,12 @@ static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
   for (int i=0; i<ncap; i++)
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
+
+  /* after persistence/revert above has had its say, strip anything still
+     left on a sealed al that wasn't there at entry -- a written keyword
+     persists onto the callee's own captures (above) but must never also
+     become a permanent field of the sealed receiver it was passed to */
+  seal_strip_new(al, was_sealed, presymids, npresymids);
 
   return result;
 }
@@ -534,40 +584,12 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* add_attr() never consults sealed() -- dispatch straight at the
-         real list, seal untouched, so a nested named-field write (even
-         through an alias) still rejects for the whole call. */
-      boolean was_sealed = al && al->sealed();
-      int npresymids = 0;
-      int* presymids = nil;
-      if (was_sealed) {
-	npresymids = al->Number();
-	if (npresymids>0) presymids = new int[npresymids];
-	ALIterator pit;
-	int pi = 0;
-	for (al->First(pit); !al->Done(pit); al->Next(pit))
-	  presymids[pi++] = al->GetAttr(pit)->SymbolId();
-      }
+      /* sealed-field cleanup (seal_snapshot/seal_strip_new) brackets each
+         actual body firing inside fire_attrlist_method_once, not this call
+         site -- a streamed call defers firing to DotMethodNextFunc, one
+         firing per pull, so the cleanup has to live there to cover every
+         firing rather than just the one that creates the deferred stream. */
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
-      /* strip any name the call's capture/keyword injection left behind
-         that wasn't already there before it. */
-      if (was_sealed) {
-	Attribute** newattrs = new Attribute*[al->Number()];
-	int nnewattrs = 0;
-	ALIterator it;
-	for (al->First(it); !al->Done(it); al->Next(it)) {
-	  Attribute* attr = al->GetAttr(it);
-	  int symid = attr->SymbolId();
-	  boolean was_present = false;
-	  for (int i=0; i<npresymids; i++)
-	    if (presymids[i]==symid) { was_present = true; break; }
-	  if (!was_present) newattrs[nnewattrs++] = attr;
-	}
-	for (int i=0; i<nnewattrs; i++)
-	  al->Remove(newattrs[i]);
-	delete [] newattrs;
-	delete [] presymids;
-      }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {

@@ -39,15 +39,14 @@ ok=ok&&wasstream1&&(wasunfired1==0)&&(d1==(4))&&(obj1.n1==4)
 print("1 runall1()'s sibling call inc1(0**4) overdrives lazily (expect true 0, [4], 4): %v %v %v %v\n" wasstream1 wasunfired1 d1 obj1.n1)
 check_fail(:ok ok)
 
-// --- test 2: the same shape with a streamed keyword value broadcasts
-// across the call, same as an ordinary resolved call's keyword stream --
-// 0**4 is a 4-element repeat-stream of 0, not a range, so every firing
-// adds the same (arg(0)+amt) term ---
-obj2=(:n2 0 :inc2 func(n2=n2+arg(0)+amt) :runall2 func(inc2(0**4 :amt 10)))
+// --- test 2: a streamed keyword value (no positional stream riding along
+// to mask it) overdrives too -- each firing adds the next :amt element,
+// proving the keyword itself is what drives the per-element replay ---
+obj2=(:n2 0 :inc2 func(n2=n2+amt) :runall2 func(inc2(:amt 0..3)))
 r2=obj2.runall2()
 **r2
-ok=ok&&(obj2.n2==4*(0+10))
-print("2 runall2()'s sibling call inc2(0**4 :amt 10) streams a keyword too (expect %v): %v\n" 4*(0+10) obj2.n2)
+ok=ok&&(obj2.n2==(0+1+2+3))
+print("2 runall2()'s sibling call inc2(:amt 0..3) streams a keyword alone (expect %v): %v\n" (0+1+2+3) obj2.n2)
 check_fail(:ok ok)
 
 // --- test 3: ** (each, unary prefix) drains the stream to a scalar before

@@ -79,5 +79,21 @@ ok=ok&&(!istype(r6 StreamType))&&(r6==1)&&(obj6.n6==1)
 print("6 obj6.f6() plain call unaffected (expect false 1 1): %v %v %v\n" istype(r6 StreamType) r6 obj6.n6)
 check_fail(:ok ok)
 
+// --- test 7: a sealed dot target (a func's own captures, accessed via
+// another func stored as one of them) never gains a permanent field from a
+// streamed call either -- fire_attrlist_method_once's seal_snapshot/
+// seal_strip_new bracket EACH per-pull firing through DotMethodNextFunc,
+// not just the single call that creates the deferred stream, so a keyword
+// the body writes (making it ineligible for the ordinary unwritten-revert)
+// still never survives on the sealed receiver past the call that injected it ---
+g7=func(newcap7=newcap7+1; newcap7)
+f7=func(g7)
+r7=f7.g7(:newcap7 (5 6 7))
+d7=list(r7)
+ok=ok&&(at(d7 0)==6)&&(at(d7 1)==7)&&(at(d7 2)==8)
+ok=ok&&(size(dot(f7))==1)
+print("7 f7.g7(:newcap7 (5 6 7)) streamed keyword into a sealed dot target (expect {6,7,8}, size 1 -- no leaked field): %v %v\n" d7 size(dot(f7)))
+check_fail(:ok ok)
+
 print("dotfuncstream: %v\n" ok)
 ok
