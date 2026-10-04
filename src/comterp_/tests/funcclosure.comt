@@ -505,7 +505,21 @@ ok=ok&&(r96=="f60(:x60)")&&(r97==nil)
 print("23 f60=func(x60;x60=1;x60); help(f60), obj60.f60();obj60.x60 (expect \"f60(:x60)\" nil -- bare leading read x60 is captured, not leaked): %v %v\n\n" r96 r97)
 check_fail(:ok ok)
 
-// --- test 24: a write to a pre-declared field made by a BARE call (not
+// --- test 24: a bare call two levels deep -- a dot-bound call's own bare
+// call to a sibling, which itself makes a bare call to ANOTHER sibling --
+// still resolves, not just one level of bare nesting ---
+obj60b=(
+  :n60 0
+  :leaf60 func(n60+1)
+  :mid60 func(leaf60())
+  :top60 func(n60=41; mid60())
+)
+r98=obj60b.top60()
+ok=ok&&(r98==42)
+print("24 obj60b.top60() dot-bound -> bare mid60() -> bare leaf60() (expect 42 -- two levels of bare sibling call still see n60): %v\n\n" r98)
+check_fail(:ok ok)
+
+// --- test 25: a write to a pre-declared field made by a BARE call (not
 // dot-bound) is visible to a sibling that same bare call nests further
 // down, the same as a dot-bound call already provides -- and a name the
 // bare call introduces that was never pre-declared still doesn't leak a
@@ -521,7 +535,7 @@ obj61.runrow61()
 r98b=obj61.curx61
 r99=size(obj61)
 ok=ok&&(r98b==2)&&(r99==5)
-print("24 obj61.runrow61() bare-calls smoothxy61(0,1,2), which bare-writes curx61 then bare-calls kern61()->getker61() (expect curx61 2, size(obj61) 5 unchanged -- the pre-declared field's last write persists, newfield61 never leaks on): %v %v\n\n" r98b r99)
+print("25 obj61.runrow61() bare-calls smoothxy61(0,1,2), which bare-writes curx61 then bare-calls kern61()->getker61() (expect curx61 2, size(obj61) 5 unchanged -- the pre-declared field's last write persists, newfield61 never leaks on): %v %v\n\n" r98b r99)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)
