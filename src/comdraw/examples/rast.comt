@@ -110,7 +110,7 @@ rast=(
   :runrow func(
     temp(y) = advance();
     temp(yoff) = y*w;
-    for(temp(x)=0 x<w x++ out@(yoff+x)=smoothxy(x y))
+    out@((0..(w-1))+yoff)=smoothxy((0..(w-1)) y)
   )
 
   :runimg func(
@@ -120,6 +120,6 @@ rast=(
 )
 
 rast.paint()
-s=rast.runimg()
+rast.runimg()
 
 
