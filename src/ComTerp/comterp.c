@@ -2410,6 +2410,24 @@ void ComTerp::assign_symval(int symid, ComValue* newval) {
   }
 }
 
+void ComTerp::write_funcscope_symval(int symid, ComValue* newval) {
+  if (_tempframe && _tempframe->find(symid)) {
+    _tempframe->add_attribute(new Attribute(symid, newval));
+    return;
+  }
+  if (_alist) {
+    if (!_alist->GetAttr(symid) && _tempframe) {
+      _tempframe->add_attribute(new Attribute(symid, newval));
+      return;
+    }
+    Resource::ref(_alist);
+    _alist->add_attribute(new Attribute(symid, newval));
+    Unref(_alist);
+    return;
+  }
+  assign_symval(symid, newval);
+}
+
 void ComTerp::disable_prompt() { set_continuation_prompt_disabled(1); }
 void ComTerp::enable_prompt() { set_continuation_prompt_disabled(0); }
 

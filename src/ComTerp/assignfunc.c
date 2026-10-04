@@ -148,16 +148,18 @@ void AssignFunc::execute() {
 	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
 	    tempframe->add_attribute(attr);
 	    operand2_owned = true;
-	} else if (comterp()->get_tempframe() &&
-		   comterp()->get_tempframe()->find(operand1.symbol_val())) {
-	    /* bare write to an existing temp() name mirrors bare-write's usual
-	       rule (write where a bare read would find it): only the creating write needs temp(). */
+	} else {
+	    /* targets_attrlist mirrors write_funcscope_symval()'s own
+	       routing: an existing temp() name wins, else attrlist is the
+	       target when declared there or when no temp frame exists to
+	       divert a new name into. */
+	    /* eval(:alist) binds a receiver without allocating a temp
+	       frame, so a brand-new name there falls straight to attrlist. */
 	    AttributeList* tempframe = comterp()->get_tempframe();
-	    Attribute* attr = new Attribute(operand1.symbol_val(), operand2);
-	    tempframe->add_attribute(attr);
-	    operand2_owned = true;
-	} else if (attrlist) {
-	    if (value_contains_container(*operand2, (void*)attrlist, true)) {
+	    boolean targets_attrlist = attrlist &&
+	      !(tempframe && tempframe->find(operand1.symbol_val())) &&
+	      (attrlist->GetAttr(operand1.symbol_val()) || !tempframe);
+	    if (targets_attrlist && value_contains_container(*operand2, (void*)attrlist, true)) {
 	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
 		      funcstate()->linenum());
 	      delete operand2;
@@ -165,17 +167,9 @@ void AssignFunc::execute() {
 	      push_stack(ComValue::nullval());
 	      return;
 	    }
-	    Resource::ref(attrlist);
-	    Attribute* attr = new Attribute(operand1.symbol_val(),
-					    operand2);
-	    attrlist->add_attribute(attr);
-	    Unref(attrlist);
-	    operand2_owned = true;
-	}
-	else {
-	    /* bare write mirrors a bare read's own scoping: local if present,
-	       else the existing global, else a fresh local -- see SLICES.md */
-	    comterp()->assign_symval(operand1.symbol_val(), operand2);
+	    /* a brand-new name stays call-local only when a temp frame
+	       exists to hold it -- see SLICES.md. */
+	    comterp()->write_funcscope_symval(operand1.symbol_val(), operand2);
 	    operand2_owned = true;
 	}
     } else if (operand1.is_object(Attribute::class_symid())) {

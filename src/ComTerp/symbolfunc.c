@@ -1007,21 +1007,10 @@ void AppendFunc::execute() {
 
   ComValue result = typed ? dest.append_chunk(addend) : dest.append_str(addend, true /* headroom */);
 
-  /* write back only on success, scoped exactly like a bare read of arg0:
-     inside a func frame that's AssignFunc's own attrlist branch, not
-     assign_symval() (local/global only, no frame) -- same split AssignFunc
-     makes on its bare '=' path. */
-  if (have_name && result.is_only_string()) {
-    AttributeList* attrlist = comterp()->get_attributes();
-    if (attrlist) {
-      Resource::ref(attrlist);
-      Attribute* attr = new Attribute(arg0.symbol_val(), new ComValue(result));
-      attrlist->add_attribute(attr);
-      Unref(attrlist);
-    } else {
-      comterp()->assign_symval(arg0.symbol_val(), new ComValue(result));
-    }
-  }
+  /* write back only on success, using the same bare-write scoping as
+     AssignFunc's plain '=' path -- see write_funcscope_symval(). */
+  if (have_name && result.is_only_string())
+    comterp()->write_funcscope_symval(arg0.symbol_val(), new ComValue(result));
 
   push_stack(result);
 }
