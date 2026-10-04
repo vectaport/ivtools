@@ -375,13 +375,12 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
       if (fo->captures().is_object(AttributeList::class_symid())) {
         capval = ((AttributeList*)fo->captures().obj_val())->find(attr->SymbolId());
       }
-      /* a live, non-nil home-attrlist value (fire_funcobj's own override)
-         takes the capture's place here too -- the bracket should always
-         show the value a call will actually see, not the frozen snapshot
-         it's about to be overridden with. */
+      /* a declared home-attrlist field takes the capture's place here too,
+         whatever its current value -- the bracket should always show what
+         a call will actually see, not a frozen declaration-time snapshot. */
       if (fo->home_attrs().is_object(AttributeList::class_symid())) {
         AttributeValue* homeval = ((AttributeList*)fo->home_attrs().obj_val())->find(attr->SymbolId());
-        if (homeval && !ComValue(*homeval).is_unknown()) capval = homeval;
+        if (homeval) capval = homeval;
       }
       boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
       if (defval) {
