@@ -153,49 +153,14 @@ void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captu
    time, and that check consults the global command table only, never _alist.
    So look "method" up in obj directly, and get the args evaluated by
    retargeting a copy of just the arg tokens at echo(). */
-static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
-				  AttributeList* al, postfix_token* argtoks,
-				  int nargtoks) {
-  postfix_token& method_tok = argtoks[nargtoks-1];
-  int method_symid = method_tok.v.symbolid;
-  int method_narg = method_tok.narg;
-  int method_nkey = method_tok.nkey;
-
-  Attribute* attr = al ? al->GetAttr(method_symid) : nil;
-  if (!attr || !attr->Value()->is_object(FuncObj::class_symid())) {
-    cout << "WARNING: \"" << symbol_pntr(method_symid)
-	 << "\" is not a func-valued attribute -- line "
-	 << self->funcstate()->linenum() << "\n";
-    delete [] argtoks;
-    self->push_stack(ComValue::nullval());
-    return;
-  }
-  FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
-
-  /* echoresult owns poslist's/kwlist's storage -- keep it alive across
-     this whole block, not just the extraction below */
-  ComValue echoresult;
-  AttributeValueList* poslist = nil;
-  AttributeList* kwlist = nil;
-  int npos = 0;
-  if (method_narg>0 || method_nkey>0) {
-    static int echo_symid = symbol_add("echo");
-    method_tok.v.symbolid = echo_symid;
-    echoresult = self->comterpserv()->run(argtoks, nargtoks);
-    if (echoresult.is_list()) {
-      /* positionals present -- echo appends one singleton attrlist
-         per keyword, so trailing entries are those, not positionals */
-      poslist = echoresult.list_val();
-      npos = poslist->Number() - method_nkey;
-      if (npos<0) npos = 0;
-    } else if (echoresult.is_attributelist()) {
-      /* no positionals -- echo returns the keywords bare, as one
-         multi-attribute attrlist */
-      kwlist = (AttributeList*) echoresult.obj_val();
-    }
-  }
-  delete [] argtoks;
-
+/* fires fo once, self-bound to al, with one resolved set of positional/
+   keyword args -- the inject-fire-revert dispatch shared by a direct
+   obj.method(args) call and, per pulled element, a streamed one. */
+static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
+					   AttributeList* al, FuncObj* fo,
+					   int method_nkey,
+					   AttributeValueList* poslist,
+					   AttributeList* kwlist, int npos) {
   ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
   if (npos>0) {
     for (int i=0; i<npos; i++)
@@ -204,11 +169,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 
   /* captures are applied via the same inject-fire-revert mechanism as
      keywords, but first, so an explicit :x still overrides a capture */
-  int method_nkey_for_skip = method_nkey;
-  int* kwsymids = method_nkey_for_skip>0 ? new int[method_nkey_for_skip] : nil;
-  if (method_nkey_for_skip>0) {
+  int* kwsymids = method_nkey>0 ? new int[method_nkey] : nil;
+  if (method_nkey>0) {
     if (poslist) {
-      for (int i=0; i<method_nkey_for_skip; i++) {
+      for (int i=0; i<method_nkey; i++) {
 	AttributeList* singleton = (AttributeList*) poslist->Get(npos+i)->obj_val();
 	ALIterator it;
 	singleton->First(it);
@@ -237,7 +201,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       /* skip the capture when the caller also supplied it as a keyword,
          so apply_kw's existed/oldval reflects the true pre-call state */
       boolean also_keyword = false;
-      for (int k=0; k<method_nkey_for_skip; k++)
+      for (int k=0; k<method_nkey; k++)
 	if (kwsymids[k]==capsymid) { also_keyword = true; break; }
       if (also_keyword) continue;
       apply_kw(al, capsymid, *capattr->Value(), cappending[ncap]);
@@ -312,6 +276,76 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
 
+  return result;
+}
+
+/* a stream-valued arg makes echo() (an eager command) overdrive just like
+   any other eager command with a stream operand (comterp.c's general scan)
+   -- echoresult arrives as a deferred external stream of per-element echo()
+   results, instead of one resolved list/attrlist, so fire_attrlist_method
+   hands it to DotMethodNextFunc to drive lazily, one fo firing per pull,
+   rather than dropping it. */
+static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
+				  AttributeList* al, postfix_token* argtoks,
+				  int nargtoks) {
+  postfix_token& method_tok = argtoks[nargtoks-1];
+  int method_symid = method_tok.v.symbolid;
+  int method_narg = method_tok.narg;
+  int method_nkey = method_tok.nkey;
+
+  Attribute* attr = al ? al->GetAttr(method_symid) : nil;
+  if (!attr || !attr->Value()->is_object(FuncObj::class_symid())) {
+    cout << "WARNING: \"" << symbol_pntr(method_symid)
+	 << "\" is not a func-valued attribute -- line "
+	 << self->funcstate()->linenum() << "\n";
+    delete [] argtoks;
+    self->push_stack(ComValue::nullval());
+    return;
+  }
+  FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
+
+  /* echoresult owns poslist's/kwlist's storage -- keep it alive across
+     this whole block, not just the extraction below */
+  ComValue echoresult;
+  AttributeValueList* poslist = nil;
+  AttributeList* kwlist = nil;
+  int npos = 0;
+  if (method_narg>0 || method_nkey>0) {
+    static int echo_symid = symbol_add("echo");
+    method_tok.v.symbolid = echo_symid;
+    echoresult = self->comterpserv()->run(argtoks, nargtoks);
+    if (echoresult.is_stream()) {
+      delete [] argtoks;
+      static DotMethodNextFunc* dmnfunc = nil;
+      if (!dmnfunc) {
+	dmnfunc = new DotMethodNextFunc(comterp);
+	dmnfunc->funcid(symbol_add("dotmethodnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(echoresult));
+      avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)al));
+      avl->Append(new AttributeValue(FuncObj::class_symid(), (void*)fo));
+      avl->Append(new AttributeValue(method_nkey, AttributeValue::IntType));
+      ComValue stream(dmnfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL);
+      self->push_stack(stream);
+      return;
+    } else if (echoresult.is_list()) {
+      /* positionals present -- echo appends one singleton attrlist
+         per keyword, so trailing entries are those, not positionals */
+      poslist = echoresult.list_val();
+      npos = poslist->Number() - method_nkey;
+      if (npos<0) npos = 0;
+    } else if (echoresult.is_attributelist()) {
+      /* no positionals -- echo returns the keywords bare, as one
+         multi-attribute attrlist */
+      kwlist = (AttributeList*) echoresult.obj_val();
+    }
+  }
+  delete [] argtoks;
+
+  ComValue result(fire_attrlist_method_once(self, comterp, al, fo, method_nkey,
+					     poslist, kwlist, npos));
   self->push_stack(result);
 }
 
@@ -640,6 +674,57 @@ void DotStreamNextFunc::execute() {
        Attribute* wrapper; this per-pull call has no caller to unwrap it */
     ComValue unwrapped(comterp()->pop_stack(true));
     push_stack(unwrapped);
+}
+
+/*****************************************************************************/
+
+DotMethodNextFunc::DotMethodNextFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DotMethodNextFunc::execute() {
+    /* our own stream (arg 0) carries, in stream_list(): [0] the arg-eval
+       stream, [1] the receiver attrlist, [2] the FuncObj, [3] nkey */
+    ComValue selfstream(stack_arg(0));
+    reset_stack();
+
+    AttributeValueList* avl = selfstream.stream_list();
+    Iterator i;
+    avl->First(i);
+    AttributeValue* streamval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* alval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* foval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* nkeyval = avl->GetAttrVal(i);
+
+    AttributeList* al = (AttributeList*) alval->obj_val();
+    FuncObj* fo = (FuncObj*) foval->obj_val();
+    int method_nkey = nkeyval->int_val();
+
+    /* copy-then-drive pattern from DotStreamNextFunc -- the copy shares
+       stream_list(), so advancing persists via *streamval */
+    ComValue streamcopy(*streamval);
+    NextFunc::execute_impl(comterp(), streamcopy);
+    if (comterp()->stack_top().is_unknown()) {
+      comterp()->pop_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue elem(comterp()->pop_stack());
+    *streamval = streamcopy;
+
+    AttributeValueList* poslist = nil;
+    AttributeList* kwlist = nil;
+    int npos = 0;
+    if (elem.is_list()) {
+      poslist = elem.list_val();
+      npos = poslist->Number() - method_nkey;
+      if (npos<0) npos = 0;
+    } else if (elem.is_attributelist()) {
+      kwlist = (AttributeList*) elem.obj_val();
+    }
+
+    ComValue result(fire_attrlist_method_once(this, comterp(), al, fo, method_nkey,
+					       poslist, kwlist, npos));
+    push_stack(result);
 }
 
 /*****************************************************************************/
