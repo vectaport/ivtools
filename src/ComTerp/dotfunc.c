@@ -158,9 +158,10 @@ void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captu
    obj.method(args) call and, per pulled element, a streamed one. */
 /* add_attr() never consults sealed() -- dispatch straight at the real
    list, seal untouched, so a nested named-field write (even through an
-   alias) still rejects for the whole call.  Snapshot/strip bracket each
-   individual firing (not just the call that creates a deferred stream),
-   so a per-pull body run through DotMethodNextFunc is covered too. */
+   alias) still rejects for the whole call. */
+/* seal_snapshot/seal_strip_new bracket each individual firing, not just
+   the call that creates a deferred stream, so a per-pull body run through
+   DotMethodNextFunc is covered too. */
 static int* seal_snapshot(AttributeList* al, boolean& was_sealed, int& npresymids) {
   npresymids = 0;
   was_sealed = al && al->sealed();
@@ -174,6 +175,8 @@ static int* seal_snapshot(AttributeList* al, boolean& was_sealed, int& npresymid
   return presymids;
 }
 
+/* never deletes presymids -- it can outlive a single firing, so whoever
+   called seal_snapshot owns freeing it once every firing is done. */
 static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids, int npresymids) {
   if (!was_sealed) return;
   Attribute** newattrs = new Attribute*[al->Number()];
@@ -190,21 +193,18 @@ static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids
   for (int i=0; i<nnewattrs; i++)
     al->Remove(newattrs[i]);
   delete [] newattrs;
-  delete [] presymids;
 }
 
+/* was_sealed/presymids/npresymids: a seal_snapshot the caller took before
+   evaluating any argument, since an argument's own side effect (e.g.
+   eval(... :alist dot(obj))) can add a field to al before this call starts. */
 static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
 					   AttributeList* al, FuncObj* fo,
 					   int method_nkey,
 					   AttributeValueList* poslist,
-					   AttributeList* kwlist, int npos) {
-  /* snapshot al's field set before any capture/keyword injection below adds
-     to it, so the post-call strip only removes names that were genuinely
-     absent beforehand -- not keywords/captures this same call just injected */
-  boolean was_sealed;
-  int npresymids;
-  int* presymids = seal_snapshot(al, was_sealed, npresymids);
-
+					   AttributeList* kwlist, int npos,
+					   boolean was_sealed, int* presymids,
+					   int npresymids) {
   ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
   if (npos>0) {
     for (int i=0; i<npos; i++)
@@ -320,10 +320,8 @@ static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
 
-  /* after persistence/revert above has had its say, strip anything still
-     left on a sealed al that wasn't there at entry -- a written keyword
-     persists onto the callee's own captures (above) but must never also
-     become a permanent field of the sealed receiver it was passed to */
+  /* a written keyword persists onto the callee's own captures above, but
+     must never also become a permanent field of the sealed receiver. */
   seal_strip_new(al, was_sealed, presymids, npresymids);
 
   return result;
@@ -354,6 +352,13 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   }
   FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
 
+  /* snapshot before evaluating any argument -- an argument's own side
+     effect (e.g. eval(... :alist dot(obj))) can add a field to a sealed
+     al, and that must count as pre-existing, not as this call's own. */
+  boolean was_sealed;
+  int npresymids;
+  int* presymids = seal_snapshot(al, was_sealed, npresymids);
+
   /* echoresult owns poslist's/kwlist's storage -- keep it alive across
      this whole block, not just the extraction below */
   ComValue echoresult;
@@ -371,11 +376,15 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 	dmnfunc = new DotMethodNextFunc(comterp);
 	dmnfunc->funcid(symbol_add("dotmethodnext"));
       }
+      static int presymids_symid = symbol_add("__dotfunc_presymids__");
       AttributeValueList* avl = new AttributeValueList();
       avl->Append(new AttributeValue(echoresult));
       avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)al));
       avl->Append(new AttributeValue(FuncObj::class_symid(), (void*)fo));
       avl->Append(new AttributeValue(method_nkey, AttributeValue::IntType));
+      avl->Append(new AttributeValue(was_sealed, AttributeValue::BooleanType));
+      avl->Append(new AttributeValue(presymids_symid, (void*)presymids));
+      avl->Append(new AttributeValue(npresymids, AttributeValue::IntType));
       ComValue stream(dmnfunc, avl);
       stream.stream_mode(STREAM_INTERNAL);
       self->push_stack(stream);
@@ -395,7 +404,9 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   delete [] argtoks;
 
   ComValue result(fire_attrlist_method_once(self, comterp, al, fo, method_nkey,
-					     poslist, kwlist, npos));
+					     poslist, kwlist, npos,
+					     was_sealed, presymids, npresymids));
+  delete [] presymids;
   self->push_stack(result);
 }
 
@@ -584,11 +595,9 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* sealed-field cleanup (seal_snapshot/seal_strip_new) brackets each
-         actual body firing inside fire_attrlist_method_once, not this call
-         site -- a streamed call defers firing to DotMethodNextFunc, one
-         firing per pull, so the cleanup has to live there to cover every
-         firing rather than just the one that creates the deferred stream. */
+      /* sealed-field cleanup lives inside fire_attrlist_method/_once, not
+         here, so it covers every firing a streamed call defers to
+         DotMethodNextFunc, not just the one that creates the stream. */
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
@@ -705,7 +714,8 @@ DotMethodNextFunc::DotMethodNextFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void DotMethodNextFunc::execute() {
     /* our own stream (arg 0) carries, in stream_list(): [0] the arg-eval
-       stream, [1] the receiver attrlist, [2] the FuncObj, [3] nkey */
+       stream, [1] receiver attrlist, [2] FuncObj, [3] nkey, [4] was-sealed,
+       [5] presymids (one snapshot shared by every pull), [6] its count */
     ComValue selfstream(stack_arg(0));
     reset_stack();
 
@@ -715,11 +725,17 @@ void DotMethodNextFunc::execute() {
     AttributeValue* streamval = avl->GetAttrVal(i); avl->Next(i);
     AttributeValue* alval = avl->GetAttrVal(i); avl->Next(i);
     AttributeValue* foval = avl->GetAttrVal(i); avl->Next(i);
-    AttributeValue* nkeyval = avl->GetAttrVal(i);
+    AttributeValue* nkeyval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* sealedval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* presymidsval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* npresymidsval = avl->GetAttrVal(i);
 
     AttributeList* al = (AttributeList*) alval->obj_val();
     FuncObj* fo = (FuncObj*) foval->obj_val();
     int method_nkey = nkeyval->int_val();
+    boolean was_sealed = sealedval->boolean_val();
+    int* presymids = (int*) presymidsval->obj_val();
+    int npresymids = npresymidsval->int_val();
 
     /* copy-then-drive pattern from DotStreamNextFunc -- the copy shares
        stream_list(), so advancing persists via *streamval */
@@ -727,6 +743,7 @@ void DotMethodNextFunc::execute() {
     NextFunc::execute_impl(comterp(), streamcopy);
     if (comterp()->stack_top().is_unknown()) {
       comterp()->pop_stack();
+      delete [] presymids;
       push_stack(ComValue::nullval());
       return;
     }
@@ -745,7 +762,8 @@ void DotMethodNextFunc::execute() {
     }
 
     ComValue result(fire_attrlist_method_once(this, comterp(), al, fo, method_nkey,
-					       poslist, kwlist, npos));
+					       poslist, kwlist, npos,
+					       was_sealed, presymids, npresymids));
     push_stack(result);
 }
 

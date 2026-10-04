@@ -614,10 +614,9 @@ boolean ComTerp::try_stream_funcobj(FuncObj* fo, int narg, int nkey) {
   if (!has_streams) return false;
   AttributeValueList* avl = new AttributeValueList();
   for(int i=0; i<nall; i++) {
-    /* resolve every stream-valued arg so it zips per-element like a literal;
-       scalars stay unresolved for per-element broadcast, except one bound
-       to the current call's own frame (_alist/_tempframe), which is gone
-       by the time a deferred replay would look it up */
+    /* resolve a stream-valued arg so it zips per-element, same as a literal.
+       A frame-bound scalar (is_frame_bound()) resolves too: its scope is
+       gone by the time a deferred replay would look it up. */
     boolean argstream;
     boolean frame_bound = false;
     if (!stack_top().is_symbol() && !stack_top().is_attribute())

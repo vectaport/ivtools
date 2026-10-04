@@ -1,6 +1,6 @@
 // src/comterp_/tests/dotfuncstream.comt -- obj.method(stream-arg) overdrive
 //
-// funcs: func dot next each list
+// funcs: func dot next each list eval
 //
 // obj.method(args) (DotFunc's fire_attrlist_method, dotfunc.c) evaluates its
 // args by renaming the call to echo() and running it.  Since echo() is a
@@ -93,6 +93,17 @@ d7=list(r7)
 ok=ok&&(at(d7 0)==6)&&(at(d7 1)==7)&&(at(d7 2)==8)
 ok=ok&&(size(dot(f7))==1)
 print("7 f7.g7(:newcap7 (5 6 7)) streamed keyword into a sealed dot target (expect {6,7,8}, size 1 -- no leaked field): %v %v\n" d7 size(dot(f7)))
+check_fail(:ok ok)
+
+// --- test 8: an argument's own side effect writing a field onto the sealed
+// receiver (via eval(... :alist dot(obj))) must count as pre-existing, not
+// as something the call itself grew -- the seal snapshot has to predate
+// argument evaluation, not just bracket the method body's own firing ---
+g8=func(x8=1)
+f8=func(g8)
+r8=f8.g8(eval("newfield8=42" :alist dot(f8)))
+ok=ok&&(r8==1)&&(size(dot(f8))==1)
+print("8 f8.g8(eval(\"newfield8=42\" :alist dot(f8))) (expect 1 1 -- newfield8 never joins f8's sealed captures): %v %v\n" r8 size(dot(f8)))
 check_fail(:ok ok)
 
 print("dotfuncstream: %v\n" ok)
