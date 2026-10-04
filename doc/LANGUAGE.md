@@ -1338,16 +1338,31 @@ outer.bump()                           // 1
 outer.inner.bump()                      // 101 -- inner's own :cnt, untouched by outer's
 ```
 
-**There is no `self` — just the enclosing attrlist's own name.** A method
-calling a sibling method *with arguments* by bare name always misfires: a
-symbol-with-arglist that isn't a registered global command never reaches
-through `_alist` to a sibling, and there's no "myself" keyword to write
-instead. But the object is nothing more than an ordinary attrlist bound to
-an ordinary variable, and that variable is fully readable from inside one
-of its own methods — nothing about entering a self-bound call hides outer
-scope, `_alist` is only consulted *first*. So a method reaches a sibling
-the same way any outside caller would, by writing the object's own name
-and an explicit dot-call:
+**There is no `self` keyword — but a bare sibling call still reaches
+through to one, dynamically.** A symbol-with-arglist that isn't a
+registered global command (`flash(...)` inside `report`'s body, with
+`flash` a sibling field rather than a command) compiles to a dynamic
+dispatch that re-resolves the name at *fire* time against whatever
+attrlist scope (`_alist`) is current — which, for a call that's dot-bound
+or whose own func has a home (see *Bare capture* below), is the receiver
+itself:
+
+```
+zoo=(:flash func(arg(0)) :report func(flash("hello")))
+zoo.report()                           // "hello" -- report reaches flash by bare name,
+                                        // arguments included, no dot needed
+```
+
+What's missing is a *keyword* for "the object currently running this
+method" to pass around or reference independently — nothing hands you an
+explicit `self`/`this` value. And bare resolution depends on scope
+actually being set for this particular call; it isn't guaranteed the way
+an explicit reference is. The object is nothing more than an ordinary
+attrlist bound to an ordinary variable, though, and that variable is
+fully readable from inside one of its own methods regardless of scope —
+so a method can always reach a sibling the same way any outside caller
+would, by writing the object's own name and an explicit dot-call, when it
+wants to be independent of whatever `_alist` happens to hold:
 
 ```
 zoo=(:flash func(things) :report func(zoo.flash(:things "hello")))
@@ -1380,6 +1395,71 @@ and it works as a "self" reference only for as long as nothing reassigns
 the name out from under it, which is ordinarily true (a `zoo=(...)`
 attrlist literal isn't usually reassigned mid-script) but never actually
 enforced.
+
+### Bare capture: a func's home attrlist
+
+A `func()` value carries one more piece of state beyond its captures: a
+*home* attrlist, which governs what `_alist` is set to when it's called
+**bare** (no dot) — the scope a bare sibling call like `flash(...)` above
+actually resolves against. A func is homeless until some attrlist claims
+it, which happens the moment it becomes one of that attrlist's own
+fields, whether by being declared directly inside a literal or by an
+existing instance being dot-read out of one attrlist and written into
+another's field afterward:
+
+```
+util=func(tag)                         // homeless -- never written into any attrlist
+info(util).home                        // nil
+
+lib=(:tag "shared" :use func(tag))     // lib claims :use the instant it's declared here
+lib.use()                              // "shared" -- resolves tag via lib, dot-bound
+y=lib.use
+y()                                    // "shared" -- resolves via lib too, now bare
+```
+
+(A bare reference to an *already-declared* func fires immediately when
+used as another expression's value — see *istype()/isclass()/iscomm()/
+isfunc()* above — so moving an existing instance somewhere new without
+firing it always goes through a dot-read, like `lib.use` above, never a
+bare name.)
+
+**The claim is permanent — a func can be bare captured once, never
+re-captured.** Writing an already-homed func into a *second* attrlist's
+field does not move it; that attrlist can still call it dot-bound (dot
+never consults home, it always uses whatever's named at the call site),
+but a bare call through the same instance keeps answering from its
+*original* home, forever:
+
+```
+lib2=(:tag "other")
+lib2.use=lib.use                       // already homed -- the write is a no-op for home
+lib2.use()                             // "other" -- dot-bound, ignores home, uses lib2 directly
+z=lib2.use
+z()                                    // "shared" -- bare, still answers from lib, not lib2
+```
+
+So the two calling conventions genuinely diverge on a shared instance:
+dot-bound dispatch is dynamic (whichever attrlist currently holds it as a
+field, calling it dot-bound resolves against *that* attrlist, regardless
+of home), while a bare call is a durable closure over wherever the func
+was first claimed. A func can be written into any number of further
+attrlists afterward and dot-called against each of them individually —
+only its *bare*-call behavior is fixed at first capture, permanently.
+
+**`info(f).home`** inspects this directly: the attrlist a func has been
+captured by, or `nil` if it's still homeless.
+
+```
+info(util).home                        // nil -- util itself was never filed anywhere
+info(lib.use).home                     // (:tag "shared" :use <FuncObj>) -- lib itself
+info(lib.use).home.tag                 // "shared" -- reads straight through to the live field
+```
+
+Like `help()` and the rest of `info()`'s own dispatch, this is a
+reflection tool for understanding or debugging a func's shape — walking
+token buffers and attrlists, not something a hot inner loop should be
+calling. Reach for it to answer "has this been claimed, and by what,"
+not as part of a program's own running logic.
 
 **Keyword arguments to a method call are ephemeral, unless the method
 writes them.** `al.method(:key val)` writes `key` onto `al` before firing
