@@ -760,11 +760,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	if (!stack_top().is_symbol() && !stack_top().is_attribute())
 	  argstream = stack_top().is_stream();
 	else {
-	  /* a symbol bound to the current call's own frame (_alist's
-	     func-local keyword/capture, or _tempframe's temp() scratch) is
-	     fixed for the call -- that scope is gone once the call returns,
-	     so it must be captured now rather than left for a later stream
-	     replay to look up too late. A true global stays deferred. */
+	  /* a frame-bound symbol (is_frame_bound(): _alist's keyword/
+	     capture, or _tempframe's temp() scratch) must capture now --
+	     its scope ends when this call returns. A global stays deferred. */
 	  if (!stack_top().global_flag() && is_frame_bound(stack_top().symbol_val()))
 	    alist_bound = true;
 	  AttributeValue* tv = lookup_symval(&stack_top(), false);
