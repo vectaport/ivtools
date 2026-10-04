@@ -30,7 +30,36 @@
 #define _dotfunc_h
 
 #include <ComTerp/numfunc.h>
+#include <Attribute/attrvalue.h>
 #include <string>
+
+class AttributeList;
+class ComTerp;
+
+/* bookkeeping for one keyword/capture injected onto a real attrlist for the
+   duration of a self-bound call -- shared by DotFunc's obj.method(args) and
+   ComTerp::fire_funcobj's bare calls to a func with a home attrlist, both of
+   which write directly to the real receiver and must still keep an injected
+   name from leaking a permanent field onto it when the call never writes
+   that name itself. */
+struct KwPending {
+  int symid;
+  boolean existed;
+  AttributeValue oldval;
+  AttributeValue injectedval;
+};
+
+/* inject newval under symid onto al, recording al's prior state in pending
+   so restore_kw_if_unwritten/restore_capture can undo it afterward. */
+void apply_kw(AttributeList* al, int symid, AttributeValue& newval, KwPending& pending);
+/* revert pending's injection unless the call wrote a different value under
+   its name -- a write of the identical value still counts as untouched. */
+void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPending& pending);
+/* restore_kw_if_unwritten's counterpart for a closure capture rather than a
+   caller-supplied keyword: always reverts/removes (never left permanent),
+   but first persists the call's possibly-mutated value back into captures,
+   so the closure's next call starts from wherever this one left it. */
+void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captures);
 
 //: . (dot) operator, for compound variables | dotlst=dot(name) -- get name's attribute list, creating an empty one if name isn't bound to one yet.
 // obj.method(args) also fires a FuncObj-valued attribute self-bound to

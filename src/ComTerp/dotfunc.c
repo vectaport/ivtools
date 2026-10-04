@@ -69,17 +69,11 @@ static boolean values_equal(ComTerp* comterp, AttributeValue& a, AttributeValue&
   return result.is_true();
 }
 
-/* bookkeeping for one keyword arg to a method call -- see the comment on
-   the keyword-handling block in fire_attrlist_method for what "ephemeral
-   unless written" means here. */
-struct KwPending {
-  int symid;
-  boolean existed;
-  AttributeValue oldval;
-  AttributeValue injectedval;
-};
-
-static void apply_kw(AttributeList* al, int symid, AttributeValue& newval, KwPending& pending) {
+/* KwPending, apply_kw, and restore_kw_if_unwritten are declared in
+   dotfunc.h -- ComTerp::fire_funcobj (comterp.c) reuses them for a bare
+   call to a func with a home attrlist, the same "ephemeral unless
+   written" injection this file uses below for obj.method(args). */
+void apply_kw(AttributeList* al, int symid, AttributeValue& newval, KwPending& pending) {
   pending.symid = symid;
   Attribute* existing = al->GetAttr(symid);
   pending.existed = existing!=nil;
@@ -88,7 +82,7 @@ static void apply_kw(AttributeList* al, int symid, AttributeValue& newval, KwPen
   al->add_attr(symid, newval);
 }
 
-static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPending& pending) {
+void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPending& pending) {
   Attribute* now = al->GetAttr(pending.symid);
   if (!now || !values_equal(comterp, *now->Value(), pending.injectedval))
     return;   // written during the call (or vanished outright) -- leave it
@@ -133,7 +127,7 @@ static boolean is_blank_rhs(ComValue& after_raw) {
    closure.  Before reverting, the body's possibly-mutated value is written
    back into the FuncObj's own captures list, so the closure's next call
    starts from wherever this call left it. */
-static void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captures) {
+void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captures) {
   Attribute* now = al->GetAttr(pending.symid);
   if (now) {
     Attribute* capattr = captures->GetAttr(pending.symid);

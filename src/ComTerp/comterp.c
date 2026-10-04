@@ -375,13 +375,12 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo, boolean raw) {
       if (fo->captures().is_object(AttributeList::class_symid())) {
         capval = ((AttributeList*)fo->captures().obj_val())->find(attr->SymbolId());
       }
-      /* a live, non-nil home-attrlist value (fire_funcobj's own override)
-         takes the capture's place here too -- the bracket should always
-         show the value a call will actually see, not the frozen snapshot
-         it's about to be overridden with. */
+      /* a declared home-attrlist field takes the capture's place here too,
+         whatever its current value -- the bracket should always show what
+         a call will actually see, not a frozen declaration-time snapshot. */
       if (fo->home_attrs().is_object(AttributeList::class_symid())) {
         AttributeValue* homeval = ((AttributeList*)fo->home_attrs().obj_val())->find(attr->SymbolId());
-        if (homeval && !ComValue(*homeval).is_unknown()) capval = homeval;
+        if (homeval) capval = homeval;
       }
       boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
       if (defval) {
@@ -451,31 +450,33 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   /* seed al from this funcobj's declaration-time captures first,
      so an explicit :x val overrides one via add_attr's replace-by-symid */
   FuncObj* callee_fo = (FuncObj*)val.obj_val();
-  /* a capture whose name is also a live, non-nil member of this func's
-     home attrlist (AttrListFunc::execute() stamps it there) reads that
-     attrlist's current value instead of the frozen declaration-time
-     snapshot -- a sibling func reading a name another sibling just wrote
-     sees the write, the same as a dot-bound call already does for its
-     receiver's own fields. A nil-valued home member doesn't override --
-     an unset field defers to the func's own default, same as a bare
-     :keyword with no value would. */
   AttributeList* home = callee_fo->home_attrs().is_object(AttributeList::class_symid())
     ? (AttributeList*)callee_fo->home_attrs().obj_val() : nil;
-  /* al starts as a copy of home so a sibling call nested at any depth
-     can still find other receiver fields; being a copy, not home itself,
-     keeps an undeclared write from reaching the real receiver. */
-  AttributeList* al = home ? new AttributeList(home) : new AttributeList();
+  /* a bare call to a func with a home writes directly to the real
+     receiver, the same as a dot-bound call -- only a standalone func
+     (no home) gets a scope discarded whole once the call returns. */
+  AttributeList* al = home ? home : new AttributeList();
+  /* captures and keyword overrides still inject ephemerally either way,
+     reusing DotFunc::fire_attrlist_method's own apply_kw/
+     restore_kw_if_unwritten/restore_capture (dotfunc.c): a name only
+     this call introduces must not leak a permanent value onto home. */
+  int ncap_pending = 0;
+  KwPending* cap_pending = nil;
   if (callee_fo->captures().is_object(AttributeList::class_symid())) {
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
+    cap_pending = caps->Number()>0 ? new KwPending[caps->Number()] : nil;
     ALIterator capit;
     for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
       Attribute* capattr = caps->GetAttr(capit);
-      Attribute* homeattr = home ? home->GetAttr(capattr->SymbolId()) : nil;
-      AttributeValue* homeval = homeattr ? homeattr->Value() : nil;
-      al->add_attr(capattr->SymbolId(),
-		   (homeval && !homeval->is_unknown()) ? *homeval : *capattr->Value());
+      /* a name home already declares -- nil-valued or not -- is a real
+	 field a sibling call should read/write directly; only a capture
+	 with no such field is seeded from the closure's own default. */
+      if (home && home->GetAttr(capattr->SymbolId())) continue;
+      ComValue seedval(*capattr->Value());
+      apply_kw(al, capattr->SymbolId(), seedval, cap_pending[ncap_pending++]);
     }
   }
+  KwPending* kw_pending = max_kwoverrides>0 ? new KwPending[max_kwoverrides] : nil;
   if (extra_keys) {
     /* caller built the keyword list some other way; copy its entries into al,
        after captures, tagged kwoverride() same as an inline :x val below */
@@ -484,7 +485,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       Attribute* ekattr = extra_keys->GetAttr(ekit);
       ComValue ekval(*ekattr->Value());
       ekval.kwoverride(1);
-      al->add_attr(ekattr->SymbolId(), ekval);
+      apply_kw(al, ekattr->SymbolId(), ekval, kw_pending[nkwoverrides]);
       kwoverride_symids[nkwoverrides++] = ekattr->SymbolId();
     }
   } else if (!lazy_posvals) {
@@ -496,7 +497,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
 	   keyword-supplied value below */
 	ComValue bareflagval(ComValue::trueval());
 	bareflagval.kwoverride(1);
-	al->add_attr(keyv.keyid_val(), bareflagval);
+	apply_kw(al, keyv.keyid_val(), bareflagval, kw_pending[nkwoverrides]);
 	kwoverride_symids[nkwoverrides++] = keyv.keyid_val();
       } else {
 	/* knarg is 0 or 1 by construction, so knarg>1 is unreachable;
@@ -506,7 +507,7 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
 	  /* kwoverride() tags this call's keyword value so persistence
 	     below can tell it apart from a body write of the same value */
 	  valv.kwoverride(1);
-	  al->add_attr(keyv.keyid_val(), valv);
+	  apply_kw(al, keyv.keyid_val(), valv, kw_pending[nkwoverrides]);
 	  kwoverride_symids[nkwoverrides++] = keyv.keyid_val();
 	  npos--;   /* a post-keyword value, not a fixed positional */
 	}
@@ -539,10 +540,20 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
-  /* Persist every capture's post-call value; a keyword override persists
-     only once the body itself writes to it -- temp() is the separate
-     opt-out for call-local scratch, written or not. */
-  if (callee_fo->captures().is_object(AttributeList::class_symid())) {
+  if (home) {
+    /* al is the real receiver -- revert every name this call alone
+       injected (captures always, keyword overrides only if untouched),
+       exactly as a dot-bound obj.method(args) call already does. */
+    for (int i=0; i<nkwoverrides; i++)
+      restore_kw_if_unwritten(this, al, kw_pending[i]);
+    AttributeList* fo_captures = (AttributeList*)callee_fo->captures().obj_val();
+    for (int i=0; i<ncap_pending; i++)
+      restore_capture(al, cap_pending[i], fo_captures);
+  } else if (callee_fo->captures().is_object(AttributeList::class_symid())) {
+    /* al is disposable -- persist every capture's post-call value into the
+       FuncObj's own captures so the next standalone call starts from here;
+       a keyword override persists only once the body itself writes to it --
+       temp() is the separate opt-out for call-local scratch, written or not. */
     AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
     ALIterator cit;
     for (caps->First(cit); !caps->Done(cit); caps->Next(cit)) {
@@ -563,6 +574,8 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
       *capattr->Value() = *cur->Value();
     }
   }
+  delete [] kw_pending;
+  delete [] cap_pending;
   delete [] kwoverride_symids;
   /* free any FuncObjPendingArg markers still standing at invocation
      end; unref_as_needed() doesn't clean these up */
