@@ -167,9 +167,8 @@ void AssignFunc::execute() {
 	      push_stack(ComValue::nullval());
 	      return;
 	    }
-	    /* bare write follows write_funcscope_symval()'s own scoping:
-	       existing name wins in place, a brand-new one stays call-local
-	       -- see SLICES.md. */
+	    /* a brand-new name stays call-local only when a temp frame
+	       exists to hold it -- see SLICES.md. */
 	    comterp()->write_funcscope_symval(operand1.symbol_val(), operand2);
 	    operand2_owned = true;
 	}
