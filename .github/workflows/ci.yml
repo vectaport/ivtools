@@ -419,11 +419,23 @@ jobs:
           # wrapper now propagates that status).  Belt-and-suspenders: also grep
           # the log for ': FAIL' like the comdraw suite, so a regression anywhere
           # in the xvfb-run -> wrapper -> comterp exit-code chain can't fake green.
-          xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
-          rc=${PIPESTATUS[0]}
-          if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
+          #
+          # Xvfb itself occasionally dies mid-suite under drawmo's heavier
+          # multi-process load ("X connection to :... broken"), unrelated to any
+          # test outcome. One retry absorbs that infra flake; a log with an
+          # explicit ': FAIL' is a real test failure and is never retried.
+          for attempt in 1 2; do
+            xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
+            rc=${PIPESTATUS[0]}
+            if [ "$rc" -eq 0 ] && ! grep -q ': FAIL' drawmo.log; then
+              break
+            fi
+            if [ "$attempt" -eq 1 ] && ! grep -q ': FAIL' drawmo.log && grep -q 'X connection to .* broken' drawmo.log; then
+              echo "drawmo suite hit the known Xvfb-crash flake (rc=$rc) -- retrying once"
+              continue
+            fi
             echo "drawmo suite FAILED (rc=$rc)"; exit 1
-          fi
+          done
           # Core-font regression guard (see the comdraw step): the drawserv
           # instances drawmo spawns tee their stderr into drawmo.log, so a font
           # fallback shows up here as well -- fail rather than run on "fixed".
