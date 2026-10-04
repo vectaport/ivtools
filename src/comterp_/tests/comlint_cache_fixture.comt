@@ -1,0 +1,29 @@
+// fixture for comlint_cache.comt -- comlint's INPUT, never run directly
+// (never registered in run_all.comt). Exercises the per-command
+// docstring cache: cc_if1/cc_if2/cc_if3 all call if(), whose declared
+// keyword set (:then/:else) is scanned once on cc_if1 and reused from
+// cache for cc_if2 (clean) and cc_if3 (still flags :bogus -- proves a
+// cached declared-set still catches a real unrecognized keyword, not
+// just that it stays quiet). cc_at1/cc_at2/cc_at3 all call at()
+// positionally, whose required/max positional counts are scanned once
+// on cc_at1 and reused from cache for cc_at2 (clean) and cc_at3 (still
+// flags too many arguments). cc_mixed calls switch() once with a
+// keyword, after if() has already populated its own keyword cache
+// entry, to confirm each command's cache entry is independent (no
+// cross-command bleed).
+
+sampleList=(1,2,3)
+
+cc_if1=if(1 :then 2 :else 3)
+
+cc_if2=if(1 :then 4 :else 5)
+
+cc_if3=if(1 :bogus 2)
+
+cc_at1=at(sampleList 0)
+
+cc_at2=at(sampleList 1)
+
+cc_at3=at(sampleList 0 1 2)
+
+cc_mixed=switch(1 :case1 10 :case2 20)

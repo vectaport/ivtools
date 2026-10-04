@@ -53,6 +53,10 @@ if(run("./comlint_extrapos.comt")
   :then print("pass: comlint_extrapos\n")
   :else print("FAIL: comlint_extrapos\n");topok=false)
 
+if(run("./comlint_cache.comt")
+  :then print("pass: comlint_cache\n")
+  :else print("FAIL: comlint_cache\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
