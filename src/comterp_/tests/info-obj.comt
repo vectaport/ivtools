@@ -345,18 +345,18 @@ ok=ok&&ok9b
 print("9b info(lst).nested and .cutoff away from defaults (expect true, 2): %v %v\n" inest9b.nested icutoff9b.cutoff)
 prev_ok=check_fail(:ok ok)
 
-// --- test 10: info(f).home reports the attrlist a FuncObj has been
-// bare captured by, or nil if never claimed -- stamp_home_attrs/
-// AssignFunc stamp it once, permanently, so this is a live reflection
-// of that captured attrlist, not just a boolean ---
+// --- test 10: info(f).bare reports the attrlist a bare call through
+// this FuncObj resolves against, or nil if never captured --
+// stamp_home_attrs/AssignFunc stamp it once, permanently, so this is a
+// live reflection of that captured attrlist, not just a boolean ---
 errmsg(:clear)
 f10=func(1)
 i10a=info(f10)
 al10=(:tag10 "A" :g10 func(2))
 i10b=info(al10.g10)
-ok10=(i10a.home==nil)&&(i10b.home.tag10=="A")
+ok10=(i10a.bare==nil)&&(i10b.bare.tag10=="A")
 ok=ok&&ok10
-print("10 info(f).home -- nil before any attrlist claims it, the home attrlist after (expect true): %v\n" ok10)
+print("10 info(f).bare -- nil before any attrlist claims it, the home attrlist after (expect true): %v\n" ok10)
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)

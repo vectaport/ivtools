@@ -1409,7 +1409,7 @@ another's field afterward:
 
 ```
 util=func(tag)                         // homeless -- never written into any attrlist
-info(util).home                        // nil
+info(util).bare                        // nil
 
 lib=(:tag "shared" :use func(tag))     // lib claims :use the instant it's declared here
 lib.use()                              // "shared" -- resolves tag via lib, dot-bound
@@ -1446,13 +1446,13 @@ was first claimed. A func can be written into any number of further
 attrlists afterward and dot-called against each of them individually —
 only its *bare*-call behavior is fixed at first capture, permanently.
 
-**`info(f).home`** inspects this directly: the attrlist a func has been
+**`info(f).bare`** inspects this directly: the attrlist a func has been
 captured by, or `nil` if it's still homeless.
 
 ```
-info(util).home                        // nil -- util itself was never filed anywhere
-info(lib.use).home                     // (:tag "shared" :use <FuncObj>) -- lib itself
-info(lib.use).home.tag                 // "shared" -- reads straight through to the live field
+info(util).bare                        // nil -- util itself was never filed anywhere
+info(lib.use).bare                     // (:tag "shared" :use <FuncObj>) -- lib itself
+info(lib.use).bare.tag                 // "shared" -- reads straight through to the live field
 ```
 
 Like `help()` and the rest of `info()`'s own dispatch, this is a
