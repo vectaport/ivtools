@@ -600,5 +600,18 @@ ok=ok&&(r109==obj66)
 print("30 obj66.f66() holds global(obj66) in temp(saved66) (expect the receiver itself, not nil): %v\n\n" r109==obj66)
 check_fail(:ok ok)
 
+// --- test 31: eval(:alist) binds a receiver without going through
+// run_funcobj_body(), so a brand-new scratch name has no temp frame to
+// divert into -- the self-insert guard must still catch a value that
+// references the receiver, since the write lands directly on it (#685
+// follow-up) ---
+global(obj67)=(:a67 1)
+eval("newfield67=global(obj67)" :alist obj67)
+r110=size(obj67)
+r111=obj67.newfield67
+ok=ok&&(r110==1)&&(r111==nil)
+print("31 eval(:alist obj67) assigning a brand-new field to global(obj67) itself (expect size 1, newfield67 nil -- refused, not a cycle): %v %v\n\n" r110 r111)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok

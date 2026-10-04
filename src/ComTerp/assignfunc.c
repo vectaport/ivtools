@@ -150,12 +150,18 @@ void AssignFunc::execute() {
 	    operand2_owned = true;
 	} else {
 	    /* the self-insert guard only applies when the write actually
-	       targets attrlist -- write_funcscope_symval() diverts anything
-	       else (an existing temp() name, or a brand-new one) to the
-	       call-local temp frame, which can't form a permanent cycle. */
+	       targets attrlist -- mirror write_funcscope_symval()'s own
+	       routing exactly: an existing temp() name always wins; absent
+	       that, attrlist is the destination whenever the field is
+	       already declared there, or there's no temp frame to divert a
+	       brand-new name into (e.g. eval(:alist) binds a receiver
+	       outside any func call, so run_funcobj_body() never allocated
+	       one). Only a brand-new name WITH a temp frame present is safe
+	       to divert, since that frame is discarded at call end. */
 	    AttributeList* tempframe = comterp()->get_tempframe();
-	    boolean targets_attrlist = attrlist && attrlist->GetAttr(operand1.symbol_val()) &&
-	      !(tempframe && tempframe->find(operand1.symbol_val()));
+	    boolean targets_attrlist = attrlist &&
+	      !(tempframe && tempframe->find(operand1.symbol_val())) &&
+	      (attrlist->GetAttr(operand1.symbol_val()) || !tempframe);
 	    if (targets_attrlist && value_contains_container(*operand2, (void*)attrlist, true)) {
 	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
 		      funcstate()->linenum());
