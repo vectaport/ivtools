@@ -721,5 +721,27 @@ ok=ok&&(al72.x72==2 && w72==2)
 print("72 al72=(:w72 16 :x72 (w72+=1)); reaches the outer w72, literal's own :w72 16 untouched (expect 2 2): %v %v\n\n" al72.x72 w72)
 prev_ok=check_fail(:ok ok)
 
+// --- test 73: a FuncObj's home is stamped once and never re-stamped --
+// writing an already-homed func into a second attrlist's field (a plain
+// dot-assignment, not a literal) leaves a bare call through either copy
+// resolving sibling fields against the ORIGINAL home ---
+al73=(:f73 func("A") :g73 func(f73()))
+xx73=al73.g73
+al73b.g73=al73.g73
+ok=ok&&(xx73()=="A")&&(al73.g73()=="A")
+print("73 al73b.g73=al73.g73 after capturing xx73=al73.g73; xx73()/al73.g73() still read al73's f73 (expect A A): %v %v\n\n" xx73() al73.g73())
+prev_ok=check_fail(:ok ok)
+
+// --- test 74: same rule for a func carried into a brand-new literal --
+// a dot-bound call through the new field still resolves against the NEW
+// owner (dot never consults home_attrs), but a bare call through the
+// identical instance keeps answering from the ORIGINAL home ---
+al74=(:f74 func("A") :g74 func(f74()))
+al74b=(:f74 func("B") :g74 al74.g74)
+y74=al74b.g74
+ok=ok&&(al74b.g74()=="B")&&(y74()=="A")
+print("74 al74b=(:f74 func(\"B\") :g74 al74.g74); al74b.g74() vs y74=al74b.g74;y74() (expect B A -- dot adopts the new owner, bare stays homed to al74): %v %v\n\n" al74b.g74() y74())
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok
