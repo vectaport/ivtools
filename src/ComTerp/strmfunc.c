@@ -1930,14 +1930,23 @@ void InfoFunc::execute() {
     static int nspans_sym = symbol_add("nspans");
     static int posteval_sym = symbol_add("posteval");
     static int source_sym = symbol_add("source");
+    static int home_sym = symbol_add("home");
     ComValue ntoksv(peeked_fo->ntoks());
     ComValue nspansv(peeked_fo->nspans());
     ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
     ComValue sourcev(funcobj_source(peeked_fo, comterp()).c_str());
+    /* home -- the attrlist this instance was bare captured by, or nil if
+       never claimed; once set it's permanent (AttrListFunc::
+       stamp_home_attrs, AssignFunc), so nil here means a later
+       obj.field=thisFunc can still claim its bare calls, non-nil means
+       it already has and always will answer from this attrlist. */
+    ComValue homev(peeked_fo->home_attrs().is_object(AttributeList::class_symid())
+		   ? peeked_fo->home_attrs() : ComValue::nullval());
     al->add_attr(ntoks_sym, ntoksv);
     al->add_attr(nspans_sym, nspansv);
     al->add_attr(posteval_sym, postevalv);
     al->add_attr(source_sym, sourcev);
+    al->add_attr(home_sym, homev);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;
