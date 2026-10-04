@@ -1,6 +1,6 @@
 // src/comterp_/tests/temp.comt -- test temp() command
 //
-// coverage: 15/16 (94%)
+// coverage: 17/18 (94%)
 // funcs: temp
 // missing: ~temp(lvalue-return-type) -- in temp(sym)=val the return value belongs
 //          to the assign operator, not temp(); untestable in isolation for temp() alone
@@ -180,6 +180,36 @@ x17=99
 r17b=f17()
 ok=ok&&(r17a==2)&&(r17b==2)
 print("17 x17=1; f17=func(temp(x17)=x17+1; x17); f17() x17=99 f17() (expect 2 2): %v %v\n\n" r17a r17b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: a temp()-scoped scalar combined with a stream operand in an
+//     eager command is captured by value immediately, not left as a deferred
+//     symbol reference -- the temp frame is gone by the time a deferred
+//     reference would be looked up, once the call that owns it has returned ---
+f18=func(temp(yoff)=100; yoff+(0..4))
+r18=f18()
+ok=ok&&istype(r18 StreamType)
+d18=list(r18)
+ok=ok&&(at(d18 0)==100)&&(at(d18 4)==104)
+print("18 f18=func(temp(yoff)=100; yoff+(0..4)) temp()-scalar+stream resolves after return (expect {100,...,104}): %v\n\n" d18)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: the same capture lets a temp()-scoped index stream drive
+//     r@idx_stream=val_or_stream (zip-assign) correctly -- the index
+//     expression's temp()-scoped operand must be resolved by the time the
+//     index stream is actually drained, not deferred past its call's return ---
+w19=4
+smoothxy19=func(temp(xx)=arg(0); temp(yy)=arg(1); xx+yy*1000)
+out19=list()
+for(i19=0 i19<8 i19=i19+1 out19=out19,0)
+runrow19=func(temp(y19)=arg(0);
+              temp(yoff19)=y19*w19;
+              out19@(yoff19+(0..(w19-1)))=smoothxy19(0..(w19-1) y19))
+runrow19(0)
+runrow19(1)
+d19=list(out19)
+ok=ok&&(at(d19 0)==0)&&(at(d19 3)==3)&&(at(d19 4)==1000)&&(at(d19 7)==1003)
+print("19 runrow19(0) runrow19(1): temp()-scoped index stream drives a zip-assign (expect {0,1,2,3,1000,1001,1002,1003}): %v\n\n" d19)
 prev_ok=check_fail(:ok ok)
 
 print("\ntemp: %v\n" ok)

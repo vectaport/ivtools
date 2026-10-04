@@ -1,0 +1,125 @@
+// src/comterp_/tests/dotfuncstream.comt -- obj.method(stream-arg) overdrive
+//
+// funcs: func dot next each list eval
+//
+// obj.method(args) (DotFunc's fire_attrlist_method, dotfunc.c) evaluates its
+// args by renaming the call to echo() and running it.  Since echo() is a
+// plain eager command, a stream arg makes echo() itself get auto-overdriven
+// by ComTerp's general stream scan, so the args evaluate to a deferred
+// external stream rather than one resolved list -- the same lift a bare
+// f(stream) call already gets (funcstream.comt test 1). Before this fix,
+// that stream value was dropped: obj.method() fired exactly once with no
+// args instead of once per element. DotMethodNextFunc drives it lazily, one
+// self-bound firing per pulled element, reusing the same inject-fire-revert
+// dispatch (fire_attrlist_method_once) a direct, non-streaming call uses.
+//
+// Per ComTerp's general "streams build streams" policy, the call returns a
+// lazy stream by default; ** (unary prefix, each()) drains a stream arg to
+// a scalar count before the call ever sees it, so it never triggers the
+// overdrive at all -- no special-casing needed for that interaction.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./dotfuncstream.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: obj.method(stream) fires once per element, self-bound, and
+// returns a lazy stream -- draining it accumulates across firings ---
+obj1=(:n1 0 :f1 func(n1=n1+1))
+r1=obj1.f1(0**4)
+ok=ok&&istype(r1 StreamType)
+d1=**r1
+ok=ok&&(d1==(4))&&(obj1.n1==4)
+print("1 obj1.f1(0**4) returns a lazy stream, draining fires once per element (expect stream [4], obj1.n1 4): %v %v %v\n" istype(r1 StreamType) d1 obj1.n1)
+check_fail(:ok ok)
+
+// --- test 2: a dot-bound call's two stream positionals zip, one firing
+// per pair, same as a bare call's zip (funcstream.comt test 2) ---
+obj2=(:tot2 0 :add2 func(tot2=tot2+arg(0)+arg(1)))
+r2=obj2.add2((1 2 3) (7 8 9))
+**r2
+ok=ok&&(obj2.tot2==(1+7)+(2+8)+(3+9))
+print("2 obj2.add2((1 2 3) (7 8 9)) zips two streams, self-bound accumulation (expect %v): %v\n" (1+7)+(2+8)+(3+9) obj2.tot2)
+check_fail(:ok ok)
+
+// --- test 3: a scalar keyword broadcasts across a streamed positional,
+// same self-bound accumulation as a bare call's scalar broadcast ---
+obj3=(:tot3 0 :bump3 func(tot3=tot3+arg(0)+amt))
+r3=obj3.bump3((1 2 3) :amt 10)
+**r3
+ok=ok&&(obj3.tot3==(1+10)+(2+10)+(3+10))
+print("3 obj3.bump3((1 2 3) :amt 10) streamed positional + scalar keyword (expect %v): %v\n" (1+10)+(2+10)+(3+10) obj3.tot3)
+check_fail(:ok ok)
+
+// --- test 4: a keyword-only stream (no positionals) still overdrives,
+// exercising fire_attrlist_method's bare-attrlist (kwlist) branch ---
+obj4=(:tot4 0 :bump4 func(tot4=tot4+amt))
+r4=obj4.bump4(:amt (1 2 3))
+**r4
+ok=ok&&(obj4.tot4==6)
+print("4 obj4.bump4(:amt (1 2 3)) keyword-only stream (expect 6): %v\n" obj4.tot4)
+check_fail(:ok ok)
+
+// --- test 5: ** (each, unary prefix) drains the arg to a scalar BEFORE
+// the call ever sees it, so no overdrive happens -- one ordinary firing,
+// no stream result, matching a bare call's identical escape ---
+obj5=(:n5 0 :f5 func(n5=n5+1))
+r5=obj5.f5(**(0**4))
+ok=ok&&(!istype(r5 StreamType))&&(obj5.n5==1)
+print("5 obj5.f5(**(0**4)) each() drains first -- one firing, no stream (expect false 1): %v %v\n" istype(r5 StreamType) obj5.n5)
+check_fail(:ok ok)
+
+// --- test 6: no stream args means no overdrive -- an ordinary dot-bound
+// call still fires exactly once and returns a plain value, same as before
+// this fix (funcstream.comt test 10's dot-bound counterpart) ---
+obj6=(:n6 0 :f6 func(n6=n6+1; n6))
+r6=obj6.f6()
+ok=ok&&(!istype(r6 StreamType))&&(r6==1)&&(obj6.n6==1)
+print("6 obj6.f6() plain call unaffected (expect false 1 1): %v %v %v\n" istype(r6 StreamType) r6 obj6.n6)
+check_fail(:ok ok)
+
+// --- test 7: a sealed dot target (a func's own captures, accessed via
+// another func stored as one of them) never gains a permanent field from a
+// streamed call either -- fire_attrlist_method_once's seal_snapshot/
+// seal_strip_new bracket EACH per-pull firing through DotMethodNextFunc,
+// not just the single call that creates the deferred stream, so a keyword
+// the body writes (making it ineligible for the ordinary unwritten-revert)
+// still never survives on the sealed receiver past the call that injected it ---
+g7=func(newcap7=newcap7+1; newcap7)
+f7=func(g7)
+r7=f7.g7(:newcap7 (5 6 7))
+d7=list(r7)
+ok=ok&&(at(d7 0)==6)&&(at(d7 1)==7)&&(at(d7 2)==8)
+ok=ok&&(size(dot(f7))==1)
+print("7 f7.g7(:newcap7 (5 6 7)) streamed keyword into a sealed dot target (expect {6,7,8}, size 1 -- no leaked field): %v %v\n" d7 size(dot(f7)))
+check_fail(:ok ok)
+
+// --- test 8: an argument's own side effect writing a field onto the sealed
+// receiver (via eval(... :alist dot(obj))) must count as pre-existing, not
+// as something the call itself grew -- the seal snapshot has to predate
+// argument evaluation, not just bracket the method body's own firing ---
+g8=func(x8=1)
+f8=func(g8)
+r8=f8.g8(eval("newfield8=42" :alist dot(f8)))
+ok=ok&&(r8==1)&&(size(dot(f8))==1)
+print("8 f8.g8(eval(\"newfield8=42\" :alist dot(f8))) (expect 1 1 -- newfield8 never joins f8's sealed captures): %v %v\n" r8 size(dot(f8)))
+check_fail(:ok ok)
+
+// --- test 9: $$ (stream copy) on a sealed dot-method stream must not crash
+// -- each copy needs its own independently freed seal snapshot, not a raw
+// pointer two copies would each try to free (attrvalue.c's dup_as_needed
+// deep-copies an ArrayType value on $$, which is why presymids rides as one) ---
+g9=func(newcap9=newcap9+1; newcap9)
+f9=func(g9)
+r9a=f9.g9(:newcap9 (5 6 7))
+r9b=$$r9a
+d9a=list(r9a)
+d9b=list(r9b)
+ok=ok&&(at(d9a 0)==6)&&(at(d9a 2)==8)&&(at(d9b 0)==6)&&(at(d9b 2)==8)
+ok=ok&&(size(dot(f9))==1)
+print("9 r9b=$$f9.g9(:newcap9 (5 6 7)); both drains, no crash (expect {6,7,8} {6,7,8}, size 1): %v %v %v\n" d9a d9b size(dot(f9)))
+check_fail(:ok ok)
+
+print("dotfuncstream: %v\n" ok)
+ok

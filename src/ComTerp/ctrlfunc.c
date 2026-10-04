@@ -34,6 +34,7 @@
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
 #include <ComUtil/util.h>
 #include <patch.h>
 
@@ -548,10 +549,32 @@ void NilFunc::execute() {
 	  delete argvals[i];
 	}
 	delete [] argvals;
-	target.narg(n);
-	target.nkey(0);
-	comterp()->fire_funcobj(target, keys);
-	delete keys;  /* copied into fire_funcobj's own AttributeList; we own it */
+	/* rebuild the ordinary eager calling convention (each keyword's value
+	   pushed, then its KeywordType marker on top of it, on top of the
+	   positionals already pushed -- same order the ~~ spread expansion
+	   above builds) so try_stream_funcobj/fire_funcobj can pop exactly
+	   what a resolved-at-parse-time call already leaves on the stack. */
+	int nkey = 0;
+	ALIterator kit;
+	for (keys->First(kit); !keys->Done(kit); keys->Next(kit)) {
+	  Attribute* kattr = keys->GetAttr(kit);
+	  push_stack(*kattr->Value());
+	  ComValue keyv(kattr->SymbolId(), 1, ComValue::KeywordType);
+	  push_stack(keyv);
+	  nkey++;
+	}
+	delete keys;
+	/* narg counts keyword values too (fire_funcobj's own convention --
+	   it decrements its positional count by one per keyword value popped) */
+	int combined_narg = n + nkey;
+	/* a stream-valued arg/keyword overdrives the same way a call resolved
+	   at parse time already does (eval_expr_internals) -- fire once per
+	   element instead of once with the stream itself as an opaque arg. */
+	if (comterp()->try_stream_funcobj(target_fo, combined_narg, nkey))
+	  return;
+	target.narg(combined_narg);
+	target.nkey(nkey);
+	comterp()->fire_funcobj(target);
 	return;
       }
     }

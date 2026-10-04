@@ -592,6 +592,52 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   delete [] posvals;
 }
 
+boolean ComTerp::is_frame_bound(int id) {
+  return (_alist && _alist->find(id)) || (_tempframe && _tempframe->find(id));
+}
+
+boolean ComTerp::try_stream_funcobj(FuncObj* fo, int narg, int nkey) {
+  int nall = narg + nkey;
+  boolean has_streams = false;
+  for(int i=0; i<nall; i++) {
+    if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
+      has_streams = stack_top(-i).is_stream();
+    else if (stack_top(-i).is_symbol() &&
+	     is_posteval_pending(stack_top(-i).symbol_val()))
+      has_streams = false;   /* same rule as eval_expr_internals' CommandType scan */
+    else {
+      AttributeValue* testval = lookup_symval(&stack_top(-i), false);
+      has_streams = testval ? testval->is_stream() : false;
+    }
+    if (has_streams) break;
+  }
+  if (!has_streams) return false;
+  AttributeValueList* avl = new AttributeValueList();
+  for(int i=0; i<nall; i++) {
+    /* resolve a stream-valued arg so it zips per-element, same as a literal.
+       A frame-bound scalar (is_frame_bound()) resolves too: its scope is
+       gone by the time a deferred replay would look it up. */
+    boolean argstream;
+    boolean frame_bound = false;
+    if (!stack_top().is_symbol() && !stack_top().is_attribute())
+      argstream = stack_top().is_stream();
+    else {
+      if (!stack_top().global_flag() && is_frame_bound(stack_top().symbol_val()))
+	frame_bound = true;
+      AttributeValue* tv = lookup_symval(&stack_top(), false);
+      argstream = tv ? tv->is_stream() : false;
+    }
+    ComValue topval(pop_stack(argstream || frame_bound));
+    avl->Prepend(new AttributeValue(topval));
+  }
+  /* FuncObj rides in the same void* slot a ComFunc* normally uses;
+     STREAM_FUNCOBJ tells NextFunc to fire it, not exec() it */
+  ComValue strmval((void*)fo, avl);
+  strmval.stream_mode(STREAM_EXTERNAL|STREAM_FUNCOBJ);
+  push_stack(strmval);
+  return true;
+}
+
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
   ComValue sv = pop_stack(false);
@@ -668,43 +714,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
   if (sv.type() == ComValue::SymbolType && (sv.narg() || sv.nkey())) {
     AttributeValue* funcval = lookup_symval(&sv, false);
     if (funcval && funcval->is_object(FuncObj::class_symid()) &&
-	!((FuncObj*)funcval->obj_val())->posteval()) {
-      boolean has_streams = false;
-      for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
-	  has_streams = stack_top(-i).is_stream();
-	else if (stack_top(-i).is_symbol() &&
-		 is_posteval_pending(stack_top(-i).symbol_val()))
-	  has_streams = false;   /* same rule as the CommandType scan below */
-	else {
-	  AttributeValue* testval = lookup_symval(&stack_top(-i), false);
-	  has_streams = testval ? testval->is_stream() : false;
-	}
-	if (has_streams) break;
-      }
-      if (has_streams) {
-	AttributeValueList* avl = new AttributeValueList();
-	for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	  /* resolve every stream-valued arg so it zips per-element like a literal;
-	     scalars stay unresolved for per-element broadcast */
-	  boolean argstream;
-	  if (!stack_top().is_symbol() && !stack_top().is_attribute())
-	    argstream = stack_top().is_stream();
-	  else {
-	    AttributeValue* tv = lookup_symval(&stack_top(), false);
-	    argstream = tv ? tv->is_stream() : false;
-	  }
-	  ComValue topval(pop_stack(argstream));
-	  avl->Prepend(new AttributeValue(topval));
-	}
-	/* FuncObj rides in the same void* slot a ComFunc* normally uses;
-	   STREAM_FUNCOBJ tells NextFunc to fire it, not exec() it */
-	ComValue strmval((void*)funcval->obj_val(), avl);
-	strmval.stream_mode(STREAM_EXTERNAL|STREAM_FUNCOBJ);
-	push_stack(strmval);
-	return;
-      }
-    }
+	!((FuncObj*)funcval->obj_val())->posteval() &&
+	try_stream_funcobj((FuncObj*)funcval->obj_val(), sv.narg(), sv.nkey()))
+      return;
   }
 
   if (sv.type() == ComValue::CommandType) {
@@ -748,10 +760,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	if (!stack_top().is_symbol() && !stack_top().is_attribute())
 	  argstream = stack_top().is_stream();
 	else {
-	  /* a symbol bound through _alist (func-local keyword/capture) is fixed
-	     for the call; a true global stays deferred */
-	  if (!stack_top().global_flag() && _alist &&
-	      _alist->find(stack_top().symbol_val()))
+	  /* a frame-bound symbol (is_frame_bound(): _alist's keyword/
+	     capture, or _tempframe's temp() scratch) must capture now --
+	     its scope ends when this call returns. A global stays deferred. */
+	  if (!stack_top().global_flag() && is_frame_bound(stack_top().symbol_val()))
 	    alist_bound = true;
 	  AttributeValue* tv = lookup_symval(&stack_top(), false);
 	  argstream = tv ? tv->is_stream() : false;

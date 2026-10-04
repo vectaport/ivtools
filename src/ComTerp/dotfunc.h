@@ -145,6 +145,26 @@ public:
 
 };
 
+//: hidden func used by next() to drive a lazy obj.method(stream-arg) call.
+// Holds, in its own stream's stream_list(): [0] the underlying arg-eval
+// stream (echo()'s own overdriven result), [1] the receiver attrlist,
+// [2] the FuncObj, [3] the call's keyword count. Each pull advances the
+// arg-eval stream one element and fires that element's resolved args
+// through fire_attrlist_method_once(), self-bound to the receiver -- same
+// dispatch an ordinary, non-streaming obj.method(args) call uses.
+class DotMethodNextFunc : public ComFunc {
+public:
+    DotMethodNextFunc(ComTerp*);
+
+    virtual void execute();
+    /* invoked directly via exec(1,0) by the next-stream-driving mechanism,
+       not through real post-eval dispatch -- see DotStreamNextFunc's
+       identical override for why this must not inherit true. */
+    virtual boolean post_eval() { return false; }
+    virtual const char* docstring() {
+      return "hidden func used by next command for obj.method(stream) dispatch."; }
+};
+
 //: name returns name field of a dotted pair
 //  attrname(attribute) returns name field of a dotted pair
 class DotNameFunc : public ComFunc {

@@ -1,0 +1,92 @@
+// src/comterp_/tests/nilfuncstream.comt -- a sibling call to a func not yet
+// known at parse time overdrives like an ordinary call
+//
+// funcs: func arg next each list info
+//
+// A call "name(args)" to a name that isn't YET a registered command or a
+// known compile-time variable compiles to a CommandType token bound to the
+// shared NilFunc placeholder (token_to_comvalue); NilFunc::execute()
+// re-resolves the name dynamically at fire time and, if it has since become
+// a real FuncObj, dispatches via ComTerp::fire_funcobj() (ctrlfunc.c). That
+// dynamic path never ran the stream-overdrive check eval_expr_internals
+// already gives an ordinary, resolved-at-parse-time call -- a stream arg
+// fired the body once instead of once per element. ComTerp::try_stream_funcobj
+// factors that check out of eval_expr_internals so NilFunc::execute can
+// reuse it: before falling back to an ordinary fire_funcobj() call, it
+// checks the same narg+nkey stack run for a stream and, if found, defers
+// via the identical STREAM_EXTERNAL|STREAM_FUNCOBJ wrapper.
+//
+// A field inside an attrlist literal (":inc func(...)") is the most common
+// way to hit this: attrlist keys aren't compile-time variables, so a sibling
+// field calling another sibling field always goes through NilFunc, home or
+// not. Test 1 is exactly that shape (Scott's rast.comt runimg/runrow
+// pattern, minus the rest of the raster-filter machinery).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./nilfuncstream.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a sibling call inside an attrlist literal overdrives on a
+// positional stream arg, self-bound, returning a lazy stream ---
+obj1=(:n1 0 :inc1 func(n1=n1+1) :runall1 func(inc1(0**4)))
+r1=obj1.runall1()
+wasstream1=istype(r1 StreamType)
+wasunfired1=obj1.n1
+d1=**r1
+ok=ok&&wasstream1&&(wasunfired1==0)&&(d1==(4))&&(obj1.n1==4)
+print("1 runall1()'s sibling call inc1(0**4) overdrives lazily (expect true 0, [4], 4): %v %v %v %v\n" wasstream1 wasunfired1 d1 obj1.n1)
+check_fail(:ok ok)
+
+// --- test 2: a streamed keyword value (no positional stream riding along
+// to mask it) overdrives too -- each firing adds the next :amt element,
+// proving the keyword itself is what drives the per-element replay ---
+obj2=(:n2 0 :inc2 func(n2=n2+amt) :runall2 func(inc2(:amt 0..3)))
+r2=obj2.runall2()
+**r2
+ok=ok&&(obj2.n2==(0+1+2+3))
+print("2 runall2()'s sibling call inc2(:amt 0..3) streams a keyword alone (expect %v): %v\n" (0+1+2+3) obj2.n2)
+check_fail(:ok ok)
+
+// --- test 3: ** (each, unary prefix) drains the stream to a scalar before
+// the sibling call ever sees it -- one ordinary firing, no stream result ---
+obj3=(:n3 0 :inc3 func(n3=n3+1) :runall3 func(inc3(**(0**4))))
+r3=obj3.runall3()
+ok=ok&&(!istype(r3 StreamType))&&(obj3.n3==1)
+print("3 runall3()'s sibling call inc3(**(0**4)) each()-drains first (expect false 1): %v %v\n" istype(r3 StreamType) obj3.n3)
+check_fail(:ok ok)
+
+// --- test 4: no stream arg means no overdrive -- the sibling call still
+// fires exactly once and returns a plain value, same as before this fix ---
+obj4=(:n4 0 :inc4 func(n4=n4+1; n4) :runall4 func(inc4()))
+r4=obj4.runall4()
+ok=ok&&(!istype(r4 StreamType))&&(r4==1)&&(obj4.n4==1)
+print("4 runall4()'s sibling call inc4() plain call unaffected (expect false 1 1): %v %v %v\n" istype(r4 StreamType) r4 obj4.n4)
+check_fail(:ok ok)
+
+// --- test 5: a forward reference (defined later in the same top-level
+// statement sequence, not an attrlist field) hits the identical NilFunc
+// gate and overdrives the same way ---
+local(n5)=0
+runall5=func(inc5(0**4))
+inc5=func(local(n5)=local(n5)+1)
+r5=runall5()
+ok=ok&&istype(r5 StreamType)&&(local(n5)==0)
+**r5
+ok=ok&&(local(n5)==4)
+print("5 forward-referenced inc5(0**4) overdrives lazily too (expect 4): %v\n" local(n5))
+check_fail(:ok ok)
+
+// --- test 6: info() on an undrained STREAM_FUNCOBJ stream (the packed
+// callee is a bare FuncObj*, not a ComFunc*) reports it rather than
+// crashing -- see strmfunc.c's InfoFunc::execute() funcobj branch ---
+obj6=(:n6 0 :inc6 func(n6=n6+1) :runall6 func(inc6(0**4)))
+r6=obj6.runall6()
+info6=info(r6)
+ok=ok&&istype(r6 StreamType)&&(info6.mode=="funcobj")&&(info6.nargs==1)
+print("6 info(runall6()'s undrained stream) (expect funcobj 1): %v %v\n" info6.mode info6.nargs)
+check_fail(:ok ok)
+
+print("nilfuncstream: %v\n" ok)
+ok

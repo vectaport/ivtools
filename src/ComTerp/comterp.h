@@ -146,6 +146,13 @@ public:
     // true iff _alist holds a still-pending FuncObjPendingArg marker under
     // 'id' -- an existence check that never pulls or evaluates anything.
 
+    boolean is_frame_bound(int id);
+    // true iff 'id' is a non-global symbol found in _alist (a func's own
+    // keyword/capture frame) or _tempframe (its temp() scratch frame) --
+    // either way, a scope the call discards when it returns, so a scalar
+    // operand bound this way must be captured now rather than left as a
+    // deferred symbol a later stream replay would look up too late.
+
     ComValue& fire_if_funcobj(ComValue& val);
     // if 'val' resolves to a bare FuncObj, fire it niladically and return a
     // reference to the result.  The result lands in _fire_scratch_pool rather
@@ -236,6 +243,19 @@ public:
     // invocation's funcobj_argvals() instead of popping, since nothing was
     // pushed for those arguments.  Its entries are FuncObjPendingArg markers,
     // pulled on demand and memoized in place by funcobj_arg().
+
+    boolean try_stream_funcobj(FuncObj* fo, int narg, int nkey);
+    // check the top narg+nkey stack entries (the same raw calling
+    // convention fire_funcobj's non-extra_keys path pops) for a stream
+    // value; if none, the stack is untouched and this returns false, for
+    // the caller to dispatch 'fo' normally.  If found, pops all narg+nkey
+    // entries, packs them into a deferred external stream tagged
+    // STREAM_FUNCOBJ, pushes it, and returns true -- NextFunc later
+    // drives it, firing 'fo' once per element exactly as an ordinary
+    // resolved-at-parse-time call already does (eval_expr_internals).
+    // Shared by that path and NilFunc's dynamic re-resolve (ctrlfunc.c),
+    // which hits the same stream arg case for a name not known as a
+    // command or variable until after 'fo' was already defined.
 
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.

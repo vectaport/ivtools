@@ -153,49 +153,57 @@ void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captu
    time, and that check consults the global command table only, never _alist.
    So look "method" up in obj directly, and get the args evaluated by
    retargeting a copy of just the arg tokens at echo(). */
-static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
-				  AttributeList* al, postfix_token* argtoks,
-				  int nargtoks) {
-  postfix_token& method_tok = argtoks[nargtoks-1];
-  int method_symid = method_tok.v.symbolid;
-  int method_narg = method_tok.narg;
-  int method_nkey = method_tok.nkey;
+/* fires fo once, self-bound to al, with one resolved set of positional/
+   keyword args -- the inject-fire-revert dispatch shared by a direct
+   obj.method(args) call and, per pulled element, a streamed one. */
+/* add_attr() never consults sealed() -- dispatch straight at the real
+   list, seal untouched, so a nested named-field write (even through an
+   alias) still rejects for the whole call. */
+/* seal_snapshot/seal_strip_new bracket each individual firing, not just
+   the call that creates a deferred stream, so a per-pull body run through
+   DotMethodNextFunc is covered too. */
+/* presymids rides in an ArrayType AttributeValue, not a raw int*, since
+   dup_as_needed() (attrvalue.c) deep-copies ArrayType on a $$ stream copy --
+   each copy then frees its own list instead of sharing one raw pointer. */
+static AttributeValueList* seal_snapshot(AttributeList* al, boolean& was_sealed) {
+  was_sealed = al && al->sealed();
+  if (!was_sealed) return nil;
+  AttributeValueList* presymids = new AttributeValueList();
+  ALIterator pit;
+  for (al->First(pit); !al->Done(pit); al->Next(pit))
+    presymids->Append(new AttributeValue(al->GetAttr(pit)->SymbolId(), AttributeValue::IntType));
+  return presymids;
+}
 
-  Attribute* attr = al ? al->GetAttr(method_symid) : nil;
-  if (!attr || !attr->Value()->is_object(FuncObj::class_symid())) {
-    cout << "WARNING: \"" << symbol_pntr(method_symid)
-	 << "\" is not a func-valued attribute -- line "
-	 << self->funcstate()->linenum() << "\n";
-    delete [] argtoks;
-    self->push_stack(ComValue::nullval());
-    return;
+static void seal_strip_new(AttributeList* al, boolean was_sealed, AttributeValueList* presymids) {
+  if (!was_sealed) return;
+  Attribute** newattrs = new Attribute*[al->Number()];
+  int nnewattrs = 0;
+  ALIterator it;
+  for (al->First(it); !al->Done(it); al->Next(it)) {
+    Attribute* attr = al->GetAttr(it);
+    int symid = attr->SymbolId();
+    boolean was_present = false;
+    int npresymids = presymids ? presymids->Number() : 0;
+    for (int i=0; i<npresymids; i++)
+      if (presymids->Get(i)->int_val()==symid) { was_present = true; break; }
+    if (!was_present) newattrs[nnewattrs++] = attr;
   }
-  FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
+  for (int i=0; i<nnewattrs; i++)
+    al->Remove(newattrs[i]);
+  delete [] newattrs;
+}
 
-  /* echoresult owns poslist's/kwlist's storage -- keep it alive across
-     this whole block, not just the extraction below */
-  ComValue echoresult;
-  AttributeValueList* poslist = nil;
-  AttributeList* kwlist = nil;
-  int npos = 0;
-  if (method_narg>0 || method_nkey>0) {
-    static int echo_symid = symbol_add("echo");
-    method_tok.v.symbolid = echo_symid;
-    echoresult = self->comterpserv()->run(argtoks, nargtoks);
-    if (echoresult.is_list()) {
-      /* positionals present -- echo appends one singleton attrlist
-         per keyword, so trailing entries are those, not positionals */
-      poslist = echoresult.list_val();
-      npos = poslist->Number() - method_nkey;
-      if (npos<0) npos = 0;
-    } else if (echoresult.is_attributelist()) {
-      /* no positionals -- echo returns the keywords bare, as one
-         multi-attribute attrlist */
-      kwlist = (AttributeList*) echoresult.obj_val();
-    }
-  }
-  delete [] argtoks;
-
+/* was_sealed/presymids: a seal_snapshot the caller took before evaluating
+   any argument, since an argument's own side effect (e.g.
+   eval(... :alist dot(obj))) can add a field to al before this call starts. */
+static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
+					   AttributeList* al, FuncObj* fo,
+					   int method_nkey,
+					   AttributeValueList* poslist,
+					   AttributeList* kwlist, int npos,
+					   boolean was_sealed,
+					   AttributeValueList* presymids) {
   ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
   if (npos>0) {
     for (int i=0; i<npos; i++)
@@ -204,11 +212,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 
   /* captures are applied via the same inject-fire-revert mechanism as
      keywords, but first, so an explicit :x still overrides a capture */
-  int method_nkey_for_skip = method_nkey;
-  int* kwsymids = method_nkey_for_skip>0 ? new int[method_nkey_for_skip] : nil;
-  if (method_nkey_for_skip>0) {
+  int* kwsymids = method_nkey>0 ? new int[method_nkey] : nil;
+  if (method_nkey>0) {
     if (poslist) {
-      for (int i=0; i<method_nkey_for_skip; i++) {
+      for (int i=0; i<method_nkey; i++) {
 	AttributeList* singleton = (AttributeList*) poslist->Get(npos+i)->obj_val();
 	ALIterator it;
 	singleton->First(it);
@@ -237,7 +244,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       /* skip the capture when the caller also supplied it as a keyword,
          so apply_kw's existed/oldval reflects the true pre-call state */
       boolean also_keyword = false;
-      for (int k=0; k<method_nkey_for_skip; k++)
+      for (int k=0; k<method_nkey; k++)
 	if (kwsymids[k]==capsymid) { also_keyword = true; break; }
       if (also_keyword) continue;
       apply_kw(al, capsymid, *capattr->Value(), cappending[ncap]);
@@ -312,6 +319,90 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     restore_capture(al, cappending[i], fo_captures);
   delete [] cappending;
 
+  /* a written keyword persists onto the callee's own captures above, but
+     must never also become a permanent field of the sealed receiver. */
+  seal_strip_new(al, was_sealed, presymids);
+
+  return result;
+}
+
+/* a stream-valued arg makes echo() (an eager command) overdrive just like
+   any other eager command with a stream operand (comterp.c's general scan)
+   -- echoresult arrives as a deferred external stream of per-element echo()
+   results, instead of one resolved list/attrlist, so fire_attrlist_method
+   hands it to DotMethodNextFunc to drive lazily, one fo firing per pull,
+   rather than dropping it. */
+static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
+				  AttributeList* al, postfix_token* argtoks,
+				  int nargtoks) {
+  postfix_token& method_tok = argtoks[nargtoks-1];
+  int method_symid = method_tok.v.symbolid;
+  int method_narg = method_tok.narg;
+  int method_nkey = method_tok.nkey;
+
+  Attribute* attr = al ? al->GetAttr(method_symid) : nil;
+  if (!attr || !attr->Value()->is_object(FuncObj::class_symid())) {
+    cout << "WARNING: \"" << symbol_pntr(method_symid)
+	 << "\" is not a func-valued attribute -- line "
+	 << self->funcstate()->linenum() << "\n";
+    delete [] argtoks;
+    self->push_stack(ComValue::nullval());
+    return;
+  }
+  FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
+
+  /* snapshot before evaluating any argument -- an argument's own side
+     effect (e.g. eval(... :alist dot(obj))) can add a field to a sealed
+     al, and that must count as pre-existing, not as this call's own. */
+  boolean was_sealed;
+  AttributeValueList* presymids = seal_snapshot(al, was_sealed);
+
+  /* echoresult owns poslist's/kwlist's storage -- keep it alive across
+     this whole block, not just the extraction below */
+  ComValue echoresult;
+  AttributeValueList* poslist = nil;
+  AttributeList* kwlist = nil;
+  int npos = 0;
+  if (method_narg>0 || method_nkey>0) {
+    static int echo_symid = symbol_add("echo");
+    method_tok.v.symbolid = echo_symid;
+    echoresult = self->comterpserv()->run(argtoks, nargtoks);
+    if (echoresult.is_stream()) {
+      delete [] argtoks;
+      static DotMethodNextFunc* dmnfunc = nil;
+      if (!dmnfunc) {
+	dmnfunc = new DotMethodNextFunc(comterp);
+	dmnfunc->funcid(symbol_add("dotmethodnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(echoresult));
+      avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)al));
+      avl->Append(new AttributeValue(FuncObj::class_symid(), (void*)fo));
+      avl->Append(new AttributeValue(method_nkey, AttributeValue::IntType));
+      avl->Append(new AttributeValue(was_sealed, AttributeValue::BooleanType));
+      avl->Append(new AttributeValue(presymids));
+      ComValue stream(dmnfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL);
+      self->push_stack(stream);
+      return;
+    } else if (echoresult.is_list()) {
+      /* positionals present -- echo appends one singleton attrlist
+         per keyword, so trailing entries are those, not positionals */
+      poslist = echoresult.list_val();
+      npos = poslist->Number() - method_nkey;
+      if (npos<0) npos = 0;
+    } else if (echoresult.is_attributelist()) {
+      /* no positionals -- echo returns the keywords bare, as one
+         multi-attribute attrlist */
+      kwlist = (AttributeList*) echoresult.obj_val();
+    }
+  }
+  delete [] argtoks;
+
+  ComValue result(fire_attrlist_method_once(self, comterp, al, fo, method_nkey,
+					     poslist, kwlist, npos,
+					     was_sealed, presymids));
+  delete presymids;
   self->push_stack(result);
 }
 
@@ -500,40 +591,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
-      /* add_attr() never consults sealed() -- dispatch straight at the
-         real list, seal untouched, so a nested named-field write (even
-         through an alias) still rejects for the whole call. */
-      boolean was_sealed = al && al->sealed();
-      int npresymids = 0;
-      int* presymids = nil;
-      if (was_sealed) {
-	npresymids = al->Number();
-	if (npresymids>0) presymids = new int[npresymids];
-	ALIterator pit;
-	int pi = 0;
-	for (al->First(pit); !al->Done(pit); al->Next(pit))
-	  presymids[pi++] = al->GetAttr(pit)->SymbolId();
-      }
+      /* sealed-field cleanup lives inside fire_attrlist_method/_once, not
+         here, so it covers every firing a streamed call defers to
+         DotMethodNextFunc, not just the one that creates the stream. */
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
-      /* strip any name the call's capture/keyword injection left behind
-         that wasn't already there before it. */
-      if (was_sealed) {
-	Attribute** newattrs = new Attribute*[al->Number()];
-	int nnewattrs = 0;
-	ALIterator it;
-	for (al->First(it); !al->Done(it); al->Next(it)) {
-	  Attribute* attr = al->GetAttr(it);
-	  int symid = attr->SymbolId();
-	  boolean was_present = false;
-	  for (int i=0; i<npresymids; i++)
-	    if (presymids[i]==symid) { was_present = true; break; }
-	  if (!was_present) newattrs[nnewattrs++] = attr;
-	}
-	for (int i=0; i<nnewattrs; i++)
-	  al->Remove(newattrs[i]);
-	delete [] newattrs;
-	delete [] presymids;
-      }
     } else if (!blank_rhs && (force_named_field || nargs()>1)) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
@@ -640,6 +701,63 @@ void DotStreamNextFunc::execute() {
        Attribute* wrapper; this per-pull call has no caller to unwrap it */
     ComValue unwrapped(comterp()->pop_stack(true));
     push_stack(unwrapped);
+}
+
+/*****************************************************************************/
+
+DotMethodNextFunc::DotMethodNextFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DotMethodNextFunc::execute() {
+    /* our own stream (arg 0) carries, in stream_list(): [0] the arg-eval
+       stream, [1] receiver attrlist, [2] FuncObj, [3] nkey, [4] was-sealed,
+       [5] presymids ([5] is ArrayType, so $$ deep-copies it -- see above). */
+    ComValue selfstream(stack_arg(0));
+    reset_stack();
+
+    AttributeValueList* avl = selfstream.stream_list();
+    Iterator i;
+    avl->First(i);
+    AttributeValue* streamval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* alval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* foval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* nkeyval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* sealedval = avl->GetAttrVal(i); avl->Next(i);
+    AttributeValue* presymidsval = avl->GetAttrVal(i);
+
+    AttributeList* al = (AttributeList*) alval->obj_val();
+    FuncObj* fo = (FuncObj*) foval->obj_val();
+    int method_nkey = nkeyval->int_val();
+    boolean was_sealed = sealedval->boolean_val();
+    AttributeValueList* presymids = presymidsval->array_val();
+
+    /* copy-then-drive pattern from DotStreamNextFunc -- the copy shares
+       stream_list(), so advancing persists via *streamval */
+    ComValue streamcopy(*streamval);
+    NextFunc::execute_impl(comterp(), streamcopy);
+    if (comterp()->stack_top().is_unknown()) {
+      comterp()->pop_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue elem(comterp()->pop_stack());
+    *streamval = streamcopy;
+
+    AttributeValueList* poslist = nil;
+    AttributeList* kwlist = nil;
+    int npos = 0;
+    if (elem.is_list()) {
+      poslist = elem.list_val();
+      npos = poslist->Number() - method_nkey;
+      if (npos<0) npos = 0;
+    } else if (elem.is_attributelist()) {
+      kwlist = (AttributeList*) elem.obj_val();
+    }
+
+    ComValue result(fire_attrlist_method_once(this, comterp(), al, fo, method_nkey,
+					       poslist, kwlist, npos,
+					       was_sealed, presymids));
+    push_stack(result);
 }
 
 /*****************************************************************************/
