@@ -106,5 +106,20 @@ ok=ok&&(r8==1)&&(size(dot(f8))==1)
 print("8 f8.g8(eval(\"newfield8=42\" :alist dot(f8))) (expect 1 1 -- newfield8 never joins f8's sealed captures): %v %v\n" r8 size(dot(f8)))
 check_fail(:ok ok)
 
+// --- test 9: $$ (stream copy) on a sealed dot-method stream must not crash
+// -- each copy needs its own independently freed seal snapshot, not a raw
+// pointer two copies would each try to free (attrvalue.c's dup_as_needed
+// deep-copies an ArrayType value on $$, which is why presymids rides as one) ---
+g9=func(newcap9=newcap9+1; newcap9)
+f9=func(g9)
+r9a=f9.g9(:newcap9 (5 6 7))
+r9b=$$r9a
+d9a=list(r9a)
+d9b=list(r9b)
+ok=ok&&(at(d9a 0)==6)&&(at(d9a 2)==8)&&(at(d9b 0)==6)&&(at(d9b 2)==8)
+ok=ok&&(size(dot(f9))==1)
+print("9 r9b=$$f9.g9(:newcap9 (5 6 7)); both drains, no crash (expect {6,7,8} {6,7,8}, size 1): %v %v %v\n" d9a d9b size(dot(f9)))
+check_fail(:ok ok)
+
 print("dotfuncstream: %v\n" ok)
 ok

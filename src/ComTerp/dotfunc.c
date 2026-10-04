@@ -162,22 +162,20 @@ void restore_capture(AttributeList* al, KwPending& pending, AttributeList* captu
 /* seal_snapshot/seal_strip_new bracket each individual firing, not just
    the call that creates a deferred stream, so a per-pull body run through
    DotMethodNextFunc is covered too. */
-static int* seal_snapshot(AttributeList* al, boolean& was_sealed, int& npresymids) {
-  npresymids = 0;
+/* presymids rides in an ArrayType AttributeValue, not a raw int*, since
+   dup_as_needed() (attrvalue.c) deep-copies ArrayType on a $$ stream copy --
+   each copy then frees its own list instead of sharing one raw pointer. */
+static AttributeValueList* seal_snapshot(AttributeList* al, boolean& was_sealed) {
   was_sealed = al && al->sealed();
   if (!was_sealed) return nil;
-  npresymids = al->Number();
-  int* presymids = npresymids>0 ? new int[npresymids] : nil;
+  AttributeValueList* presymids = new AttributeValueList();
   ALIterator pit;
-  int pi = 0;
   for (al->First(pit); !al->Done(pit); al->Next(pit))
-    presymids[pi++] = al->GetAttr(pit)->SymbolId();
+    presymids->Append(new AttributeValue(al->GetAttr(pit)->SymbolId(), AttributeValue::IntType));
   return presymids;
 }
 
-/* never deletes presymids -- it can outlive a single firing, so whoever
-   called seal_snapshot owns freeing it once every firing is done. */
-static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids, int npresymids) {
+static void seal_strip_new(AttributeList* al, boolean was_sealed, AttributeValueList* presymids) {
   if (!was_sealed) return;
   Attribute** newattrs = new Attribute*[al->Number()];
   int nnewattrs = 0;
@@ -186,8 +184,9 @@ static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids
     Attribute* attr = al->GetAttr(it);
     int symid = attr->SymbolId();
     boolean was_present = false;
+    int npresymids = presymids ? presymids->Number() : 0;
     for (int i=0; i<npresymids; i++)
-      if (presymids[i]==symid) { was_present = true; break; }
+      if (presymids->Get(i)->int_val()==symid) { was_present = true; break; }
     if (!was_present) newattrs[nnewattrs++] = attr;
   }
   for (int i=0; i<nnewattrs; i++)
@@ -195,16 +194,16 @@ static void seal_strip_new(AttributeList* al, boolean was_sealed, int* presymids
   delete [] newattrs;
 }
 
-/* was_sealed/presymids/npresymids: a seal_snapshot the caller took before
-   evaluating any argument, since an argument's own side effect (e.g.
+/* was_sealed/presymids: a seal_snapshot the caller took before evaluating
+   any argument, since an argument's own side effect (e.g.
    eval(... :alist dot(obj))) can add a field to al before this call starts. */
 static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
 					   AttributeList* al, FuncObj* fo,
 					   int method_nkey,
 					   AttributeValueList* poslist,
 					   AttributeList* kwlist, int npos,
-					   boolean was_sealed, int* presymids,
-					   int npresymids) {
+					   boolean was_sealed,
+					   AttributeValueList* presymids) {
   ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
   if (npos>0) {
     for (int i=0; i<npos; i++)
@@ -322,7 +321,7 @@ static ComValue fire_attrlist_method_once(ComFunc* self, ComTerp* comterp,
 
   /* a written keyword persists onto the callee's own captures above, but
      must never also become a permanent field of the sealed receiver. */
-  seal_strip_new(al, was_sealed, presymids, npresymids);
+  seal_strip_new(al, was_sealed, presymids);
 
   return result;
 }
@@ -356,8 +355,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
      effect (e.g. eval(... :alist dot(obj))) can add a field to a sealed
      al, and that must count as pre-existing, not as this call's own. */
   boolean was_sealed;
-  int npresymids;
-  int* presymids = seal_snapshot(al, was_sealed, npresymids);
+  AttributeValueList* presymids = seal_snapshot(al, was_sealed);
 
   /* echoresult owns poslist's/kwlist's storage -- keep it alive across
      this whole block, not just the extraction below */
@@ -376,15 +374,13 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 	dmnfunc = new DotMethodNextFunc(comterp);
 	dmnfunc->funcid(symbol_add("dotmethodnext"));
       }
-      static int presymids_symid = symbol_add("__dotfunc_presymids__");
       AttributeValueList* avl = new AttributeValueList();
       avl->Append(new AttributeValue(echoresult));
       avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)al));
       avl->Append(new AttributeValue(FuncObj::class_symid(), (void*)fo));
       avl->Append(new AttributeValue(method_nkey, AttributeValue::IntType));
       avl->Append(new AttributeValue(was_sealed, AttributeValue::BooleanType));
-      avl->Append(new AttributeValue(presymids_symid, (void*)presymids));
-      avl->Append(new AttributeValue(npresymids, AttributeValue::IntType));
+      avl->Append(new AttributeValue(presymids));
       ComValue stream(dmnfunc, avl);
       stream.stream_mode(STREAM_INTERNAL);
       self->push_stack(stream);
@@ -405,8 +401,8 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 
   ComValue result(fire_attrlist_method_once(self, comterp, al, fo, method_nkey,
 					     poslist, kwlist, npos,
-					     was_sealed, presymids, npresymids));
-  delete [] presymids;
+					     was_sealed, presymids));
+  delete presymids;
   self->push_stack(result);
 }
 
@@ -715,7 +711,7 @@ DotMethodNextFunc::DotMethodNextFunc(ComTerp* comterp) : ComFunc(comterp) {
 void DotMethodNextFunc::execute() {
     /* our own stream (arg 0) carries, in stream_list(): [0] the arg-eval
        stream, [1] receiver attrlist, [2] FuncObj, [3] nkey, [4] was-sealed,
-       [5] presymids (one snapshot shared by every pull), [6] its count */
+       [5] presymids ([5] is ArrayType, so $$ deep-copies it -- see above). */
     ComValue selfstream(stack_arg(0));
     reset_stack();
 
@@ -727,15 +723,13 @@ void DotMethodNextFunc::execute() {
     AttributeValue* foval = avl->GetAttrVal(i); avl->Next(i);
     AttributeValue* nkeyval = avl->GetAttrVal(i); avl->Next(i);
     AttributeValue* sealedval = avl->GetAttrVal(i); avl->Next(i);
-    AttributeValue* presymidsval = avl->GetAttrVal(i); avl->Next(i);
-    AttributeValue* npresymidsval = avl->GetAttrVal(i);
+    AttributeValue* presymidsval = avl->GetAttrVal(i);
 
     AttributeList* al = (AttributeList*) alval->obj_val();
     FuncObj* fo = (FuncObj*) foval->obj_val();
     int method_nkey = nkeyval->int_val();
     boolean was_sealed = sealedval->boolean_val();
-    int* presymids = (int*) presymidsval->obj_val();
-    int npresymids = npresymidsval->int_val();
+    AttributeValueList* presymids = presymidsval->array_val();
 
     /* copy-then-drive pattern from DotStreamNextFunc -- the copy shares
        stream_list(), so advancing persists via *streamval */
@@ -743,7 +737,6 @@ void DotMethodNextFunc::execute() {
     NextFunc::execute_impl(comterp(), streamcopy);
     if (comterp()->stack_top().is_unknown()) {
       comterp()->pop_stack();
-      delete [] presymids;
       push_stack(ComValue::nullval());
       return;
     }
@@ -763,7 +756,7 @@ void DotMethodNextFunc::execute() {
 
     ComValue result(fire_attrlist_method_once(this, comterp(), al, fo, method_nkey,
 					       poslist, kwlist, npos,
-					       was_sealed, presymids, npresymids));
+					       was_sealed, presymids));
     push_stack(result);
 }
 
