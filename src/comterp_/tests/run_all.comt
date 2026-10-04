@@ -169,6 +169,10 @@ if(run("./dotfuncstream.comt")
   :then print("pass: dotfuncstream\n")
   :else print("FAIL: dotfuncstream\n");topok=false)
 
+if(run("./nilfuncstream.comt")
+  :then print("pass: nilfuncstream\n")
+  :else print("FAIL: nilfuncstream\n");topok=false)
+
 if(run("./multibody.comt")
   :then print("pass: multibody\n")
   :else print("FAIL: multibody\n");topok=false)
