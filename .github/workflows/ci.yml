@@ -436,7 +436,9 @@ jobs:
           # test outcome. One retry absorbs that infra flake; a log with an
           # explicit ': FAIL' is a real test failure and is never retried.
           for attempt in 1 2; do
-            xvfb-run -a ./drawmo --tests all,-ringpair10 < /dev/null 2>&1 | tee drawmo.log
+            # `|| true` keeps a failing pipeline from tripping bash -e (GitHub
+            # Actions' default for `run:` steps) before rc is even read below.
+            xvfb-run -a ./drawmo --tests all,-ringpair10 < /dev/null 2>&1 | tee drawmo.log || true
             rc=${PIPESTATUS[0]}
             if [ "$rc" -eq 0 ] && ! grep -q ': FAIL' drawmo.log; then
               break
