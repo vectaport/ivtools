@@ -521,21 +521,34 @@ check_fail(:ok ok)
 
 // --- test 25: a write to a pre-declared field made by a BARE call (not
 // dot-bound) is visible to a sibling that same bare call nests further
-// down, the same as a dot-bound call already provides -- and a name the
-// bare call introduces that was never pre-declared still doesn't leak a
-// permanent field onto the receiver ---
+// down, the same as a dot-bound call already provides -- checked both by
+// the nested call's own return value each iteration and by the field's
+// final state ---
 obj61=(
   :curx61 0
   :getker61 func(curx61+arg(0))
   :kern61 func(getker61(0))
-  :smoothxy61 func(temp(x)=arg(0); curx61=x; newfield61=x+100; kern61())
-  :runrow61 func(for(temp(xx)=0 xx<3 xx++ smoothxy61(xx)))
+  :smoothxy61 func(temp(x)=arg(0); curx61=x; kern61())
+  :runrow61 func(temp(out)=list; for(temp(xx)=0 xx<3 xx++ out,smoothxy61(xx)); out)
 )
-obj61.runrow61()
-r98b=obj61.curx61
-r99=size(obj61)
-ok=ok&&(r98b==2)&&(r99==5)
-print("25 obj61.runrow61() bare-calls smoothxy61(0,1,2), which bare-writes curx61 then bare-calls kern61()->getker61() (expect curx61 2, size(obj61) 5 unchanged -- the pre-declared field's last write persists, newfield61 never leaks on): %v %v\n\n" r98b r99)
+r98b=obj61.runrow61()
+r99=obj61.curx61
+ok=ok&&(r98b=={0,1,2})&&(r99==2)
+print("25 obj61.runrow61() bare-calls smoothxy61(0,1,2), each bare-writing curx61 then bare-calling kern61()->getker61() (expect each nested call's own return {0,1,2}, curx61 left at 2): %v %v\n\n" r98b r99)
+check_fail(:ok ok)
+
+// --- test 26: a pre-declared field whose current value is nil is still a
+// real field, not an unset default -- a bare call's write to it persists,
+// exactly as it would for any other already-set pre-declared field ---
+obj62=(
+  :krn62 nil
+  :kern62 func(if(krn62==nil :then krn62=string(2 AnyType)); krn62@0=99; krn62)
+  :runner62 func(kern62())
+)
+r100=obj62.runner62()
+r101=obj62.krn62
+ok=ok&&(at(r100 0)==99)&&(at(r101 0)==99)
+print("26 obj62=(:krn62 nil ...); obj62.runner62() bare-calls kern62(), which fills the declared-nil krn62 (expect 99 99 -- the fill persists, not reverted to nil): %v %v\n\n" at(r100 0) at(r101 0))
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)
