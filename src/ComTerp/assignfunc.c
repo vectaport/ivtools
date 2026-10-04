@@ -149,15 +149,12 @@ void AssignFunc::execute() {
 	    tempframe->add_attribute(attr);
 	    operand2_owned = true;
 	} else {
-	    /* the self-insert guard only applies when the write actually
-	       targets attrlist -- mirror write_funcscope_symval()'s own
-	       routing exactly: an existing temp() name always wins; absent
-	       that, attrlist is the destination whenever the field is
-	       already declared there, or there's no temp frame to divert a
-	       brand-new name into (e.g. eval(:alist) binds a receiver
-	       outside any func call, so run_funcobj_body() never allocated
-	       one). Only a brand-new name WITH a temp frame present is safe
-	       to divert, since that frame is discarded at call end. */
+	    /* targets_attrlist mirrors write_funcscope_symval()'s own
+	       routing: an existing temp() name wins, else attrlist is the
+	       target when declared there or when no temp frame exists to
+	       divert a new name into. */
+	    /* eval(:alist) binds a receiver without allocating a temp
+	       frame, so a brand-new name there falls straight to attrlist. */
 	    AttributeList* tempframe = comterp()->get_tempframe();
 	    boolean targets_attrlist = attrlist &&
 	      !(tempframe && tempframe->find(operand1.symbol_val())) &&
@@ -170,10 +167,9 @@ void AssignFunc::execute() {
 	      push_stack(ComValue::nullval());
 	      return;
 	    }
-	    /* bare write mirrors a bare read's own scoping: an existing temp()
-	       name or already-declared attrlist field is updated in place; a
-	       brand-new name is call-local scratch, kept off a shared receiver
-	       via the temp frame; otherwise local/global -- see SLICES.md. */
+	    /* bare write follows write_funcscope_symval()'s own scoping:
+	       existing name wins in place, a brand-new one stays call-local
+	       -- see SLICES.md. */
 	    comterp()->write_funcscope_symval(operand1.symbol_val(), operand2);
 	    operand2_owned = true;
 	}
