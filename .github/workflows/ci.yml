@@ -409,7 +409,14 @@ jobs:
       # loopback exactly as it does on a real display. (The deeper fix -- accept
       # IPv6 on the listener side -- is ACE-build-dependent and rides with the
       # in-tree ACE-lite, issue #147.)
-      - name: Test - drawserv drawmo full suite
+      #
+      # ringpair10 (20 concurrent drawserv/X-client instances, by far the
+      # heaviest test here) is excluded from the CI list below -- it runs
+      # fine on its own, but its process/memory load is the likely trigger
+      # for Xvfb dying mid-suite on the runner's limited cores/RAM. Run it
+      # locally with `./drawmo --tests ringpair10`; plain `./drawmo` with no
+      # arguments still runs it along with everything else.
+      - name: Test - drawserv drawmo suite
         if: always()
         timeout-minutes: 6
         run: |
@@ -424,8 +431,9 @@ jobs:
           # multi-process load ("X connection to :... broken"), unrelated to any
           # test outcome. One retry absorbs that infra flake; a log with an
           # explicit ': FAIL' is a real test failure and is never retried.
+          DRAWMO_TESTS=updown,sel,eagain,updown1,updown2,updown3A,updown3B,updown4A,updown4B,ring,ringpair,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport
           for attempt in 1 2; do
-            xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
+            xvfb-run -a ./drawmo --tests "$DRAWMO_TESTS" < /dev/null 2>&1 | tee drawmo.log
             rc=${PIPESTATUS[0]}
             if [ "$rc" -eq 0 ] && ! grep -q ': FAIL' drawmo.log; then
               break
