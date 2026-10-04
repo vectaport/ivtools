@@ -184,12 +184,8 @@ void AssignFunc::execute() {
 	return;
       }
       attr->Value(operand2);
-      /* same home-attrlist stamp a literal's members get (AttrListFunc::
-	 stamp_home_attrs), for a func written onto an existing attrlist --
-	 and the same one-time-only rule: a func that already has a home
-	 keeps it, so writing an already-homed FuncObj into a second
-	 attrlist's field doesn't silently repoint every other holder's
-	 bare calls at the new owner. */
+      /* Same home stamp as AttrListFunc::stamp_home_attrs, for a func
+	 written onto an existing attrlist's field; same one-time rule. */
       if (owner && operand2->is_object(FuncObj::class_symid())) {
 	FuncObj* fo = (FuncObj*)operand2->obj_val();
 	if (!fo->home_attrs().is_object(AttributeList::class_symid())) {

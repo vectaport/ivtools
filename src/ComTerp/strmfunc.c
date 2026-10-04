@@ -1936,10 +1936,7 @@ void InfoFunc::execute() {
     ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
     ComValue sourcev(funcobj_source(peeked_fo, comterp()).c_str());
     /* bare -- the attrlist a bare call through this instance resolves
-       against, or nil if never claimed; once set it's permanent
-       (AttrListFunc::stamp_home_attrs, AssignFunc), so nil here means a
-       later obj.field=thisFunc can still claim its bare calls, non-nil
-       means it already has and always will answer from this attrlist. */
+       against, or nil if never claimed. Permanent once set. */
     ComValue barev(peeked_fo->home_attrs().is_object(AttributeList::class_symid())
 		   ? peeked_fo->home_attrs() : ComValue::nullval());
     al->add_attr(ntoks_sym, ntoksv);

@@ -248,16 +248,9 @@ void AttrListFunc::execute() {
     push_stack(retval);
 }
 
-/* stamp every FuncObj member with this attrlist as its home, so a
-   sibling member it calls bare can see this attrlist's live values
-   instead of its own frozen declaration-time captures (fire_funcobj,
-   comterp.c) -- "inside the attrlist" means inside it for reads too.
-   A FuncObj that already has a home keeps it: home is a one-time,
-   permanent property of the instance, set wherever it's first bound,
-   not wherever it's most recently filed -- a bare call always answers
-   from its original attrlist even after the same instance is placed in
-   another one's field; a dot-bound call is unaffected either way,
-   since it never consults home_attrs at all. */
+/* Stamps each FuncObj field's home to this attrlist -- the bare-call
+   scope fallback (fire_funcobj, comterp.c). A FuncObj keeps its first
+   home permanently; this never re-stamps one that already has one. */
 void AttrListFunc::stamp_home_attrs(AttributeList* al) {
     ComValue homeval(AttributeList::class_symid(), al);
     ALIterator hi;
