@@ -9,6 +9,8 @@
 // existing obj.field=otherobj.otherfield dispatch (AssignFunc, dotfunc.c)
 // applies, so .f=.g copies a sibling FuncObj field without auto-firing it,
 // the internal analogue of the already-working a.f=a.g from outside.
+// .method(args) fires a sibling FuncObj field self-bound to the same home
+// attrlist, the internal analogue of a.method(args) from outside.
 // Outside any call frame .field has no home to resolve against and reads
 // nil (postfix(.g) shows the unary selfdot parse: "g selfdot[1|0|1]").
 //
@@ -41,6 +43,14 @@ a3.set3()
 r3=a3.get3()
 ok=ok&&(r3==42)
 print("3 a3.set3() does .v3=42; a3.get3() sees it via the real attrlist (expect 42): %v\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: .method(args) fires a sibling FuncObj field self-bound to
+// the caller's own home attrlist, same as a.method(args) from outside ---
+a4=(:g4 func(temp(x)=arg(0);x+1) :f4 func(.g4(5)))
+r4=a4.f4()
+ok=ok&&(r4==6)
+print("4 a4.f4() does .g4(5), self-bound sibling call (expect 6): %v\n" r4)
 check_fail(:ok ok)
 
 print("selfdot: %v\n" ok)

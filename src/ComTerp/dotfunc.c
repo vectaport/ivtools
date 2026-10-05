@@ -437,7 +437,7 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 
 void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 			    const std::string& before_expr_text, const std::string& after_expr_text,
-			    boolean force_named_field) {
+			    boolean force_named_field, int after_stack_idx) {
     /* a variable bound to a stream arrives as a raw SymbolType -- resolve
        a copy to test is_stream(), leaving before_part itself untouched */
     ComValue before_resolved = before_part;
@@ -585,11 +585,16 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
        if the rhs weren't there at all -- fall through to the bare form. */
     boolean blank_rhs = al_from_funcobj && is_blank_rhs(after_raw);
 
-    if (!blank_rhs && after_nids!=-1 && nargs()>1) {
+    /* al.method(args) attached to a unary self-bound dot (selfdot) carries
+       its call as a CommandType after_raw instead of nargs()>1 -- selfdot
+       always has exactly one real stack arg (the whole after-expression),
+       so nargs()>1 can't distinguish it the way it does for binary dot. */
+    boolean selfbound_call = force_named_field && after_raw.is_command();
+    if (!blank_rhs && after_nids!=-1 && (nargs()>1 || selfbound_call)) {
       /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval runs
          before reset_stack(); nargs()>1 + after_nids excludes dot(name) */
       int nargtoks;
-      postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
+      postfix_token* argtoks = copy_stack_arg_post_eval(after_stack_idx, nargtoks);
       reset_stack();
       /* sealed-field cleanup lives inside fire_attrlist_method/_once, not
          here, so it covers every firing a streamed call defers to
@@ -669,7 +674,11 @@ void SelfDotFunc::execute() {
     ComValue before_part(AttributeList::class_symid(), home);
     ComValue after_raw(stack_arg(0, true));
     int after_nids = after_raw.nids();
-    execute_core(before_part, after_raw, after_nids, "", "", true);
+    /* selfdot has exactly one real stack arg (the whole after-expression,
+       field or call) -- pass 0 so execute_core's self-bound method-call
+       branch pulls the call's raw tokens from the right slot (it defaults
+       to 1, binary dot's "before, after" stack layout). */
+    execute_core(before_part, after_raw, after_nids, "", "", true, 0);
 }
 
 /*****************************************************************************/
