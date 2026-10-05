@@ -743,5 +743,16 @@ ok=ok&&(al74b.g74()=="B")&&(y74()=="A")
 print("74 al74b=(:f74 func(\"B\") :g74 al74.g74); al74b.g74() vs y74=al74b.g74;y74() (expect B A -- dot adopts the new owner, bare stays homed to al74): %v %v\n\n" al74b.g74() y74())
 prev_ok=check_fail(:ok ok)
 
+// --- test 75: dot(name field) -- the 2-arg explicit-call form -- reads
+// a bare field the same way the infix operator does, rather than
+// misreading the field name as an attempted method call; a real
+// method call, with or without args, still fires as one in both forms ---
+al75=(:p75 7 :m75 func(arg(0)+1))
+ok=ok&&(dot(al75 p75)==al75.p75)&&(dot(al75 p75)==7)
+ok=ok&&(dot(al75 m75(4))==al75.m75(4))&&(dot(al75 m75(4))==5)
+ok=ok&&(al75.m75(4)==5)
+print("75 dot(al75 p75)==al75.p75, dot(al75 m75(4))==al75.m75(4) (expect true): %v\n\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok
