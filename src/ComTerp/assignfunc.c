@@ -184,11 +184,14 @@ void AssignFunc::execute() {
 	return;
       }
       attr->Value(operand2);
-      /* same home-attrlist stamp a literal's members get (AttrListFunc::
-	 execute()), for a func written onto an existing attrlist. */
+      /* Same home stamp as AttrListFunc::stamp_home_attrs, for a func
+	 written onto an existing attrlist's field; same one-time rule. */
       if (owner && operand2->is_object(FuncObj::class_symid())) {
-	ComValue homeval(AttributeList::class_symid(), owner);
-	((FuncObj*)operand2->obj_val())->home_attrs(homeval);
+	FuncObj* fo = (FuncObj*)operand2->obj_val();
+	if (!fo->home_attrs().is_object(AttributeList::class_symid())) {
+	  ComValue homeval(AttributeList::class_symid(), owner);
+	  fo->home_attrs(homeval);
+	}
       }
       operand2_owned = true;
     } else if (operand1.is_array() && operand1.lhs_assign()) {
