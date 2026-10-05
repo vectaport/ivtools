@@ -319,6 +319,8 @@ Print a usage summary of all the invocation modes above and exit.
 
  n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator
 
+ str=cstr(str [n]) -- the nth NUL-delimited run (0-based) within str's range, nil if there's no such run
+
  slc=append(dest val) -- append val onto dest, growing in place when there's room
 
  lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).

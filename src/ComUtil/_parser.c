@@ -1064,9 +1064,14 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
             {
 	       expecting = OPTYPE_BINARY;
 	       if(dot_symid==-1) dot_symid = symbol_add("dot");
-	       if(TopOfOperStack >= 0 &&
-		  OperStack[TopOfOperStack].oper_type == OPERATOR &&
-		  opr_tbl_commid(OperStack[TopOfOperStack].id) == dot_symid) {
+	       /* a bare name is dot's field RHS via infix "." or dot(...)'s
+	          own bare 2nd arg -- mark nids=-1 either way, DotFunc's cue
+	          to read a field rather than fire a method. */
+	       if((TopOfOperStack >= 0 &&
+		   OperStack[TopOfOperStack].oper_type == OPERATOR &&
+		   opr_tbl_commid(OperStack[TopOfOperStack].id) == dot_symid) ||
+		  (TopOfParenStack >= 0 &&
+		   ParenStack[TopOfParenStack].comm_id == dot_symid)) {
 		 PFOUT( TOK_COMMAND, *(int *)token, 0, 0, -1 );
 	       }
 	       else {

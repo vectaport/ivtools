@@ -385,6 +385,74 @@ void StrCapFunc::execute() {
 
 /*****************************************************************************/
 
+CstrFunc::CstrFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CstrFunc::execute() {
+  ComValue strv(stack_arg(0));
+  ComValue nv(stack_arg(1));
+  reset_stack();
+  if (strv.type()!=ComValue::StringType) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (!nv.is_nil() && nv.type()!=ComValue::IntType) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  int n = nv.is_nil() ? 0 : nv.int_val();
+  if (n<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  const char* full = strv.string_ptr();
+  boolean isslice = strv.sliced();
+  int base = isslice ? strv.sliceoff() : 0;
+  int limit = base + (isslice ? strv.slicelen() : symbol_len(strv.string_val()));
+
+  /* skip past n runs; each run's trailing NULs collapse into one
+     delimiter (a run of NULs between two runs of content is one gap,
+     not an empty run per extra NUL byte), so running off the end
+     before finding n of them means there's no nth run to extract. */
+  int cursor = base;
+  for (int i = 0; i < n; i++) {
+    const void* nulp = memchr(full+cursor, '\0', limit-cursor);
+    if (!nulp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    int p = (const char*)nulp - full;
+    while (p<limit && full[p]=='\0') p++;
+    cursor = p;
+  }
+
+  /* cursor reaching limit with nothing left to read is the trailing case --
+     there's no run left to extract, nth or otherwise -- while a NUL hit with
+     bytes still in range (including right at cursor, the leading case) is a
+     legitimate, possibly-empty run. */
+  if (cursor==limit) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  const void* nulp = memchr(full+cursor, '\0', limit-cursor);
+  int runlen = nulp ? (const char*)nulp - full - cursor : limit-cursor;
+
+  /* a fresh, non-deduplicating buffer -- cap (strlen+1) bytes, NUL-filled
+     by symbol_new() -- then the run's own bytes copied in, leaving the
+     rest of the cap (the terminator and any pad beyond it) as NUL. */
+  int newid = symbol_new((unsigned)(runlen+1), false);
+  if (newid<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  char* buf = (char*)symbol_pntr(newid);
+  memcpy(buf, full+cursor, runlen);
+  ComValue retval((unsigned int)newid, ComValue::StringType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
