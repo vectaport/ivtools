@@ -66,6 +66,22 @@ ok=ok&&(cstr(buf -1)==nil)
 ok=ok&&(cstr(buf "x")==nil)
 print("7b cstr(buf -1), cstr(buf \"x\") bad n (expect nil nil): %v %v\n" cstr(buf -1) cstr(buf "x"))
 
+// --- 7c: consecutive embedded NULs collapse into a single delimiter
+//         when skipping to the nth run -- a one-char value followed by
+//         unwritten (NUL-filled) padding isn't itself an empty run ---
+s7c=string(4 UCharType)
+at(s7c 0 :set 'a')
+at(s7c 3 :set 'c')
+ok=ok&&(print(cstr(s7c 1) :str)=="c")
+print("7c cstr(string(4 UCharType) with 'a',NUL,NUL,'c', n=1) collapses the NUL run (expect c): %s\n" print(cstr(s7c 1) :str))
+
+// --- 7d: ...but a leading NUL right at the start of str's own range is
+//         not collapsed away for n=0 -- it ends that run immediately ---
+s7d=string(4)
+at(s7d 1 :set 'x')
+ok=ok&&(print(cstr(s7d) :str)=="")
+print("7d cstr(string(4) starting with NUL, n=0) (expect \"\"): %s\n" print(cstr(s7d) :str))
+
 // --- 8: the result is a fresh, unsliced, untyped (blocktype-stripped)
 //        string, independent of the source -- not an alias, not a view ---
 r=cstr(buf 1)

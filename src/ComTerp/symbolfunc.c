@@ -403,8 +403,10 @@ void CstrFunc::execute() {
   int base = isslice ? strv.sliceoff() : 0;
   int limit = base + (isslice ? strv.slicelen() : symbol_len(strv.string_val()));
 
-  /* skip past n NUL-delimited runs; running off the end before finding
-     n of them means there's no nth run to extract. */
+  /* skip past n runs; each run's trailing NULs collapse into one
+     delimiter (a run of NULs between two runs of content is one gap,
+     not an empty run per extra NUL byte), so running off the end
+     before finding n of them means there's no nth run to extract. */
   int cursor = base;
   for (int i = 0; i < n; i++) {
     const void* nulp = memchr(full+cursor, '\0', limit-cursor);
@@ -412,7 +414,9 @@ void CstrFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     }
-    cursor = (const char*)nulp - full + 1;
+    int p = (const char*)nulp - full;
+    while (p<limit && full[p]=='\0') p++;
+    cursor = p;
   }
 
   const void* nulp = memchr(full+cursor, '\0', limit-cursor);
