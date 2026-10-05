@@ -27,6 +27,7 @@ rast=(
   :curx 0
   :cury 0
   :krn nil
+  :winfunc nil
 
   :paint func(
     for(temp(x)=0 x<w x++
@@ -79,16 +80,18 @@ rast=(
     // krn is a receiver field; reuse its string across calls.
     if(krn==nil :then
       krn=string(kernszx*kernszy AnyType));
+    temp(i); temp(j); temp(k);
     temp(ki)=0;
     temp(halfx)=kernszx>>1;
     temp(evenx)=cond(halfx*2==kernszx 1 0);
     temp(halfy)=kernszy>>1;
     temp(eveny)=cond(halfy*2==kernszy 1 0);
-    for(temp(j)=-halfy j<=halfy-eveny j++
-      for(temp(i)=-halfx i<=halfx-evenx i++
-        temp(k)=getker(i j);
+    for(j=-halfy j<=halfy-eveny j++
+      for(i=-halfx i<=halfx-evenx i++
+        k=getker(i j);
         krn@(ki++)=k));
     krn)
+
 
   :smooth func(
     temp(summ)=0L;
@@ -99,27 +102,67 @@ rast=(
     return(summ/cnt)
   )
 
-  :smoothxy func(
+  :maxwin func(
+    temp(maxw)=0L;
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k>maxw :then maxw=k));
+    return(maxw)
+  )
+
+  :minwin func(
+    temp(minw)=long(-1 :u);
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k<minw :then minw=k));
+    return(minw)
+  )
+
+  :sobel func(
+    // the Sobel operator is defined only for a 3x3 window; gxk/gyk below
+    // have exactly 9 weights, so a differently-sized krn has no match.
+    if(kernszx!=3||kernszy!=3 :then return(nil));
+    // krn's values are UIntType (sourced from in, a UIntType raster); cast
+    // to a signed type before multiplying by a negative kernel coefficient,
+    // or the product wraps as an unsigned result instead of going negative.
+    temp(gxk)=-1,0,1,-2,0,2,-1,0,1;
+    temp(gyk)=-1,-2,-1,0,0,0,1,2,1;
+    temp(gx)=0L;
+    temp(gy)=0L;
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k!=nil :then
+        k=long(k);
+        gx=gx+k*(gxk@i);
+        gy=gy+k*(gyk@i)));
+    return(sqrt(gx*gx+gy*gy))
+  )
+
+  :runxy func(
     temp(x)=arg(0);temp(y)=arg(1);
     if(y>cury :then while(cury<y advance()));
     curx=x;
     kern();
-    smooth()
+    winfunc()
   )
 
   :runrow func(
     temp(y) = advance();
     temp(yoff) = y*w;
-    out@((0..(w-1))+yoff)=smoothxy((0..(w-1)) y)
+    out@((0..(w-1))+yoff)=runxy((0..(w-1)) y);
   )
 
   :runimg func(
+    .winfunc=.smooth;
+    .winfunc=.maxwin;
+    .winfunc=.minwin;
+    .winfunc=.sobel;
     runrow(0..(h-1))
   )
 
 )
 
 rast.paint()
-rast.runimg()
+s=rast.runimg()
 
 

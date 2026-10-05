@@ -2029,6 +2029,7 @@ void ComTerp::add_defaults() {
     add_command("chunk", new ChunkFunc(this));
 
     add_command("dot", new DotFunc(this));
+    add_command("selfdot", new SelfDotFunc(this));
     add_command("attrname", new DotNameFunc(this));
     add_command("attrval", new DotValFunc(this));
 

@@ -96,7 +96,7 @@ protected:
        arg count, so it can't be relied on for a synthetic per-pull call. */
     void execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 		       const std::string& before_expr_text, const std::string& after_expr_text,
-		       boolean force_named_field = false);
+		       boolean force_named_field = false, int after_stack_idx = 1);
     /* Get/set the debug-expr flag at runtime via a :dbg keyword --
        intentionally not in DotFunc's public docstring above: a malformed-
        dot warning already shows both sides' resolved values unconditionally
@@ -113,6 +113,22 @@ protected:
        top, or dot(:dbg true) silently never reaches it and always
        misfires as a malformed dot expression instead. */
     boolean check_dbg_keyword();
+};
+
+//: unary prefix . operator, for an implicit self reference | .field reads or
+// targets the currently-executing func's own home attrlist -- nil outside
+// any call frame. .method(args) fires a sibling FuncObj field self-bound to
+// that same home attrlist, same as a.method(args) would from outside.
+// Reuses DotFunc's own field dispatch (execute_core) with
+// comterp()->get_attributes() standing in for the explicit before-part, so
+// .f=.g is a genuine dot-target/dot-read pair, not a bare assignment.
+class SelfDotFunc : public DotFunc {
+public:
+    SelfDotFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=.field -- read or target field of the current func's own home attrlist, or fire .method(args) self-bound"; }
 };
 
 //: hidden func used by next() to drive a lazy (stream).field access.
