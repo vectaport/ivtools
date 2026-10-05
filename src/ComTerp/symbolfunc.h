@@ -144,10 +144,12 @@ public:
 //: extract one NUL-delimited run out of a string or string slice.
 // str=cstr(str [n]) -- the nth run (0-based) within str's own range, as a
 // fresh unsliced copy; runs of consecutive NULs between two runs of
-// content collapse into a single delimiter when skipping to the nth, but
-// a leading NUL at the very start of str's range still ends an n=0 run
-// immediately (an empty string, not skipped over). nil if str holds
-// fewer than n+1 runs, or if n isn't a non-negative int.
+// content collapse into a single delimiter when skipping to the nth. A
+// NUL hit with bytes still left in range is a legitimate run even when
+// immediately empty (a leading NUL ends an n=0 run as ""), but once the
+// skip lands exactly at the end of str's range with nothing left to
+// read, that's not an nth run to extract -- nil, not "". nil also if
+// str holds fewer than n+1 runs, or if n isn't a non-negative int.
 class CstrFunc : public ComFunc {
 public:
     CstrFunc(ComTerp*);

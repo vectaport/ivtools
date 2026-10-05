@@ -419,6 +419,14 @@ void CstrFunc::execute() {
     cursor = p;
   }
 
+  /* cursor reaching limit with nothing left to read is the trailing case --
+     there's no run left to extract, nth or otherwise -- while a NUL hit with
+     bytes still in range (including right at cursor, the leading case) is a
+     legitimate, possibly-empty run. */
+  if (cursor==limit) {
+    push_stack(ComValue::nullval());
+    return;
+  }
   const void* nulp = memchr(full+cursor, '\0', limit-cursor);
   int runlen = nulp ? (const char*)nulp - full - cursor : limit-cursor;
 

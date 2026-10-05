@@ -43,10 +43,11 @@ ok=ok&&(print(cstr(buf 1) :str)=="bar")
 ok=ok&&(print(cstr(buf 2) :str)=="baz")
 print("4 cstr(buf 0|1|2) over \"foo\\0bar\\0baz\" (expect foo bar baz): %s %s %s\n" print(cstr(buf 0) :str) print(cstr(buf 1) :str) print(cstr(buf 2) :str))
 
-// --- 5: n past the last run, but still within the buffer's own trailing
-//        NUL-fill, lands on a legitimate empty run, not an error ---
-ok=ok&&(print(cstr(buf 3) :str)=="")
-print("5 cstr(buf 3) lands on the trailing empty run (expect \"\"): %s\n" print(cstr(buf 3) :str))
+// --- 5: n past the last run, landing exactly at the end of buf's own
+//        range (buf's trailing NUL-fill is one byte, all consumed by the
+//        collapse) -- nothing left to extract, nil not "" ---
+ok=ok&&(cstr(buf 3)==nil)
+print("5 cstr(buf 3) runs off the end of buf's range (expect nil): %v\n" cstr(buf 3))
 
 // --- 6: n with no nth run left at all -- off the end of the slice -- nil ---
 ok=ok&&(cstr(buf 4)==nil)
