@@ -118,6 +118,23 @@ rast=(
     return(minw)
   )
 
+  :sobel func(
+    // krn's values are UIntType (sourced from in, a UIntType raster); cast
+    // to a signed type before multiplying by a negative kernel coefficient,
+    // or the product wraps as an unsigned result instead of going negative.
+    temp(gxk)=-1,0,1,-2,0,2,-1,0,1;
+    temp(gyk)=-1,-2,-1,0,0,0,1,2,1;
+    temp(gx)=0L;
+    temp(gy)=0L;
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k!=nil :then
+        k=long(k);
+        gx=gx+k*(gxk@i);
+        gy=gy+k*(gyk@i)));
+    return(sqrt(gx*gx+gy*gy))
+  )
+
   :runxy func(
     temp(x)=arg(0);temp(y)=arg(1);
     if(y>cury :then while(cury<y advance()));
@@ -136,6 +153,7 @@ rast=(
     .winfunc=.smooth;
     .winfunc=.maxwin;
     .winfunc=.minwin;
+    .winfunc=.sobel;
     runrow(0..(h-1))
   )
 
