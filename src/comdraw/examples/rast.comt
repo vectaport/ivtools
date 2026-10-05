@@ -27,6 +27,7 @@ rast=(
   :curx 0
   :cury 0
   :krn nil
+  :winfunc nil
 
   :paint func(
     for(temp(x)=0 x<w x++
@@ -79,16 +80,18 @@ rast=(
     // krn is a receiver field; reuse its string across calls.
     if(krn==nil :then
       krn=string(kernszx*kernszy AnyType));
+    temp(i); temp(j); temp(k);
     temp(ki)=0;
     temp(halfx)=kernszx>>1;
     temp(evenx)=cond(halfx*2==kernszx 1 0);
     temp(halfy)=kernszy>>1;
     temp(eveny)=cond(halfy*2==kernszy 1 0);
-    for(temp(j)=-halfy j<=halfy-eveny j++
-      for(temp(i)=-halfx i<=halfx-evenx i++
-        temp(k)=getker(i j);
+    for(j=-halfy j<=halfy-eveny j++
+      for(i=-halfx i<=halfx-evenx i++
+        k=getker(i j);
         krn@(ki++)=k));
     krn)
+
 
   :smooth func(
     temp(summ)=0L;
@@ -99,27 +102,46 @@ rast=(
     return(summ/cnt)
   )
 
-  :smoothxy func(
+  :maxwin func(
+    temp(maxw)=0L;
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k>maxw :then maxw=k));
+    return(maxw)
+  )
+
+  :minwin func(
+    temp(minw)=long(-1 :u);
+    for(temp(i)=0 i<size(krn) i++
+      temp(k)=krn@i;
+      if(k<minw :then minw=k));
+    return(minw)
+  )
+
+  :runxy func(
     temp(x)=arg(0);temp(y)=arg(1);
     if(y>cury :then while(cury<y advance()));
     curx=x;
     kern();
-    smooth()
+    winfunc()
   )
 
   :runrow func(
     temp(y) = advance();
     temp(yoff) = y*w;
-    out@((0..(w-1))+yoff)=smoothxy((0..(w-1)) y)
+    out@((0..(w-1))+yoff)=runxy((0..(w-1)) y);
   )
 
   :runimg func(
+    .winfunc=.smooth;
+    .winfunc=.maxwin;
+    .winfunc=.minwin;
     runrow(0..(h-1))
   )
 
 )
 
 rast.paint()
-rast.runimg()
+s=rast.runimg()
 
 
