@@ -119,6 +119,9 @@ rast=(
   )
 
   :sobel func(
+    // the Sobel operator is defined only for a 3x3 window; gxk/gyk below
+    // have exactly 9 weights, so a differently-sized krn has no match.
+    if(kernszx!=3||kernszy!=3 :then return(nil));
     // krn's values are UIntType (sourced from in, a UIntType raster); cast
     // to a signed type before multiplying by a negative kernel coefficient,
     // or the product wraps as an unsigned result instead of going negative.
