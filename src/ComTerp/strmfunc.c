@@ -1930,14 +1930,20 @@ void InfoFunc::execute() {
     static int nspans_sym = symbol_add("nspans");
     static int posteval_sym = symbol_add("posteval");
     static int source_sym = symbol_add("source");
+    static int bare_sym = symbol_add("bare");
     ComValue ntoksv(peeked_fo->ntoks());
     ComValue nspansv(peeked_fo->nspans());
     ComValue postevalv(peeked_fo->posteval() ? ComValue::trueval() : ComValue::falseval());
     ComValue sourcev(funcobj_source(peeked_fo, comterp()).c_str());
+    /* bare -- the attrlist a bare call through this instance resolves
+       against, or nil if never claimed. Permanent once set. */
+    ComValue barev(peeked_fo->home_attrs().is_object(AttributeList::class_symid())
+		   ? peeked_fo->home_attrs() : ComValue::nullval());
     al->add_attr(ntoks_sym, ntoksv);
     al->add_attr(nspans_sym, nspansv);
     al->add_attr(posteval_sym, postevalv);
     al->add_attr(source_sym, sourcev);
+    al->add_attr(bare_sym, barev);
     ComValue retval(AttributeList::class_symid(), (void*)al);
     push_stack(retval);
     return;
