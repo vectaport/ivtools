@@ -1,0 +1,264 @@
+// quarterpusher.comt -- THE QUARTER PUSHER
+//
+// A coin slot slides back and forth above a glass-covered table.  Drop
+// a quarter and it falls behind the glass onto the pile; the whole pile
+// creeps forward on its own, and whatever reaches the front edge tips
+// off into the tray below -- pick those back up and feed them in again.
+//
+// Start it like this:
+//
+//     comdraw -runfile src/comdraw/examples/quarterpusher.comt
+//
+// Then try:   pushhelp()
+//
+// HOW IT WORKS (the three layers, same as spirograph and etchasketch):
+//   1. the MACHINE  -- pushstep() creeps every coin on the table toward
+//                      the front edge; dropquarter()/pickupquarter()
+//                      move quarters between your hand and the tray
+//   2. the DATA     -- every coin is just an ellipse tagged kind="coin";
+//                      $$(frame()) finds them all, the same idiom
+//                      orbit() and recipes() use in spirograph.comt
+//   3. the MAGIC WORDS -- play() reads the keyboard (Shift+arrows, like
+//                      etchasketch's keydrive()); demo() plays the
+//                      machine by itself, since there's no real keyboard
+//                      under xvfb to drive play() with
+//
+// A func() closure captures a free variable's value when the func is
+// DECLARED, not when it's called -- so the cabinet (slot, plate, ...)
+// is built below before any func that reads slot/plate is defined, the
+// same order etchasketch.comt builds its knobs before h()/v() read
+// them. held/traycount/phase, which funcs both read AND write across
+// calls, go through local() on every access instead (see LANGUAGE.md
+// "Escaping the func scope") -- a bare read of a name a func never
+// itself writes is frozen at that declaration-time capture forever.
+
+// ============================================================
+// LAYER 2: the cabinet (built first, so every func below can read it)
+// ============================================================
+
+// table geometry (Y grows UPWARD here, same as etchasketch's bezel/
+// glass/knobs layout): TBACK is the high edge under the slot where new
+// quarters land, TFRONT is the low edge where they tip into the tray.
+TLEFT=110
+TRIGHT=490
+TBACK=520
+TFRONT=160
+CONVEYRATE=0.6
+PUSHAMP=20
+PUSHSPEED=0.12
+SLOTSPEED=10
+COINPAL="#C8C8C0","#D4D4CC","#BCBCB2"
+
+select(:clear)
+bezel=rect(40,30, 560,590)
+colorsrgb("#604020" "#604020")
+pattern(2)
+bezel.kind="bezel"
+
+select(:clear)
+slottrack=rect(100,545, 500,575)
+colorsrgb("#303030" "#808080")
+pattern(2)
+slottrack.kind="slottrack"
+
+select(:clear)
+glass=rect(TLEFT,TFRONT-20, TRIGHT,TBACK+30)
+colorsrgb("#D8E8EC" "#FFFFFF")
+pattern(2)
+glass.kind="glass"
+
+select(:clear)
+tray=rect(100,40, 500,120)
+colorsrgb("#303030" "#A0A0A0")
+pattern(2)
+tray.kind="tray"
+
+select(:clear)
+colorsrgb("#000000" "#FFFFFF")
+text(190,565 "QUARTER PUSHER")
+
+select(:clear)
+slot=rect(290,550, 320,570)
+colorsrgb("#202020" "#FFFFFF")
+pattern(2)
+slot.kind="slot"
+
+select(:clear)
+plate=rect(TLEFT,TBACK-15, TRIGHT,TBACK)
+colorsrgb("#909098" "#FFFFFF")
+pattern(2)
+plate.kind="plate"
+
+select(:clear)
+update()
+
+// ============================================================
+// LAYER 1: the machine
+// ============================================================
+
+// clamp(val lo hi) -- the slot stops at the table edges
+clamp=func(val=arg(0); lo=arg(1); hi=arg(2);
+  if(val<lo :then return(lo));
+  if(val>hi :then return(hi));
+  val)
+
+// addcoin(x y) -- one quarter, dropped at (x,y)
+addcoin=func(
+  x=arg(0); y=arg(1);
+  select(:clear);
+  c=COINPAL@int(round(rand(0,size(COINPAL)-1)));
+  g=ellipse(x,y, 10,10);
+  colorsrgb(c "#60605A");
+  brush(65535,1);
+  pattern(2);
+  g.kind="coin";
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  brush(65535,0);
+  g)
+
+// prefill(n) -- the table starts covered with quarters, like the real
+// machine between games
+prefill=func(
+  n=arg(0);
+  if(n==nil :then n=28);
+  for(ppi=0 ppi<n ppi++
+    x=TLEFT+10+rand(0,TRIGHT-TLEFT-20);
+    y=TFRONT+10+rand(0,TBACK-TFRONT-20);
+    addcoin(int(round(x)) int(round(y))));
+  select(:clear);
+  update();
+  nil)
+
+local(held)=0
+local(traycount)=6
+local(phase)=0.0
+
+// pushstep() -- one tick: the whole pile creeps toward the front edge,
+// the pusher plate swings for show, and anything that reaches TFRONT
+// tips into the tray.  Flat conveyor motion stands in for the real
+// toy's shove-and-retract ratchet -- simulating coin-on-coin contact
+// isn't worth it for the same forward drift.  move() takes whole
+// pixels, so a sub-pixel CONVEYRATE has to build up in a float carry
+// (local(carry)) and only move() once it rounds to at least one.
+local(carry)=0.0
+pushstep=func(
+  local(phase)=local(phase)+PUSHSPEED;
+  pc=center(plate);
+  ny=TBACK-7+PUSHAMP*sin(local(phase));
+  select(plate); move(0 int(round(ny-pc@1))); select(:clear);
+  local(carry)=local(carry)+CONVEYRATE;
+  pxmove=int(round(local(carry)));
+  local(carry)=local(carry)-pxmove;
+  cs=$$(frame());
+  gone=list();
+  while(g=*cs
+    if((g.kind=="coin")&&(pxmove!=0) :then
+      select(g); move(0 (0-pxmove)); select(:clear);
+      if(center(g)@1<=TFRONT :then gone,g)));
+  for(gi=0 gi<size(gone) gi++
+    delete(at(gone gi));
+    local(traycount)=local(traycount)+1);
+  if(size(gone)>0 :then print("%d quarter(s) dropped into the tray!\n" size(gone)));
+  nil)
+
+// dropquarter() -- feed a quarter from your hand into the slot
+dropquarter=func(
+  if(local(held)<=0 :then print("No quarter in hand -- pickupquarter() to grab one from the tray!\n"));
+  if(local(held)<=0 :then return(nil));
+  local(held)=local(held)-1;
+  sc=center(slot);
+  addcoin(int(round(sc@0+rand(0.0-8.0,8.0))) int(round(TBACK+6)));
+  select(:clear);
+  update();
+  print("Dropped! Holding %d.\n" local(held));
+  local(held))
+
+// pickupquarter() -- grab one back out of the tray
+pickupquarter=func(
+  if(local(traycount)<=0 :then print("Tray is empty -- wait for one to fall!\n"));
+  if(local(traycount)<=0 :then return(nil));
+  local(traycount)=local(traycount)-1;
+  local(held)=local(held)+1;
+  print("Picked up a quarter! Holding %d, %d left in tray.\n" local(held) local(traycount));
+  local(held))
+
+// slotmove(n) -- slide the drop slot n units left(-)/right(+)
+slotmove=func(
+  n=arg(0);
+  if(n==nil :then n=1);
+  sc=center(slot);
+  nx=clamp(sc@0+n*SLOTSPEED TLEFT+15 TRIGHT-15);
+  select(slot); move(nx-sc@0 0); select(:clear);
+  update();
+  nx)
+
+// ============================================================
+// LAYER 3: the magic words
+// ============================================================
+
+// play([n]) -- play for real: hold Shift (or turn Caps Lock on) and use
+// the arrow keys, same shiftcapture trick as etchasketch's keydrive().
+play=func(
+  n=arg(0);
+  if(n==nil :then n=3000);
+  lastkey(:shiftcapture true);
+  print("QUARTER PUSHER -- hold Shift or Caps Lock.  LEFT/RIGHT slide the slot,\n");
+  print("UP drops a quarter, DOWN picks one up from the tray.  Esc stops.\n");
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      if((k=="Esc")||(k=="ESC") :then done=1);
+      if(k=="LEFT" :then slotmove(0-1));
+      if(k=="RIGHT" :then slotmove(1));
+      if(k=="UP" :then dropquarter());
+      if(k=="DOWN" :then pickupquarter());
+      k=lastkey());
+    pushstep();
+    update(20000));
+  lastkey(:shiftcapture false);
+  print("Game paused.  play() to keep going, status() for counts.\n"))
+
+// demo([n]) -- the machine plays itself: no keyboard needed, so this is
+// the one to watch run (and the one that works headless under xvfb)
+demo=func(
+  n=arg(0);
+  if(n==nil :then n=400);
+  print("DEMO MODE -- the machine plays itself for %d ticks.\n" n);
+  for(di=0 di<n di++
+    if((local(held)<=0)&&(local(traycount)>0) :then pickupquarter());
+    if((local(held)>0)&&(di%9==0) :then
+      slotmove(int(round(rand(0.0-3.0,3.0))));
+      dropquarter());
+    pushstep();
+    update(15000));
+  print("Demo done.  %d held, %d in tray.\n" local(held) local(traycount)))
+
+// status() -- how many quarters are where
+status=func(
+  print("Held: %d   Tray: %d\n" local(held) local(traycount));
+  nil)
+
+// pushhelp() -- remind me of the magic words
+pushhelp=func(
+  print("*** QUARTER PUSHER HELP ***\n");
+  print("  play([n])      -- play for real: hold Shift/Caps, use arrows\n");
+  print("                    LEFT/RIGHT slide the slot, UP drops, DOWN picks up\n");
+  print("  demo([n])      -- watch the machine play itself, default 400 ticks\n");
+  print("  dropquarter()  -- feed a quarter from your hand into the slot\n");
+  print("  pickupquarter()-- grab one back out of the tray\n");
+  print("  slotmove(n)    -- slide the slot n units (negative = left)\n");
+  print("  status()       -- how many quarters you're holding / in the tray\n"))
+
+// ============================================================
+// welcome!  (a pile of quarters already on the table, to start the game)
+// ============================================================
+srand(date())
+prefill(28)
+print("+------------------------------------------------------------------------------+\n")
+print("|               QUARTER PUSHER  --  a comdraw / comterp example                |\n")
+print("+------------------------------------------------------------------------------+\n")
+print("The table is already piled with quarters, creeping toward the edge.\n")
+print("You're holding 0, and 6 are waiting in the tray -- pick one up to start.\n")
+print("Try: pushhelp  pickupquarter()  dropquarter()  demo()  play()\n")
