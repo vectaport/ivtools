@@ -180,10 +180,9 @@ void SymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
-      /* at()/list-read always re-bquotes a symbol pulled back out
-         (listfunc.c), so an unprotected element stored here would be
-         silently reprotected on the very next read -- :nobq only has an
-         effect on the single-id return value below. */
+      /* at()/list-read always rebackquotes a symbol it returns, so
+         :nobq has no effect on list elements -- only the single-id
+         return value below honors it. */
       ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
       av->bquote(1);
       avl->Append(av);
