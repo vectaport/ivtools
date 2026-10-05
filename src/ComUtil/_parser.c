@@ -1064,12 +1064,9 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
             {
 	       expecting = OPTYPE_BINARY;
 	       if(dot_symid==-1) dot_symid = symbol_add("dot");
-	       /* a bare name with no attached call is "dot"'s RHS whether it
-	          got there via the infix "." operator (top of operator stack
-	          is "dot") or as the 2nd positional arg of an explicit
-	          dot(name field) call (top of paren stack is a "dot(" we're
-	          still inside) -- either way, mark it nids=-1 so DotFunc
-	          reads it as a field name, not an attempted method call. */
+	       /* a bare name is dot's field RHS via infix "." or dot(...)'s
+	          own bare 2nd arg -- mark nids=-1 either way, DotFunc's cue
+	          to read a field rather than fire a method. */
 	       if((TopOfOperStack >= 0 &&
 		   OperStack[TopOfOperStack].oper_type == OPERATOR &&
 		   opr_tbl_commid(OperStack[TopOfOperStack].id) == dot_symid) ||
