@@ -378,6 +378,54 @@ void StrCapFunc::execute() {
 
 /*****************************************************************************/
 
+CstrFunc::CstrFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CstrFunc::execute() {
+  ComValue strv(stack_arg(0));
+  ComValue nv(stack_arg(1));
+  reset_stack();
+  if (strv.type()!=ComValue::StringType) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  int n = nv.is_nil() ? 0 : nv.int_val();
+  const char* full = strv.string_ptr();
+  boolean isslice = strv.sliced();
+  int base = isslice ? strv.sliceoff() : 0;
+  int limit = base + (isslice ? strv.slicelen() : symbol_len(strv.string_val()));
+
+  /* skip past n NUL-delimited runs; running off the end before finding
+     n of them means there's no nth run to extract. */
+  int cursor = base;
+  for (int i = 0; i < n; i++) {
+    const void* nulp = memchr(full+cursor, '\0', limit-cursor);
+    if (!nulp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    cursor = (const char*)nulp - full + 1;
+  }
+
+  const void* nulp = memchr(full+cursor, '\0', limit-cursor);
+  int runlen = nulp ? (const char*)nulp - full - cursor : limit-cursor;
+
+  /* a fresh, non-deduplicating buffer -- cap (strlen+1) bytes, NUL-filled
+     by symbol_new() -- then the run's own bytes copied in, leaving the
+     rest of the cap (the terminator and any pad beyond it) as NUL. */
+  int newid = symbol_new((unsigned)(runlen+1), false);
+  if (newid<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  char* buf = (char*)symbol_pntr(newid);
+  memcpy(buf, full+cursor, runlen);
+  ComValue retval((unsigned int)newid, ComValue::StringType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

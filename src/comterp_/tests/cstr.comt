@@ -1,0 +1,72 @@
+// src/comterp_/tests/cstr.comt -- cstr(): extract one NUL-delimited run
+// out of a string or string slice.
+//
+// funcs: cstr string strcap isslice blocktype type at char
+
+ok=true
+
+// --- 1: plain unsliced string, n defaulted to 0 -- just the C-string view ---
+ok=ok&&(print(cstr("hello") :str)=="hello")
+print("1 cstr(\"hello\") (expect hello): %s\n" print(cstr("hello") :str))
+
+// --- 2: a typed/chunked string's raw bytes, same view, blocktype ignored --
+s=string(4 UCharType)
+at(s 0 :set 'a')
+at(s 1 :set 'b')
+at(s 2 :set 'c')
+at(s 3 :set 'd')
+ok=ok&&(print(cstr(s) :str)=="abcd")
+print("2 cstr(string(4 UCharType)) ignores blocktype (expect abcd): %s\n" print(cstr(s) :str))
+
+// --- 3: a string slice -- cstr() narrows to the slice's own window ---
+sl=s@(1:3)
+ok=ok&&(print(cstr(sl) :str)=="bc")
+print("3 cstr(s@(1:3)) (expect bc): %s\n" print(cstr(sl) :str))
+
+// --- 4: n skips past n NUL-delimited runs from the front -- a buffer
+//        packing multiple NUL-terminated strings, e.g. "foo\0bar\0baz" ---
+buf=string(12)
+at(buf 0 :set 'f')
+at(buf 1 :set 'o')
+at(buf 2 :set 'o')
+at(buf 3 :set char(0))
+at(buf 4 :set 'b')
+at(buf 5 :set 'a')
+at(buf 6 :set 'r')
+at(buf 7 :set char(0))
+at(buf 8 :set 'b')
+at(buf 9 :set 'a')
+at(buf 10 :set 'z')
+ok=ok&&(print(cstr(buf) :str)=="foo")
+ok=ok&&(print(cstr(buf 0) :str)=="foo")
+ok=ok&&(print(cstr(buf 1) :str)=="bar")
+ok=ok&&(print(cstr(buf 2) :str)=="baz")
+print("4 cstr(buf 0|1|2) over \"foo\\0bar\\0baz\" (expect foo bar baz): %s %s %s\n" print(cstr(buf 0) :str) print(cstr(buf 1) :str) print(cstr(buf 2) :str))
+
+// --- 5: n past the last run, but still within the buffer's own trailing
+//        NUL-fill, lands on a legitimate empty run, not an error ---
+ok=ok&&(print(cstr(buf 3) :str)=="")
+print("5 cstr(buf 3) lands on the trailing empty run (expect \"\"): %s\n" print(cstr(buf 3) :str))
+
+// --- 6: n with no nth run left at all -- off the end of the slice -- nil ---
+ok=ok&&(cstr(buf 4)==nil)
+ok=ok&&(cstr(buf 100)==nil)
+print("6 cstr(buf 4), cstr(buf 100) run off the end (expect nil nil): %v %v\n" cstr(buf 4) cstr(buf 100))
+
+// --- 7: non-string argument -- nil, not an error ---
+ok=ok&&(cstr(3)==nil)
+ok=ok&&(cstr(`sym)==nil)
+print("7 cstr(3), cstr(`sym) on non-strings (expect nil nil): %v %v\n" cstr(3) cstr(`sym))
+
+// --- 8: the result is a fresh, unsliced, untyped (blocktype-stripped)
+//        string, independent of the source -- not an alias, not a view ---
+r=cstr(buf 1)
+ok=ok&&(isslice(r)==false)
+ok=ok&&(blocktype(r)==nil)
+ok=ok&&(strcap(r)==4)
+at(buf 4 :set 'X')
+ok=ok&&(print(r :str)=="bar")
+print("8 cstr(buf 1) result is fresh/unsliced/untyped, cap 4, independent of buf (expect false nil 4 bar): %v %v %v %s\n" isslice(r) blocktype(r) strcap(r) print(r :str))
+
+print("cstr: %v\n" ok)
+ok

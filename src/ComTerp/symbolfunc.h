@@ -141,6 +141,18 @@ public:
       return "n=%s(str) -- capacity in bytes, not counting the guaranteed terminator"; }
 };
 
+//: extract one NUL-delimited run out of a string or string slice.
+// str=cstr(str [n]) -- the nth NUL-delimited run (0-based) within str's own
+// range, as a fresh unsliced copy; nil if str holds fewer than n+1 runs.
+class CstrFunc : public ComFunc {
+public:
+    CstrFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "str=%s(str [n]) -- the nth NUL-delimited run (0-based) within str's range, nil if there's no such run"; }
+};
+
 //: create symbol command for ComTerp.
 // symv|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup
 class SymAddFunc : public ComFunc {
