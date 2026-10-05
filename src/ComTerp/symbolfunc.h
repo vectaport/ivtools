@@ -143,14 +143,15 @@ public:
 
 //: extract one NUL-delimited run out of a string or string slice.
 // str=cstr(str [n]) -- the nth NUL-delimited run (0-based) within str's own
-// range, as a fresh unsliced copy; nil if str holds fewer than n+1 runs.
+// range, as a fresh unsliced copy; nil if str holds fewer than n+1 runs,
+// or if n isn't a non-negative int.
 class CstrFunc : public ComFunc {
 public:
     CstrFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
-      return "str=%s(str [n]) -- the nth NUL-delimited run (0-based) within str's range, nil if there's no such run"; }
+      return "str=%s(str [n]) -- the nth NUL-delimited run (0-based, non-negative) within str's range, nil if there's no such run"; }
 };
 
 //: create symbol command for ComTerp.

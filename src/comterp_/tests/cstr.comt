@@ -58,6 +58,14 @@ ok=ok&&(cstr(3)==nil)
 ok=ok&&(cstr(`sym)==nil)
 print("7 cstr(3), cstr(`sym) on non-strings (expect nil nil): %v %v\n" cstr(3) cstr(`sym))
 
+// --- 7b: a bad n -- negative, or not an int at all -- nil, never
+//         silently treated as 0 (a negative n would otherwise skip the
+//         loop entirely and return the first run, and a non-int n
+//         would coerce to 0 via int_val()) ---
+ok=ok&&(cstr(buf -1)==nil)
+ok=ok&&(cstr(buf "x")==nil)
+print("7b cstr(buf -1), cstr(buf \"x\") bad n (expect nil nil): %v %v\n" cstr(buf -1) cstr(buf "x"))
+
 // --- 8: the result is a fresh, unsliced, untyped (blocktype-stripped)
 //        string, independent of the source -- not an alias, not a view ---
 r=cstr(buf 1)

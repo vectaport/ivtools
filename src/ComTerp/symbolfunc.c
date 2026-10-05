@@ -389,7 +389,15 @@ void CstrFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
+  if (!nv.is_nil() && nv.type()!=ComValue::IntType) {
+    push_stack(ComValue::nullval());
+    return;
+  }
   int n = nv.is_nil() ? 0 : nv.int_val();
+  if (n<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
   const char* full = strv.string_ptr();
   boolean isslice = strv.sliced();
   int base = isslice ? strv.sliceoff() : 0;
