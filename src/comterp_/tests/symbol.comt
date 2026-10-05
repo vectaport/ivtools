@@ -265,13 +265,16 @@ print("33a symval(symbol(id)) stays unresolved (expect true): %v\n" (symval(symb
 print("33b symval(symbol(id :nobq)) resolves directly (expect 77): %v\n" symval(symbol(id33 :nobq)))
 prev_ok=check_fail(:ok ok)
 
-// --- test 34: symbol(id :nobq) on multiple ids still returns a list,
-//        each entry unprotected ---
+// --- test 34: symbol(id id :nobq) on multiple ids still returns a
+//        list of the right size; :nobq has no effect here since
+//        at()/list-read always rebackquotes a symbol pulled back out
+//        (:nobq only matters for the single-id return value, test 33) ---
 id34a=symid(`foo)
 id34b=symid(`bar)
 lst34=symbol(id34a id34b :nobq)
 ok=ok&&(size(lst34)==2)
-print("34 symbol(id1 id2 :nobq) size (expect 2): %v\n" size(lst34))
+ok=ok&&(at(lst34 0)==`foo)
+print("34 symbol(id1 id2 :nobq) size, at(lst34 0) (expect 2 foo): %v %v\n" size(lst34) at(lst34 0))
 prev_ok=check_fail(:ok ok)
 
 print("symbol: %v\n" ok)

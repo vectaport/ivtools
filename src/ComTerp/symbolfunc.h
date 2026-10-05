@@ -65,7 +65,9 @@ public:
       return "sym|lst=%s(symid [symid ...] :nobq) -- return symbol(s) associated with integer id(s)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":nobq      return symbol unprotected from lookup, instead of backquoted",
+	":nobq      return symbol unprotected from lookup, instead of backquoted"
+	" (single symid only -- a multi-id list's elements are always"
+	" rebackquoted when read back out of the list)",
 	nil
       };
       return keys;
