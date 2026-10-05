@@ -653,6 +653,27 @@ void DotFunc::execute() {
 
 /*****************************************************************************/
 
+SelfDotFunc::SelfDotFunc(ComTerp* comterp) : DotFunc(comterp) {
+}
+
+void SelfDotFunc::execute() {
+    if (check_dbg_keyword()) return;
+
+    AttributeList* home = comterp()->get_attributes();
+    if (!home) {
+      /* no identifiable frame/scope to be "self" of -- e.g. .f at top level */
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue before_part(AttributeList::class_symid(), home);
+    ComValue after_raw(stack_arg(0, true));
+    int after_nids = after_raw.nids();
+    execute_core(before_part, after_raw, after_nids, "", "", true);
+}
+
+/*****************************************************************************/
+
 DotStreamNextFunc::DotStreamNextFunc(ComTerp* comterp) : DotFunc(comterp) {
 }
 

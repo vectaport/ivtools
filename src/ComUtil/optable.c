@@ -100,6 +100,11 @@ struct _opr_tbl_default_entry {
 } DefaultOperatorTable[] = {
   // {" ",          "space",              140,        FALSE,      OPTYPE_BINARY }, // I have no recall why this is here
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
+  // unary prefix form: .field reads/targets the current call's own home
+  // attrlist (ComTerp::alist()) in place of an explicit before-part --
+  // same priority/rtol as "`" (bquote), the other identifier-swallowing
+  // unary prefix, so .field binds to just the one following identifier
+  {".",          "selfdot",            130,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"~",          "bit_not",            110,        TRUE,       OPTYPE_UNARY_PREFIX },

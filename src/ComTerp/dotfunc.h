@@ -115,6 +115,20 @@ protected:
     boolean check_dbg_keyword();
 };
 
+//: unary prefix . operator, for an implicit self reference | .field reads or
+// targets the currently-executing func's own home attrlist -- nil outside
+// any call frame. Reuses DotFunc's own field dispatch (execute_core) with
+// comterp()->alist() standing in for the explicit before-part, so .f=.g
+// is a genuine dot-target/dot-read pair, not a bare assignment.
+class SelfDotFunc : public DotFunc {
+public:
+    SelfDotFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=.field -- read or target field of the current func's own home attrlist"; }
+};
+
 //: hidden func used by next() to drive a lazy (stream).field access.
 // Holds, in its own stream's stream_list(): [0] the underlying before-
 // stream, [1] the fixed after-dot field symbol. Each pull advances the

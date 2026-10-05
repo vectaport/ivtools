@@ -169,6 +169,10 @@ if(run("./dotfuncstream.comt")
   :then print("pass: dotfuncstream\n")
   :else print("FAIL: dotfuncstream\n");topok=false)
 
+if(run("./selfdot.comt")
+  :then print("pass: selfdot\n")
+  :else print("FAIL: selfdot\n");topok=false)
+
 if(run("./nilfuncstream.comt")
   :then print("pass: nilfuncstream\n")
   :else print("FAIL: nilfuncstream\n");topok=false)
