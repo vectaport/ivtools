@@ -146,14 +146,23 @@ assertion is `size(sidtable)==1`.
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
 
-### ringpair, ringpair10
+### ringpair, ringpair7, ringpair10
 
 **What:** Build two independent chains of `chainlen` drawservs each, then
 link the two ends of the pair -- A's tail to B's head, and B's tail to A's
 head -- at once, so the session-id propagation waves the two closing links
 start can cross each other while both links are still forming. `ringpair`
-runs at `chainlen=5` (10 nodes); `ringpair10` reruns the same function at
-`chainlen=10` (20 nodes) for a longer fragment. Both are part of `all`.
+runs at `chainlen=5` (10 nodes); `ringpair7` reruns the same function at
+`chainlen=7` (14 nodes); `ringpair10` reruns it at `chainlen=10` (20 nodes)
+for a longer fragment still. All three are part of `all`.
+
+CI runs `ringpair7` in place of `ringpair10`: `ringpair10`'s 20 concurrent
+drawserv/X-client instances are the likely driver of the Xvfb-crash flake
+seen on the hosted runner's limited cores/RAM (see the drawmo step in
+`.github/workflows/ci.yml`), and `ringpair7` crosses the same closing-link
+race over a longer-than-`ringpair` fragment at noticeably less process
+load. Run `./drawmo --tests ringpair10` (or plain `./drawmo`, which still
+includes it) to exercise the full 20-node case locally.
 
 **Checks:**
 - both chains build cleanly, with `ring_test`'s per-hop settle-poll

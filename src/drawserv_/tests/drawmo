@@ -4,8 +4,8 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair10 frontback move transform sel
-#          eagain parsetest optabletest gsexim gsbrushA gsbrushB
+#          updown4C ring ringpair ringpair7 ringpair10 frontback move
+#          transform sel eagain parsetest optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #   --demo slows tests down for a human watching the drawserv windows live;
 #   off by default so CI and ordinary runs stay fast
@@ -18,6 +18,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]\n\n");
     print("  (no args)             run all tests\n");
     print("--tests [name,...]  tests to run, comma-separated; -1 on error\n");
+    print("                    a -name entry excludes that test, e.g. all,-ringpair10\n");
     print("      all                 everything below\n");
     print("      updown              one drawserv up and down again\n");
     print("      updown1 updown2     one linked, then two\n");
@@ -26,6 +27,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("                          four, to the second level\n");
     print("      ring                a ring cannot be formed\n");
     print("      ringpair            two long chains closed at both ends at once\n");
+    print("      ringpair7           ringpair at 14 nodes, the CI canary for ringpair10\n");
     print("      ringpair10          ringpair at 20 nodes\n");
     print("      move                a distributed move() animated in equal steps\n");
     print("      transform           distributed move()/scale()/rotate() (and stretch) in one test\n");
@@ -114,6 +116,12 @@ run("./sel.comt")
 run("./eagain.comt")
 run("./frameimport.comt")
 
+/* Every test name below, in dispatch order. --tests all,-name[,-name...]
+   expands `all` to this list and then drops each excluded name, so a test
+   added below (and to the dispatch block further down) joins `all` and any
+   -exclusion list automatically -- nothing here needs updating for it. */
+all_tests="updown,sel,eagain,updown1,updown2,updown3A,updown3B,updown4A,updown4B,ring,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
+
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
    command fires it -- `optable with no arguments segfaults.  parsetest and
@@ -121,7 +129,20 @@ run("./frameimport.comt")
 /* run selected tests */
 ok=true;
 if(tests_flag :then
-  testlist=split(tests_val :tokstr ',');
+  rawtests=split(tests_val :tokstr ',');
+  exclnames=list();
+  inclnames=list();
+  for(i=0 i<size(rawtests) i++
+    rawtok=at(rawtests i);
+    if(substr(rawtok 1)=="-" :then
+      exclnames=exclnames,substr(rawtok 1 :after)
+    :else
+      inclnames=inclnames,rawtok));
+  if(index(inclnames "all")!=nil :then inclnames=split(all_tests :tokstr ','));
+  testlist=list();
+  for(i=0 i<size(inclnames) i++
+    inclname=at(inclnames i);
+    if(index(exclnames inclname)==nil :then testlist=testlist,inclname));
   for(i=0 i<size(testlist) i++
     t=at(testlist i);
     if(t==`updown || t==`all :then
@@ -207,6 +228,13 @@ if(tests_flag :then
         print("ringpair10: pass\n" :err)
       :else
         print("ringpair10: FAIL\n" :err);
+        ok=false));
+    if(t==`ringpair7 || t==`all :then
+      print("running ringpair7 test\n" :err);
+      if(ringpair7_test(:dummy 0) :then
+        print("ringpair7: pass\n" :err)
+      :else
+        print("ringpair7: FAIL\n" :err);
         ok=false));
     if(t==`move || t==`all :then
       print("running move test\n" :err);
