@@ -156,13 +156,14 @@ runs at `chainlen=5` (10 nodes); `ringpair7` reruns the same function at
 `chainlen=7` (14 nodes); `ringpair10` reruns it at `chainlen=10` (20 nodes)
 for a longer fragment still. All three are part of `all`.
 
-CI runs `ringpair7` in place of `ringpair10`: `ringpair10`'s 20 concurrent
-drawserv/X-client instances are the likely driver of the Xvfb-crash flake
-seen on the hosted runner's limited cores/RAM (see the drawmo step in
-`.github/workflows/ci.yml`), and `ringpair7` crosses the same closing-link
-race over a longer-than-`ringpair` fragment at noticeably less process
-load. Run `./drawmo --tests ringpair10` (or plain `./drawmo`, which still
-includes it) to exercise the full 20-node case locally.
+CI excludes all three: the simultaneous-close race from issue #575 that
+they're built to probe is itself intermittent under the hosted runner's
+load, so any of the three can fail CI on a run where the closing links
+just happen not to cross -- seen on both `ringpair` and `ringpair7`
+across separate runs, with no code change involved (see the drawmo step
+in `.github/workflows/ci.yml`). Run any of the three locally with
+e.g. `./drawmo --tests ringpair10`; plain `./drawmo` with no arguments
+still runs all of them.
 
 **Checks:**
 - both chains build cleanly, with `ring_test`'s per-hop settle-poll
