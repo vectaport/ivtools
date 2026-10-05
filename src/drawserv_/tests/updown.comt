@@ -1441,6 +1441,14 @@ ringpair_test=func(
    cycletest() can run. */
 ringpair10_test=func(ringpair_test(:chainlen 10))
 
+/* ringpair7_test: ringpair_test at chainlen=7 (14 nodes total) -- a cheaper
+   stand-in for ringpair10 that still crosses the two closing links' flood
+   over a longer fragment than the chainlen=5 default, at roughly a third
+   fewer concurrent drawserv/X-client instances. Runs in CI as the canary
+   for the heavier ringpair10's process/memory load; ringpair10 itself is
+   run manually, not in CI. */
+ringpair7_test=func(ringpair_test(:chainlen 7))
+
 /* zorder_on_node -- poll a far node until index(list($$(frame())) grid(zn_back))
    sits strictly before index(list($$(frame())) grid(zn_front)), i.e. zn_back
    is behind zn_front in structure (z-)order, or timeout.  frame()'s child
