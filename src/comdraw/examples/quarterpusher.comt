@@ -75,7 +75,7 @@
 
 CENTERX=450
 HW_NEAR=380; HW_FAR=100
-Y_NEAR=140; Y_FAR=740
+Y_NEAR=140; Y_FAR=480
 SCALE_NEAR=1.6; SCALE_FAR=0.4
 R0=14
 COINPAL="#C8C8C0","#D4D4CC","#BCBCB2"
@@ -188,13 +188,19 @@ addcoin=func(
   placecoin(g lat dep);
   g)
 
-// prefill(n) -- the table starts covered with quarters, like the real
-// machine between games.  Returns the list of coins created, so the
-// caller can fold them into the coinlayer group.
+// prefill(n [seed]) -- the table starts covered with quarters, like the
+// real machine between games.  Appends to seed (an existing list) when
+// given one, so the caller controls what comes before the coins in
+// group() child order -- a group's children render back-to-front in
+// list order, so whatever the table/backdrop graphic belongs behind
+// must already be in the list before the coins are added to it.
+// Returns the (possibly seeded) list, so the caller can fold it into
+// the coinlayer group.
 prefill=func(
-  n=arg(0);
+  n=arg(0); seed=arg(1);
   if(n==nil :then n=45);
-  created=list();
+  created=seed;
+  if(created==nil :then created=list());
   for(ppi=0 ppi<n ppi++
     created,addcoin(rand(0.0-0.8,0.8) rand(0.05,0.95)));
   update();
@@ -396,9 +402,14 @@ pushhelp=func(
 // welcome!  (a pile of quarters already on the table, to start the game)
 // ============================================================
 srand(date())
-coinseed=prefill(45)
-coinseed,slotmark
+// table goes into the list before the coins so it ends up at the back
+// of coinlayer's render order -- a group's children draw back-to-front
+// in list order, so table, listed last, would otherwise paint over
+// every coin.
+coinseed=list()
 coinseed,table
+coinseed=prefill(45 coinseed)
+coinseed,slotmark
 select(:clear)
 select(coinseed)
 pusher.coinlayer=group()
