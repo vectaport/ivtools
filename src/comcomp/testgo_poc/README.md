@@ -36,7 +36,7 @@ Same prerequisite as `bridge_poc`/`compile_poc` (a built ivtools tree).
 Needs Go >= 1.26 (flowgraph's own requirement); `go build`/`go run` will
 fetch that toolchain automatically if it isn't already installed.
 
-    cd src/comcomp_/testgo_poc
+    cd src/comcomp/testgo_poc
     go build -o testgo_poc .
     ./testgo_poc            # defaults to the expression "42"
     ./testgo_poc '100+23'

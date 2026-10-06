@@ -5,7 +5,7 @@
 // for the hop between languages).
 //
 // It: pulls an int value out of a real ComTerp instance via the same
-// bridge comcomp_'s other POCs use, pushes it through a two-hub
+// bridge comcomp's other POCs use, pushes it through a two-hub
 // flowgraph (Array -> identity -> Sink, each carrying the value as
 // `any`), then writes the flowgraph's result directly into the backing
 // memory of a ring FIFO (feed(string(n AnyType))) built in that same
