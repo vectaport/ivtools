@@ -2025,12 +2025,18 @@ void InfoFunc::execute() {
 
   if (streamv.is_only_string()) {
     AttributeList* al = new AttributeList();
+    static int symid_sym = symbol_add("symid");
     static int sliced_sym = symbol_add("sliced");
     static int sliceoff_sym = symbol_add("sliceoff");
     static int slicelen_sym = symbol_add("slicelen");
     static int slicecap_sym = symbol_add("slicecap");
     static int blocksz_sym = symbol_add("blocksz");
     static int blocktype_sym = symbol_add("blocktype");
+    /* same id symid() reports for this string -- its symbol table slot, shared
+       with other strings of equal content only when that slot is interned
+       rather than a private, writable copy made by symbol_new() */
+    ComValue symidv((int)streamv.string_val());
+    al->add_attr(symid_sym, symidv);
     ComValue slicedv(streamv.sliced() ? ComValue::trueval() : ComValue::falseval());
     al->add_attr(sliced_sym, slicedv);
     if (streamv.sliced()) {
