@@ -253,7 +253,14 @@ pusher=(
           slid=1));
       if(mydepth<=0.0 :then gone,ng :else if(slid==1 :then placecoin(ng mylat mydepth))));
 
+    // delete()-ing a coin while it's still a member of coinlayer leaves
+    // the group's own view corrupted -- any later read of the group
+    // (even just trans() or center()) then crashes.  trimgroup() first
+    // removes it from the group cleanly (returning the group's new
+    // identity, same as growgroup() does when adding), so the delete()
+    // that follows is deleting a standalone graphic, not a grouped one.
     for(temp(gi)=0 gi<size(gone) gi++
+      coinlayer=trimgroup(coinlayer gone@gi);
       delete(gone@gi);
       traycount=traycount+1);
     if(size(gone)>0 :then print("%d quarter(s) tipped over the edge!\n" size(gone)));
