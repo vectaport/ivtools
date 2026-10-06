@@ -95,29 +95,49 @@ SLIDEMIN=0.015; SLIDEMAX=0.05
 PUSHSPEED=0.15; WOBBLEDEPTH=0.025
 SLIDE_UI=0.06
 
+// A literal-coordinate creation call (polygon()/rect()/line()/text())
+// bakes in whatever pan the current view happens to have, while
+// trans(g ... :set) (what every coin and slotmark use, via placecoin())
+// always places a graphic's own origin at the given coordinates with
+// no such offset -- so a backdrop graphic left as creation drew it
+// lands in a different coordinate space than the coins, visibly
+// misaligned.  trans(g 1,0,0,1,0,0 :set) right after creation strips
+// that view-pan component back off, snapping the graphic to exactly
+// its literal creation coordinates -- the same space placecoin() uses
+// -- without needing to know what the pan offset actually was.
 select(:clear)
 table=polygon(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR, CENTERX+HW_FAR,Y_FAR, CENTERX-HW_FAR,Y_FAR)
 colorsrgb("#355238" "#355238")
 pattern(2)
+trans(table 1,0,0,1,0,0 :set)
+
+// cliffline marks the housing's fixed edge -- it does NOT join
+// coinlayer, so it stays put while the table surface (and the coins
+// on it) oscillates past it, the same way a real pusher machine's
+// cabinet edge doesn't move even though its table does.
+select(:clear)
+colorsrgb("#FFFF00" "#FFFF00")
+brush(65535,5)
+cliffline=line(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR)
+trans(cliffline 1,0,0,1,0,0 :set)
 
 select(:clear)
-colorsrgb("#D8D840" "#D8D840")
-brush(65535,2)
-line(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR)
-
-select(:clear)
+brush(65535,0)
 tray=rect(CENTERX-HW_NEAR-20,40, CENTERX+HW_NEAR+20,Y_NEAR-15)
 colorsrgb("#303030" "#A0A0A0")
 pattern(2)
+trans(tray 1,0,0,1,0,0 :set)
 
 select(:clear)
 slottrack=rect(CENTERX-HW_FAR-15,Y_FAR+5, CENTERX+HW_FAR+15,Y_FAR+30)
 colorsrgb("#303030" "#808080")
 pattern(2)
+trans(slottrack 1,0,0,1,0,0 :set)
 
 select(:clear)
 colorsrgb("#000000" "#FFFFFF")
-text(CENTERX-180,Y_FAR+55 "QUARTER PUSHER")
+title=text(CENTERX-180,Y_FAR+55 "QUARTER PUSHER")
+trans(title 1,0,0,1,0,0 :set)
 
 select(:clear)
 brush(65535,0)
@@ -146,8 +166,7 @@ placecoin=func(
   cx=CENTERX+lat*hw;
   pw=g.pw; ph=g.ph;
   sx=w/pw; sy=h/ph;
-  hhw=w/2; hhh=h/2;
-  tx=cx-hhw; ty=cy-hhh;
+  tx=cx; ty=cy;
   trans(g sx,0,0,sy,tx,ty :set);
   nil)
 
@@ -379,6 +398,7 @@ pushhelp=func(
 srand(date())
 coinseed=prefill(45)
 coinseed,slotmark
+coinseed,table
 select(:clear)
 select(coinseed)
 pusher.coinlayer=group()
