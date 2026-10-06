@@ -14,13 +14,20 @@ Given a `.comt` expression, this:
    once, an identity `OneOf` hub passes it through unchanged, a `Sink`
    hub's `Sinker.Sink` captures it -- `any` the whole way, no
    stringifying between hubs.
-3. Feeds the captured value back into a ComTerp ring
-   (`feed(string(n AnyType))`, built via the same bridge before the
-   flowgraph runs) and reads it back out with `next()`, to confirm it
-   landed. An `AnyType` ring boxes a value whole rather than converting
-   it (`src/comterp_/tests/feedring.comt` test 30), so it can hold
-   whatever came back from the flowgraph unchanged.
-4. Compares what landed in the ring against the value ComTerp produced
+3. Writes the captured value directly into the backing memory of a
+   ComTerp ring (`feed(string(n AnyType))`, built via the bridge before
+   the flowgraph runs) -- no `feed()` call, no text crossing the bridge
+   for this leg. `comterp_bridge_ring_info()` (`shim.h`/`shim.cc`) hands
+   Go the ring's base pointer plus live `head`/`tail`/`count`/`wrap`
+   pointers (`AttributeValue::int_ref()`'s own storage, not copies), and
+   `comterp_bridge_encode_int()` packs a value into one slot's 40-byte
+   `AnyType` chunk the same way `ComValue::comval_encode()` does
+   internally (`comvalue.c`) -- so a slot Go writes is indistinguishable
+   from one `feed()` wrote. `directPushInt()` (`main.go`) then applies
+   the same fullness check and wraparound `ring_push_elt()`
+   (`strmfunc.c`) does, just from Go against those live ints.
+4. Reads the ring back out with `next()` (through the bridge, as an
+   independent check) and compares it against the value ComTerp produced
    directly, as ground truth.
 
 ## Building and running
@@ -33,6 +40,7 @@ fetch that toolchain automatically if it isn't already installed.
     go build -o testgo_poc .
     ./testgo_poc            # defaults to the expression "42"
     ./testgo_poc '100+23'
+    ./testgo_poc '7-50'     # negative values round-trip too
 
 ## What this doesn't cover yet
 
@@ -45,12 +53,20 @@ fetch that toolchain automatically if it isn't already installed.
   (flowgraph.go) copies values through without recognizing EOS, so a
   `Pass` hub's goroutine never terminates and `fg.Run()` hangs forever.
   `OneOf`'s fire func (`oneOfFire`) does that EOS recognition itself.
-- Every value still crosses the Go/C++ boundary as printed text via
-  `comterp_bridge_eval`, both pulling the original value out and pushing
-  the result back in. The next step discussed is a direct accessor onto
-  a ring's backing buffer (`ComTerp::localvalue()` +
-  `AttributeValue::stream_list()`'s `[buf,head,tail,count,wrap]` AVL,
-  per `strmfunc.h`) so Go can read/write ring slots in shared memory
-  instead of going through text each time -- safe without a lock under
-  a single-writer guarantee, though the head/tail counters still need
-  atomic/volatile access across the language boundary.
+- Pulling the original value out of ComTerp, and reading the ring back
+  out afterward to verify, still cross the boundary as printed text via
+  `comterp_bridge_eval` -- only the push leg is direct so far. The ring
+  lookup is by top-level variable name (`ComTerp::localvalue()`); nothing
+  stops Go from polling `*info.count` instead of calling `next()` to
+  read a slot directly too, once decode coverage matches encode.
+- `comterp_bridge_encode_int`/`comterp_bridge_decode_int` only cover
+  `IntType` -- same single-primitive-family scope as `compile_poc`'s
+  native arithmetic. Growing this to the rest of `AttributeValue`'s
+  union (`attrvalue.h`) is the union-of-types work the thread discussed.
+- The current single-writer story is "Go is the only pusher in this
+  program" -- true here because nothing else touches the ring, not
+  because of any lock. `*info.tail`/`*info.count` are plain `int`s
+  written through C pointers with no atomics; a real concurrent
+  single-writer/single-reader split (ComTerp's own `feed()` running on
+  one goroutine's assumption while Go reads, or vice versa) would need
+  to revisit that, same as any lock-free SPSC ring.
