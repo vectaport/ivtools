@@ -55,14 +55,23 @@ public:
 
 
 //: symbol command for ComTerp.
-// sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
+// sym|lst=symbol(symid [symid ...] :nobq) -- return symbol(s) associated with integer id(s)
 class SymbolFunc : public ComFunc {
 public:
     SymbolFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
-      return "sym|lst=%s(symid [symid ...]) -- return symbol(s) associated with integer id(s)"; }
+    virtual const char* docstring() {
+      return "sym|lst=%s(symid [symid ...] :nobq) -- return symbol(s) associated with integer id(s)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":nobq      return symbol unprotected from lookup, instead of backquoted"
+	" (single symid only -- a multi-id list's elements are always"
+	" rebackquoted when read back out of the list)",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: lookup symbol value command for ComTerp.

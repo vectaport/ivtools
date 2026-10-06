@@ -158,6 +158,9 @@ SymbolFunc::SymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void SymbolFunc::execute() {
   // return symbol for each id argument
+  static int nobq_symid = symbol_add("nobq");
+  boolean nobqflag = ComValue(stack_key(nobq_symid)).is_true();
+
   int numargs = nargs();
   if (!numargs) return;
   std::vector<int> symbol_ids(numargs);
@@ -168,7 +171,7 @@ void SymbolFunc::execute() {
     }
     if (val.is_char() || val.is_short() || val.is_int()) {
       symbol_ids[i] = val.int_val();
-    } else 
+    } else
       symbol_ids[i] = -1;
   }
   reset_stack();
@@ -177,6 +180,9 @@ void SymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
+      /* at()/list-read always rebackquotes a symbol it returns, so
+         :nobq has no effect on list elements -- only the single-id
+         return value below honors it. */
       ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
       av->bquote(1);
       avl->Append(av);
@@ -184,7 +190,7 @@ void SymbolFunc::execute() {
     push_stack(retval);
   } else {
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
-    retval.bquote(1);
+    if (!nobqflag) retval.bquote(1);
     push_stack(retval);
   }
 
