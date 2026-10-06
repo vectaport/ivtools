@@ -1,0 +1,92 @@
+// src/comterp_/tests/arrow.comt -- the -> operator, wiring a ring to a
+// plain value or variable by dispatching into feed()'s and next()'s own
+// internal logic
+//
+// coverage: 7 tests of ->'s two directions plus its no-match fallback
+// funcs: arrow feed next
+//
+// A->B: if B evaluates to a (fixed-capacity, string-backed) ring, A feeds
+// it -- same eager push feed(B A) would do, including draining A in place
+// when A is itself a stream, a ring included, which is what makes
+// A->B->C chain (left-associative: (A->B)->C -- B->C feeds C from B's
+// ring).  Otherwise, if A evaluates to a ring and B is a bare variable
+// name, one value is pulled from A and assigned to B, same as next(A B).
+// Neither case matching returns nil.  Only the string-backed ring
+// (feed(string(n))) is recognized on either side -- a plain growable
+// feed()-built FIFO is not yet a valid -> target.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/arrow.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: scalar lhs feeds an existing ring -- same as feed(r 'a') ---
+r1=feed(string(4))
+'a'->r1
+c1=next(r1)
+ok=ok&&(c1=='a')
+print("1 'a'->r1; next(r1) (expect 'a'): %v\n" c1)
+check_fail(:ok ok)
+
+// --- test 2: -> returns the fed ring, so a second push chains off it ---
+r2=feed(string(4))
+(('a'->r2)->r2)
+v1=next(r2)
+v2=next(r2)
+ok=ok&&(v1=='a' && v2=='a')
+print("2 ('a'->r2)->r2 chains two pushes (expect 'a' 'a'): %v %v\n" v1 v2)
+check_fail(:ok ok)
+
+// --- test 3: ring lhs pulls one value into a fresh bare variable, same as
+// next(r var) -- the variable need not exist beforehand ---
+r3=feed(string(4))
+feed(r3 'x')
+r3->v3
+ok=ok&&(v3=='x')
+print("3 feed(r3 'x'); r3->v3 (expect 'x'): %v\n" v3)
+check_fail(:ok ok)
+
+// --- test 4: -> on the read side returns the pulled value itself (next()'s
+// own contract), not the ring ---
+r4=feed(string(4))
+feed(r4 'y')
+pulled4=(r4->v4)
+ok=ok&&(pulled4=='y' && v4=='y')
+print("4 (r4->v4) returns the pulled value (expect 'y' 'y'): %v %v\n" pulled4 v4)
+check_fail(:ok ok)
+
+// --- test 5: A->B->C chains a ring into another ring -- B->C sees B as a
+// ring lhs and C as a ring rhs, so the rhs-ring check wins and B's
+// contents are fed (drained) into C rather than next()'d into a variable
+// named C ---
+rA=feed(string(4))
+rB=feed(string(4))
+rC=feed(string(4))
+'p'->rA
+(rA->rB)->rC
+qC=next(rC)
+ok=ok&&(qC=='p')
+print("5 'p'->rA; (rA->rB)->rC; next(rC) (expect 'p'): %v\n" qC)
+check_fail(:ok ok)
+
+// --- test 6: neither side a ring -- no match, nil ---
+novalue=(3->4)
+ok=ok&&(novalue==nil)
+print("6 3->4 -- neither side a ring (expect nil): %v\n" novalue)
+check_fail(:ok ok)
+
+// --- test 7: a ring lhs with an already-ring-valued bare variable on the
+// rhs is fed into (write), never overwritten by the pulled scalar --
+// rhs-ring-ness is checked before the bare-variable case ---
+r7=feed(string(4))
+dest7=feed(string(4))
+'q'->r7
+r7->dest7
+qdest=next(dest7)
+ok=ok&&(qdest=='q')&&istype(dest7 StreamType)
+print("7 r7->dest7 feeds dest7's ring rather than overwriting it (expect 'q' true): %v %v\n" qdest istype(dest7 StreamType))
+check_fail(:ok ok)
+
+print("\narrow: %v\n" ok)
+ok
