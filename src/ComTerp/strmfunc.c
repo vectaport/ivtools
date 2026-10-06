@@ -2140,6 +2140,7 @@ void InfoFunc::execute() {
   if (avl && sfunc == ring_next_func(comterp()) && avl->Number()>=5) {
     AttributeList* al = new AttributeList();
     static int mode_sym3 = symbol_add("mode");
+    static int base_sym = symbol_add("base");
     static int head_sym = symbol_add("head");
     static int tail_sym = symbol_add("tail");
     static int count_sym = symbol_add("count");
@@ -2164,6 +2165,12 @@ void InfoFunc::execute() {
     int cap = bytecap/elemsz;
 
     ComValue modeval("ring");
+    /* the live buffer's address -- ULongType so it round-trips a 64-bit
+       pointer intact (UIntType would truncate it); HexState picks the
+       "0x..." rendering AttributeValue::operator<< already has for
+       ULongType, matching how an address is normally read */
+    ComValue basev((unsigned long)(bufv.string_ptr()+winoff));
+    basev.state(AttributeValue::HexState);
     ComValue headv(head);
     ComValue tailv(tail);
     ComValue countv2(count);
@@ -2174,6 +2181,7 @@ void InfoFunc::execute() {
        as cap-count (which is only right in :wrap mode -- see ring_avail()) */
     ComValue freev(ring_avail(avl));
     al->add_attr(mode_sym3, modeval);
+    al->add_attr(base_sym, basev);
     al->add_attr(head_sym, headv);
     al->add_attr(tail_sym, tailv);
     al->add_attr(count_sym, countv2);
