@@ -2032,7 +2032,9 @@ void InfoFunc::execute() {
     static int slicecap_sym = symbol_add("slicecap");
     static int blocksz_sym = symbol_add("blocksz");
     static int blocktype_sym = symbol_add("blocktype");
-    /* same id symid() reports for this string -- its interned symbol table slot */
+    /* same id symid() reports for this string -- its symbol table slot, shared
+       with other strings of equal content only when that slot is interned
+       rather than a private, writable copy made by symbol_new() */
     ComValue symidv((int)streamv.string_val());
     al->add_attr(symid_sym, symidv);
     ComValue slicedv(streamv.sliced() ? ComValue::trueval() : ComValue::falseval());
