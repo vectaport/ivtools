@@ -41,7 +41,7 @@ ComTerp source like any other command.
 ```
 cd src/comcomp/builtin_poc
 go build -o gencheck_bin .                 # runs stages 2-4, writes gosort/libgosort.a
-INC="-I/usr/local/include -I/usr/local/include/ivstd -I/usr/local/include/ACE-lite"
+INC="-I../.. -I../../include -I../../include/ivstd -I../../include/ACE-lite"
 g++ -std=gnu++17 $INC -c host/gosortfunc.cc -o host/gosortfunc.o
 g++ -std=gnu++17 $INC -c host/host.cc -o host/host.o
 g++ -std=gnu++17 -o gosort_host host/host.o host/gosortfunc.o gosort/libgosort.a \
@@ -49,8 +49,13 @@ g++ -std=gnu++17 -o gosort_host host/host.o host/gosortfunc.o gosort/libgosort.a
   -lUnidraw-common -lIV-common -lACE-lite -Wl,-rpath,/usr/local/lib -lstdc++ -lpthread
 ```
 
-Requires the same built+installed ivtools tree the bridge POCs need
-(`./configure && make && sudo make install`).
+`INC` points into the source tree (`src/`), the same headers
+`gencheck.go`'s own cgo directives already use -- not an installed
+prefix, so there's no `/usr/local/include` vs. wherever `make install`
+actually put things to get wrong. Linking still needs the installed
+shared libraries (`-L/usr/local/lib`), so the tree still needs
+`./configure && make && sudo make install` first, the same as the
+bridge POCs.
 
 ## Result
 
