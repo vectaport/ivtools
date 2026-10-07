@@ -1,0 +1,119 @@
+#! /usr/bin/env comterp_run
+#
+# comcomp  translate a ComTerp func's body into Go source, via the
+#          funccompile.go tree-walking compiler (src/comcomp/translate)
+#
+# Usage:  comcomp script.comt funcname [outfile]
+#
+# Runs script.comt (this needs the live FuncObj, unlike comlint's
+# static-only analysis), fetches funcname's own postfix(:tree)
+# natively, hands the printed tree text to the translate binary over a
+# pipe, and prints (or writes to outfile) the Go function body it
+# emits. This is comcomp's bootstrap form: the compiler itself
+# (funccompile.go) is still Go, reached as a separate process; the
+# plan is for that logic to move into ComTerp script here too, so
+# comcomp can eventually compile comcomp.
+#
+# Coverage is exactly funccompile.go's own: a single-array-param func
+# made of assign/for/while/@-read/@-write/size/+-*//comparisons/&&/||,
+# ending by returning that same array -- anything else is a
+# translate-side compile error, not a silent fallback. See
+# src/comcomp/translate/funccompile.go.
+
+if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
+  arg(1)=="-help" || arg(1)=="--help" :then
+
+    print("comcomp  translate a ComTerp func into Go via funccompile.go\n");
+    print("Usage:  comcomp script.comt funcname [outfile]\n\n");
+    print("Runs script.comt, fetches funcname's own postfix(:tree), compiles\n");
+    print("it to a Go function body (src/comcomp/translate), and prints it\n");
+    print("(or writes it to outfile if given). See\n");
+    print("src/comcomp/translate/funccompile.go for exactly which ComTerp\n");
+    print("primitives this spike covers.\n");
+    exit)
+
+target=arg(1)
+funcname=arg(2)
+outfile=arg(3)
+
+if(funcname==nil :then
+  print("comcomp: missing funcname -- usage: comcomp script.comt funcname [outfile]\n" :err);
+  exit(1))
+
+fp=open(target "r")
+if(fp==nil :then
+  print("comcomp: unable to open %s\n" target :err);
+  exit(1))
+close(fp)
+
+run(target)
+
+/* funcname is interpolated into eval()'d command text, not a shell
+   command -- info()/postfix() parse without firing anything, the same
+   non-executing lookup comlint uses for help()/istype() on a
+   dynamically-named command. */
+srccmd=print("info(%s).source" funcname :str)
+srclines=eval(srccmd)
+if(srclines==nil :then
+  print("comcomp: %s has no source (not a func, or not found in %s)\n" funcname target :err);
+  exit(1))
+
+/* info(f).source comes back as one string per original source line
+   (not one string with embedded newlines), so it's rejoined here
+   before being handed to postfix(). */
+src="";si=0
+while(si<size(srclines)
+  src=src+at(srclines si);
+  si=si+1)
+
+treecmd=print("postfix(%s :tree)" src :str)
+tree=eval(treecmd)
+if(!islist(tree) :then
+  print("comcomp: %s's source didn't parse to a tree\n" funcname :err);
+  exit(1))
+treetext=print(tree :str)
+
+/* translatebin is resolved relative to this script's own path (never
+   from target/funcname/outfile), so nothing user-supplied ever reaches
+   a shell() command string -- only internally generated tmp paths and
+   this script's own install location do. */
+selfpath=arg(0)
+lastslash=index(selfpath "/" :last)
+scriptdir=if(lastslash==nil :then "." :else substr(selfpath lastslash))
+translatebin=scriptdir+"/translate/translate"
+
+tmppfx=print("/tmp/comcomp_%v_%v" time(:raw :ms) rand(0,999999) :str)
+srctmp=tmppfx+".tree"
+outtmp=tmppfx+".go"
+errtmp=tmppfx+".err"
+
+tf=open(srctmp "w")
+print("%s" treetext :file tf)
+close(tf)
+
+cmd=print("%s < %s > %s 2> %s" translatebin srctmp outtmp errtmp :str)
+status=shell(cmd)
+
+if(status!=0 :then
+  ef=open(errtmp "r");errtext="";eline=gets(ef);
+  while(eline!=nil errtext=errtext+eline;eline=gets(ef));
+  close(ef);
+  shell(print("rm -f %s %s %s" srctmp outtmp errtmp :str));
+  print("comcomp: translate failed:\n%s" errtext :err);
+  exit(1))
+
+of=open(outtmp "r");body="";oline=gets(of)
+while(oline!=nil body=body+oline;oline=gets(of))
+close(of)
+
+shell(print("rm -f %s %s %s" srctmp outtmp errtmp :str))
+
+if(outfile!=nil :then
+  wf=open(outfile "w");
+  print("%s" body :file wf);
+  close(wf);
+  print("comcomp: wrote %s\n" outfile)
+:else
+  print("%s" body))
+
+exit(0)
