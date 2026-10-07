@@ -1,14 +1,15 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 35 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 36 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
 // backing bytes, a multi-char push longer than the room left, a ring
 // built over a typed (string(n type)) buffer operating in whole elements
-// with promotion/demotion on push, info()'s :free field, and a stream
-// argument run into the ring rather than stored
+// with promotion/demotion on push, info()'s :free field, a stream
+// argument run into the ring rather than stored, and a ring's own print
+// showing traffic since it was last printed instead of a bare "[]"
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -409,6 +410,25 @@ feed(ring34 **0..3)
 out34=print("%v" (s34=next(ring34 **0..1)) :str)
 ok=ok&&(s34==2)&&(istype(s34 IntType))&&(out34=="[2]")
 print("34 s=next(ring **0..1) keeps its [2] echo (expect 2, IntType, \"[2]\"): %v %v %v\n" s34 istype(s34 IntType) out34)
+
+// --- 35: info()'s :traffic field counts elements pushed or popped since
+// the ring was last printed -- the same counter ComValue::StreamType's
+// print case (comvalue.c) reads and resets to show "[n]" instead of a
+// bare "[]" for a ring.  Checked through info() here rather than print()
+// itself: print() is a plain eager command, so handing it a live stream
+// argument overdrives it (replays once per element -- see
+// comterp-overdrive-post-eval-gotcha) instead of rendering the ring as
+// one value; only the top-level echo of a bare ring expression (the
+// REPL, or a script's own statement-result display) goes through that
+// render case directly. ---
+ring35=feed(string(8 AnyType))
+t35a=info(ring35).traffic
+feed(ring35 'a' 'b' 'c')
+t35b=info(ring35).traffic
+next(ring35)
+t35c=info(ring35).traffic
+ok=ok&&(t35a==0)&&(t35b==3)&&(t35c==4)
+print("35 info(ring).traffic counts pushes and pulls (expect 0, 3, then 4 after one more pull): %v %v %v\n" t35a t35b t35c)
 
 print("feedring: %v\n" ok)
 ok
