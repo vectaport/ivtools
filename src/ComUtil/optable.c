@@ -165,6 +165,10 @@ struct _opr_tbl_default_entry {
   {"-=",         "sub_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"/=",         "div_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"=",          "assign",             30,         TRUE,       OPTYPE_BINARY },
+  // -> wires a ring: rhs ring feeds from lhs (feed()), else lhs ring
+  // pulls into rhs var (next()).  Left-associative (unlike "="'s
+  // right-to-left chaining) so A->B->C reads as (A->B)->C.
+  {"->",         "arrow",              30,         FALSE,      OPTYPE_BINARY },
   {";",          "seq",                10,         FALSE,      OPTYPE_BINARY },
 };
 
