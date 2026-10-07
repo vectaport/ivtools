@@ -23,24 +23,28 @@ ComTerp source like any other command.
    the ComTerp->Go direction of the boundary (cgo itself only ever covers
    Go calling C/C++; a `//export`ed c-archive is how the reverse direction
    gets a C ABI).
-5. `gosortfunc.h`/`.cc` is a `ComFunc` (`GoSortFunc`) wrapping the exported
-   `SortIntsCSV`. Per Scott's call: the boundary passes **one serialized
-   CSV string each way**, not one ComValue round-trip per element -- Go's
-   own timing shouldn't pay for ComTerp-side marshaling.
-6. `host.cc` is a copy of `comterp`'s own `ComTerpServ` setup
+5. `host/gosortfunc.h`/`.cc` is a `ComFunc` (`GoSortFunc`) wrapping the
+   exported `SortIntsCSV`. Per Scott's call: the boundary passes **one
+   serialized CSV string each way**, not one ComValue round-trip per
+   element -- Go's own timing shouldn't pay for ComTerp-side marshaling.
+6. `host/host.cc` is a copy of `comterp`'s own `ComTerpServ` setup
    (`add_defaults()` + one extra `add_command("gosort", ...)`) -- "a copy
    of comterp with it added as a built-in function," statically linked;
-   dynamic loading is future work.
+   dynamic loading is future work. It lives in its own `host/`
+   subdirectory, away from the cgo-driven `.go` files at this directory's
+   top level: cgo auto-compiles every `.c`/`.cc` file next to the package
+   it's building, so a C++ file meant to be built separately with plain
+   `g++` has to sit outside that directory instead.
 
 ## Build
 
 ```
-cd src/comcomp_/builtin_poc
+cd src/comcomp/builtin_poc
 go build -o gencheck_bin .                 # runs stages 2-4, writes gosort/libgosort.a
 INC="-I/usr/local/include -I/usr/local/include/ivstd -I/usr/local/include/ACE-lite"
-g++ -std=gnu++17 $INC -c gosortfunc.cc -o gosortfunc.o
-g++ -std=gnu++17 $INC -c host.cc -o host.o
-g++ -std=gnu++17 -o gosort_host host.o gosortfunc.o gosort/libgosort.a \
+g++ -std=gnu++17 $INC -c host/gosortfunc.cc -o host/gosortfunc.o
+g++ -std=gnu++17 $INC -c host/host.cc -o host/host.o
+g++ -std=gnu++17 -o gosort_host host/host.o host/gosortfunc.o gosort/libgosort.a \
   -L/usr/local/lib -lComTerp -lComUtil -lAttribute -lTopoFace -lTime \
   -lUnidraw-common -lIV-common -lACE-lite -Wl,-rpath,/usr/local/lib -lstdc++ -lpthread
 ```

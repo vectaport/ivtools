@@ -1,5 +1,5 @@
 #include "gosortfunc.h"
-#include "gosort/libgosort.h"
+#include "../gosort/libgosort.h"
 
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>

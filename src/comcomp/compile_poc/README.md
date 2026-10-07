@@ -26,7 +26,7 @@ Given a `.comt` expression, this:
 
 Same prerequisite as `bridge_poc` (a built ivtools tree). Then:
 
-    cd src/comcomp_/compile_poc
+    cd src/comcomp/compile_poc
     go build -o compile_poc .
     ./compile_poc '1+2*3'
     ./compile_poc 'size("ab")+size("xyz")*2'

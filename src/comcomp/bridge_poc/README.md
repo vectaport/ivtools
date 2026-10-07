@@ -15,7 +15,7 @@ Requires a full `./configure && make` of the ivtools tree first (this POC
 links against the `.so` files that build produces; it is not wired into
 the imake build yet). Then:
 
-    cd src/comcomp_/bridge_poc
+    cd src/comcomp/bridge_poc
     go build -o bridge_poc .
     ./bridge_poc '1+2*3'        # => 1+2*3 => 7
     ./bridge_poc '(1,2,3)'      # => (1,2,3) => {1,2,3}
