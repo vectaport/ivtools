@@ -2979,6 +2979,29 @@ ArrowFunc::ArrowFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ArrowFunc::execute() {
+  /* flag an at()/global()/local()/temp() rhs-target on its own stale
+     postfix token before either operand is evaluated -- same ordering
+     constraint and walk NextFunc::execute() uses for its own var argument
+     (strmfunc.c) -- so a streamed at() (box@0..7) or a scalar at()
+     (box@0) comes back from evaluation as a settable target instead of a
+     plain read. */
+  static int global_symid = symbol_add("global");
+  static int local_symid = symbol_add("local");
+  static int temp_symid = symbol_add("temp");
+  static int at_symid = symbol_add("at");
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val() - comterp()->pfnum();
+  int argcnt = 0;
+  skip_arg_in_expr(offtop, argcnt);
+  int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+  ComValue& startval = comterp()->pfcomvals()[startidx];
+  if (startval.is_type(ComValue::CommandType)) {
+    ComFunc* func = (ComFunc*)startval.obj_val();
+    if (func->funcid() == global_symid || func->funcid() == local_symid ||
+	func->funcid() == temp_symid || func->funcid() == at_symid)
+      startval.lhs_assign(1);
+  }
+
   /* a post_eval stack_arg() never resolves, so peeking rhs raw here costs
      nothing and keeps the bare name write_funcscope_symval needs below. */
   ComValue rhs_peek(stack_arg(1, true));
@@ -3003,12 +3026,41 @@ void ArrowFunc::execute() {
     return;
   }
 
-  if (lhs_is_ring && rhs_peek.type() == ComValue::SymbolType) {
-    ComValue streamcopy(lhsv);
-    NextFunc::execute_impl(comterp(), streamcopy);
-    ComValue* pulled = new ComValue(comterp()->stack_top());
-    comterp()->write_funcscope_symval(rhs_peek.symbol_val(), pulled);
-    return;
+  if (lhs_is_ring) {
+    int linenum = funcstate()->linenum();
+
+    if (rhsv.is_stream() && rhsv.lhs_assign()) {
+      /* a streamed at()-destination (box@lo:hi) -- zip-drive the ring
+	 against it, same as next(ring box@lo:hi). */
+      ComValue idxstream(rhsv);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &lhsv, true, linenum);
+      if (count < 0) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      ComValue retval(count, ComValue::IntType);
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
+
+    if (rhsv.is_array() && rhsv.lhs_assign()) {
+      /* a scalar at()-destination (box@0) -- pull one value and write it
+	 there, same as next(ring box@0). */
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue pulled(comterp()->stack_top());
+      NextFunc::write_at_pair(comterp(), rhsv, pulled);
+      return;
+    }
+
+    if (rhs_peek.type() == ComValue::SymbolType) {
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue* pulled = new ComValue(comterp()->stack_top());
+      comterp()->write_funcscope_symval(rhs_peek.symbol_val(), pulled);
+      return;
+    }
   }
 
   push_stack(ComValue::nullval());

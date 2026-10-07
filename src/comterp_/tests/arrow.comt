@@ -2,15 +2,18 @@
 // plain value or variable by dispatching into feed()'s and next()'s own
 // internal logic
 //
-// coverage: 7 tests of ->'s two directions plus its no-match fallback
-// funcs: arrow feed next
+// coverage: 9 tests of ->'s two directions, its at()-destination rhs
+// targets, and its no-match fallback
+// funcs: arrow feed next at
 //
 // A->B: if B evaluates to a (fixed-capacity, string-backed) ring, A feeds
 // it -- same eager push feed(B A) would do, including draining A in place
 // when A is itself a stream, a ring included, which is what makes
 // A->B->C chain (left-associative: (A->B)->C -- B->C feeds C from B's
-// ring).  Otherwise, if A evaluates to a ring and B is a bare variable
-// name, one value is pulled from A and assigned to B, same as next(A B).
+// ring).  Otherwise, if A evaluates to a ring, B may be a bare variable
+// name (one value pulled from A and assigned to B, same as next(A B)),
+// a scalar at()-destination (box@0, same as next(A box@0)), or a
+// streamed at()-destination (box@lo:hi, same as next(A box@lo:hi)).
 // Neither case matching returns nil.  Only the string-backed ring
 // (feed(string(n))) is recognized on either side -- a plain growable
 // feed()-built FIFO is not yet a valid -> target.
@@ -86,6 +89,26 @@ r7->dest7
 qdest=next(dest7)
 ok=ok&&(qdest=='q')&&istype(dest7 StreamType)
 print("7 r7->dest7 feeds dest7's ring rather than overwriting it (expect 'q' true): %v %v\n" qdest istype(dest7 StreamType))
+check_fail(:ok ok)
+
+// --- test 8: ring lhs pulls one value into a scalar at()-destination
+// (box@0), same as next(r box@0) ---
+r8=feed(string(4))
+feed(r8 'z')
+box8=string(4)
+pulled8=(r8->box8@0)
+ok=ok&&(pulled8=='z')&&(box8@0=='z')
+print("8 r8->box8@0 writes the pulled value in place (expect 'z' 'z'): %v %v\n" pulled8 box8@0)
+check_fail(:ok ok)
+
+// --- test 9: ring lhs zip-drives a streamed at()-destination
+// (box@lo:hi), same as next(r box@lo:hi), returning the write count ---
+r9=feed(string(4))
+feed(r9 'a' 'b' 'c')
+box9=string(4)
+count9=(r9->box9@0..2)
+ok=ok&&(count9==3)&&(box9@0=='a')&&(box9@1=='b')&&(box9@2=='c')
+print("9 r9->box9@0..2 zip-writes 3 values (expect 3 'a' 'b' 'c'): %v %v %v %v\n" count9 box9@0 box9@1 box9@2)
 check_fail(:ok ok)
 
 print("\narrow: %v\n" ok)
