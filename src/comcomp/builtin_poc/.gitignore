@@ -1,5 +1,4 @@
 /gencheck_bin
-/gosort_host
 /generated/
 /generated_body.txt
 *.o

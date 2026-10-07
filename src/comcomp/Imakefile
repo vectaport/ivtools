@@ -1,0 +1,11 @@
+XCOMM
+XCOMM comcomp -- spikes toward a ComTerp-to-Go compiler; see each
+XCOMM subdirectory's own README.md.
+XCOMM
+
+PACKAGE = comcomp
+
+SUBDIRS = \
+	builtin_poc
+
+MakeInSubdirs($(SUBDIRS))

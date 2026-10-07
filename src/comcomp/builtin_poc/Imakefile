@@ -1,0 +1,13 @@
+XCOMM
+XCOMM comcomp built-in spike -- the .go files here build directly with
+XCOMM `go build` (see README.md), outside imake; only host/, the C++
+XCOMM program linking the compiled Go in as a ComTerp built-in, needs a
+XCOMM Makefile of its own.
+XCOMM
+
+PACKAGE = comcomp_builtin_poc
+
+SUBDIRS = \
+	host
+
+MakeInSubdirs($(SUBDIRS))
