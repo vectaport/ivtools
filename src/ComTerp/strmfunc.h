@@ -523,7 +523,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "ring->val |  val -> ring | val=arrow(lhs rhs) -- wire a ring to a value/variable: rhs ring feeds from lhs, else lhs ring pulls into rhs var"; }
+      return "val->ring | ring->val |  val=arrow(lhs rhs) -- wire a ring to a value/variable: rhs ring feeds from lhs, else lhs ring pulls into rhs var"; }
 };
 
 #endif /* !defined(_strmfunc_h) */
