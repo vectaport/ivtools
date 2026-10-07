@@ -2165,10 +2165,8 @@ void InfoFunc::execute() {
     int cap = bytecap/elemsz;
 
     ComValue modeval("ring");
-    /* the live buffer's address -- ULongType so it round-trips a 64-bit
-       pointer intact (UIntType would truncate it); HexState picks the
-       "0x..." rendering AttributeValue::operator<< already has for
-       ULongType, matching how an address is normally read */
+    /* the live buffer's address, as a hex-printed ULongType -- UIntType
+       would truncate a 64-bit pointer */
     ComValue basev((unsigned long)(bufv.string_ptr()+winoff));
     basev.state(AttributeValue::HexState);
     ComValue headv(head);

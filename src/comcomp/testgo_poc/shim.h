@@ -42,9 +42,10 @@ typedef struct {
 } comterp_ring_info;
 
 /* Looks up 'name' as a top-level ComTerp variable (the same scope a bare
-   "name=..." assignment writes into) and fills *out if it's a ring FIFO
-   (as built by feed(string(n type))). Returns 1 on success, 0 if the name
-   is unbound or isn't a ring. */
+   "name=..." assignment writes into) and fills *out if it's an AnyType
+   ring FIFO (as built by feed(string(n AnyType))). Returns 1 on success,
+   0 if the name is unbound, isn't a ring, or isn't AnyType-chunked --
+   comterp_bridge_encode_int/decode_int only handle that chunk size. */
 int comterp_bridge_ring_info(comterp_handle h, const char* name, comterp_ring_info* out);
 
 /* Pack/unpack one AnyType ring slot's 40-byte chunk (ATTRVALUE_CHUNK_BYTES,

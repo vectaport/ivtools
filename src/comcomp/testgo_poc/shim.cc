@@ -2,7 +2,9 @@
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
 
 #include <cstring>
 #include <sstream>
@@ -59,6 +61,12 @@ int comterp_bridge_ring_info(comterp_handle handle, const char* name, comterp_ri
     ComValue* val = h->terp->localvalue(symid);
     if (!val || !val->is_stream()) return 0;
 
+    /* a RingNextFunc identifies the stream as a ring built by feed() --
+       any other 5+-element stream's entries aren't a buf/head/tail/count/
+       wrap tuple, so reading them as one would misinterpret memory. */
+    ComFunc* sfunc = val->stream_func() ? (ComFunc*)val->stream_func() : nil;
+    if (!sfunc || !dynamic_cast<RingNextFunc*>(sfunc)) return 0;
+
     AttributeValueList* avl = val->stream_list();
     if (!avl || avl->Number() < 5) return 0;
 
@@ -74,6 +82,11 @@ int comterp_bridge_ring_info(comterp_handle handle, const char* name, comterp_ri
     ComValue bufv(*bufav);
     int elemsz = bufv.blocksz() > 0 ? bufv.blocksz() : 1;
     int bytecap = bufv.sliced() ? bufv.slicelen() : symbol_len(bufv.string_val());
+
+    /* comterp_bridge_encode_int/decode_int only handle the 40-byte AnyType
+       chunk layout -- a caller writing a smaller slot through those would
+       overrun it, so this bridge only supports an AnyType ring. */
+    if (elemsz != ATTRVALUE_CHUNK_BYTES) return 0;
 
     out->buf = (char*)bufv.string_ptr() + (bufv.sliced() ? bufv.sliceoff() : 0);
     out->elemsz = elemsz;
