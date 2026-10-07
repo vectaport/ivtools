@@ -1,0 +1,88 @@
+// src/comdraw/tests/quarterpusher.comt -- regression coverage for the
+// quarterpusher kid demo: coinlayer's render order keeps the table
+// behind every coin, and growkeep()/trimkeep() (the wobble-preserving
+// wrappers around growgroup()/trimgroup()) never leave a permanent
+// offset baked into a stationary graphic's own transform, however many
+// drops or falls the group goes through.
+//
+// funcs: pusher.pushstep pusher.drop pusher.pickup growkeep trimkeep
+run("../examples/quarterpusher.comt")
+
+ok=true
+
+// tuplesclose(a b) -- true when two 6-element trans() tuples match
+// within a fraction of a pixel (float rounding noise, same tolerance
+// as carousel.comt's own helper of the same name)
+tuplesclose=func(
+  ta=arg(0); tb=arg(1);
+  d0=abs(at(ta 0)-at(tb 0)); d1=abs(at(ta 1)-at(tb 1)); d2=abs(at(ta 2)-at(tb 2));
+  d3=abs(at(ta 3)-at(tb 3)); d4=abs(at(ta 4)-at(tb 4)); d5=abs(at(ta 5)-at(tb 5));
+  (d0<0.01)&&(d1<0.01)&&(d2<0.01)&&(d3<0.01)&&(d4<0.01)&&(d5<0.01))
+
+// --- test 1: coinlayer's child order puts table first (kind nil, so it
+//             renders at the back) with every coin after it ---
+cs1=$$(pusher.coinlayer)
+c0=*cs1; c1=*cs1; c2=*cs1
+ok=ok&&(c0.kind==nil)&&(c1.kind=="coin")&&(c2.kind=="coin")
+print("1 coinlayer's first child (expect nil coin coin): %v %v %v\n" c0.kind c1.kind c2.kind)
+
+ok=ok&&(size(pusher.coinlayer)==47)
+print("1b size(pusher.coinlayer) (expect 47 -- table+45 coins+slotmark): %v\n" size(pusher.coinlayer))
+
+// --- test 2: table's own local transform never moves -- its wobble
+//             lives on coinlayer's own transform node, not on any
+//             child's, so table's local trans() stays exactly what
+//             placecoin-style setup gave it regardless of how many
+//             times the group gets rebuilt ---
+t0=trans(table)
+ok=ok&&tuplesclose(t0 1,0,0,1,0,0)
+print("2 trans(table) before any drop/fall (expect {1,0,0,1,0,0}): %v\n" t0)
+
+// --- test 3: pusher.drop() (growkeep()) repeated several times never
+//             drifts table's local transform -- growgroup()'s ungroup
+//             step would otherwise bake coinlayer's live wobble into
+//             every child's own transform, permanently offsetting it ---
+pusher.held=3
+pusher.drop()
+pusher.phase=0; pusher.pushstep()
+pusher.drop()
+pusher.phase=0; pusher.pushstep()
+pusher.drop()
+pusher.phase=0; pusher.pushstep()
+t1=trans(table)
+ok=ok&&tuplesclose(t1 1,0,0,1,0,0)
+print("3 trans(table) after 3 pusher.drop() calls (expect {1,0,0,1,0,0}): %v\n" t1)
+
+// --- test 4: a coin reaching the cliff (trimkeep()) falls cleanly --
+//             traycount increments, coinlayer shrinks by one, reading
+//             the group afterward (trans()/size()) doesn't crash (the
+//             delete()-while-grouped corruption trimkeep() avoids), and
+//             table's local transform still hasn't drifted ---
+cs2=$$(pusher.coinlayer)
+tablechild=*cs2
+fallcoin=*cs2
+fallcoin.dep=0.0
+// zero disturbance so this tick's chancebase is exactly 0 -- otherwise
+// the 3 drops above (each +DISTURBBOOST) leave enough ambient slide
+// chance that some other already-near-the-cliff coin (prefill()'s
+// random dep can start as low as 0.05) tips over by chance too,
+// making the exact-fall-count check below flaky
+pusher.disturbance=0.0
+tray_before=pusher.traycount
+size_before=size(pusher.coinlayer)
+pusher.pushstep()
+ok=ok&&(pusher.traycount==tray_before+1)
+ok=ok&&(size(pusher.coinlayer)==size_before-1)
+print("4 pusher.pushstep() with one coin at dep=0.0 (expect traycount %v, size %v): traycount=%v size=%v\n" (tray_before+1) (size_before-1) pusher.traycount size(pusher.coinlayer))
+
+t2=trans(pusher.coinlayer)
+ok=ok&&(t2!=nil)
+print("4b trans(pusher.coinlayer) right after a fall doesn't crash (expect non-nil): %v\n" t2)
+
+pusher.phase=0; pusher.pushstep()
+t3=trans(table)
+ok=ok&&tuplesclose(t3 1,0,0,1,0,0)
+print("4c trans(table) after a fall (expect {1,0,0,1,0,0}): %v\n" t3)
+
+print("quarterpusher: %v\n" ok)
+ok

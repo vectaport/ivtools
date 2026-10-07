@@ -206,6 +206,31 @@ prefill=func(
   update();
   created)
 
+// growkeep(g newmember)/trimkeep(g member) -- growgroup()/trimgroup()
+// rebuild their group via an ungroup+regroup pair, and ungroup bakes the
+// group's CURRENT transform into every child's own transform so each
+// stays put visually once the group wrapper is gone.  coinlayer's only
+// live transform component is pushstep()'s wobble offset (ty), so
+// zeroing it first means the ungroup step bakes in nothing; reapplying
+// the same ty to the returned group afterward restores the correct
+// on-screen position without ever writing the wobble into a child's own
+// transform, where it would otherwise accumulate across every drop/fall.
+growkeep=func(
+  g=arg(0); newmember=arg(1);
+  ty=at(trans(g) 5);
+  trans(g 1,0,0,1,0,0 :set);
+  newg=growgroup(g newmember);
+  trans(newg 1,0,0,1,0,ty :set);
+  newg)
+
+trimkeep=func(
+  g=arg(0); member=arg(1);
+  ty=at(trans(g) 5);
+  trans(g 1,0,0,1,0,0 :set);
+  newg=trimgroup(g member);
+  trans(newg 1,0,0,1,0,ty :set);
+  newg)
+
 select(:clear)
 slotmark=ellipse(0,0, R0,R0)
 colorsrgb("#202020" "#FFFFFF")
@@ -280,12 +305,13 @@ pusher=(
 
     // delete()-ing a coin while it's still a member of coinlayer leaves
     // the group's own view corrupted -- any later read of the group
-    // (even just trans() or center()) then crashes.  trimgroup() first
-    // removes it from the group cleanly (returning the group's new
-    // identity, same as growgroup() does when adding), so the delete()
-    // that follows is deleting a standalone graphic, not a grouped one.
+    // (even just trans() or center()) then crashes.  trimkeep() first
+    // removes it from the group cleanly and without baking the current
+    // wobble into the remaining children (see trimkeep()'s own note),
+    // so the delete() that follows is deleting a standalone graphic,
+    // not a grouped one.
     for(temp(gi)=0 gi<size(gone) gi++
-      coinlayer=trimgroup(coinlayer gone@gi);
+      coinlayer=trimkeep(coinlayer gone@gi);
       delete(gone@gi);
       traycount=traycount+1);
     if(size(gone)>0 :then print("%d quarter(s) tipped over the edge!\n" size(gone)));
@@ -303,7 +329,7 @@ pusher=(
     if(jlat<0.0-0.82 :then jlat=0.0-0.82);
     if(jlat>0.82 :then jlat=0.82);
     temp(newcoin)=addcoin(jlat 0.97);
-    coinlayer=growgroup(coinlayer newcoin);
+    coinlayer=growkeep(coinlayer newcoin);
     disturbance=disturbance+DISTURBBOOST;
     update();
     print("Dropped! Holding %d.\n" held);
