@@ -1,16 +1,20 @@
 #! /usr/bin/env comterp_run
 #
-# comcomp  translate a ComTerp func's body into Go source, natively --
+# comcomp  translate a ComTerp func body into Go source, natively --
 #          the tree-walking compiler lives in src/comcomp/funccompile.comt
 #
-# Usage:  comcomp script.comt funcname [outfile]
+# Usage:  comcomp script.comt|expr [funcname] [outfile]
 #
-# Runs script.comt (this needs the live FuncObj, unlike comlint's
-# static-only analysis), fetches funcname's own postfix(:tree)
-# natively, and compiles it to a Go function body in-process --
-# funccompile.comt, loaded via run() so it shares this scope, is a
-# ComTerp-native port of the original funccompile.go (still kept at
-# src/comcomp/translate for the from-a-separate-process case). No
+# script.comt|expr: a path that opens for reading is run (needs the
+# live FuncObj, unlike comlint, which never executes its target) and
+# funcname (required in this form) looked up in it; anything else is
+# taken directly as a func body, e.g. comcomp "func(lst;...)" -- no
+# funcname needed or accepted, outfile shifts to the 2nd arg.
+#
+# Either way, funccompile.comt -- loaded via run() so it shares this
+# scope, a native port of the original funccompile.go (still kept at
+# src/comcomp/translate for the from-a-separate-process case) --
+# compiles the postfix(:tree) to a Go function body in-process. No
 # shell(), no pipe, no separate binary.
 #
 # Coverage is exactly funccompile.comt's own: a single-array-param func
@@ -23,62 +27,63 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
   arg(1)=="-help" || arg(1)=="--help" :then
 
     print("comcomp  translate a ComTerp func into Go, natively\n");
-    print("Usage:  comcomp script.comt funcname [outfile]\n\n");
-    print("Runs script.comt, fetches funcname's own postfix(:tree), compiles\n");
-    print("it to a Go function body (src/comcomp/funccompile.comt), and\n");
-    print("prints it (or writes it to outfile if given). See\n");
-    print("src/comcomp/funccompile.comt for exactly which ComTerp\n");
-    print("primitives this spike covers.\n");
+    print("Usage:  comcomp script.comt|expr [funcname] [outfile]\n\n");
+    print("script.comt|expr: a path that opens for reading is run and\n");
+    print("funcname (required in this form) looked up in it; anything else\n");
+    print("is taken as the func's own source text directly (no funcname --\n");
+    print("outfile shifts to the 2nd arg). Either way, compiles it to a Go\n");
+    print("function body (src/comcomp/funccompile.comt) and prints it (or\n");
+    print("writes it to outfile if given). See src/comcomp/funccompile.comt\n");
+    print("for exactly which ComTerp primitives this spike covers.\n");
     exit)
-
-target=arg(1)
-funcname=arg(2)
-outfile=arg(3)
-
-if(funcname==nil :then
-  print("comcomp: missing funcname -- usage: comcomp script.comt funcname [outfile]\n" :err);
-  exit(1))
-
-fp=open(target "r")
-if(fp==nil :then
-  print("comcomp: unable to open %s\n" target :err);
-  exit(1))
-close(fp)
 
 selfpath=arg(0)
 lastslash=index(selfpath "/" :last)
 scriptdir=if(lastslash==nil :then "." :else substr(selfpath lastslash))
 run(scriptdir+"/funccompile.comt")
 
-run(target)
+target=arg(1)
+fp=open(target "r")
 
-/* funcname is interpolated into eval()'d command text, not a shell
-   command -- info()/postfix() parse without firing anything, the same
-   non-executing lookup comlint uses for help()/istype() on a
-   dynamically-named command. */
-srccmd=print("info(%s).source" funcname :str)
-srclines=eval(srccmd)
-if(srclines==nil :then
-  print("comcomp: %s has no source (not a func, or not found in %s)\n" funcname target :err);
-  exit(1))
+if(fp!=nil :then
+  close(fp);
+  funcname=arg(2);
+  outfile=arg(3);
+  if(funcname==nil :then
+    print("comcomp: missing funcname -- usage: comcomp script.comt|expr [funcname] [outfile]\n" :err);
+    exit(1));
+  run(target);
 
-/* info(f).source comes back as one string per original source line
-   (not one string with embedded newlines), so it's rejoined here
-   before being handed to postfix(). */
-src="";si=0
-while(si<size(srclines)
-  src=src+at(srclines si);
-  si=si+1)
+  /* funcname is interpolated into eval()'d command text, not a shell
+     command -- info()/postfix() parse without firing anything, the
+     same non-executing lookup comlint uses for help()/istype() on a
+     dynamically-named command. */
+  srccmd=print("info(%s).source" funcname :str);
+  srclines=eval(srccmd);
+  if(srclines==nil :then
+    print("comcomp: %s has no source (not a func, or not found in %s)\n" funcname target :err);
+    exit(1));
+
+  /* info(f).source comes back as one string per original source line
+     (not one string with embedded newlines), so it's rejoined here
+     before being handed to postfix(). */
+  src="";si=0;
+  while(si<size(srclines) src=src+at(srclines si);si=si+1)
+:else
+  /* expr mode: target is the func's own source text already */
+  funcname=nil;
+  outfile=arg(2);
+  src=target)
 
 treecmd=print("postfix(%s :tree)" src :str)
 tree=eval(treecmd)
 if(!islist(tree) :then
-  print("comcomp: %s's source didn't parse to a tree\n" funcname :err);
+  print("comcomp: didn't parse to a tree: %s\n" src :err);
   exit(1))
 
 body=fc_compile_func(tree)
 if(body==nil :then
-  print("comcomp: %s isn't a single-array-param func ending by returning its own array -- see src/comcomp/funccompile.comt for the exact shape required\n" funcname :err);
+  print("comcomp: not a single-array-param func ending by returning its own array -- see src/comcomp/funccompile.comt for the exact shape required\n" :err);
   exit(1))
 
 if(outfile!=nil :then
