@@ -29,13 +29,13 @@ ok=ok&&(c1=='a')
 print("1 'a'->r1; next(r1) (expect 'a'): %v\n" c1)
 check_fail(:ok ok)
 
-// --- test 2: -> returns the fed ring, so a second push chains off it ---
+// --- test 2: -> returns the fed ring itself (feed()'s own contract), not
+// just the pushed value ---
 r2=feed(string(4))
-(('a'->r2)->r2)
-v1=next(r2)
+result2=('a'->r2)
 v2=next(r2)
-ok=ok&&(v1=='a' && v2=='a')
-print("2 ('a'->r2)->r2 chains two pushes (expect 'a' 'a'): %v %v\n" v1 v2)
+ok=ok&&istype(result2 StreamType)&&(v2=='a')
+print("2 'a'->r2 returns the ring; next(r2) (expect true 'a'): %v %v\n" istype(result2 StreamType) v2)
 check_fail(:ok ok)
 
 // --- test 3: ring lhs pulls one value into a fresh bare variable, same as
