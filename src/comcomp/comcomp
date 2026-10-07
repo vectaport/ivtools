@@ -7,9 +7,11 @@
 #
 # script.comt|expr: a path that opens for reading is run (needs the
 # live FuncObj, unlike comlint, which never executes its target) and
-# funcname (required in this form) looked up in it; anything else is
-# taken directly as a func body, e.g. comcomp "func(lst;...)" -- no
-# funcname needed or accepted, outfile shifts to the 2nd arg.
+# the 2nd arg looked up in it as a funcname; anything else -- a bare
+# expr, or a file with no 2nd arg, or whose 2nd arg isn't a funcname
+# found in it -- is taken directly as the func's own source text, e.g.
+# comcomp "func(lst;...)", or a script.comt whose content is just a
+# bare func() literal with no name needed.
 #
 # Either way, funccompile.comt -- loaded via run() so it shares this
 # scope, a native port of the original funccompile.go (still kept at
@@ -28,10 +30,12 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
 
     print("comcomp  translate a ComTerp func into Go, natively\n");
     print("Usage:  comcomp script.comt|expr [funcname] [outfile]\n\n");
-    print("script.comt|expr: a path that opens for reading is run and\n");
-    print("funcname (required in this form) looked up in it; anything else\n");
-    print("is taken as the func's own source text directly (no funcname --\n");
-    print("outfile shifts to the 2nd arg). Either way, compiles it to a Go\n");
+    print("script.comt|expr: a path that opens for reading is run and the\n");
+    print("2nd arg looked up in it as a funcname; anything else -- a bare\n");
+    print("expr, a file with no 2nd arg, or whose 2nd arg isn't a funcname\n");
+    print("found in it -- is taken directly as the func's own source text\n");
+    print("(a bare func() literal needs no name), and the 2nd arg, if any,\n");
+    print("is then the outfile instead. Either way, compiles it to a Go\n");
     print("function body (src/comcomp/funccompile.comt) and prints it (or\n");
     print("writes it to outfile if given). See src/comcomp/funccompile.comt\n");
     print("for exactly which ComTerp primitives this spike covers.\n");
@@ -47,28 +51,34 @@ fp=open(target "r")
 
 if(fp!=nil :then
   close(fp);
-  funcname=arg(2);
-  outfile=arg(3);
-  if(funcname==nil :then
-    print("comcomp: missing funcname -- usage: comcomp script.comt|expr [funcname] [outfile]\n" :err);
-    exit(1));
-  run(target);
+  a2=arg(2);
+  srclines=if(a2!=nil :then
+    /* a2 is interpolated into eval()'d command text, not a shell
+       command -- info()/postfix() parse without firing anything, the
+       same non-executing lookup comlint uses for help()/istype() on a
+       dynamically-named command. */
+    run(target);
+    eval(print("info(%s).source" a2 :str))
+  :else
+    nil);
 
-  /* funcname is interpolated into eval()'d command text, not a shell
-     command -- info()/postfix() parse without firing anything, the
-     same non-executing lookup comlint uses for help()/istype() on a
-     dynamically-named command. */
-  srccmd=print("info(%s).source" funcname :str);
-  srclines=eval(srccmd);
-  if(srclines==nil :then
-    print("comcomp: %s has no source (not a func, or not found in %s)\n" funcname target :err);
-    exit(1));
-
-  /* info(f).source comes back as one string per original source line
-     (not one string with embedded newlines), so it's rejoined here
-     before being handed to postfix(). */
-  src="";si=0;
-  while(si<size(srclines) src=src+at(srclines si);si=si+1)
+  if(srclines!=nil :then
+    /* a2 named a real func in the file -- info(f).source comes back
+       as one string per original source line (not one string with
+       embedded newlines), so it's rejoined before going to postfix(). */
+    funcname=a2;outfile=arg(3);
+    src="";si=0;
+    while(si<size(srclines) src=src+at(srclines si);si=si+1)
+  :else
+    /* no funcname (or a2 didn't name one) -- a2 is then the outfile
+       instead, and the file's own raw text is taken directly as the
+       func's own source, same as expr mode: it must already be a
+       bare func() literal, not an assignment. */
+    funcname=nil;outfile=a2;
+    fp=open(target "r");
+    src="";sline=gets(fp);
+    while(sline!=nil src=src+sline+"\n";sline=gets(fp));
+    close(fp))
 :else
   /* expr mode: target is the func's own source text already */
   funcname=nil;
