@@ -64,10 +64,10 @@ rA=feed(string(4))
 rB=feed(string(4))
 rC=feed(string(4))
 'p'->rA
-(rA->rB)->rC
+rA->rB->rC
 qC=next(rC)
 ok=ok&&(qC=='p')
-print("5 'p'->rA; (rA->rB)->rC; next(rC) (expect 'p'): %v\n" qC)
+print("5 'p'->rA; rA->rB->rC; next(rC) (expect 'p'): %v\n" qC)
 check_fail(:ok ok)
 
 // --- test 6: neither side a ring -- no match, nil ---

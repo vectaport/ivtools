@@ -2973,21 +2973,17 @@ ArrowFunc::ArrowFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ArrowFunc::execute() {
-  /* rhs is peeked raw first, while still an unevaluated postfix token --
-     a post_eval command's stack_arg() never resolves anything, so this
-     costs nothing and preserves the bare variable name write_funcscope_symval
-     needs below, the same ordering NextFunc's own var/stream peek uses. */
+  /* a post_eval stack_arg() never resolves, so peeking rhs raw here costs
+     nothing and keeps the bare name write_funcscope_symval needs below. */
   ComValue rhs_peek(stack_arg(1, true));
   ComValue lhsv(stack_arg_post_eval(0));
 
   boolean lhs_is_ring = lhsv.is_stream() &&
     lhsv.stream_func() == (void*)ring_next_func(comterp());
 
-  /* rhs is evaluated for real -- even when it's a bare symbol -- to find
-     out whether it already names a ring.  That check comes before the
-     bare-variable (next-style) case below so a variable already holding a
-     ring is fed into (A->B->C chains this way: B->C sees B's ring as lhs
-     and C's as rhs) rather than overwritten by a single pulled value. */
+  /* rhs-ring-ness wins over the bare-variable case below, so a variable
+     already holding a ring is fed into rather than overwritten -- what
+     makes A->B->C chain. */
   ComValue rhsv(stack_arg_post_eval(1));
   reset_stack();
 
