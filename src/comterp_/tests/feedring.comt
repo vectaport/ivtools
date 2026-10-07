@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 36 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 37 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -414,13 +414,8 @@ print("34 s=next(ring **0..1) keeps its [2] echo (expect 2, IntType, \"[2]\"): %
 // --- 35: info()'s :traffic field counts elements pushed or popped since
 // the ring was last printed -- the same counter ComValue::StreamType's
 // print case (comvalue.c) reads and resets to show "[n]" instead of a
-// bare "[]" for a ring.  Checked through info() here rather than print()
-// itself: print() is a plain eager command, so handing it a live stream
-// argument overdrives it (replays once per element -- see
-// comterp-overdrive-post-eval-gotcha) instead of rendering the ring as
-// one value; only the top-level echo of a bare ring expression (the
-// REPL, or a script's own statement-result display) goes through that
-// render case directly. ---
+// bare "[]" for a ring.  info() alone never resets it (test 36 checks
+// that the print path does). ---
 ring35=feed(string(8 AnyType))
 t35a=info(ring35).traffic
 feed(ring35 'a' 'b' 'c')
@@ -429,6 +424,26 @@ next(ring35)
 t35c=info(ring35).traffic
 ok=ok&&(t35a==0)&&(t35b==3)&&(t35c==4)
 print("35 info(ring).traffic counts pushes and pulls (expect 0, 3, then 4 after one more pull): %v %v %v\n" t35a t35b t35c)
+
+// --- 36: the print path itself (ComValue::StreamType's render case) shows
+// [3] after three pushes and resets to [0] on the next print; info() in
+// between does not consume it.  print() can't take ring36 as a direct
+// positional -- it's a plain eager command, so a live stream argument
+// overdrives it (replays once per element, see
+// comterp-overdrive-post-eval-gotcha) instead of rendering it as one
+// value -- so ring36 is read through a dot field of an existing attrlist
+// instead, which reaches the render case in C++ without going through
+// ComTerp's own per-element dispatch at all. ---
+ring36=feed(string(8 AnyType))
+al36=(:r nil)
+al36.r=ring36
+out36a=print("%v" al36 :str)
+feed(ring36 'a' 'b' 'c')
+t36mid=info(ring36).traffic
+out36b=print("%v" al36 :str)
+out36c=print("%v" al36 :str)
+ok=ok&&(out36a=="(:r [0])")&&(t36mid==3)&&(out36b=="(:r [3])")&&(out36c=="(:r [0])")
+print("36 a ring's print shows [3] then resets to [0]; info() alone doesn't reset it (expect (:r [0]) 3 (:r [3]) (:r [0])): %v %v %v %v\n" out36a t36mid out36b out36c)
 
 print("feedring: %v\n" ok)
 ok

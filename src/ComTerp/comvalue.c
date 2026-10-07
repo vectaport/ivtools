@@ -459,11 +459,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	case ComValue::StreamType:
 	  // out << "<stream:" << (svp->stream_mode()<0?"int":"ext") << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
 	  {
-	    /* a ring's avl carries a 6th [5]=traffic slot (strmfunc.c's
-	       ring_push_elt/ring_pop_char) counting transfers since this ring
-	       was last printed; printing it here consumes it back to 0, so
-	       repeated prints show only what happened in between, not a
-	       running total. */
+	    /* [5] of a ring's avl counts transfers since it was last printed. */
+	    /* reading it here resets it to 0, so this shows only what happened
+	       since the last print, not a running total. */
 	    AttributeValueList* ringavl = svp->stream_list();
 	    if ((svp->stream_mode_raw()&STREAM_RING) && ringavl && ringavl->Number()>5) {
 	      AttributeValue* trafficav = (AttributeValue*)ringavl->Get(5);
