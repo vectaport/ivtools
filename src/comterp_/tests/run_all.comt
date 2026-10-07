@@ -334,5 +334,9 @@ if(run("./postfixtree.comt")
   :then print("pass: postfixtree\n")
   :else print("FAIL: postfixtree\n");topok=false)
 
+if(run("./funcobjeval.comt")
+  :then print("pass: funcobjeval\n")
+  :else print("FAIL: funcobjeval\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok
