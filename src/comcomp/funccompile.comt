@@ -1,0 +1,170 @@
+// funccompile.comt -- ComTerp-native port of translate/funccompile.go's
+// tree-walking Go-codegen, loaded (via run()) into comcomp's own scope.
+//
+// Walks a func's postfix(:tree) value directly (comcomp already has the
+// real tree, fetched natively -- no bridge, no separate process) and
+// emits a Go function body for a single-array-param func made of
+// assign/for/while/@-read/@-write/size/arithmetic/comparisons/&&/||,
+// ending by returning that same array. Same scope as the Go version
+// this replaces; see its own comments for why each primitive is here.
+//
+// global(fc_arrparam)/global(fc_declared) hold state that must persist
+// across sibling statements within one compile (which Go local became
+// declared, so a later assignment to it emits "=" not ":="); recursive
+// func() calls here never call eval(), which is what makes recursive
+// func() itself safe in this codebase (a documented engine bug crashes
+// on a recursive func() that also calls eval() -- see HACKING.md's
+// notes on this).
+
+fc_indent=func(depth=arg(0);
+  s="";i=0;
+  while(i<depth s=s+"\t";i=i+1);
+  s)
+
+fc_native_binop=func(op=arg(0);
+  if(op=="add" :then return("+"));
+  if(op=="sub" :then return("-"));
+  if(op=="mpy" :then return("*"));
+  if(op=="div" :then return("/"));
+  if(op=="lt" :then return("<"));
+  if(op=="gt" :then return(">"));
+  if(op=="lt_or_eq" :then return("<="));
+  if(op=="gt_or_eq" :then return(">="));
+  if(op=="eq" :then return("=="));
+  if(op=="not_eq" :then return("!="));
+  if(op=="and" :then return("&&"));
+  if(op=="or" :then return("||"));
+  nil)
+
+fc_goarrname=func(n=arg(0);
+  s=print(n :str);
+  if(s==global(fc_arrparam) :then "arr" :else s))
+
+// fc_flatten_seq walks a left-associated seq spine -- {seq,{seq,a,b},c}
+// -- and returns its leaves in left-to-right order: (a,b,c). Iterative,
+// not recursive: the shape is a simple left spine, no tree-walk needed.
+fc_flatten_seq=func(node=arg(0);
+  rights=list();cur=node;
+  while(islist(cur) && size(cur)==3 && print(at(cur 0) :str)=="seq"
+    rights=rights,at(cur 2);
+    cur=at(cur 1));
+  items=list();items=items,cur;
+  ri=size(rights)-1;
+  while(ri>=0 items=items,at(rights ri);ri=ri-1);
+  items)
+
+// fc_compile_expr renders a value-producing tree node as a Go
+// expression. An unrecognized node is a compile error surfaced inline
+// (as a Go comment), not a silent fallback -- there's nothing to fall
+// back to from inside a compiled built-in.
+fc_compile_expr=func(node=arg(0);
+  if(istype(node IntType) :then return(print("int64(%d)" node :str)));
+  if(istype(node SymbolType) :then
+    s=print(node :str);
+    if(s==global(fc_arrparam) :then return("arr"));
+    return(s));
+  if(!islist(node) :then return("/* UNSUPPORTED */"));
+  hop=print(at(node 0) :str);
+  if(hop=="at" :then
+    return(fc_goarrname(at(node 1))+"["+fc_compile_expr(at(node 2))+"]"));
+  if(hop=="size" :then
+    return("int64(len("+fc_goarrname(at(node 1))+"))"));
+  nb=fc_native_binop(hop);
+  if(nb!=nil :then
+    return("("+fc_compile_expr(at(node 1))+" "+nb+" "+fc_compile_expr(at(node 2))+")"));
+  "/* UNSUPPORTED: "+hop+" */")
+
+// fc_compile_assign handles both lst@idx=val ("arr[idx] = val") and a
+// plain variable assign, ":=" on first assignment and "=" after --
+// global(fc_declared) is the one piece of state that must flow forward
+// across sibling statements, so a second assignment to the same name
+// sees it already declared.
+fc_compile_assign=func(lhs=arg(0);rhs=arg(1);depth=arg(2);
+  ind=fc_indent(depth);
+  rhsexpr=fc_compile_expr(rhs);
+  if(islist(lhs) && size(lhs)==3 && print(at(lhs 0) :str)=="at" :then
+    idxexpr=fc_compile_expr(at(lhs 2));
+    return(ind+fc_goarrname(at(lhs 1))+"["+idxexpr+"] = "+rhsexpr+"\n"));
+  if(!istype(lhs SymbolType) :then
+    return(ind+"// unsupported assignment target\n"));
+  name=print(lhs :str);
+  isdeclared=(index(global(fc_declared) name)!=nil);
+  if(isdeclared :then
+    return(ind+name+" = "+rhsexpr+"\n"));
+  global(fc_declared)=global(fc_declared),name;
+  ind+name+" := "+rhsexpr+"\n")
+
+// fc_compile_stmt emits one or more Go statements for a tree statement
+// node, recursing through seq chains so a for/while body's own
+// ';'-joined sub-statements compile the same way a top-level one does.
+fc_compile_stmt=func(node=arg(0);depth=arg(1);
+  if(islist(node) && size(node)==3 && print(at(node 0) :str)=="seq" :then
+    return(fc_compile_stmt(at(node 1) depth)+fc_compile_stmt(at(node 2) depth)));
+  if(!islist(node) :then return(fc_indent(depth)+"_ = "+fc_compile_expr(node)+"\n"));
+  op=print(at(node 0) :str);
+  if(op=="assign" :then return(fc_compile_assign(at(node 1) at(node 2) depth)));
+  if(op=="for" :then return(fc_compile_for(node depth)));
+  if(op=="while" :then return(fc_compile_while(node depth)));
+  fc_indent(depth)+"_ = "+fc_compile_expr(node)+"\n")
+
+// fc_compile_for's loop variable is declared by the init clause itself
+// (Go's for-statement init runs in the loop's own scope), so it's
+// marked declared before compiling the body, then restored to
+// whatever it was before -- matching funccompile.go's own wasDeclared
+// save/restore.
+fc_compile_for=func(node=arg(0);depth=arg(1);
+  initn=at(node 1);testn=at(node 2);nextn=at(node 3);bodyn=at(node 4);
+  ind=fc_indent(depth);
+  if(!islist(initn) || print(at(initn 0) :str)!="assign" :then
+    return(ind+"// unsupported for-init\n"));
+  loopvarnode=at(initn 1);loopvar=print(loopvarnode :str);
+  wasdeclared=(index(global(fc_declared) loopvar)!=nil);
+  if(!wasdeclared :then global(fc_declared)=global(fc_declared),loopvar);
+  initexpr=loopvar+" := "+fc_compile_expr(at(initn 2));
+  testexpr=fc_compile_expr(testn);
+  nextvar=print(at(nextn 1) :str);
+  nextexpr=nextvar+" = "+fc_compile_expr(at(nextn 2));
+  header=ind+"for "+initexpr+"; "+testexpr+"; "+nextexpr+" {\n";
+  bodytext=fc_compile_stmt(bodyn depth+1);
+  footer=ind+"}\n";
+  if(!wasdeclared :then
+    didx=index(global(fc_declared) loopvar);
+    newdecl=global(fc_declared);
+    if(didx!=nil :then at(newdecl didx :del));
+    global(fc_declared)=newdecl);
+  header+bodytext+footer)
+
+fc_compile_while=func(node=arg(0);depth=arg(1);
+  testn=at(node 1);bodyn=at(node 2);
+  ind=fc_indent(depth);
+  header=ind+"for "+fc_compile_expr(testn)+" {\n";
+  bodytext=fc_compile_stmt(bodyn depth+1);
+  footer=ind+"}\n";
+  header+bodytext+footer)
+
+// fc_compile_func is the top driver: a func node of the shape
+// {func,{seq,...,{seq,...,paramSym},lastStmt}} -- a single bare
+// parameter followed by a flat statement chain ending by returning
+// that same parameter -- compiled to a Go function body operating on
+// a []int64 named "arr". Returns nil for anything outside that shape,
+// same as funccompile.go's error return (there's no error channel in
+// this port, so a caller distinguishes failure by nil).
+fc_compile_func=func(funcnode=arg(0);
+  if(!islist(funcnode) || size(funcnode)!=2 || print(at(funcnode 0) :str)!="func" :then
+    return(nil));
+  stmts=fc_flatten_seq(at(funcnode 1));
+  if(size(stmts)<2 :then return(nil));
+  paramnode=at(stmts 0);
+  if(!istype(paramnode SymbolType) :then return(nil));
+  global(fc_arrparam)=print(paramnode :str);
+  global(fc_declared)=list();
+  global(fc_declared)=global(fc_declared),global(fc_arrparam);
+  out="";
+  i=1;n=size(stmts);
+  while(i<n-1
+    out=out+fc_compile_stmt(at(stmts i) 1);
+    i=i+1);
+  lastnode=at(stmts n-1);
+  if(!istype(lastnode SymbolType) || print(lastnode :str)!=global(fc_arrparam) :then
+    return(nil));
+  out)
