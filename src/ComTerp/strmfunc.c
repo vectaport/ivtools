@@ -2979,36 +2979,37 @@ ArrowFunc::ArrowFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ArrowFunc::execute() {
-  /* flag an at()/global()/local()/temp() rhs-target on its own stale
-     postfix token before either operand is evaluated -- same ordering
-     constraint and walk NextFunc::execute() uses for its own var argument
-     (strmfunc.c) -- so a streamed at() (box@0..7) or a scalar at()
-     (box@0) comes back from evaluation as a settable target instead of a
-     plain read. */
-  static int global_symid = symbol_add("global");
-  static int local_symid = symbol_add("local");
-  static int temp_symid = symbol_add("temp");
+  if (nargsfixed() < 2) {
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComValue lhsv(stack_arg_post_eval(0));
+  boolean lhs_is_ring = lhsv.is_stream() &&
+    lhsv.stream_func() == (void*)ring_next_func(comterp());
+
+  /* flagging rhs's at() root token before it evaluates (same walk
+     NextFunc::execute() uses for its own var argument) makes box@0 or
+     box@lo:hi come back as a write target instead of the stored value. */
+  /* gated on lhs_is_ring so a non-ring lhs (e.g. 'a'->rings@0) still
+     reads rings@0's actual stored ring, not an unwritten [list,idx]. */
   static int at_symid = symbol_add("at");
-  ComValue argoff(comterp()->stack_top());
-  int offtop = argoff.int_val() - comterp()->pfnum();
-  int argcnt = 0;
-  skip_arg_in_expr(offtop, argcnt);
-  int startidx = comterp()->pfnum() + offtop + argcnt - 1;
-  ComValue& startval = comterp()->pfcomvals()[startidx];
-  if (startval.is_type(ComValue::CommandType)) {
-    ComFunc* func = (ComFunc*)startval.obj_val();
-    if (func->funcid() == global_symid || func->funcid() == local_symid ||
-	func->funcid() == temp_symid || func->funcid() == at_symid)
+  if (lhs_is_ring) {
+    ComValue argoff(comterp()->stack_top());
+    int offtop = argoff.int_val() - comterp()->pfnum();
+    int argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+    ComValue& startval = comterp()->pfcomvals()[startidx];
+    if (startval.is_type(ComValue::CommandType) &&
+	((ComFunc*)startval.obj_val())->funcid() == at_symid)
       startval.lhs_assign(1);
   }
 
   /* a post_eval stack_arg() never resolves, so peeking rhs raw here costs
      nothing and keeps the bare name write_funcscope_symval needs below. */
   ComValue rhs_peek(stack_arg(1, true));
-  ComValue lhsv(stack_arg_post_eval(0));
-
-  boolean lhs_is_ring = lhsv.is_stream() &&
-    lhsv.stream_func() == (void*)ring_next_func(comterp());
 
   /* rhs-ring-ness wins over the bare-variable case below, so a variable
      already holding a ring is fed into rather than overwritten -- what

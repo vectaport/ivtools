@@ -2,8 +2,9 @@
 // plain value or variable by dispatching into feed()'s and next()'s own
 // internal logic
 //
-// coverage: 9 tests of ->'s two directions, its at()-destination rhs
-// targets, and its no-match fallback
+// coverage: 11 tests of ->'s two directions, its at()-destination rhs
+// targets, its no-match fallback, and two edge cases (no operands;
+// a non-ring lhs feeding a ring found through an at()-destination rhs)
 // funcs: arrow feed next at
 //
 // A->B: if B evaluates to a (fixed-capacity, string-backed) ring, A feeds
@@ -109,6 +110,28 @@ box9=string(4)
 count9=(r9->box9@0..2)
 ok=ok&&(count9==3)&&(box9@0=='a')&&(box9@1=='b')&&(box9@2=='c')
 print("9 r9->box9@0..2 zip-writes 3 values (expect 3 'a' 'b' 'c'): %v %v %v %v\n" count9 box9@0 box9@1 box9@2)
+check_fail(:ok ok)
+
+// --- test 10: arrow() called directly with no operands doesn't crash
+// walking a nonexistent rhs -- just returns nil ---
+// comlint:allow -- deliberately calling arrow() with no args to test the guard
+novalue10=arrow()
+ok=ok&&(novalue10==nil)
+print("10 arrow() with no args (expect nil): %v\n" novalue10)
+check_fail(:ok ok)
+
+// --- test 11: a non-ring lhs feeding a ring found through an
+// at()-destination rhs (box11@0) still reads box11@0's actual stored
+// ring, rather than being redirected into a write-target pair just
+// because rhs is at()-rooted -- that redirection only applies once lhs
+// is itself a ring ---
+r11=feed(string(4))
+box11=list(nil)
+box11@0=r11
+'w'->box11@0
+pulled11=next(r11)
+ok=ok&&(pulled11=='w')
+print("11 'w'->box11@0 feeds the ring stored there (expect 'w'): %v\n" pulled11)
 check_fail(:ok ok)
 
 print("\narrow: %v\n" ok)
