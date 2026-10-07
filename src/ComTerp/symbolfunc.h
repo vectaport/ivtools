@@ -55,14 +55,23 @@ public:
 
 
 //: symbol command for ComTerp.
-// sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
+// sym|lst=symbol(symid [symid ...] :nobq) -- return symbol(s) associated with integer id(s)
 class SymbolFunc : public ComFunc {
 public:
     SymbolFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
-      return "sym|lst=%s(symid [symid ...]) -- return symbol(s) associated with integer id(s)"; }
+    virtual const char* docstring() {
+      return "sym|lst=%s(symid [symid ...] :nobq) -- return symbol(s) associated with integer id(s)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":nobq      return symbol unprotected from lookup, instead of backquoted"
+	" (single symid only -- a multi-id list's elements are always"
+	" rebackquoted when read back out of the list)",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: lookup symbol value command for ComTerp.
@@ -139,6 +148,24 @@ public:
 
     virtual const char* docstring() {
       return "n=%s(str) -- capacity in bytes, not counting the guaranteed terminator"; }
+};
+
+//: extract one NUL-delimited run out of a string or string slice.
+// str=cstr(str [n]) -- the nth run (0-based) within str's own range, as a
+// fresh unsliced copy; runs of consecutive NULs between two runs of
+// content collapse into a single delimiter when skipping to the nth. A
+// NUL hit with bytes still left in range is a legitimate run even when
+// immediately empty (a leading NUL ends an n=0 run as ""), but once the
+// skip lands exactly at the end of str's range with nothing left to
+// read, that's not an nth run to extract -- nil, not "". nil also if
+// str holds fewer than n+1 runs, or if n isn't a non-negative int.
+class CstrFunc : public ComFunc {
+public:
+    CstrFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "str=%s(str [n]) -- the nth NUL-delimited run (0-based, non-negative) within str's range, nil if there's no such run"; }
 };
 
 //: create symbol command for ComTerp.

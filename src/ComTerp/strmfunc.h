@@ -231,7 +231,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%% is the stream-replay operator (cycle a stream N times)"; }
+      return "%%%% is the stream replay operator (cycle a stream N times)"; }
 };
 
 //: hidden func used by next command for %% (replay) operator.

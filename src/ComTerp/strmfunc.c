@@ -2025,12 +2025,18 @@ void InfoFunc::execute() {
 
   if (streamv.is_only_string()) {
     AttributeList* al = new AttributeList();
+    static int symid_sym = symbol_add("symid");
     static int sliced_sym = symbol_add("sliced");
     static int sliceoff_sym = symbol_add("sliceoff");
     static int slicelen_sym = symbol_add("slicelen");
     static int slicecap_sym = symbol_add("slicecap");
     static int blocksz_sym = symbol_add("blocksz");
     static int blocktype_sym = symbol_add("blocktype");
+    /* same id symid() reports for this string -- its symbol table slot, shared
+       with other strings of equal content only when that slot is interned
+       rather than a private, writable copy made by symbol_new() */
+    ComValue symidv((int)streamv.string_val());
+    al->add_attr(symid_sym, symidv);
     ComValue slicedv(streamv.sliced() ? ComValue::trueval() : ComValue::falseval());
     al->add_attr(sliced_sym, slicedv);
     if (streamv.sliced()) {
@@ -2134,6 +2140,7 @@ void InfoFunc::execute() {
   if (avl && sfunc == ring_next_func(comterp()) && avl->Number()>=5) {
     AttributeList* al = new AttributeList();
     static int mode_sym3 = symbol_add("mode");
+    static int base_sym = symbol_add("base");
     static int head_sym = symbol_add("head");
     static int tail_sym = symbol_add("tail");
     static int count_sym = symbol_add("count");
@@ -2158,6 +2165,10 @@ void InfoFunc::execute() {
     int cap = bytecap/elemsz;
 
     ComValue modeval("ring");
+    /* the live buffer's address, as a hex-printed ULongType -- UIntType
+       would truncate a 64-bit pointer */
+    ComValue basev((unsigned long)(bufv.string_ptr()+winoff));
+    basev.state(AttributeValue::HexState);
     ComValue headv(head);
     ComValue tailv(tail);
     ComValue countv2(count);
@@ -2168,6 +2179,7 @@ void InfoFunc::execute() {
        as cap-count (which is only right in :wrap mode -- see ring_avail()) */
     ComValue freev(ring_avail(avl));
     al->add_attr(mode_sym3, modeval);
+    al->add_attr(base_sym, basev);
     al->add_attr(head_sym, headv);
     al->add_attr(tail_sym, tailv);
     al->add_attr(count_sym, countv2);

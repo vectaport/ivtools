@@ -1,5 +1,5 @@
-// info-obj.comt version 11
-print("info-obj.comt version 11\n")
+// info-obj.comt version 12
+print("info-obj.comt version 12\n")
 
 // src/comterp_/tests/info-obj.comt -- tests for info()'s dispatch on
 // opaque Obj types other than streams: AttributeList, a bare func by
@@ -48,6 +48,8 @@ print("info-obj.comt version 11\n")
 //   test 8:  info(sockobj) -- (:host :port) against a real comterp server
 //   test 9:  info(lst) -- (:count :coloned :nested :cutoff) on a plain list,
 //            default values plus :nested/:cutoff away from their defaults
+//   test 11: info(str) on a plain string -- :symid matches symid(str),
+//            alongside the existing :sliced/:blocksz/:blocktype fields
 //
 // PipeObj is deliberately NOT exercised here -- constructing a real
 // bidirectional pipe (open(cmd "rw" :pipe), which forks via popen2())
@@ -357,6 +359,19 @@ i10b=info(al10.g10)
 ok10=(i10a.bare==nil)&&(i10b.bare.tag10=="A")
 ok=ok&&ok10
 print("10 info(f).bare -- nil before any attrlist claims it, the home attrlist after (expect true): %v\n" ok10)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: info(str) on a plain string reports :symid matching
+// symid() on that same string, plus the existing :sliced/:blocksz/:blocktype
+// fields for an ordinary, non-sliced, untyped string.  symid() takes its
+// argument unevaluated (symbolfunc.c), so comparing against symid(var) would
+// report the id of the symbol `var` itself rather than its string value --
+// this compares against symid() on an equal string literal instead. ---
+errmsg(:clear)
+i11=info("abcdef")
+ok11=(i11.symid==symid("abcdef"))&&(i11.sliced==false)&&(i11.blocksz==0)&&(i11.blocktype==`UnknownType)
+ok=ok&&ok11
+print("11 info(\"abcdef\") (expect symid==symid(\"abcdef\"), sliced false, blocksz 0, blocktype UnknownType): %v\n" ok11)
 prev_ok=check_fail(:ok ok)
 
 print("info-obj: %v\n" ok)
