@@ -5,6 +5,9 @@ XCOMM
 
 PACKAGE = comcomp
 
+InstallScriptAs(comcomp,$(BINDIR),comcomp)
+InstallScript(funccompile.comt,$(BINDIR))
+
 SUBDIRS = \
 	builtin_poc
 
