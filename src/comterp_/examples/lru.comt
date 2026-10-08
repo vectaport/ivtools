@@ -10,6 +10,9 @@
 // Run from the repo root:
 //   comterp run src/comterp_/examples/lru.comt
 
+// Part 1: a small, fully-traced run -- same 12-request walkthrough as
+// before, printed in full so the mechanism is visible.
+
 cap=4
 
 keys=list()
@@ -20,11 +23,9 @@ hitcnt=0
 misscnt=0
 evictcnt=0
 
-// a fixed request sequence: enough repeats to produce hits, enough distinct
-// keys to force evictions past the cap of 4
 reqs=("k0","k1","k2","k0","k3","k1","k4","k0","k5","k2","k1","k6")
 
-print("\n-- LRU cache, capacity %v --\n" cap)
+print("\n-- traced run, capacity %v --\n" cap)
 
 i=0
 n=size(reqs)
@@ -50,3 +51,49 @@ print("\n-- final state --\n")
 print("keys (LRU..MRU) = %v\n" keys)
 print("hits per key    = %v\n" hits)
 print("hits=%v misses=%v evictions=%v\n" hitcnt misscnt evictcnt)
+
+// Part 2: scaled-up benchmark -- a larger keyspace and request count, with
+// a skewed access pattern (rand()*rand() biases toward low indices, so a
+// handful of keys get most of the traffic, as in a real cache workload)
+// to get a cache that actually settles into a steady-state hit rate.
+
+keyspace=200
+cap2=32
+nreq=5000
+
+keys2=list()
+vals2=list()
+hits2=list()
+
+hitcnt2=0
+misscnt2=0
+evictcnt2=0
+
+srand(1)
+t0=time(:mono :us)
+
+i=0
+while(i<nreq
+  idx=int(rand()*rand()*keyspace);
+  key=print("k%d" idx :str);
+  j=index(keys2 key);
+  if(j!=nil :then
+    hitcnt2=hitcnt2+1;
+    k=at(keys2 j :del); v=at(vals2 j :del); h=at(hits2 j :del);
+    keys2=keys2,k; vals2=vals2,v; hits2=hits2,h+1
+  :else
+    misscnt2=misscnt2+1;
+    if(size(keys2)>=cap2 :then
+      evictcnt2=evictcnt2+1;
+      at(keys2 0 :del); at(vals2 0 :del); at(hits2 0 :del));
+    keys2=keys2,key; vals2=vals2,key; hits2=hits2,0);
+  i=i+1)
+
+t1=time(:mono :us)
+elapsedsec=(t1-t0)/1000000.0
+
+print("\n-- scaled benchmark: keyspace=%v cap=%v requests=%v --\n" keyspace cap2 nreq)
+print("hits=%v misses=%v evictions=%v\n" hitcnt2 misscnt2 evictcnt2)
+print("hit rate  = %.1f%%\n" 100.0*hitcnt2/nreq)
+print("miss rate = %.1f%%\n" 100.0*misscnt2/nreq)
+print("elapsed   = %.3fs  (%.0f requests/sec)\n" elapsedsec nreq/elapsedsec)
