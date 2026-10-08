@@ -1,14 +1,16 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 35 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 38 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
 // backing bytes, a multi-char push longer than the room left, a ring
 // built over a typed (string(n type)) buffer operating in whole elements
-// with promotion/demotion on push, info()'s :free field, and a stream
-// argument run into the ring rather than stored
+// with promotion/demotion on push, info()'s :free field, a stream
+// argument run into the ring rather than stored, a ring's own print
+// showing traffic since it was last printed instead of a bare "[]", and
+// **ring's own drain-count report zeroing that same counter
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -409,6 +411,52 @@ feed(ring34 **0..3)
 out34=print("%v" (s34=next(ring34 **0..1)) :str)
 ok=ok&&(s34==2)&&(istype(s34 IntType))&&(out34=="[2]")
 print("34 s=next(ring **0..1) keeps its [2] echo (expect 2, IntType, \"[2]\"): %v %v %v\n" s34 istype(s34 IntType) out34)
+
+// --- 35: info()'s :traffic field counts elements pushed or popped since
+// the ring was last printed -- the same counter ComValue::StreamType's
+// print case (comvalue.c) reads and resets to show "[n]" instead of a
+// bare "[]" for a ring.  info() alone never resets it (test 36 checks
+// that the print path does). ---
+ring35=feed(string(8 AnyType))
+t35a=info(ring35).traffic
+feed(ring35 'a' 'b' 'c')
+t35b=info(ring35).traffic
+next(ring35)
+t35c=info(ring35).traffic
+ok=ok&&(t35a==0)&&(t35b==3)&&(t35c==4)
+print("35 info(ring).traffic counts pushes and pulls (expect 0, 3, then 4 after one more pull): %v %v %v\n" t35a t35b t35c)
+
+// --- 36: the print path itself (ComValue::StreamType's render case) shows
+// [3] after three pushes and resets to [0] on the next print; info() in
+// between does not consume it.  print() can't take ring36 as a direct
+// positional -- it's a plain eager command, so a live stream argument
+// overdrives it (replays once per element, see
+// comterp-overdrive-post-eval-gotcha) instead of rendering it as one
+// value -- so ring36 is read through a dot field of an existing attrlist
+// instead, which reaches the render case in C++ without going through
+// ComTerp's own per-element dispatch at all. ---
+ring36=feed(string(8 AnyType))
+al36=(:r nil)
+al36.r=ring36
+out36a=print("%v" al36 :str)
+feed(ring36 'a' 'b' 'c')
+t36mid=info(ring36).traffic
+out36b=print("%v" al36 :str)
+out36c=print("%v" al36 :str)
+ok=ok&&(out36a=="(:r [0])")&&(t36mid==3)&&(out36b=="(:r [3])")&&(out36c=="(:r [0])")
+print("36 a ring's print shows [3] then resets to [0]; info() alone doesn't reset it (expect (:r [0]) 3 (:r [3]) (:r [0])): %v %v %v %v\n" out36a t36mid out36b out36c)
+
+// --- 37: **ring (each()'s full drain) already reports its own pop count
+// as [n], so it zeroes the ring's traffic counter too -- otherwise those
+// pops would silently carry into whatever prints the ring next. ---
+ring37=feed(string(8 AnyType))
+feed(ring37 'a' 'b' 'c')
+drained37=**ring37
+t37a=info(ring37).traffic
+feed(ring37 'd' 'e')
+t37b=info(ring37).traffic
+ok=ok&&(drained37==3)&&(t37a==0)&&(t37b==2)
+print("37 **ring zeroes traffic after reporting its own count (expect 3, 0, then 2): %v %v %v\n" drained37 t37a t37b)
 
 print("feedring: %v\n" ok)
 ok

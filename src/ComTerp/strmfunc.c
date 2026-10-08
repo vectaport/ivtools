@@ -1385,6 +1385,13 @@ void EachFunc::execute() {
        a copy (see AttributeValue::operator=) */
     comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
+    /* this drain already reported its count above; a ring's own traffic
+       counter would otherwise carry these pops into whatever prints the
+       ring next. */
+    AttributeValueList* ringavl = strmv.stream_list();
+    if ((strmv.stream_mode_raw()&STREAM_RING) && ringavl && ringavl->Number()>5)
+      ((AttributeValue*)ringavl->Get(5))->int_ref() = 0;
+
   } else if (nargs() > 1) {
     /* implicit stream literal -- evaluate remaining fixed-format args;
        first arg (strmv) already evaluated, count it if non-nil */
@@ -2147,6 +2154,7 @@ void InfoFunc::execute() {
     static int cap_sym = symbol_add("cap");
     static int wrap_sym = symbol_add("wrap");
     static int free_sym = symbol_add("free");
+    static int traffic_sym = symbol_add("traffic");
     static int buf_sym = symbol_add("buf");
     ComValue bufv(*((AttributeValue*)avl->Get(0)));
     int head = ((AttributeValue*)avl->Get(1))->int_val();
@@ -2178,6 +2186,10 @@ void InfoFunc::execute() {
        uses, exposed directly so a caller doesn't have to reconstruct it
        as cap-count (which is only right in :wrap mode -- see ring_avail()) */
     ComValue freev(ring_avail(avl));
+    /* traffic (elements pushed or popped since this ring was last
+       printed) is a 6th avl slot older rings may lack -- report 0
+       rather than reading past the end. */
+    ComValue trafficv(avl->Number()>5 ? ((AttributeValue*)avl->Get(5))->int_val() : 0);
     al->add_attr(mode_sym3, modeval);
     al->add_attr(base_sym, basev);
     al->add_attr(head_sym, headv);
@@ -2186,6 +2198,7 @@ void InfoFunc::execute() {
     al->add_attr(cap_sym, capv);
     al->add_attr(wrap_sym, wrapv);
     al->add_attr(free_sym, freev);
+    al->add_attr(traffic_sym, trafficv);
 
     if (count>0) {
       /* one contiguous run when it doesn't straddle the end, two when it
@@ -2368,9 +2381,10 @@ static int ring_avail(AttributeValueList* avl) {
 }
 
 /* build a fresh ring FIFO over buf's own bytes (or its sliced window).  avl
-   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) -- wrap=0
-   (:noring) never reclaims space freed from the head, wrap=1 is the
-   circular default.
+   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) [5]=traffic --
+   wrap=0 (:noring) never reclaims space freed from the head, wrap=1 is the
+   circular default.  traffic counts elements pushed or popped since this
+   ring was last printed (ComValue::StreamType's print case, comvalue.c).
 
    buf's own content up to its first NUL (bounded by its capacity) seeds
    the ring as already-queued data, immediately poppable -- string(cap) is
@@ -2401,6 +2415,7 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
   avl->Append(new AttributeValue(tail0, AttributeValue::IntType));  // tail
   avl->Append(new AttributeValue(initial, AttributeValue::IntType));  // count
   avl->Append(new AttributeValue(wrap ? 1 : 0, AttributeValue::IntType));  // wrap
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));  // [5] traffic since last print
   ComValue stream(ring_next_func(comterp), avl);
   stream.stream_mode(STREAM_INTERNAL | STREAM_RING);
   return stream;
@@ -2436,6 +2451,7 @@ static boolean ring_push_elt(AttributeValueList* avl, ComValue& v) {
   if (newtail>=cap) newtail = wrapav->int_val() ? 0 : cap;
   tailav->int_ref() = newtail;
   countav->int_ref() = count+1;
+  if (avl->Number()>5) ((AttributeValue*)avl->Get(5))->int_ref()++;
   return true;
 }
 
@@ -2520,6 +2536,7 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
     ? ComValue(*src) : ComValue::comval_decode(src, bt);
   headav->int_ref() = cap>0 ? (head+1)%cap : 0;
   countav->int_ref() = count-1;
+  if (avl->Number()>5) ((AttributeValue*)avl->Get(5))->int_ref()++;
   return result;
 }
 
