@@ -342,5 +342,9 @@ if(run("./funcobjeval.comt")
   :then print("pass: funcobjeval\n")
   :else print("FAIL: funcobjeval\n");topok=false)
 
+if(run("./lineno.comt")
+  :then print("pass: lineno\n")
+  :else print("FAIL: lineno\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

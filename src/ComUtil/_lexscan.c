@@ -263,7 +263,7 @@ int bs_ident = 0;
 	     (*outfunc) ( "> ", outfile);
 	   else if (outfunc == (int(*)(const char*,void*))&stdout_puts && *get_command_prompt()
 		    && buffer[0] != '\0')
-	     (*outfunc) ( get_command_prompt(), outfile);
+	     (*outfunc) ( get_command_prompt_with_lineno(*linenum), outfile);
 	 }
 	 _continuation_prompt = 0;
 	 /* self-echo since OS tty echo is suppressed; gated on
