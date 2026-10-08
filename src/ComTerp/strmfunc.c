@@ -1385,6 +1385,13 @@ void EachFunc::execute() {
        a copy (see AttributeValue::operator=) */
     comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
+    /* this drain already reported its count above; a ring's own traffic
+       counter would otherwise carry these pops into whatever prints the
+       ring next. */
+    AttributeValueList* ringavl = strmv.stream_list();
+    if ((strmv.stream_mode_raw()&STREAM_RING) && ringavl && ringavl->Number()>5)
+      ((AttributeValue*)ringavl->Get(5))->int_ref() = 0;
+
   } else if (nargs() > 1) {
     /* implicit stream literal -- evaluate remaining fixed-format args;
        first arg (strmv) already evaluated, count it if non-nil */
