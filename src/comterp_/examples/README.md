@@ -85,7 +85,9 @@ comterp run src/comterp_/examples/<name>.comt
   level rather than inside `func()`s, because a `func()`'s free-variable
   writes do not write back to the caller's scalar -- only a mutated-in-place
   list does -- so wrapping this in helper funcs silently drops the counters.
-  First a fully-traced 12-request walkthrough against a capacity-4 cache;
+  First a fully-traced 15-request walkthrough against a capacity-4 cache
+  (the last 3 are repeat hits on survivors, so the final hit counts aren't
+  all zero);
   then a scaled benchmark (200-key space, capacity 32, 5000 requests,
   `rand()*rand()` skewed toward a hot subset so the cache settles into a
   steady-state hit rate), timed with `time(:mono :us)`, reporting hit/miss

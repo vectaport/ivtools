@@ -23,7 +23,11 @@ hitcnt=0
 misscnt=0
 evictcnt=0
 
-reqs=("k0","k1","k2","k0","k3","k1","k4","k0","k5","k2","k1","k6")
+// the trailing k6,k1,k2 are repeat hits on survivors, not new keys, so the
+// final printout below actually shows a nonzero "hits per key" entry --
+// without them every key left standing would be one freshly (re)inserted
+// right before the run ends and would misleadingly read as all zero
+reqs=("k0","k1","k2","k0","k3","k1","k4","k0","k5","k2","k1","k6","k6","k1","k2")
 
 print("\n-- traced run, capacity %v --\n" cap)
 
