@@ -75,7 +75,7 @@
 
 CENTERX=450
 HW_NEAR=380; HW_FAR=100
-Y_NEAR=140; Y_FAR=480
+Y_NEAR=440; Y_FAR=610
 SCALE_NEAR=1.6; SCALE_FAR=0.4
 R0=14
 COINPAL="#C8C8C0","#D4D4CC","#BCBCB2"
@@ -135,7 +135,7 @@ trans(cliffline 1,0,0,1,0,0 :set)
 
 select(:clear)
 brush(65535,0)
-tray=rect(CENTERX-HW_NEAR-20,40, CENTERX+HW_NEAR+20,Y_NEAR-15)
+tray=rect(CENTERX-HW_NEAR-20,340, CENTERX+HW_NEAR+20,Y_NEAR-15)
 colorsrgb("#303030" "#A0A0A0")
 pattern(2)
 trans(tray 1,0,0,1,0,0 :set)
@@ -210,7 +210,7 @@ addcoin=func(
 // the coinlayer group.
 prefill=func(
   n=arg(0); seed=arg(1);
-  if(n==nil :then n=45);
+  if(n==nil :then n=90);
   created=seed;
   if(created==nil :then created=list());
   for(ppi=0 ppi<n ppi++
@@ -537,7 +537,7 @@ srand(date())
 // every coin.
 coinseed=list()
 coinseed,table
-coinseed=prefill(45 coinseed)
+coinseed=prefill(90 coinseed)
 coinseed,slotmark
 select(:clear)
 select(coinseed)
