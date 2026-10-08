@@ -434,23 +434,16 @@ public:
 };
 
 //: shorthand for feed(string(cap [typesym])) -- build a fresh ring FIFO
-//: directly, without spelling out the backing string.
-// fifo=ring(cap [typesym] :noring) -- build a fixed-capacity ring FIFO
+//: directly, without spelling out the backing string.  Use
+//: feed(string(cap [typesym]) :noring) directly for a non-wrapping ring.
+// fifo=ring(cap [typesym]) -- build a fixed-capacity ring FIFO
 class RingFunc : public ComFunc {
 public:
     RingFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "fifo=%s(cap [typesym] :noring) -- build a fixed-capacity ring FIFO; shorthand for feed(string(cap [typesym]))"; }
-    virtual const char** dockeys() {
-      static const char* keys[] = {
-	":noring    refuse a push once the buffer fills rather than wrapping",
-	"           to reclaim drained space",
-	nil
-      };
-      return keys;
-    }
+      return "fifo=%s(cap [typesym]) -- build a fixed-capacity ring FIFO; shorthand for feed(string(cap [typesym]))"; }
 
 };
 

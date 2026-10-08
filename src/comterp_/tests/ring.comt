@@ -1,16 +1,17 @@
 // src/comterp_/tests/ring.comt -- ring(), shorthand for feed(string())
 //
-// coverage: 6/9 (67%)
+// coverage: 5/7 (71%)
 // funcs: ring
 // missing: ring(stress) ring(random)
 //
-// ring(cap [typesym] :noring) builds a fixed-capacity ring FIFO directly,
+// ring(cap [typesym]) builds a fixed-capacity ring FIFO directly,
 // without spelling out the backing string -- ring(cap) is
-// feed(string(cap)), ring(cap typesym) is feed(string(cap typesym)), and
-// :noring forwards the same way feed()'s own :noring does.  See
-// feedring.comt for the ring behavior itself (push/pop/wrap/typed
-// slots/traffic counter); this script only covers ring() being the same
-// construction as feed(string()), not re-testing the ring mechanics.
+// feed(string(cap)), ring(cap typesym) is feed(string(cap typesym)).
+// For a non-wrapping ring, use feed(string(cap [typesym]) :noring)
+// directly -- ring() doesn't forward that keyword.  See feedring.comt
+// for the ring behavior itself (push/pop/wrap/typed slots/traffic
+// counter); this script only covers ring() being the same construction
+// as feed(string()), not re-testing the ring mechanics.
 
 ok=true
 
@@ -32,27 +33,22 @@ i3=info(r3)
 ok=ok&&(i3.cap==4)&&(i3.count==0)
 print("3 info(ring(4 UIntType)) (expect cap 4, count 0): %v %v\n" i3.cap i3.count)
 
-// --- 4: :noring forwards the same way feed()'s own :noring does ---
-r4=ring(3 :noring)
-ok=ok&&(!info(r4).wrap)
-print("4 info(ring(3 :noring)).wrap (expect false): %v\n" info(r4).wrap)
-
-// --- 5: ring(cap) and feed(string(cap)) build the same thing --
+// --- 4: ring(cap) and feed(string(cap)) build the same thing --
 // identical info() apart from :base, and the same print-traffic behavior ---
 rA=ring(8 AnyType)
 rB=feed(string(8 AnyType))
 feed(rA 'x' 'y' 'z')
 feed(rB 'x' 'y' 'z')
-al5=(:a nil :b nil)
-al5.a=rA
-al5.b=rB
-out5=print("%v" al5 :str)
-ok=ok&&(out5=="(:a [3] :b [3])")
-print("5 ring(8 AnyType) and feed(string(8 AnyType)) print the same traffic (expect (:a [3] :b [3])): %v\n" out5)
+al4=(:a nil :b nil)
+al4.a=rA
+al4.b=rB
+out4=print("%v" al4 :str)
+ok=ok&&(out4=="(:a [3] :b [3])")
+print("4 ring(8 AnyType) and feed(string(8 AnyType)) print the same traffic (expect (:a [3] :b [3])): %v\n" out4)
 
-// --- 6: return type -- a fresh ring is a StreamType, same as feed(string()) ---
+// --- 5: return type -- a fresh ring is a StreamType, same as feed(string()) ---
 ok=ok&&(type(ring(2))==`StreamType)
-print("6 type(ring(2)) (expect StreamType): %v\n" type(ring(2)))
+print("5 type(ring(2)) (expect StreamType): %v\n" type(ring(2)))
 
 print("ring: %v\n" ok)
 ok

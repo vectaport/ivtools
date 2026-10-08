@@ -257,7 +257,7 @@ Print a usage summary of all the invocation modes above and exit.
 
  fifo=feed([fifo] [val ...]) -- build or append to a growable FIFO stream
 
- fifo=ring(cap [typesym] :noring) -- build a fixed-capacity ring FIFO; shorthand for feed(string(cap [typesym]))
+ fifo=ring(cap [typesym]) -- build a fixed-capacity ring FIFO; shorthand for feed(string(cap [typesym]))
 
  comp=filter(comps classid) -- filter stream of comps for matching classid
 

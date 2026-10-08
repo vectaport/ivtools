@@ -2861,9 +2861,6 @@ void RingFunc::execute() {
      symbol itself, same as string(cap typesym)'s own typesym argument */
   ComValue typev(stack_arg(1, true));
   boolean typeflag = typev.type()==ComValue::SymbolType;
-  static int noring_symid = symbol_add("noring");
-  ComValue noringv(stack_key(noring_symid));
-  boolean noringflag = noringv.is_true();
   reset_stack();
 
   AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
@@ -2881,7 +2878,7 @@ void RingFunc::execute() {
   ComValue bufv((unsigned int)newid, ComValue::StringType);
   if (typeflag) bufv.blocktype(blocktype);
 
-  ComValue stream(ring_stream_value(comterp(), bufv, !noringflag));
+  ComValue stream(ring_stream_value(comterp(), bufv, true));
   push_stack(stream);
 }
 
