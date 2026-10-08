@@ -1,0 +1,9 @@
+// double.comt -- doubles every element in place, comcomp's example for
+// the bare-func-literal (no funcname) path: comcomp double.comt
+// compiles this directly, since the file's own content is the func.
+
+func(arr;
+  n=size(arr);
+  i=0;
+  while(i<n arr@i=arr@i*2;i=i+1);
+  arr)

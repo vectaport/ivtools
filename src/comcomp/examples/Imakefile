@@ -1,0 +1,24 @@
+XCOMM
+XCOMM comcomp examples -- ComTerp funcs comcomp has been proven to
+XCOMM compile. The .go output is generated here via comcomp itself, not
+XCOMM checked in -- comcomp (and comterp_run) must already be installed
+XCOMM on PATH first (make install in src/comcomp). "generate" is
+XCOMM deliberately its own target, not hooked to "all", since comcomp
+XCOMM isn't necessarily on PATH yet during a plain top-level build:
+XCOMM make generate here once comcomp is installed.
+XCOMM
+
+PACKAGE = comcomp_examples
+
+GENERATED = isort.go double.go
+
+generate:: $(GENERATED)
+
+isort.go: isort.comt
+	comcomp isort.comt isort isort.go
+
+double.go: double.comt
+	comcomp double.comt double.go
+
+clean::
+	$(RM) $(GENERATED)

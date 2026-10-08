@@ -1,0 +1,14 @@
+// isort.comt -- insertion sort, one of comcomp's proven examples (see
+// src/comcomp/examples/README.md). comcomp isort.comt isort compiles
+// this to Go.
+
+isort=func(lst;
+  n=size(lst);
+  for(i=1 i<n i=i+1
+    key=lst@i;
+    j=i-1;
+    while(j>=0&&lst@j>key
+      lst@(j+1)=lst@j;
+      j=j-1);
+    lst@(j+1)=key);
+  lst)

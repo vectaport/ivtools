@@ -52,11 +52,22 @@ fp=open(target "r")
 if(fp!=nil :then
   close(fp);
   a2=arg(2);
-  srclines=if(a2!=nil :then
+  idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+  a2isident=(a2!=nil);
+  ci=0;
+  while(a2isident && ci<size(a2)
+    if(index(idchars a2@ci)==nil :then a2isident=false);
+    ci=ci+1);
+
+  srclines=if(a2isident :then
     /* a2 is interpolated into eval()'d command text, not a shell
        command -- info()/postfix() parse without firing anything, the
        same non-executing lookup comlint uses for help()/istype() on a
-       dynamically-named command. */
+       dynamically-named command. Checked above to be a plain
+       identifier first -- an outfile like "double.go" is valid
+       shell/filesystem text but not valid ComTerp syntax spliced in
+       unquoted (the "." parses as the dot operator), so it must never
+       reach eval() as a bare symbol. */
     run(target);
     eval(print("info(%s).source" a2 :str))
   :else
