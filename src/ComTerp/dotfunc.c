@@ -590,7 +590,11 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
        always has exactly one real stack arg (the whole after-expression),
        so nargs()>1 can't distinguish it the way it does for binary dot. */
     boolean selfbound_call = force_named_field && after_raw.is_command();
-    if (!blank_rhs && after_nids!=-1 && (nargs()>1 || selfbound_call)) {
+    /* a string key (dot(al "z")) can only ever mean a plain field lookup
+       -- method-call syntax (.name(args)) always carries the name as a
+       symbol, never a runtime string -- so it skips method dispatch
+       regardless of after_nids, straight to the named-field branch below. */
+    if (!blank_rhs && after_nids!=-1 && after_raw.type()!=ComValue::StringType && (nargs()>1 || selfbound_call)) {
       /* al.method(args) -- fire, self-bound; copy_stack_arg_post_eval runs
          before reset_stack(); nargs()>1 + after_nids excludes dot(name) */
       int nargtoks;
