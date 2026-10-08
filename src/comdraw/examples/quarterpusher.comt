@@ -268,6 +268,58 @@ pusher=(
   :slotlat 0.0
   :coinlayer nil
 
+  // Prior to the lane/depth bucket index (see LANEBINW/DEPTHBINW's own
+  // note), pushstep()'s blocking check was a flat O(n^2) scan: every
+  // coin compared directly against every other coin, no buckets, no
+  // candidate-list narrowing. Kept here, unused, as a candidate for
+  // compiling to Go via comcomp -- its lack of indexing makes it a
+  // simpler first target than the live bucketed version.
+  //
+  //   :pushstep func(
+  //     temp(ph2)=phase+PUSHSPEED; phase=ph2;
+  //     temp(wobble)=WOBBLEDEPTH*sin(phase);
+  //     disturbance=disturbance*DISTURBDECAY;
+  //     temp(ty)=wobble*(Y_FAR-Y_NEAR);
+  //     trans(coinlayer 1,0,0,1,0,ty :set);
+  //
+  //     temp(coins)=list(); temp(lats)=list(); temp(depths)=list();
+  //     temp(cs)=$$(coinlayer);
+  //     while(temp(g)=*cs
+  //       if(g.kind=="coin" :then coins,g; lats,g.lat; depths,g.dep));
+  //     temp(ncoin)=size(coins);
+  //
+  //     temp(chancebase)=BASECHANCE+disturbance*DISTURBGAIN;
+  //     if(chancebase>MAXCHANCE :then chancebase=MAXCHANCE);
+  //
+  //     temp(gone)=list();
+  //     for(temp(oi)=0 oi<ncoin oi++
+  //       temp(mylat)=lats@oi; temp(mydepth)=depths@oi;
+  //       temp(blocked)=0;
+  //       for(temp(oj)=0 (oj<ncoin)&&(blocked==0) oj++
+  //         if(oj!=oi :then
+  //           temp(dl)=(lats@oj)-mylat; if(dl<0.0 :then dl=0.0-dl);
+  //           temp(dd)=mydepth-(depths@oj);
+  //           if((dl<LANEHALF)&&(dd>0.0)&&(dd<COINGAP) :then blocked=1)));
+  //       temp(ng)=coins@oi;
+  //       temp(slid)=0;
+  //       if(blocked==0 :then
+  //         temp(roll)=rand(0.0,1.0);
+  //         if(roll<chancebase :then
+  //           temp(slidestep)=rand(SLIDEMIN,SLIDEMAX);
+  //           temp(nd)=mydepth-slidestep;
+  //           if(nd<0.0 :then nd=0.0);
+  //           ng.dep=nd;
+  //           mydepth=nd;
+  //           slid=1));
+  //       if(mydepth<=0.0 :then gone,ng :else if(slid==1 :then placecoin(ng mylat mydepth))));
+  //
+  //     for(temp(gi)=0 gi<size(gone) gi++
+  //       coinlayer=trimkeep(coinlayer gone@gi);
+  //       delete(gone@gi);
+  //       traycount=traycount+1);
+  //     if(size(gone)>0 :then print("%d quarter(s) tipped over the edge!\n" size(gone)));
+  //     nil)
+
   // pushstep() -- one tick of the avalanche.  The table's rocking is
   // ONE transform on coinlayer (the group holding every coin plus
   // slotmark), not a per-coin recompute; disturbance decays toward the
