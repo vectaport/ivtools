@@ -117,6 +117,12 @@ NLANEBINS=8; NDEPTHBINS=32; LANEOFFSET=4
 // that view-pan component back off, snapping the graphic to exactly
 // its literal creation coordinates -- the same space placecoin() uses
 // -- without needing to know what the pan offset actually was.
+// every graphic-creation command below auto-selects what it creates, as
+// interactive editing feedback; this script never wants that (addcoin()
+// already clears the selection right after each coin), so handles are
+// off for the whole session rather than flashing on then off per coin.
+handles(false)
+
 select(:clear)
 table=polygon(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR, CENTERX+HW_FAR,Y_FAR, CENTERX-HW_FAR,Y_FAR)
 colorsrgb("#355238" "#355238")
