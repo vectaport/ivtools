@@ -46,7 +46,9 @@ func compileSortFunc(funcNode *Node) (string, error) {
 	fc.declared[fc.arrParam] = true
 
 	for _, s := range stmts[1 : len(stmts)-1] {
-		fc.compileStmt(s, 1)
+		if err := fc.compileStmt(s, 1); err != nil {
+			return "", err
+		}
 	}
 	// The func's own last value is its return value in ComTerp; this
 	// spike only ever returns the sorted array itself, so require that
@@ -66,50 +68,74 @@ func (fc *funcCompiler) emit(depth int, line string) {
 
 // compileStmt emits one or more Go statements for a ComTerp statement node,
 // recursing through seq chains so a for/while body's own ';'-joined
-// sub-statements compile the same way a top-level one does.
-func (fc *funcCompiler) compileStmt(n *Node, depth int) {
+// sub-statements compile the same way a top-level one does. An
+// unrecognized node is a compile error, not a comment standing in for the
+// work it would have done.
+func (fc *funcCompiler) compileStmt(n *Node, depth int) error {
 	if n.isList() && len(n.Items) == 3 && n.Items[0].Sym == "seq" {
-		fc.compileStmt(n.Items[1], depth)
-		fc.compileStmt(n.Items[2], depth)
-		return
+		if err := fc.compileStmt(n.Items[1], depth); err != nil {
+			return err
+		}
+		return fc.compileStmt(n.Items[2], depth)
 	}
 	if !n.isList() || n.Items[0].Sym == "" {
-		fc.emit(depth, "_ = "+fc.compileExpr(n)) // a bare expression statement (shouldn't occur in this spike's func, kept for safety)
-		return
+		expr, err := fc.compileExpr(n)
+		if err != nil {
+			return err
+		}
+		fc.emit(depth, "_ = "+expr) // a bare expression statement (shouldn't occur in this spike's func, kept for safety)
+		return nil
 	}
 
 	op := n.Items[0].Sym
 	args := n.Items[1:]
 	switch op {
 	case "assign":
-		fc.compileAssign(args[0], args[1], depth)
+		return fc.compileAssign(args[0], args[1], depth)
 	case "for":
-		fc.compileFor(args[0], args[1], args[2], args[3], depth)
+		return fc.compileFor(args[0], args[1], args[2], args[3], depth)
 	case "while":
-		fc.compileWhile(args[0], args[1], depth)
+		return fc.compileWhile(args[0], args[1], depth)
 	default:
-		fc.emit(depth, "_ = "+fc.compileExpr(n))
+		expr, err := fc.compileExpr(n)
+		if err != nil {
+			return err
+		}
+		fc.emit(depth, "_ = "+expr)
+		return nil
 	}
 }
 
-func (fc *funcCompiler) compileAssign(lhs, rhs *Node, depth int) {
-	rhsExpr := fc.compileExpr(rhs)
+// compileAssign handles both lst@idx=val ("arr[idx] = val") and a plain
+// variable assign, ":=" on first assignment and "=" after -- the
+// assignment target goes through goArrName exactly like any other
+// reference to it, so lhs==arrParam becomes "arr" in Go too, not the
+// ComTerp parameter name.
+func (fc *funcCompiler) compileAssign(lhs, rhs *Node, depth int) error {
+	rhsExpr, err := fc.compileExpr(rhs)
+	if err != nil {
+		return err
+	}
 	if lhs.isList() && len(lhs.Items) == 3 && lhs.Items[0].Sym == "at" {
 		// lst@idx=val -> arr[idx] = val
-		idxExpr := fc.compileExpr(lhs.Items[2])
+		idxExpr, err := fc.compileExpr(lhs.Items[2])
+		if err != nil {
+			return err
+		}
 		fc.emit(depth, fmt.Sprintf("%s[%s] = %s", fc.goArrName(lhs.Items[1]), idxExpr, rhsExpr))
-		return
+		return nil
 	}
 	if lhs.Sym == "" {
-		fc.emit(depth, "// unsupported assignment target: "+unparse(lhs))
-		return
+		return fmt.Errorf("unsupported assignment target: %s", unparse(lhs))
 	}
+	goName := fc.goArrName(lhs)
 	if fc.declared[lhs.Sym] {
-		fc.emit(depth, fmt.Sprintf("%s = %s", lhs.Sym, rhsExpr))
+		fc.emit(depth, fmt.Sprintf("%s = %s", goName, rhsExpr))
 	} else {
 		fc.declared[lhs.Sym] = true
-		fc.emit(depth, fmt.Sprintf("%s := %s", lhs.Sym, rhsExpr))
+		fc.emit(depth, fmt.Sprintf("%s := %s", goName, rhsExpr))
 	}
+	return nil
 }
 
 func (fc *funcCompiler) goArrName(n *Node) string {
@@ -119,42 +145,67 @@ func (fc *funcCompiler) goArrName(n *Node) string {
 	return n.Sym // not reachable in this spike's one-array func, kept explicit rather than silently wrong
 }
 
-func (fc *funcCompiler) compileFor(initN, testN, nextN, bodyN *Node, depth int) {
-	// The loop variable is declared by the init clause itself (Go's
-	// for-statement init runs in the loop's own scope), so it's marked
-	// declared before compiling init's RHS rather than through
-	// compileAssign's normal first-use check.
-	if initN.Items[0].Sym != "assign" || initN.Items[1].Sym == "" {
-		fc.emit(depth, "// unsupported for-init: "+unparse(initN))
-		return
+// compileFor hoists the loop variable as a Go local declared BEFORE the
+// for statement (var x int64 = init; for ; test; next {...}) rather than
+// in the for-statement's own init clause -- Go's for-init variable is
+// scoped to the for statement itself and stops existing once it ends,
+// while a ComTerp loop variable is an ordinary func-scoped local that
+// keeps its last value for whatever runs after the loop. A loop variable
+// already declared outside this loop (an outer local, or a previous
+// sibling loop reusing the same name) is simply assigned, not redeclared,
+// so it keeps being the one shared variable throughout.
+func (fc *funcCompiler) compileFor(initN, testN, nextN, bodyN *Node, depth int) error {
+	if !initN.isList() || len(initN.Items) == 0 || initN.Items[0].Sym != "assign" || initN.Items[1].Sym == "" {
+		return fmt.Errorf("unsupported for-init: %s", unparse(initN))
 	}
 	loopVar := initN.Items[1].Sym
-	wasDeclared := fc.declared[loopVar]
-	fc.declared[loopVar] = true
-	initExpr := fmt.Sprintf("%s := %s", loopVar, fc.compileExpr(initN.Items[2]))
-	testExpr := fc.compileExpr(testN)
-	nextStmt := fc.compileSimpleAssignExpr(nextN)
-
-	fc.emit(depth, fmt.Sprintf("for %s; %s; %s {", initExpr, testExpr, nextStmt))
-	fc.compileStmt(bodyN, depth+1)
-	fc.emit(depth, "}")
-	fc.declared[loopVar] = wasDeclared
-}
-
-// compileSimpleAssignExpr renders an {assign,var,expr} node as a bare Go
-// assignment ("i = i + 1"), the shape a for-statement's post clause needs
-// (no ':=', no statement terminator).
-func (fc *funcCompiler) compileSimpleAssignExpr(n *Node) string {
-	if !n.isList() || n.Items[0].Sym != "assign" || n.Items[1].Sym == "" {
-		return "/* unsupported for-next: " + unparse(n) + " */"
+	goName := fc.goArrName(initN.Items[1])
+	initExpr, err := fc.compileExpr(initN.Items[2])
+	if err != nil {
+		return err
 	}
-	return fmt.Sprintf("%s = %s", n.Items[1].Sym, fc.compileExpr(n.Items[2]))
+	testExpr, err := fc.compileExpr(testN)
+	if err != nil {
+		return err
+	}
+	if !nextN.isList() || len(nextN.Items) == 0 || nextN.Items[0].Sym != "assign" || nextN.Items[1].Sym == "" {
+		return fmt.Errorf("unsupported for-next: %s", unparse(nextN))
+	}
+	nextGoName := fc.goArrName(nextN.Items[1])
+	nextRhs, err := fc.compileExpr(nextN.Items[2])
+	if err != nil {
+		return err
+	}
+	nextStmt := fmt.Sprintf("%s = %s", nextGoName, nextRhs)
+
+	wasDeclared := fc.declared[loopVar]
+	var predecl string
+	if wasDeclared {
+		predecl = fmt.Sprintf("%s = %s", goName, initExpr)
+	} else {
+		fc.declared[loopVar] = true
+		predecl = fmt.Sprintf("var %s int64 = %s", goName, initExpr)
+	}
+	fc.emit(depth, predecl)
+	fc.emit(depth, fmt.Sprintf("for ; %s; %s {", testExpr, nextStmt))
+	if err := fc.compileStmt(bodyN, depth+1); err != nil {
+		return err
+	}
+	fc.emit(depth, "}")
+	return nil
 }
 
-func (fc *funcCompiler) compileWhile(testN, bodyN *Node, depth int) {
-	fc.emit(depth, fmt.Sprintf("for %s {", fc.compileExpr(testN)))
-	fc.compileStmt(bodyN, depth+1)
+func (fc *funcCompiler) compileWhile(testN, bodyN *Node, depth int) error {
+	testExpr, err := fc.compileExpr(testN)
+	if err != nil {
+		return err
+	}
+	fc.emit(depth, fmt.Sprintf("for %s {", testExpr))
+	if err := fc.compileStmt(bodyN, depth+1); err != nil {
+		return err
+	}
 	fc.emit(depth, "}")
+	return nil
 }
 
 // nativeBinOps is the arithmetic primitive family (same mapping as the
@@ -171,36 +222,47 @@ var nativeLogicOps = map[string]string{"and": "&&", "or": "||"}
 // compileExpr renders a value-producing ComTerp node as a Go expression.
 // Unlike compile.go's compileNode (which falls back to a bridge call for
 // anything it doesn't recognize), this spike's func is known in full, so an
-// unrecognized node is a compile error surfaced inline rather than a silent
-// runtime fallback -- there is no bridge handle available inside the
+// unrecognized node is a compile error returned to the caller rather than a
+// silent runtime fallback -- there is no bridge handle available inside the
 // built-in command this is compiled for.
-func (fc *funcCompiler) compileExpr(n *Node) string {
+func (fc *funcCompiler) compileExpr(n *Node) (string, error) {
 	switch {
 	case n.IsInt:
-		return fmt.Sprintf("int64(%d)", n.Int)
+		return fmt.Sprintf("int64(%d)", n.Int), nil
 	case n.Sym != "":
 		if n.Sym == fc.arrParam {
-			return "arr"
+			return "arr", nil
 		}
-		return n.Sym
+		return n.Sym, nil
 	case n.isList() && len(n.Items) == 3 && n.Items[0].Sym == "at":
-		return fmt.Sprintf("%s[%s]", fc.goArrName(n.Items[1]), fc.compileExpr(n.Items[2]))
+		idxExpr, err := fc.compileExpr(n.Items[2])
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s[%s]", fc.goArrName(n.Items[1]), idxExpr), nil
 	case n.isList() && len(n.Items) == 2 && n.Items[0].Sym == "size":
-		return fmt.Sprintf("int64(len(%s))", fc.goArrName(n.Items[1]))
+		return fmt.Sprintf("int64(len(%s))", fc.goArrName(n.Items[1])), nil
 	case n.isList() && len(n.Items) == 3 && op(n) != "":
-		lhs := fc.compileExpr(n.Items[1])
-		rhs := fc.compileExpr(n.Items[2])
-		if goOp, ok := nativeBinOps[n.Items[0].Sym]; ok {
-			return fmt.Sprintf("(%s %s %s)", lhs, goOp, rhs)
+		goOp, isBin := nativeBinOps[n.Items[0].Sym]
+		if !isBin {
+			goOp, isBin = nativeCompareOps[n.Items[0].Sym]
 		}
-		if goOp, ok := nativeCompareOps[n.Items[0].Sym]; ok {
-			return fmt.Sprintf("(%s %s %s)", lhs, goOp, rhs)
+		if !isBin {
+			goOp, isBin = nativeLogicOps[n.Items[0].Sym]
 		}
-		if goOp, ok := nativeLogicOps[n.Items[0].Sym]; ok {
-			return fmt.Sprintf("(%s %s %s)", lhs, goOp, rhs)
+		if isBin {
+			lhs, err := fc.compileExpr(n.Items[1])
+			if err != nil {
+				return "", err
+			}
+			rhs, err := fc.compileExpr(n.Items[2])
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("(%s %s %s)", lhs, goOp, rhs), nil
 		}
 	}
-	return "/* UNSUPPORTED: " + unparse(n) + " */"
+	return "", fmt.Errorf("unsupported node: %s", unparse(n))
 }
 
 func op(n *Node) string {

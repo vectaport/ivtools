@@ -204,13 +204,15 @@ func unparseList(n *Node) string {
 	for _, a := range args {
 		pieces = append(pieces, unparse(a))
 	}
-	if last := args[len(args)-1]; last.isList() && last.Items[0].Sym == "seq" {
-		pieces = pieces[:len(pieces)-1]
-		seqArgs := last.Items[1:]
-		for _, a := range seqArgs[:len(seqArgs)-1] {
-			pieces = append(pieces, unparse(a))
+	if len(args) > 0 {
+		if last := args[len(args)-1]; last.isList() && last.Items[0].Sym == "seq" {
+			pieces = pieces[:len(pieces)-1]
+			seqArgs := last.Items[1:]
+			for _, a := range seqArgs[:len(seqArgs)-1] {
+				pieces = append(pieces, unparse(a))
+			}
+			return op + "(" + strings.Join(pieces, " ") + ";" + unparse(seqArgs[len(seqArgs)-1]) + ")"
 		}
-		return op + "(" + strings.Join(pieces, " ") + ";" + unparse(seqArgs[len(seqArgs)-1]) + ")"
 	}
 
 	return op + "(" + strings.Join(pieces, " ") + ")"

@@ -49,11 +49,14 @@ func GoInsertionSort(arr []int64) []int64 {
 //export SortIntsCSV
 func SortIntsCSV(csv *C.char) *C.char {
 	s := C.GoString(csv)
-	parts := strings.Split(s, ",")
-	arr := make([]int64, len(parts))
-	for i, p := range parts {
-		v, _ := strconv.ParseInt(p, 10, 64)
-		arr[i] = v
+	var arr []int64
+	if s != "" {
+		parts := strings.Split(s, ",")
+		arr = make([]int64, len(parts))
+		for i, p := range parts {
+			v, _ := strconv.ParseInt(p, 10, 64)
+			arr[i] = v
+		}
 	}
 	arr = GoInsertionSort(arr)
 	strs := make([]string, len(arr))

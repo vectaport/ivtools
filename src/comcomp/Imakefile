@@ -1,14 +1,12 @@
 XCOMM
 XCOMM comcomp -- spikes toward a ComTerp-to-Go compiler; see each
-XCOMM subdirectory's own README.md.
+XCOMM subdirectory's own README.md. builtin_poc needs a Go toolchain
+XCOMM (go build -buildmode=c-archive) and is deliberately NOT in the
+XCOMM default SUBDIRS chain, so a normal build doesn't require Go --
+XCOMM build it directly: cd builtin_poc && make Makefiles && make.
 XCOMM
 
 PACKAGE = comcomp
 
 InstallScriptAs(comcomp,$(BINDIR),comcomp)
 InstallScript(funccompile.comt,$(BINDIR))
-
-SUBDIRS = \
-	builtin_poc
-
-MakeInSubdirs($(SUBDIRS))

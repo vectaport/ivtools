@@ -32,7 +32,7 @@ void GoSortFunc::execute() {
         AttributeValue* elt = in->GetAttrVal(it);
         if (!first) csv << ",";
         first = false;
-        csv << (elt ? elt->int_val() : 0);
+        csv << (elt ? elt->long_val() : 0);
     }
 
     std::string csvstr = csv.str();
