@@ -336,6 +336,37 @@ public:
       return "hidden func used by next command for the stream-builds-stream default."; }
 };
 
+//: lookahead -- see what next() would return without losing it.
+// val=more(stream) -- peek the next value without consuming it
+//
+// Dispatches on stream kind rather than wrapping generically: a ring
+// (STREAM_RING) is random-access over its own buffer, so it peeks for
+// real, reading the element at its head position without advancing
+// head/count -- nothing is consumed, so there's nothing to preserve.
+// Every other kind has no such random access, so peeking means actually
+// pulling a real value via NextFunc::execute_impl (the same state
+// mutation next() itself would cause) and restashing that value at the
+// front of the SAME stream object (the STREAM_NESTED+Prepend idiom
+// execute_impl's own nested-stream handling already uses) so the next
+// real pull -- against this stream, however it's later referenced --
+// re-delivers it instead of cranking the source again.  A nil result
+// means the stream is exhausted; there's nothing to restash.
+class MoreFunc : public StrmFunc {
+public:
+    MoreFunc(ComTerp*);
+
+    virtual void execute();
+    /* shared with ring_push_arg (strmfunc.c), which needs the same
+       peek-without-losing-a-value primitive to tell "ring full, source
+       also spent" apart from "ring full, source has more" -- see
+       strmfunc.c's more()/ring_push_arg commentary. */
+    static ComValue execute_impl(ComTerp*, ComValue& streamv);
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "val=%s(stream) -- peek the next value from stream without consuming it; the next next() (or more()) on the same stream still returns it"; }
+
+};
+
 //: hidden func used by AssignFunc to drive `@`-slice's stream-builds-stream
 // default: holds [0] the write-index stream (is_stream()&&lhs_assign(), e.g.
 // r@lo:hi) and [1] the rhs value, broadcast unchanged each pull unless it's

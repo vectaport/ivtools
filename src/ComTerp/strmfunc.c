@@ -47,6 +47,9 @@ static RingNextFunc* ring_next_func(ComTerp* comterp);
 /* forward decl: InfoFunc::execute() reports a ring's free slot count via
    this, defined down alongside the other ring helpers below */
 static int ring_avail(AttributeValueList* avl);
+/* forward decl: MoreFunc::execute_impl() peeks a ring via this, defined
+   down alongside the other ring helpers below */
+static ComValue ring_peek_char(AttributeValueList* avl);
 
 /*****************************************************************************/
 
@@ -1204,6 +1207,57 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       comterp->push_stack(ComValue::nullval());
 
     _next_depth--;
+}
+
+MoreFunc::MoreFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void MoreFunc::execute() {
+  ComValue streamv(stack_arg_post_eval(0));
+  reset_stack();
+
+  if (!streamv.is_stream()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComValue peeked(execute_impl(comterp(), streamv));
+  push_stack(peeked);
+}
+
+ComValue MoreFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
+  if (streamv.stream_mode_raw()&STREAM_RING)
+    /* random-access over its own buffer -- read without popping, so
+       there's nothing to lose and nothing to restash. */
+    return ring_peek_char(streamv.stream_list());
+
+  /* no random access -- the only way to see the next value is to pull it
+     for real, same state mutation next() itself would cause. */
+  NextFunc::execute_impl(comterp, streamv);
+  ComValue peeked(comterp->pop_stack());
+  if (peeked.is_null() || peeked.is_unknown())
+    /* exhausted, or an ongoing stream's not-yet blank tick -- either way
+       nothing was produced to hold onto. */
+    return peeked;
+
+  /* restash the peeked value at the front of this SAME stream object (its
+     avl is a shared pointer, not a copy of whatever variable/expression
+     referenced it) -- the identical STREAM_NESTED+Prepend idiom
+     execute_impl's own nested-stream handling uses above, so the next
+     real pull against this stream, however it's later reached, drains
+     this one-shot wrapper first and re-delivers the peeked value. */
+  static StreamNextFunc* snfunc = nil;
+  if (!snfunc) {
+    snfunc = new StreamNextFunc(comterp);
+    snfunc->funcid(symbol_add("streamnext"));
+  }
+  AttributeValueList* peekavl = new AttributeValueList();
+  peekavl->Append(new AttributeValue(peeked));
+  ComValue* peekstream = new ComValue(snfunc, peekavl);
+  peekstream->stream_mode(STREAM_INTERNAL|STREAM_NESTED);
+  streamv.stream_list()->Prepend(peekstream);
+
+  return peeked;
 }
 
 /* whether at()'s :set would actually write (list target :set) vs. silently
@@ -2585,6 +2639,22 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
   return result;
 }
 
+/* read the element at a ring's head without popping it -- same decode as
+   ring_pop_char(), minus the head/count/traffic updates -- so a ring's
+   more() is a true, zero-cost peek rather than a pull-and-restash. */
+static ComValue ring_peek_char(AttributeValueList* avl) {
+  if (!avl || avl->Number()<5) return ComValue::nullval();
+  AttributeValue* bufav = (AttributeValue*)avl->Get(0);
+  AttributeValue* headav = (AttributeValue*)avl->Get(1);
+  AttributeValue* countav = (AttributeValue*)avl->Get(3);
+  if (countav->int_val()<=0) return ComValue::nullval();
+  int head = headav->int_val();
+  AttributeValue::ValueType bt = ring_buf_blocktype(bufav);
+  char* src = ring_buf_base(bufav) + head*ring_elemsz(bufav);
+  return bt == AttributeValue::UnknownType
+    ? ComValue(*src) : ComValue::comval_decode(src, bt);
+}
+
 /* push one already-pulled value onto a ring, refusing by type rather than
    pushing something the ring can't represent: AnyType boxes a value whole
    (comval_encode's AnyType branch), so a string there costs exactly one
@@ -2628,7 +2698,21 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
   DrainingAVLGuard dest_guard(avl);
   ComValue streamv(v);
   for (;;) {
-    if (ring_avail(avl)<=0) return false;
+    if (ring_avail(avl)<=0) {
+      /* out of room -- "genuinely refused" (source still has a value,
+	 lost otherwise) and "nothing left to refuse" (source is also
+	 spent) both reach this check looking identical from avail alone,
+	 so peek the source via more() rather than assume the worst; a
+	 real peeked value is already restashed onto streamv by more()
+	 itself, so a later feed() call on the same source resumes
+	 without loss. */
+      ComValue peeked(MoreFunc::execute_impl(comterp, streamv));
+      if (_draining_guard_tripped_avl==avl) {
+	_draining_guard_tripped_avl = 0;
+	return false;
+      }
+      return peeked.is_null();
+    }
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());
     /* a trip naming this ring is our own refusal; a trip naming some other
