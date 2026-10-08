@@ -28,6 +28,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/ctrlfunc.h>
+#include <ComTerp/strmfunc.h>
 #include <ComTerp/iofunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
@@ -457,7 +458,19 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::StreamType:
 	  // out << "<stream:" << (svp->stream_mode()<0?"int":"ext") << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
-	  out << "[]";
+	  {
+	    /* [5] of a ring's avl counts transfers since it was last printed. */
+	    /* reading it here resets it to 0, so this shows only what happened
+	       since the last print, not a running total. */
+	    AttributeValueList* ringavl = svp->stream_list();
+	    if ((svp->stream_mode_raw()&STREAM_RING) && ringavl && ringavl->Number()>5) {
+	      AttributeValue* trafficav = (AttributeValue*)ringavl->Get(5);
+	      out << "[" << trafficav->int_val() << "]";
+	      trafficav->int_ref() = 0;
+	    } else {
+	      out << "[]";
+	    }
+	  }
 	  break;
 	    
 	case ComValue::CommandType:
