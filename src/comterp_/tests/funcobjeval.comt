@@ -1,0 +1,32 @@
+// src/comterp_/tests/funcobjeval.comt -- test eval() nested inside a func() body
+//
+// coverage: 2/2 (100%)
+// funcs: eval, func
+//
+// A bare eval() call (no :alist keyword) leaves the current attrlist
+// scope untouched -- it must not disturb the attrlist a func() call
+// installed for the body it's nested in, whether or not that func()
+// recurses.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/funcobjeval.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: eval() nested in a non-recursive func() body ---
+f1=func(n=arg(0); eval("1"); n)
+r1=f1(7)
+ok=ok&&(r1==7)
+print("1 f1=func(n=arg(0); eval(\"1\"); n); f1(7) (expect 7): %v\n\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: eval() nested in a recursive func() body ---
+f2=func(n=arg(0); if(n<=0 :then 0 :else (x=eval("1"); n+f2(n-1))))
+r2=f2(5)
+ok=ok&&(r2==15)
+print("2 f2=func(n=arg(0); if(n<=0 :then 0 :else (x=eval(\"1\"); n+f2(n-1)))); f2(5) (expect 15): %v\n\n" r2)
+prev_ok=check_fail(:ok ok)
+
+print("funcobjeval: %v\n" ok)
+ok

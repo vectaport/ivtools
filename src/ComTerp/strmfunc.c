@@ -2971,3 +2971,98 @@ void FeedRingNextFunc::execute() {
   }
   push_stack(popval);
 }
+
+/*****************************************************************************/
+
+
+ArrowFunc::ArrowFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ArrowFunc::execute() {
+  if (nargsfixed() < 2) {
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComValue lhsv(stack_arg_post_eval(0));
+  boolean lhs_is_ring = lhsv.is_stream() &&
+    lhsv.stream_func() == (void*)ring_next_func(comterp());
+
+  /* flagging rhs's at() root token before it evaluates (same walk
+     NextFunc::execute() uses for its own var argument) makes box@0 or
+     box@lo:hi come back as a write target instead of the stored value. */
+  /* gated on lhs_is_ring so a non-ring lhs (e.g. 'a'->rings@0) still
+     reads rings@0's actual stored ring, not an unwritten [list,idx]. */
+  static int at_symid = symbol_add("at");
+  if (lhs_is_ring) {
+    ComValue argoff(comterp()->stack_top());
+    int offtop = argoff.int_val() - comterp()->pfnum();
+    int argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+    ComValue& startval = comterp()->pfcomvals()[startidx];
+    if (startval.is_type(ComValue::CommandType) &&
+	((ComFunc*)startval.obj_val())->funcid() == at_symid)
+      startval.lhs_assign(1);
+  }
+
+  /* a post_eval stack_arg() never resolves, so peeking rhs raw here costs
+     nothing and keeps the bare name write_funcscope_symval needs below. */
+  ComValue rhs_peek(stack_arg(1, true));
+
+  /* rhs-ring-ness wins over the bare-variable case below, so a variable
+     already holding a ring is fed into rather than overwritten -- what
+     makes A->B->C chain. */
+  ComValue rhsv(stack_arg_post_eval(1));
+  reset_stack();
+
+  boolean rhs_is_ring = rhsv.is_stream() &&
+    rhsv.stream_func() == (void*)ring_next_func(comterp());
+
+  if (rhs_is_ring) {
+    AttributeValueList* avl = rhsv.stream_list();
+    boolean ok = ring_push_arg(comterp(), avl, lhsv, false);
+    push_stack(ok ? rhsv : ComValue::nullval());
+    return;
+  }
+
+  if (lhs_is_ring) {
+    int linenum = funcstate()->linenum();
+
+    if (rhsv.is_stream() && rhsv.lhs_assign()) {
+      /* a streamed at()-destination (box@lo:hi) -- zip-drive the ring
+	 against it, same as next(ring box@lo:hi). */
+      ComValue idxstream(rhsv);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &lhsv, true, linenum);
+      if (count < 0) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      ComValue retval(count, ComValue::IntType);
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
+
+    if (rhsv.is_array() && rhsv.lhs_assign()) {
+      /* a scalar at()-destination (box@0) -- pull one value and write it
+	 there, same as next(ring box@0). */
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue pulled(comterp()->stack_top());
+      NextFunc::write_at_pair(comterp(), rhsv, pulled);
+      return;
+    }
+
+    if (rhs_peek.type() == ComValue::SymbolType) {
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue* pulled = new ComValue(comterp()->stack_top());
+      comterp()->write_funcscope_symval(rhs_peek.symbol_val(), pulled);
+      return;
+    }
+  }
+
+  push_stack(ComValue::nullval());
+}
