@@ -26,8 +26,8 @@ c0=*cs1; c1=*cs1; c2=*cs1
 ok=ok&&(c0.kind==nil)&&(c1.kind=="coin")&&(c2.kind=="coin")
 print("1 coinlayer's first child (expect nil coin coin): %v %v %v\n" c0.kind c1.kind c2.kind)
 
-ok=ok&&(size(pusher.coinlayer)==47)
-print("1b size(pusher.coinlayer) (expect 47 -- table+45 coins+slotmark): %v\n" size(pusher.coinlayer))
+ok=ok&&(size(pusher.coinlayer)==92)
+print("1b size(pusher.coinlayer) (expect 92 -- table+90 coins+slotmark): %v\n" size(pusher.coinlayer))
 
 // --- test 2: table's own local transform never moves -- its wobble
 //             lives on coinlayer's own transform node, not on any
