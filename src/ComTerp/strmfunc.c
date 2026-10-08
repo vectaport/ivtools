@@ -1962,6 +1962,15 @@ void InfoFunc::execute() {
 		    dot_fired ? dotval : stack_arg_post_eval(0));
   reset_stack();
 
+  /* :tree only has a meaning for a func -- nil for anything else, rather
+     than falling through to that other type's own dispatch below, so a
+     caller can tell a real tree apart from some other value's unrelated
+     attrlist without inspecting its shape first. */
+  if (treeflag && !peeked_fo) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   if (peeked_fo) {
     if (treeflag) {
       ComValue retval(funcobj_tree(peeked_fo));
