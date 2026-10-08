@@ -1,0 +1,52 @@
+// src/comterp_/examples/lru.comt -- an LRU cache built from three parallel
+// ordered lists (keys, vals, hits), the same "ordered, deletable" shape as
+// flowgraph's PropList (github.com/vectaport/flowgraph): list order IS
+// recency order, oldest (least-recently-used) at index 0. A hit moves its
+// entry to the end via delete-then-reappend; a miss evicts index 0 once the
+// cache is full, then appends the new entry at the end. The body stays at
+// top level rather than inside func()s, sidestepping ComTerp's closure
+// capture rules for free variables -- see src/ComTerp/HACKING.md.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/lru.comt
+
+cap=4
+
+keys=list()
+vals=list()
+hits=list()
+
+hitcnt=0
+misscnt=0
+evictcnt=0
+
+// a fixed request sequence: enough repeats to produce hits, enough distinct
+// keys to force evictions past the cap of 4
+reqs=("k0","k1","k2","k0","k3","k1","k4","k0","k5","k2","k1","k6")
+
+print("\n-- LRU cache, capacity %v --\n" cap)
+
+i=0
+n=size(reqs)
+while(i<n
+  key=at(reqs i);
+  j=index(keys key);
+  if(j!=nil :then
+    hitcnt=hitcnt+1;
+    k=at(keys j :del); v=at(vals j :del); h=at(hits j :del);
+    keys=keys,k; vals=vals,v; hits=hits,h+1;
+    print("  HIT  %s (val=%v)\n" key v)
+  :else
+    misscnt=misscnt+1;
+    if(size(keys)>=cap :then
+      evictcnt=evictcnt+1;
+      print("  EVICT %s\n" at(keys 0 :del));
+      at(vals 0 :del); at(hits 0 :del));
+    keys=keys,key; vals=vals,key; hits=hits,0;
+    print("  MISS %s (val=%v)\n" key key));
+  i=i+1)
+
+print("\n-- final state --\n")
+print("keys (LRU..MRU) = %v\n" keys)
+print("hits per key    = %v\n" hits)
+print("hits=%v misses=%v evictions=%v\n" hitcnt misscnt evictcnt)
