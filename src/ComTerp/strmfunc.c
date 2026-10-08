@@ -1385,6 +1385,13 @@ void EachFunc::execute() {
        a copy (see AttributeValue::operator=) */
     comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
+    /* this drain already reported its count above; a ring's own traffic
+       counter would otherwise carry these pops into whatever prints the
+       ring next. */
+    AttributeValueList* ringavl = strmv.stream_list();
+    if ((strmv.stream_mode_raw()&STREAM_RING) && ringavl && ringavl->Number()>5)
+      ((AttributeValue*)ringavl->Get(5))->int_ref() = 0;
+
   } else if (nargs() > 1) {
     /* implicit stream literal -- evaluate remaining fixed-format args;
        first arg (strmv) already evaluated, count it if non-nil */
@@ -2140,12 +2147,14 @@ void InfoFunc::execute() {
   if (avl && sfunc == ring_next_func(comterp()) && avl->Number()>=5) {
     AttributeList* al = new AttributeList();
     static int mode_sym3 = symbol_add("mode");
+    static int base_sym = symbol_add("base");
     static int head_sym = symbol_add("head");
     static int tail_sym = symbol_add("tail");
     static int count_sym = symbol_add("count");
     static int cap_sym = symbol_add("cap");
     static int wrap_sym = symbol_add("wrap");
     static int free_sym = symbol_add("free");
+    static int traffic_sym = symbol_add("traffic");
     static int buf_sym = symbol_add("buf");
     ComValue bufv(*((AttributeValue*)avl->Get(0)));
     int head = ((AttributeValue*)avl->Get(1))->int_val();
@@ -2164,6 +2173,10 @@ void InfoFunc::execute() {
     int cap = bytecap/elemsz;
 
     ComValue modeval("ring");
+    /* the live buffer's address, as a hex-printed ULongType -- UIntType
+       would truncate a 64-bit pointer */
+    ComValue basev((unsigned long)(bufv.string_ptr()+winoff));
+    basev.state(AttributeValue::HexState);
     ComValue headv(head);
     ComValue tailv(tail);
     ComValue countv2(count);
@@ -2173,13 +2186,19 @@ void InfoFunc::execute() {
        uses, exposed directly so a caller doesn't have to reconstruct it
        as cap-count (which is only right in :wrap mode -- see ring_avail()) */
     ComValue freev(ring_avail(avl));
+    /* traffic (elements pushed or popped since this ring was last
+       printed) is a 6th avl slot older rings may lack -- report 0
+       rather than reading past the end. */
+    ComValue trafficv(avl->Number()>5 ? ((AttributeValue*)avl->Get(5))->int_val() : 0);
     al->add_attr(mode_sym3, modeval);
+    al->add_attr(base_sym, basev);
     al->add_attr(head_sym, headv);
     al->add_attr(tail_sym, tailv);
     al->add_attr(count_sym, countv2);
     al->add_attr(cap_sym, capv);
     al->add_attr(wrap_sym, wrapv);
     al->add_attr(free_sym, freev);
+    al->add_attr(traffic_sym, trafficv);
 
     if (count>0) {
       /* one contiguous run when it doesn't straddle the end, two when it
@@ -2362,9 +2381,10 @@ static int ring_avail(AttributeValueList* avl) {
 }
 
 /* build a fresh ring FIFO over buf's own bytes (or its sliced window).  avl
-   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) -- wrap=0
-   (:noring) never reclaims space freed from the head, wrap=1 is the
-   circular default.
+   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) [5]=traffic --
+   wrap=0 (:noring) never reclaims space freed from the head, wrap=1 is the
+   circular default.  traffic counts elements pushed or popped since this
+   ring was last printed (ComValue::StreamType's print case, comvalue.c).
 
    buf's own content up to its first NUL (bounded by its capacity) seeds
    the ring as already-queued data, immediately poppable -- string(cap) is
@@ -2395,6 +2415,7 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
   avl->Append(new AttributeValue(tail0, AttributeValue::IntType));  // tail
   avl->Append(new AttributeValue(initial, AttributeValue::IntType));  // count
   avl->Append(new AttributeValue(wrap ? 1 : 0, AttributeValue::IntType));  // wrap
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));  // [5] traffic since last print
   ComValue stream(ring_next_func(comterp), avl);
   stream.stream_mode(STREAM_INTERNAL | STREAM_RING);
   return stream;
@@ -2430,6 +2451,7 @@ static boolean ring_push_elt(AttributeValueList* avl, ComValue& v) {
   if (newtail>=cap) newtail = wrapav->int_val() ? 0 : cap;
   tailav->int_ref() = newtail;
   countav->int_ref() = count+1;
+  if (avl->Number()>5) ((AttributeValue*)avl->Get(5))->int_ref()++;
   return true;
 }
 
@@ -2514,6 +2536,7 @@ static ComValue ring_pop_char(AttributeValueList* avl) {
     ? ComValue(*src) : ComValue::comval_decode(src, bt);
   headav->int_ref() = cap>0 ? (head+1)%cap : 0;
   countav->int_ref() = count-1;
+  if (avl->Number()>5) ((AttributeValue*)avl->Get(5))->int_ref()++;
   return result;
 }
 
@@ -2964,4 +2987,99 @@ void FeedRingNextFunc::execute() {
     return;
   }
   push_stack(popval);
+}
+
+/*****************************************************************************/
+
+
+ArrowFunc::ArrowFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ArrowFunc::execute() {
+  if (nargsfixed() < 2) {
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComValue lhsv(stack_arg_post_eval(0));
+  boolean lhs_is_ring = lhsv.is_stream() &&
+    lhsv.stream_func() == (void*)ring_next_func(comterp());
+
+  /* flagging rhs's at() root token before it evaluates (same walk
+     NextFunc::execute() uses for its own var argument) makes box@0 or
+     box@lo:hi come back as a write target instead of the stored value. */
+  /* gated on lhs_is_ring so a non-ring lhs (e.g. 'a'->rings@0) still
+     reads rings@0's actual stored ring, not an unwritten [list,idx]. */
+  static int at_symid = symbol_add("at");
+  if (lhs_is_ring) {
+    ComValue argoff(comterp()->stack_top());
+    int offtop = argoff.int_val() - comterp()->pfnum();
+    int argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    int startidx = comterp()->pfnum() + offtop + argcnt - 1;
+    ComValue& startval = comterp()->pfcomvals()[startidx];
+    if (startval.is_type(ComValue::CommandType) &&
+	((ComFunc*)startval.obj_val())->funcid() == at_symid)
+      startval.lhs_assign(1);
+  }
+
+  /* a post_eval stack_arg() never resolves, so peeking rhs raw here costs
+     nothing and keeps the bare name write_funcscope_symval needs below. */
+  ComValue rhs_peek(stack_arg(1, true));
+
+  /* rhs-ring-ness wins over the bare-variable case below, so a variable
+     already holding a ring is fed into rather than overwritten -- what
+     makes A->B->C chain. */
+  ComValue rhsv(stack_arg_post_eval(1));
+  reset_stack();
+
+  boolean rhs_is_ring = rhsv.is_stream() &&
+    rhsv.stream_func() == (void*)ring_next_func(comterp());
+
+  if (rhs_is_ring) {
+    AttributeValueList* avl = rhsv.stream_list();
+    boolean ok = ring_push_arg(comterp(), avl, lhsv, false);
+    push_stack(ok ? rhsv : ComValue::nullval());
+    return;
+  }
+
+  if (lhs_is_ring) {
+    int linenum = funcstate()->linenum();
+
+    if (rhsv.is_stream() && rhsv.lhs_assign()) {
+      /* a streamed at()-destination (box@lo:hi) -- zip-drive the ring
+	 against it, same as next(ring box@lo:hi). */
+      ComValue idxstream(rhsv);
+      int count = NextFunc::zip_assign_stream(comterp(), idxstream, &lhsv, true, linenum);
+      if (count < 0) {
+	push_stack(ComValue::nullval());
+	return;
+      }
+      ComValue retval(count, ComValue::IntType);
+      push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
+      return;
+    }
+
+    if (rhsv.is_array() && rhsv.lhs_assign()) {
+      /* a scalar at()-destination (box@0) -- pull one value and write it
+	 there, same as next(ring box@0). */
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue pulled(comterp()->stack_top());
+      NextFunc::write_at_pair(comterp(), rhsv, pulled);
+      return;
+    }
+
+    if (rhs_peek.type() == ComValue::SymbolType) {
+      ComValue streamcopy(lhsv);
+      NextFunc::execute_impl(comterp(), streamcopy);
+      ComValue* pulled = new ComValue(comterp()->stack_top());
+      comterp()->write_funcscope_symval(rhs_peek.symbol_val(), pulled);
+      return;
+    }
+  }
+
+  push_stack(ComValue::nullval());
 }

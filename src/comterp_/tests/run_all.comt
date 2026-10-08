@@ -242,6 +242,10 @@ if(run("./feedring.comt")
   :then print("pass: feedring\n")
   :else print("FAIL: feedring\n");topok=false)
 
+if(run("./arrow.comt")
+  :then print("pass: arrow\n")
+  :else print("FAIL: arrow\n");topok=false)
+
 if(run("./chunk.comt")
   :then print("pass: chunk\n")
   :else print("FAIL: chunk\n");topok=false)
@@ -333,6 +337,10 @@ if(run("./parsefunc.comt")
 if(run("./postfixtree.comt")
   :then print("pass: postfixtree\n")
   :else print("FAIL: postfixtree\n");topok=false)
+
+if(run("./funcobjeval.comt")
+  :then print("pass: funcobjeval\n")
+  :else print("FAIL: funcobjeval\n");topok=false)
 
 print("\nrun_all: %v\n" topok)
 topok

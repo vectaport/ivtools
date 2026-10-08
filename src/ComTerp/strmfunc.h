@@ -231,7 +231,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%% is the stream-replay operator (cycle a stream N times)"; }
+      return "%%%% is the stream replay operator (cycle a stream N times)"; }
 };
 
 //: hidden func used by next command for %% (replay) operator.
@@ -501,6 +501,29 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for feed(ring, stream)'s lazy push wrapper"; }
 
+};
+
+//: -> operator -- wires a ring to a plain value or variable, dispatching
+//: into feed()'s and next()'s own internal logic rather than reimplementing
+//: either.  val/ring=%s(lhs rhs): if rhs evaluates to a ring, lhs feeds it
+//: (ring_push_arg, same eager drain feed() uses -- a stream lhs, ring
+//: included, is drained in place, so A->B->C chains by piping B's ring into
+//: C's); otherwise, if lhs evaluates to a ring and rhs is a bare variable
+//: name, one value is pulled from the ring and assigned to that variable
+//: (NextFunc::execute_impl), same as next(lhs rhs).  Neither side a ring,
+//: or rhs a bare variable with no matching lhs ring, returns nil.
+//: post_eval, like feed()/next() themselves, so it evaluates its own two
+//: operands (rather than being overdriven per-element) and can peek rhs's
+//: raw, unevaluated form to tell a bare variable name from an arbitrary
+//: expression before deciding whether it needs writing into.
+class ArrowFunc : public ComFunc {
+public:
+    ArrowFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "val->ring | ring->ring | ring->var |  val=arrow(lhs rhs) -- wire a ring to a value/variable: rhs ring feeds from lhs, else lhs ring pulls into rhs var"; }
 };
 
 #endif /* !defined(_strmfunc_h) */
