@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 38 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 39 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -9,8 +9,9 @@
 // built over a typed (string(n type)) buffer operating in whole elements
 // with promotion/demotion on push, info()'s :free field, a stream
 // argument run into the ring rather than stored, a ring's own print
-// showing traffic since it was last printed instead of a bare "[]", and
-// **ring's own drain-count report zeroing that same counter
+// showing traffic since it was last printed instead of a bare "[]",
+// **ring's own drain-count report zeroing that same counter, and an
+// each()-driven push whose source exactly fills the ring's remaining room
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -457,6 +458,16 @@ feed(ring37 'd' 'e')
 t37b=info(ring37).traffic
 ok=ok&&(drained37==3)&&(t37a==0)&&(t37b==2)
 print("37 **ring zeroes traffic after reporting its own count (expect 3, 0, then 2): %v %v %v\n" drained37 t37a t37b)
+
+// --- 38: an each()-driven push whose source exactly fills the ring's
+// remaining room used to read as a refusal indistinguishable from the
+// source itself being exhausted, so the whole feed() silently reported
+// nil instead of the pushed count -- more()'s peek now tells the two
+// apart, so an exact fit still returns the count. ---
+ring38=string(8 UIntType)
+cnt38=feed(ring38 **0..7)
+ok=ok&&(cnt38==8)&&(list(ring38)==(0,1,2,3,4,5,6,7))
+print("38 feed(ring38 **0..7) on an exactly-sized ring (expect 8, {0..7}): %v %v\n" cnt38 list(ring38))
 
 print("feedring: %v\n" ok)
 ok

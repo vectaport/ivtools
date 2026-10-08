@@ -1213,8 +1213,29 @@ MoreFunc::MoreFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void MoreFunc::execute() {
-  ComValue streamv(stack_arg_post_eval(0));
+  /* symbol=true -- suppress the default auto-resolve (ComTerp::pop_stack's
+     is_symbol()/is_attribute() handling) so a dot expression (al.field)
+     hands back the Attribute DotFunc found (dotfunc.c:622) rather than
+     its value, and a bare name stays a SymbolType -- either way, a handle
+     to WHERE the stream lives, not just a copy of what it held a moment
+     ago.  Needed because a stream's own avl pointer, though shared by an
+     ordinary variable read, does NOT survive an attribute's read-then-
+     auto-resolve copy (ComTerp::pop_stack, comterp.c:1513-1516) -- so the
+     restash below has to be written back to that handle explicitly, not
+     left to aliasing. */
+  ComValue rawarg(stack_arg_post_eval(0, true));
   reset_stack();
+
+  Attribute* attr = nil;
+  ComValue streamv;
+  if (rawarg.is_object(Attribute::class_symid())) {
+    attr = (Attribute*)rawarg.obj_val();
+    streamv = *attr->Value();
+  } else if (rawarg.is_type(ComValue::SymbolType)) {
+    streamv = comterp()->lookup_symval(rawarg);
+  } else {
+    streamv = rawarg;
+  }
 
   if (!streamv.is_stream()) {
     push_stack(ComValue::nullval());
@@ -1222,6 +1243,16 @@ void MoreFunc::execute() {
   }
 
   ComValue peeked(execute_impl(comterp(), streamv));
+
+  /* write the (possibly restashed) stream back to wherever it came from,
+     so a second more() before the first next() -- or next() itself --
+     reads it fresh from there instead of counting on streamv's own avl
+     pointer to still be reachable from that same place. */
+  if (attr) {
+    attr->Value(new ComValue(streamv));
+  } else if (rawarg.is_type(ComValue::SymbolType))
+    comterp()->write_funcscope_symval(rawarg.symbol_val(), new ComValue(streamv));
+
   push_stack(peeked);
 }
 
