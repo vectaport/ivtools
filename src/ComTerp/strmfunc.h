@@ -143,10 +143,11 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "attrlst=%s(obj [:raw]) -- inspect an opaque value's internal facts"; }
+      return "attrlst=%s(obj [:raw] [:tree]) -- inspect an opaque value's internal facts"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
         ":raw       for a stream, return its raw internal list directly",
+        ":tree      for a func, return its postfix(:tree)-shaped tree directly",
         nil };
       return keys; }
 

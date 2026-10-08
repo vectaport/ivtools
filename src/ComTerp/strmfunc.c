@@ -1826,13 +1826,12 @@ static void funcobj_unparse(ComValue& node, ostream& out, ComTerp* comterp, int 
   out << node;
 }
 
-/* funcobj_source -- info(func)'s :source field: one space-separated
-   positional per FuncObj span, final span's ';'-chain spliced bare
-   (not parenthesized -- the paren-after-space trap, AGENTS.md). */
-static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
-  boolean oldbrief = comterp ? comterp->brief() : false;
-  if (comterp) comterp->brief(true);
-
+/* funcobj_span_trees -- each FuncObj span's own postfix_nest_into tree, in
+   declaration order, built directly from the FuncObj's compiled tokens --
+   no text involved. Shared by funcobj_source (stringifies them for
+   info(f).source) and funcobj_tree (returns them as the :tree value
+   directly). Caller deletes the returned list. */
+static AttributeValueList* funcobj_span_trees(FuncObj* fo) {
   AttributeValueList* spans = new AttributeValueList();
   int offset = 0;
   for (int i = 0; i < fo->nspans(); i++) {
@@ -1840,6 +1839,33 @@ static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
     postfix_nest_into(fo->toks() + offset, len, spans);
     offset += len;
   }
+  return spans;
+}
+
+/* funcobj_tree -- the same {func,span...} shape postfix(expr :tree) builds
+   for a func() literal, assembled from the FuncObj's own span trees rather
+   than reparsing printed source text. */
+static ComValue funcobj_tree(FuncObj* fo) {
+  AttributeValueList* spans = funcobj_span_trees(fo);
+  static int func_symid = symbol_add("func");
+  AttributeValueList* node = new AttributeValueList();
+  ComValue headval(func_symid, AttributeValue::SymbolType);
+  node->Append(new AttributeValue(headval));
+  Iterator it;
+  for (spans->First(it); !spans->Done(it); spans->Next(it))
+    node->Append(new AttributeValue(*spans->GetAttrVal(it)));
+  delete spans;
+  return ComValue(node);
+}
+
+/* funcobj_source -- info(func)'s :source field: one space-separated
+   positional per FuncObj span, final span's ';'-chain spliced bare
+   (not parenthesized -- the paren-after-space trap, AGENTS.md). */
+static std::string funcobj_source(FuncObj* fo, ComTerp* comterp) {
+  boolean oldbrief = comterp ? comterp->brief() : false;
+  if (comterp) comterp->brief(true);
+
+  AttributeValueList* spans = funcobj_span_trees(fo);
 
   static int seq_symid = symbol_add("seq");
   int nspans = spans->Number();
@@ -1887,15 +1913,20 @@ InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void InfoFunc::execute() {
-  /* attrlst=info(strm|attrlst|funcname|fileobj|pipeobj|sockobj|str [:raw]) --
+  /* attrlst=info(strm|attrlst|funcname|fileobj|pipeobj|sockobj|str [:raw] [:tree]) --
      inspect an opaque value's internal facts; :raw returns a stream's raw
-     list as-is, else a type-specific named AttributeList */
+     list as-is, :tree (func only) returns its postfix(:tree)-shaped tree
+     directly, else a type-specific named AttributeList */
 
-  /* fetch :raw from the post-eval region before
-     reset_stack() clears it */
+  /* fetch :raw/:tree from the post-eval region before
+     reset_stack() clears them */
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key_post_eval(raw_symid));
   boolean rawflag = rawv.is_true();
+
+  static int tree_symid = symbol_add("tree");
+  ComValue treev(stack_key_post_eval(tree_symid));
+  boolean treeflag = treev.is_true();
 
   /* a bare symbol naming a func is peeked via lookup_symval() (same as
      help(), helpfunc.c) rather than stack_arg_post_eval(), which would
@@ -1932,6 +1963,11 @@ void InfoFunc::execute() {
   reset_stack();
 
   if (peeked_fo) {
+    if (treeflag) {
+      ComValue retval(funcobj_tree(peeked_fo));
+      push_stack(retval);
+      return;
+    }
     AttributeList* al = new AttributeList();
     static int ntoks_sym = symbol_add("ntoks");
     static int nspans_sym = symbol_add("nspans");

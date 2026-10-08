@@ -16,8 +16,12 @@
 # Either way, funccompile.comt -- loaded via run() so it shares this
 # scope, a native port of the original funccompile.go (still kept at
 # src/comcomp/translate for the from-a-separate-process case) --
-# compiles the postfix(:tree) to a Go function body in-process. No
-# shell(), no pipe, no separate binary.
+# compiles a postfix(:tree)-shaped tree to a Go function body in-process.
+# No shell(), no pipe, no separate binary. In funcname mode the tree
+# comes straight from the live FuncObj's own compiled tokens via
+# info(f :tree) -- no text round-trip through .source and a reparse;
+# bare-file/expr mode has no FuncObj to ask yet, so it still goes
+# through postfix(src :tree) on the literal source text.
 #
 # Coverage is exactly funccompile.comt's own: a single-array-param func
 # made of assign/for/while/@-read/@-write/size/+-*//comparisons/&&/||,
@@ -59,27 +63,25 @@ if(fp!=nil :then
     if(index(idchars a2@ci)==nil :then a2isident=false);
     ci=ci+1);
 
-  srclines=if(a2isident :then
+  functree=if(a2isident :then
     /* a2 is interpolated into eval()'d command text, not a shell
-       command -- info()/postfix() parse without firing anything, the
-       same non-executing lookup comlint uses for help()/istype() on a
+       command -- info() peeks the name without firing it, the same
+       non-executing lookup comlint uses for help()/istype() on a
        dynamically-named command. Checked above to be a plain
        identifier first -- an outfile like "double.go" is valid
        shell/filesystem text but not valid ComTerp syntax spliced in
        unquoted (the "." parses as the dot operator), so it must never
        reach eval() as a bare symbol. */
     run(target);
-    eval(print("info(%s).source" a2 :str))
+    eval(print("info(%s :tree)" a2 :str))
   :else
     nil);
 
-  if(srclines!=nil :then
-    /* a2 named a real func in the file -- info(f).source comes back
-       as one string per original source line (not one string with
-       embedded newlines), so it's rejoined before going to postfix(). */
+  if(functree!=nil :then
+    /* a2 named a real func in the file -- info(f :tree) hands back its
+       tree straight from the live FuncObj's own compiled tokens. */
     funcname=a2;outfile=arg(3);
-    src="";si=0;
-    while(si<size(srclines) src=src+at(srclines si);si=si+1)
+    tree=functree
   :else
     /* no funcname (or a2 didn't name one) -- a2 is then the outfile
        instead, and the file's own raw text is taken directly as the
@@ -89,17 +91,17 @@ if(fp!=nil :then
     fp=open(target "r");
     src="";sline=gets(fp);
     while(sline!=nil src=src+sline+"\n";sline=gets(fp));
-    close(fp))
+    close(fp);
+    tree=eval(print("postfix(%s :tree)" src :str)))
 :else
   /* expr mode: target is the func's own source text already */
   funcname=nil;
   outfile=arg(2);
-  src=target)
+  src=target;
+  tree=eval(print("postfix(%s :tree)" src :str)))
 
-treecmd=print("postfix(%s :tree)" src :str)
-tree=eval(treecmd)
 if(!islist(tree) :then
-  print("comcomp: didn't parse to a tree: %s\n" src :err);
+  print("comcomp: didn't parse to a tree: %s\n" if(funcname!=nil :then funcname :else src) :err);
   exit(1))
 
 body=fc_compile_func(tree)
