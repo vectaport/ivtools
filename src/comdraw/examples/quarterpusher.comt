@@ -95,6 +95,18 @@ SLIDEMIN=0.015; SLIDEMAX=0.05
 PUSHSPEED=0.15; WOBBLEDEPTH=0.025
 SLIDE_UI=0.06
 
+// pushstep()'s blocking check only cares about neighbors within LANEHALF
+// sideways and COINGAP downhill, so it buckets every coin into a lane x
+// depth grid (bin widths 2*LANEHALF and COINGAP) and, per coin, only
+// searches its own bucket plus the one bucket below (downhill) and
+// whichever of its two lane-neighbor buckets is nearer -- 4 buckets
+// total instead of scanning every other coin.  A true neighbor that
+// falls in the OTHER lane-neighbor bucket (the farther one) is missed;
+// this is a deliberate accuracy-for-speed trade-off at bucket borders,
+// not a bug to chase.
+LANEBINW=2*LANEHALF; DEPTHBINW=COINGAP
+NLANEBINS=8; NDEPTHBINS=32; LANEOFFSET=4
+
 // A literal-coordinate creation call (polygon()/rect()/line()/text())
 // bakes in whatever pan the current view happens to have, while
 // trans(g ... :set) (what every coin and slotmark use, via placecoin())
@@ -281,15 +293,54 @@ pusher=(
     temp(chancebase)=BASECHANCE+disturbance*DISTURBGAIN;
     if(chancebase>MAXCHANCE :then chancebase=MAXCHANCE);
 
+    // bucket every coin by lane and depth bin (see LANEBINW/DEPTHBINW's
+    // own note) so the blocking check below searches a handful of
+    // buckets instead of every other coin
+    temp(nbuckets)=NLANEBINS*NDEPTHBINS;
+    temp(buckets)=list(:size nbuckets);
+    for(temp(bi)=0 bi<nbuckets bi++ buckets@bi=list());
+    temp(lanebins)=list(); temp(depthbins)=list();
+    for(temp(ci)=0 ci<ncoin ci++
+      temp(lb)=floor((lats@ci)/LANEBINW)+LANEOFFSET;
+      if(lb<0 :then lb=0); if(lb>=NLANEBINS :then lb=NLANEBINS-1);
+      temp(db)=floor((depths@ci)/DEPTHBINW);
+      if(db<0 :then db=0); if(db>=NDEPTHBINS :then db=NDEPTHBINS-1);
+      lanebins,lb; depthbins,db;
+      temp(bk)=buckets@(lb*NDEPTHBINS+db);
+      bk,ci);
+
     temp(gone)=list();
     for(temp(oi)=0 oi<ncoin oi++
       temp(mylat)=lats@oi; temp(mydepth)=depths@oi;
+      temp(mylb)=lanebins@oi; temp(mydb)=depthbins@oi;
+
+      // the bin a coin sits in splits into two halves; whichever half
+      // mylat falls in, that side's lane-neighbor bin is the only one
+      // that can hold a same-lane-within-LANEHALF neighbor worth
+      // checking -- the far side's lane-neighbor bin cannot
+      temp(frac)=(mylat/LANEBINW)-floor(mylat/LANEBINW);
+      temp(dir)=1; if(frac<0.5 :then dir=0-1);
+      temp(lbneighbor)=mylb+dir;
+      temp(dbbelow)=mydb-1;
+
+      temp(keys)=list();
+      keys,(mylb*NDEPTHBINS+mydb);
+      if(dbbelow>=0 :then keys,(mylb*NDEPTHBINS+dbbelow));
+      if((lbneighbor>=0)&&(lbneighbor<NLANEBINS) :then
+        keys,(lbneighbor*NDEPTHBINS+mydb);
+        if(dbbelow>=0 :then keys,(lbneighbor*NDEPTHBINS+dbbelow)));
+
       temp(blocked)=0;
-      for(temp(oj)=0 (oj<ncoin)&&(blocked==0) oj++
-        if(oj!=oi :then
-          temp(dl)=(lats@oj)-mylat; if(dl<0.0 :then dl=0.0-dl);
-          temp(dd)=mydepth-(depths@oj);
-          if((dl<LANEHALF)&&(dd>0.0)&&(dd<COINGAP) :then blocked=1)));
+      temp(nk)=size(keys);
+      for(temp(ki)=0 (ki<nk)&&(blocked==0) ki++
+        temp(bucket)=buckets@(keys@ki);
+        temp(nb)=size(bucket);
+        for(temp(bj)=0 (bj<nb)&&(blocked==0) bj++
+          temp(oj)=bucket@bj;
+          if(oj!=oi :then
+            temp(dl)=(lats@oj)-mylat; if(dl<0.0 :then dl=0.0-dl);
+            temp(dd)=mydepth-(depths@oj);
+            if((dl<LANEHALF)&&(dd>0.0)&&(dd<COINGAP) :then blocked=1))));
       temp(ng)=coins@oi;
       temp(slid)=0;
       if(blocked==0 :then
