@@ -1117,7 +1117,7 @@ updown4C_test=func(
    loops by excluding the link toward the graphic's owner, which is sufficient
    only because two non-owner nodes can never be linked to each other.  Nothing
    tested the guarantee those relays lean on until this. */
-ring_test=func(
+cycle_test=func(
 
   poll_usec=2000000;
   timeout=60*1000000/poll_usec;
@@ -1300,7 +1300,7 @@ ring_test=func(
 /* ringpair_launch_chain: launch chainlen drawservs in a chain, tagged (for
    distinct callback/global names, so two chains can be built independently)
    and linking each new node to the previous one, polling the chain's root
-   for full sid propagation before the next hop -- ring_test's discipline,
+   for full sid propagation before the next hop -- cycle_test's discipline,
    generalized to an arbitrary length.  Returns (:ok bool :ports list :socks
    list); on failure it tears down whatever it had already launched. */
 ringpair_launch_chain=func(

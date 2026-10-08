@@ -167,8 +167,8 @@ handler, and `ComterpHandler::destroy()` freed the live interpreter
 was still on the stack above it. Fixed by adding a `running()` guard
 bracket around the inline-eval `ComTerpServ::run` overloads so destruction
 defers instead of freeing an object still executing. It was the second
-occurrence of this same invariant being missed (the first was a reactor-
-reentrancy UAF in the piped-REPL teardown path, "worked example 2" in
+occurrence of this same invariant being missed (the first was the
+`ComTerpServ::runfile` reactor-reentrancy UAF, "worked example 2" in
 `config/SANITIZE.md`) — a standing invariant the framework has to hold
 everywhere `update()` (or its equivalent) can be called from, not a bug
 that, once patched, stays patched by construction.
