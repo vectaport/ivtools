@@ -1,0 +1,7 @@
+{
+  "name": "ivtools",
+  "description": "Layered C++ application frameworks for custom drawing editors and spatial-data servers (InterViews/Unidraw, ComTerp, DrawServ).",
+  "version": "2.1.1",
+  "author": { "name": "Scott E. Johnston" },
+  "license": "SEE COPYRIGHT"
+}
