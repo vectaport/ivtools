@@ -26,6 +26,7 @@ SUBDIRS = \
 	ACE-lite \
 	comtest \
 	comterp_ \
+	comcomp \
 	\
 	IV \
 	InterViews \

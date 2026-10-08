@@ -1,0 +1,35 @@
+// isort_baseline.comt -- interpreted insertion-sort baseline, timed with
+// time(:mono :ns). Compared against the compiled Go built-in in a later
+// script once that built-in exists.
+
+isort=func(lst;
+  n=size(lst);
+  for(i=1 i<n i=i+1
+    key=lst@i;
+    j=i-1;
+    while(j>=0&&lst@j>key
+      lst@(j+1)=lst@j;
+      j=j-1);
+    lst@(j+1)=key);
+  lst);
+
+// deterministic pseudo-random-looking input, built without relying on an
+// actual RNG primitive
+mklist=func(n;
+  lst=list();
+  for(i=0 i<n i=i+1 lst,((i*2654435761)%10000));
+  lst);
+
+n=2000;
+data=mklist(:n n);
+t0=time(:mono :ns);
+sorted=isort(:lst data);
+t1=time(:mono :ns);
+elapsed_ns=t1-t0;
+
+// correctness check: every adjacent pair non-decreasing
+ok=true;
+for(i=1 i<n i=i+1 ok=ok&&(sorted@(i-1)<=sorted@i));
+
+print("isort(n=%v) elapsed_ns=%v ok=%v size=%v first5=%v,%v,%v,%v,%v\n" n elapsed_ns ok size(sorted) sorted@0 sorted@1 sorted@2 sorted@3 sorted@4);
+ok

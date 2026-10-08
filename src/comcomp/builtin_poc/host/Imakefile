@@ -1,0 +1,43 @@
+XCOMM
+XCOMM gosort_host - a copy of comterp's own ComTerpServ setup with the
+XCOMM "gosort" built-in added: a ComFunc (GoSortFunc) calling into Go code
+XCOMM compiled from a ComTerp func's own postfix(:tree) and linked in as
+XCOMM ../gosort/libgosort.a. See src/comcomp/builtin_poc/README.md.
+XCOMM
+
+PACKAGE = gosort_host
+
+#ifdef InObjectCodeDir
+
+OBJS = \
+	gosortfunc.o \
+	host.o
+
+APP_CCLDLIBS = $(LIBCOMTERP) $(LIBTIME) $(LIBTOPOFACE) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIDRAWCOMMON) $(LIBIVCOMMON) ../../gosort/libgosort.a
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPCOMTERP) $(DEPTIME) $(DEPTOPOFACE) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON) $(DEPIVCOMMON)
+#endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(ACE_CCLDLIBS) -lpthread
+
+ComplexProgramTarget(gosort_host)
+
+MakeObjectFromSrc(gosortfunc)
+MakeObjectFromSrc(host)
+
+/* libgosort.a/.h come from `go build -buildmode=c-archive`, not from
+   imake's own C/C++ compile model -- a plain passed-through rule builds
+   it before anything here is compiled or linked against it. */
+../../gosort/libgosort.a: ../../gosort/sort.go
+	(cd ../../gosort && go build -buildmode=c-archive -o libgosort.a .)
+
+$(OBJS): ../../gosort/libgosort.a
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

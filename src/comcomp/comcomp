@@ -1,0 +1,120 @@
+#! /usr/bin/env comterp_run
+#
+# comcomp  translate a ComTerp func body into Go source, natively --
+#          the tree-walking compiler lives in src/comcomp/funccompile.comt
+#
+# Usage:  comcomp script.comt|expr [funcname] [outfile]
+#
+# script.comt|expr: a path that opens for reading is run (needs the
+# live FuncObj, unlike comlint, which never executes its target) and
+# the 2nd arg looked up in it as a funcname; anything else -- a bare
+# expr, or a file with no 2nd arg, or whose 2nd arg isn't a funcname
+# found in it -- is taken directly as the func's own source text, e.g.
+# comcomp "func(lst;...)", or a script.comt whose content is just a
+# bare func() literal with no name needed.
+#
+# Either way, funccompile.comt -- loaded via run() so it shares this
+# scope, a native port of the original funccompile.go (still kept at
+# src/comcomp/translate for the from-a-separate-process case) --
+# compiles a postfix(:tree)-shaped tree to a Go function body in-process.
+# No shell(), no pipe, no separate binary. In funcname mode the tree
+# comes straight from the live FuncObj's own compiled tokens via
+# info(f :tree) -- no text round-trip through .source and a reparse;
+# bare-file/expr mode has no FuncObj to ask yet, so it still goes
+# through postfix(src :tree) on the literal source text.
+#
+# Coverage is exactly funccompile.comt's own: a single-array-param func
+# made of assign/for/while/@-read/@-write/size/+-*//comparisons/&&/||,
+# ending by returning that same array -- anything else is a compile
+# error (nil), not a silent fallback. See
+# src/comcomp/funccompile.comt.
+
+if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
+  arg(1)=="-help" || arg(1)=="--help" :then
+
+    print("comcomp  translate a ComTerp func into Go, natively\n");
+    print("Usage:  comcomp script.comt|expr [funcname] [outfile]\n\n");
+    print("script.comt|expr: a path that opens for reading is run and the\n");
+    print("2nd arg looked up in it as a funcname; anything else -- a bare\n");
+    print("expr, a file with no 2nd arg, or whose 2nd arg isn't a funcname\n");
+    print("found in it -- is taken directly as the func's own source text\n");
+    print("(a bare func() literal needs no name), and the 2nd arg, if any,\n");
+    print("is then the outfile instead. Either way, compiles it to a Go\n");
+    print("function body (src/comcomp/funccompile.comt) and prints it (or\n");
+    print("writes it to outfile if given). See src/comcomp/funccompile.comt\n");
+    print("for exactly which ComTerp primitives this spike covers.\n");
+    exit)
+
+selfpath=arg(0)
+lastslash=index(selfpath "/" :last)
+scriptdir=if(lastslash==nil :then "." :else substr(selfpath lastslash))
+run(scriptdir+"/funccompile.comt")
+
+target=arg(1)
+fp=open(target "r")
+
+if(fp!=nil :then
+  close(fp);
+  a2=arg(2);
+  idchars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+  a2isident=(a2!=nil);
+  ci=0;
+  while(a2isident && ci<size(a2)
+    if(index(idchars a2@ci)==nil :then a2isident=false);
+    ci=ci+1);
+
+  functree=if(a2isident :then
+    /* a2 is interpolated into eval()'d command text, not a shell
+       command -- info() peeks the name without firing it, the same
+       non-executing lookup comlint uses for help()/istype() on a
+       dynamically-named command. Checked above to be a plain
+       identifier first -- an outfile like "double.go" is valid
+       shell/filesystem text but not valid ComTerp syntax spliced in
+       unquoted (the "." parses as the dot operator), so it must never
+       reach eval() as a bare symbol. */
+    run(target);
+    eval(print("info(%s :tree)" a2 :str))
+  :else
+    nil);
+
+  if(functree!=nil :then
+    /* a2 named a real func in the file -- info(f :tree) hands back its
+       tree straight from the live FuncObj's own compiled tokens. */
+    funcname=a2;outfile=arg(3);
+    tree=functree
+  :else
+    /* no funcname (or a2 didn't name one) -- a2 is then the outfile
+       instead, and the file's own raw text is taken directly as the
+       func's own source, same as expr mode: it must already be a
+       bare func() literal, not an assignment. */
+    funcname=nil;outfile=a2;
+    fp=open(target "r");
+    src="";sline=gets(fp);
+    while(sline!=nil src=src+sline+"\n";sline=gets(fp));
+    close(fp);
+    tree=eval(print("postfix(%s :tree)" src :str)))
+:else
+  /* expr mode: target is the func's own source text already */
+  funcname=nil;
+  outfile=arg(2);
+  src=target;
+  tree=eval(print("postfix(%s :tree)" src :str)))
+
+if(!islist(tree) :then
+  print("comcomp: didn't parse to a tree: %s\n" if(funcname!=nil :then funcname :else src) :err);
+  exit(1))
+
+body=fc_compile_func(tree)
+if(body==nil :then
+  print("comcomp: not a single-array-param func ending by returning its own array -- see src/comcomp/funccompile.comt for the exact shape required\n" :err);
+  exit(1))
+
+if(outfile!=nil :then
+  wf=open(outfile "w");
+  print("%s" body :file wf);
+  close(wf);
+  print("comcomp: wrote %s\n" outfile)
+:else
+  print("%s" body))
+
+exit(0)

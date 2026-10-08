@@ -1,0 +1,21 @@
+// gosort_bench.comt -- times the "gosort" built-in (compiled Go, linked
+// into this comterp copy) on the same deterministic input isort_baseline.comt
+// uses, for a direct comparison against the interpreted baseline.
+
+mklist=func(n;
+  lst=list();
+  for(i=0 i<n i=i+1 lst,((i*2654435761)%10000));
+  lst);
+
+n=2000;
+data=mklist(:n n);
+t0=time(:mono :ns);
+sorted=gosort(data);
+t1=time(:mono :ns);
+elapsed_ns=t1-t0;
+
+ok=true;
+for(i=1 i<n i=i+1 ok=ok&&(sorted@(i-1)<=sorted@i));
+
+print("gosort(n=%v) elapsed_ns=%v ok=%v first5=%v,%v,%v,%v,%v\n" n elapsed_ns ok sorted@0 sorted@1 sorted@2 sorted@3 sorted@4);
+ok
