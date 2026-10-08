@@ -1,0 +1,449 @@
+// quarterpusher.comt -- THE QUARTER PUSHER
+//
+// Standing-over-the-machine view: a sloped table recedes away from you,
+// narrowing toward a coin slot at the back.  Drop a quarter and it lands
+// at the top of the slope; the table's own back-and-forth motion keeps
+// the whole pile just barely unstable, so coins creep downhill a little
+// at a time and, every so often, one tips over the near edge into the
+// tray.  A fresh drop jolts the pile hardest right where it lands, so a
+// new quarter at the top is often what sets off a slide that reaches the
+// edge a few moments later.
+//
+// Start it like this:
+//
+//     comdraw -runfile src/comdraw/examples/quarterpusher.comt
+//
+// Then try:   pushhelp()
+//
+// HOW IT WORKS (the three layers, same as spirograph and etchasketch):
+//   1. the MACHINE  -- pusher.pushstep() is one tick of the avalanche:
+//                      every coin gets a small, oscillation-driven chance
+//                      to slide downhill if nothing blocks it, and
+//                      anything that reaches the edge falls into the tray
+//   2. the DATA     -- each coin is an ellipse tagged kind="coin" with
+//                      its own true lat (sideways position) and depth
+//                      (how far down the slope), grouped with every
+//                      other coin and the slot marker into pusher's
+//                      own coinlayer; pusher.pushstep() reads
+//                      $$(coinlayer) for them, the same stream-a-
+//                      composite idiom orbit() and recipes() use on
+//                      $$(frame()) in spirograph.comt
+//   3. the MAGIC WORDS -- play() reads the keyboard (Shift+arrows, like
+//                      etchasketch's keydrive()); demo() plays the
+//                      machine by itself, since there's no real
+//                      keyboard under xvfb to drive play() with
+//
+// pusher is one object (same bundling-data-and-behavior idiom as
+// carousel.comt's carousel): held/traycount/phase/disturbance/slotlat/
+// coinlayer are fields on pusher itself, and pushstep/drop/pickup/slide
+// are dot-bound methods on it (play/demo/status/pushhelp are plain
+// top-level funcs that call those methods from outside pusher -- see
+// the note just below the object literal for why).  A self-bound call's
+// frame IS the object's own permanent attrlist (see LANGUAGE.md's
+// scope-chain section) -- a bare read/write of a field inside one of
+// these methods is always live, no local()/global() wrapper needed,
+// unlike a bare top-level func, which freezes a free variable's value
+// at the func's own DECLARATION time and never re-reads it (see
+// doc/LANGUAGE.md "Closures -- captured at declaration time").  Every
+// other scratch variable inside a method -- loop counters, interpolation
+// math, anything that isn't one of pusher's declared fields -- goes
+// through temp(), exactly as carousel.comt's methods do: a self-bound
+// call has no separate discardable frame of its own, so a bare write
+// that ISN'T one of the object's declared fields would otherwise leak
+// onto pusher as a permanent stray field instead of disappearing when
+// the call returns.
+//
+// Every coin and the slot marker live inside one group, pusher's own
+// coinlayer: the table's rocking motion is a SINGLE trans() on
+// coinlayer each tick (see pushstep()), not a per-coin recompute, so
+// the per-tick cost no longer scales with the pile size.  A coin's own
+// position comes from trans(g sx,0,0,sy,tx,ty :set), the same
+// absolute-placement technique carousel.comt's place() uses -- no
+// move()-delta accumulation, so there's no sub-pixel rounding to fight
+// -- but placecoin() is only called when a coin's own (lat,dep)
+// actually changes (placed, slides, or falls), not every tick.  Per
+// carousel.comt's own note: trans()'s six-value tuple must be bare
+// variables or literal constants, never inline expressions or
+// parenthesized sub-expressions, or it silently falls back to its getter
+// instead of setting -- placecoin() below stages every value into a
+// plain local first for exactly that reason.
+
+// ============================================================
+// the view: a trapezoid table receding from a near, wide edge (the
+// cliff the coins fall off) to a far, narrow one (the slot)
+// ============================================================
+
+CENTERX=450
+HW_NEAR=380; HW_FAR=100
+Y_NEAR=140; Y_FAR=480
+SCALE_NEAR=1.6; SCALE_FAR=0.4
+R0=14
+COINPAL="#C8C8C0","#D4D4CC","#BCBCB2"
+
+// avalanche tuning: BASECHANCE is the ambient per-coin, per-tick slide
+// chance from the table's own oscillation; dropping a quarter adds
+// DISTURBBOOST to a shared disturbance level that decays by
+// DISTURBDECAY every tick, so the slide chance (chancebase, in
+// pushstep()) stays elevated for a few seconds after every drop.  A
+// coin can only slide if nothing else sits within COINGAP of it, in a
+// lane within LANEHALF sideways -- that's what makes a slide open up
+// room for the coin behind it instead of every coin drifting at once.
+BASECHANCE=0.0; DISTURBGAIN=0.1; DISTURBDECAY=0.85; DISTURBBOOST=1.3
+MAXCHANCE=0.25
+LANEHALF=0.14; COINGAP=0.035
+SLIDEMIN=0.015; SLIDEMAX=0.05
+PUSHSPEED=0.15; WOBBLEDEPTH=0.025
+SLIDE_UI=0.06
+
+// A literal-coordinate creation call (polygon()/rect()/line()/text())
+// bakes in whatever pan the current view happens to have, while
+// trans(g ... :set) (what every coin and slotmark use, via placecoin())
+// always places a graphic's own origin at the given coordinates with
+// no such offset -- so a backdrop graphic left as creation drew it
+// lands in a different coordinate space than the coins, visibly
+// misaligned.  trans(g 1,0,0,1,0,0 :set) right after creation strips
+// that view-pan component back off, snapping the graphic to exactly
+// its literal creation coordinates -- the same space placecoin() uses
+// -- without needing to know what the pan offset actually was.
+select(:clear)
+table=polygon(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR, CENTERX+HW_FAR,Y_FAR, CENTERX-HW_FAR,Y_FAR)
+colorsrgb("#355238" "#355238")
+pattern(2)
+trans(table 1,0,0,1,0,0 :set)
+
+// cliffline marks the housing's fixed edge -- it does NOT join
+// coinlayer, so it stays put while the table surface (and the coins
+// on it) oscillates past it, the same way a real pusher machine's
+// cabinet edge doesn't move even though its table does.
+select(:clear)
+colorsrgb("#FFFF00" "#FFFF00")
+brush(65535,5)
+cliffline=line(CENTERX-HW_NEAR,Y_NEAR, CENTERX+HW_NEAR,Y_NEAR)
+trans(cliffline 1,0,0,1,0,0 :set)
+
+select(:clear)
+brush(65535,0)
+tray=rect(CENTERX-HW_NEAR-20,40, CENTERX+HW_NEAR+20,Y_NEAR-15)
+colorsrgb("#303030" "#A0A0A0")
+pattern(2)
+trans(tray 1,0,0,1,0,0 :set)
+
+select(:clear)
+slottrack=rect(CENTERX-HW_FAR-15,Y_FAR+5, CENTERX+HW_FAR+15,Y_FAR+30)
+colorsrgb("#303030" "#808080")
+pattern(2)
+trans(slottrack 1,0,0,1,0,0 :set)
+
+select(:clear)
+colorsrgb("#000000" "#FFFFFF")
+title=text(CENTERX-180,Y_FAR+55 "QUARTER PUSHER")
+trans(title 1,0,0,1,0,0 :set)
+
+select(:clear)
+brush(65535,0)
+update()
+
+// ============================================================
+// LAYER 1+2: the machine
+// ============================================================
+
+// placecoin(g lat dep) -- set g's own position and size within its
+// parent group from its true (lat,dep): the table's rocking motion is
+// a separate, single transform on the coinlayer group (see pushstep()),
+// not baked into each coin's own placement, so this only needs calling
+// when a coin's own (lat,dep) actually changes.  dep runs 0 (the
+// near/cliff edge) to 1 (the far/slot edge).  ("depth" is a registered
+// command -- a bare assignment to it is a silent no-op.)
+placecoin=func(
+  g=arg(0); lat=arg(1); dep=arg(2);
+  vd=dep;
+  if(vd<0.0 :then vd=0.0);
+  if(vd>1.0 :then vd=1.0);
+  w=(R0*2)*(SCALE_NEAR+(SCALE_FAR-SCALE_NEAR)*vd);
+  h=w;
+  hw=HW_NEAR+(HW_FAR-HW_NEAR)*vd;
+  cy=Y_NEAR+(Y_FAR-Y_NEAR)*vd;
+  cx=CENTERX+lat*hw;
+  pw=g.pw; ph=g.ph;
+  sx=w/pw; sy=h/ph;
+  tx=cx; ty=cy;
+  trans(g sx,0,0,sy,tx,ty :set);
+  nil)
+
+// addcoin(lat dep) -- one quarter, with its own lane and depth
+addcoin=func(
+  lat=arg(0); dep=arg(1);
+  select(:clear);
+  g=ellipse(0,0, R0,R0);
+  c=COINPAL@int(round(rand(0,size(COINPAL)-1)));
+  colorsrgb(c "#60605A");
+  brush(65535,1);
+  pattern(2);
+  g.kind="coin";
+  b=mbr(g); g.pw=at(b 2)-at(b 0); g.ph=at(b 3)-at(b 1);
+  g.lat=lat; g.dep=dep;
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  brush(65535,0);
+  placecoin(g lat dep);
+  g)
+
+// prefill(n [seed]) -- the table starts covered with quarters, like the
+// real machine between games.  Appends to seed (an existing list) when
+// given one, so the caller controls what comes before the coins in
+// group() child order -- a group's children render back-to-front in
+// list order, so whatever the table/backdrop graphic belongs behind
+// must already be in the list before the coins are added to it.
+// Returns the (possibly seeded) list, so the caller can fold it into
+// the coinlayer group.
+prefill=func(
+  n=arg(0); seed=arg(1);
+  if(n==nil :then n=45);
+  created=seed;
+  if(created==nil :then created=list());
+  for(ppi=0 ppi<n ppi++
+    created,addcoin(rand(0.0-0.8,0.8) rand(0.05,0.95)));
+  update();
+  created)
+
+// growkeep(g newmember)/trimkeep(g member) -- growgroup()/trimgroup()
+// rebuild their group via an ungroup+regroup pair, and ungroup bakes the
+// group's CURRENT transform into every child's own transform so each
+// stays put visually once the group wrapper is gone.  coinlayer's only
+// live transform component is pushstep()'s wobble offset (ty), so
+// zeroing it first means the ungroup step bakes in nothing; reapplying
+// the same ty to the returned group afterward restores the correct
+// on-screen position without ever writing the wobble into a child's own
+// transform, where it would otherwise accumulate across every drop/fall.
+growkeep=func(
+  g=arg(0); newmember=arg(1);
+  ty=at(trans(g) 5);
+  trans(g 1,0,0,1,0,0 :set);
+  newg=growgroup(g newmember);
+  trans(newg 1,0,0,1,0,ty :set);
+  newg)
+
+trimkeep=func(
+  g=arg(0); member=arg(1);
+  ty=at(trans(g) 5);
+  trans(g 1,0,0,1,0,0 :set);
+  newg=trimgroup(g member);
+  trans(newg 1,0,0,1,0,ty :set);
+  newg)
+
+select(:clear)
+slotmark=ellipse(0,0, R0,R0)
+colorsrgb("#202020" "#FFFFFF")
+brush(65535,1)
+pattern(2)
+slotmark.kind="slotmark"
+smb=mbr(slotmark); slotmark.pw=at(smb 2)-at(smb 0); slotmark.ph=at(smb 3)-at(smb 1)
+select(:clear)
+colorsrgb("#000000" "#FFFFFF")
+brush(65535,0)
+placecoin(slotmark 0.0 1.0)
+
+// ============================================================
+// LAYER 3: pusher -- the machine's state and its magic words, one
+// dot-bound object (see header for why its own fields need no
+// local()/global() wrapper, and why its scratch variables need temp())
+// ============================================================
+pusher=(
+  :held 0
+  :traycount 8
+  :phase 0.0
+  :disturbance 0.0
+  :slotlat 0.0
+  :coinlayer nil
+
+  // pushstep() -- one tick of the avalanche.  The table's rocking is
+  // ONE transform on coinlayer (the group holding every coin plus
+  // slotmark), not a per-coin recompute; disturbance decays toward the
+  // ambient baseline; and each coin (checked against a snapshot of
+  // everyone's position taken at the START of this tick, so one coin's
+  // slide this tick never blocks or unblocks another until next tick)
+  // gets a shot at sliding downhill if nothing's in its way -- only a
+  // coin that actually slides gets its own placecoin() call, since a
+  // coin that didn't move needs no new transform of its own.
+  :pushstep func(
+    temp(ph2)=phase+PUSHSPEED; phase=ph2;
+    temp(wobble)=WOBBLEDEPTH*sin(phase);
+    disturbance=disturbance*DISTURBDECAY;
+    temp(ty)=wobble*(Y_FAR-Y_NEAR);
+    trans(coinlayer 1,0,0,1,0,ty :set);
+
+    temp(coins)=list(); temp(lats)=list(); temp(depths)=list();
+    temp(cs)=$$(coinlayer);
+    while(temp(g)=*cs
+      if(g.kind=="coin" :then coins,g; lats,g.lat; depths,g.dep));
+    temp(ncoin)=size(coins);
+
+    temp(chancebase)=BASECHANCE+disturbance*DISTURBGAIN;
+    if(chancebase>MAXCHANCE :then chancebase=MAXCHANCE);
+
+    temp(gone)=list();
+    for(temp(oi)=0 oi<ncoin oi++
+      temp(mylat)=lats@oi; temp(mydepth)=depths@oi;
+      temp(blocked)=0;
+      for(temp(oj)=0 (oj<ncoin)&&(blocked==0) oj++
+        if(oj!=oi :then
+          temp(dl)=(lats@oj)-mylat; if(dl<0.0 :then dl=0.0-dl);
+          temp(dd)=mydepth-(depths@oj);
+          if((dl<LANEHALF)&&(dd>0.0)&&(dd<COINGAP) :then blocked=1)));
+      temp(ng)=coins@oi;
+      temp(slid)=0;
+      if(blocked==0 :then
+        temp(roll)=rand(0.0,1.0);
+        if(roll<chancebase :then
+          temp(slidestep)=rand(SLIDEMIN,SLIDEMAX);
+          temp(nd)=mydepth-slidestep;
+          if(nd<0.0 :then nd=0.0);
+          ng.dep=nd;
+          mydepth=nd;
+          slid=1));
+      if(mydepth<=0.0 :then gone,ng :else if(slid==1 :then placecoin(ng mylat mydepth))));
+
+    // delete()-ing a coin while it's still a member of coinlayer leaves
+    // the group's own view corrupted -- any later read of the group
+    // (even just trans() or center()) then crashes.  trimkeep() first
+    // removes it from the group cleanly and without baking the current
+    // wobble into the remaining children (see trimkeep()'s own note),
+    // so the delete() that follows is deleting a standalone graphic,
+    // not a grouped one.
+    for(temp(gi)=0 gi<size(gone) gi++
+      coinlayer=trimkeep(coinlayer gone@gi);
+      delete(gone@gi);
+      traycount=traycount+1);
+    if(size(gone)>0 :then print("%d quarter(s) tipped over the edge!\n" size(gone)));
+    nil)
+
+  // drop() -- feed a quarter from your hand into the slot; the fresh
+  // coin lands near the top of the slope and jolts the whole pile.
+  // The new coin joins coinlayer so it rocks with the rest of the
+  // table instead of needing its own per-tick transform.
+  :drop func(
+    if(held<=0 :then print("No quarter in hand -- pusher.pickup() to grab one from the tray!\n"));
+    if(held<=0 :then return(nil));
+    held=held-1;
+    temp(jlat)=slotlat+rand(0.0-0.04,0.04);
+    if(jlat<0.0-0.82 :then jlat=0.0-0.82);
+    if(jlat>0.82 :then jlat=0.82);
+    temp(newcoin)=addcoin(jlat 0.97);
+    coinlayer=growkeep(coinlayer newcoin);
+    disturbance=disturbance+DISTURBBOOST;
+    update();
+    print("Dropped! Holding %d.\n" held);
+    held)
+
+  // pickup() -- grab one back out of the tray
+  :pickup func(
+    if(traycount<=0 :then print("Tray is empty -- wait for one to fall!\n"));
+    if(traycount<=0 :then return(nil));
+    traycount=traycount-1;
+    held=held+1;
+    print("Picked up a quarter! Holding %d, %d left in tray.\n" held traycount);
+    held)
+
+  // slide(n) -- slide the drop slot n units left(-)/right(+)
+  :slide func(
+    temp(n)=arg(0);
+    if(n==nil :then n=1);
+    slotlat=slotlat+n*SLIDE_UI;
+    if(slotlat<0.0-0.8 :then slotlat=0.0-0.8);
+    if(slotlat>0.8 :then slotlat=0.8);
+    placecoin(slotmark slotlat 1.0);
+    update();
+    slotlat)
+
+)
+
+// play()/demo()/status()/pushhelp() are plain top-level funcs, not
+// pusher's own methods, and call pusher.pushstep()/drop()/pickup()/
+// slide() from OUTSIDE pusher -- an ordinary dot-call, not a self-bound
+// method calling its own sibling. That distinction matters here: a
+// dot-bound method calling another method of the SAME object by name
+// (`pusher.drop()` from inside another pusher method) intermittently
+// fails ("not a func-valued attribute") the second time the identical
+// call shape repeats with nothing else between the calls, and the same
+// happens with the new selfdot form (`.drop()`) unless every call is
+// followed by something that observably uses its result -- too fragile
+// to build a driving loop on. Calling in from outside, as these do,
+// doesn't hit it.
+
+// play([n]) -- play for real: hold Shift (or turn Caps Lock on) and use
+// the arrow keys, same shiftcapture trick as etchasketch's keydrive()
+play=func(
+  n=arg(0);
+  if(n==nil :then n=3000);
+  lastkey(:shiftcapture true);
+  print("QUARTER PUSHER -- hold Shift or Caps Lock.  LEFT/RIGHT slide the slot,\n");
+  print("UP drops a quarter, DOWN picks one up from the tray.  Esc stops.\n");
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      if((k=="Esc")||(k=="ESC") :then done=1);
+      if(k=="LEFT" :then pusher.slide(0-1));
+      if(k=="RIGHT" :then pusher.slide(1));
+      if(k=="UP" :then pusher.drop());
+      if(k=="DOWN" :then pusher.pickup());
+      k=lastkey());
+    pusher.pushstep();
+    update(20000));
+  lastkey(:shiftcapture false);
+  print("Game paused.  play() to keep going, status() for counts.\n"))
+
+// demo([n]) -- the machine plays itself: no keyboard needed, so this is
+// the one to watch run (and the one that works headless under xvfb)
+demo=func(
+  n=arg(0);
+  if(n==nil :then n=500);
+  print("DEMO MODE -- the machine plays itself for %d ticks.\n" n);
+  for(di=0 di<n di++
+    if((pusher.held<=0)&&(pusher.traycount>0) :then pusher.pickup());
+    if((pusher.held>0)&&(di%11==0) :then
+      pusher.slide(int(round(rand(0.0-2.0,2.0))));
+      pusher.drop());
+    pusher.pushstep();
+    update(15000));
+  print("Demo done.  %d held, %d in tray.\n" pusher.held pusher.traycount))
+
+// status() -- how many quarters are where
+status=func(
+  print("Held: %d   Tray: %d\n" pusher.held pusher.traycount);
+  nil)
+
+// pushhelp() -- remind me of the magic words
+pushhelp=func(
+  print("*** QUARTER PUSHER HELP ***\n");
+  print("  play([n])        -- play for real: hold Shift/Caps, use arrows\n");
+  print("                      LEFT/RIGHT slide the slot, UP drops, DOWN picks up\n");
+  print("  demo([n])        -- watch the machine play itself, default 500 ticks\n");
+  print("  pusher.drop()    -- feed a quarter from your hand into the slot\n");
+  print("  pusher.pickup()  -- grab one back out of the tray\n");
+  print("  pusher.slide(n)  -- slide the slot n units (negative = left)\n");
+  print("  status()         -- how many quarters you're holding / in the tray\n"))
+
+// ============================================================
+// welcome!  (a pile of quarters already on the table, to start the game)
+// ============================================================
+srand(date())
+// table goes into the list before the coins so it ends up at the back
+// of coinlayer's render order -- a group's children draw back-to-front
+// in list order, so table, listed last, would otherwise paint over
+// every coin.
+coinseed=list()
+coinseed,table
+coinseed=prefill(45 coinseed)
+coinseed,slotmark
+select(:clear)
+select(coinseed)
+pusher.coinlayer=group()
+pusher.coinlayer.kind="coinlayer"
+select(:clear)
+print("+------------------------------------------------------------------------------+\n")
+print("|               QUARTER PUSHER  --  a comdraw / comterp example                |\n")
+print("+------------------------------------------------------------------------------+\n")
+print("The table is already piled with quarters, shifting with every oscillation.\n")
+print("You're holding 0, and 8 are waiting in the tray -- pick one up to start.\n")
+print("Try: pushhelp()  pusher.pickup()  pusher.drop()  demo()  play()\n")

@@ -393,9 +393,13 @@ void EvalFunc::execute() {
     }
   } else
     reset_stack();
-  
-  comterp()->set_attributes(old_alist);
-  Unref(old_alist);
+
+  /* skip restoring attributes when none were installed above --
+     otherwise this clobbers and over-unrefs the caller's active alist. */
+  if (alist) {
+    comterp()->set_attributes(old_alist);
+    Unref(old_alist);
+  }
 
   return;
 }

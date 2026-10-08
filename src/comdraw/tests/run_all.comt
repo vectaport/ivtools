@@ -115,5 +115,9 @@ if(run("./export_cutoff.comt")
   :then print("pass: export_cutoff\n")
   :else print("FAIL: export_cutoff\n");ok=false)
 
+if(run("./quarterpusher.comt")
+  :then print("pass: quarterpusher\n")
+  :else print("FAIL: quarterpusher\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
