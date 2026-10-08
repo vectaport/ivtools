@@ -242,6 +242,10 @@ if(run("./feedring.comt")
   :then print("pass: feedring\n")
   :else print("FAIL: feedring\n");topok=false)
 
+if(run("./ring.comt")
+  :then print("pass: ring\n")
+  :else print("FAIL: ring\n");topok=false)
+
 if(run("./arrow.comt")
   :then print("pass: arrow\n")
   :else print("FAIL: arrow\n");topok=false)

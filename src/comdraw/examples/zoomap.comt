@@ -130,12 +130,12 @@ zoo=(
   // then erases them -- the animals underneath never change.
   // (center()/mbr() report drawing coordinates, which include the page
   // transform that creation coordinates will get ADDED to them -- so the
-  // ring is created first, then move()d by the difference between where
+  // mark is created first, then move()d by the difference between where
   // it landed and where the animal is.)
   // No handles() suppression needed: the screen only redraws at update(),
   // and every update() here happens with the selection already cleared.
   :flash func(
-    rings=list();
+    marks=list();
     nt=size(things);
     for(ri=0 ri<nt ri++
       g=at(things ri);
@@ -143,23 +143,23 @@ zoo=(
       box=mbr(g);
       rx=(at(box 2)-at(box 0))/2+10;
       ry=(at(box 3)-at(box 1))/2+10;
-      ring=ellipse(at(gc 0),at(gc 1), rx,ry);
+      mark=ellipse(at(gc 0),at(gc 1), rx,ry);
       colorsrgb("#FF0000" "#FFFFFF");
       brush(5);
       pattern(1);
-      rc=center(ring);
+      rc=center(mark);
       move(at(gc 0)-at(rc 0) at(gc 1)-at(rc 1));
-      rings,ring);
+      marks,mark);
     select(:clear);
     update();
     for(bi=0 bi<3 bi++
-      for(rj=0 rj<size(rings) rj++ hide(at(rings rj)));
+      for(rj=0 rj<size(marks) rj++ hide(at(marks rj)));
       update(150000);
-      for(rj=0 rj<size(rings) rj++ show(at(rings rj)));
+      for(rj=0 rj<size(marks) rj++ show(at(marks rj)));
       update(350000));
     // delete() wants graphics one at a time, not a list variable
-    for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
-    // styling the rings also set the editor's CURRENT style -- put it
+    for(rj=0 rj<size(marks) rj++ delete(at(marks rj)));
+    // styling the marks also set the editor's CURRENT style -- put it
     // back to the startup default (black on white, hairline, unfilled)
     // so the next shape anyone draws isn't born looking like a ring.
     // (select(:clear) first: with nothing selected these only set state.)
