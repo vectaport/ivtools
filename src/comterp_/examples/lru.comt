@@ -4,8 +4,9 @@
 // recency order, oldest (least-recently-used) at index 0. A hit moves its
 // entry to the end via delete-then-reappend; a miss evicts index 0 once the
 // cache is full, then appends the new entry at the end. The body stays at
-// top level rather than inside func()s, sidestepping ComTerp's closure
-// capture rules for free variables -- see src/ComTerp/HACKING.md.
+// top level rather than inside func()s: a func's write to a free scalar
+// becomes that func's own private next-call default, not the outer
+// variable -- see "Closures" in doc/LANGUAGE.md.
 //
 // Run from the repo root:
 //   comterp run src/comterp_/examples/lru.comt
