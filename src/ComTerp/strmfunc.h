@@ -464,6 +464,20 @@ public:
 
 };
 
+//: shorthand for feed(string(cap [typesym])) -- build a fresh ring FIFO
+//: directly, without spelling out the backing string.  Use
+//: feed(string(cap [typesym]) :noring) directly for a non-wrapping ring.
+// fifo=ring(cap [typesym]) -- build a fixed-capacity ring FIFO
+class RingFunc : public ComFunc {
+public:
+    RingFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "fifo=%s(cap [typesym]) -- build a fixed-capacity ring FIFO; shorthand for feed(string(cap [typesym]))"; }
+
+};
+
 //: command to re-grain a stream: pull up to n elements into an indexed list,
 //: one block per next(), so a script loop pays interpretation once per block
 //: instead of once per element.

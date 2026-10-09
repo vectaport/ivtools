@@ -4,7 +4,7 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ring ringpair ringpair7 ringpair10 frontback move
+#          updown4C cycle ringpair ringpair7 ringpair10 frontback move
 #          transform sel eagain parsetest optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #   --demo slows tests down for a human watching the drawserv windows live;
@@ -25,7 +25,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      updown3A updown3B   three, chained and forked\n");
     print("      updown4A updown4B updown4C\n");
     print("                          four, to the second level\n");
-    print("      ring                a ring cannot be formed\n");
+    print("      cycle               a ring cannot be formed\n");
     print("      ringpair            two long chains closed at both ends at once\n");
     print("      ringpair7           ringpair at 14 nodes, the CI canary for ringpair10\n");
     print("      ringpair10          ringpair at 20 nodes\n");
@@ -120,12 +120,14 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,updown3A,updown3B,updown4A,updown4B,ring,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
-   command fires it -- `optable with no arguments segfaults.  parsetest and
-   optabletest keep their suffix for that reason and not for tidiness. */
+   command fires it -- `optable with no arguments segfaults; bquoted (`name)
+   it crashes EqualFunc instead, since a bareword is resolved against the
+   command table before bquote can protect it.  parsetest, optabletest and
+   cycle keep their names for that reason and not for tidiness. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -208,12 +210,12 @@ if(tests_flag :then
       :else
         print("updown4B: FAIL\n" :err);
         ok=false));
-    if(t==`ring || t==`all :then
-      print("running ring test\n" :err);
-      if(ring_test(:dummy 0) :then
-        print("ring: pass\n" :err)
+    if(t==`cycle || t==`all :then
+      print("running cycle test\n" :err);
+      if(cycle_test(:dummy 0) :then
+        print("cycle: pass\n" :err)
       :else
-        print("ring: FAIL\n" :err);
+        print("cycle: FAIL\n" :err);
         ok=false));
     if(t==`ringpair || t==`all :then
       print("running ringpair test\n" :err);

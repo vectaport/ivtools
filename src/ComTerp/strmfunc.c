@@ -2958,6 +2958,46 @@ void FeedFunc::execute() {
 
 /*****************************************************************************/
 
+/* the reverse of type_symid(ValueType): a linear scan over the closed enum,
+   mirrors symbolfunc.c's own private copy for string(cap typesym). */
+static AttributeValue::ValueType ring_valuetype_for_symid(int symid) {
+  for (int t=AttributeValue::UnknownType; t<=AttributeValue::AnyType; t++)
+    if (AttributeValue::type_symid((AttributeValue::ValueType)t) == symid)
+      return (AttributeValue::ValueType)t;
+  return AttributeValue::UnknownType;
+}
+
+RingFunc::RingFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void RingFunc::execute() {
+  ComValue capv(stack_arg(0));
+  /* symbol=true: a bare type name (AnyType, not `AnyType) reads as the
+     symbol itself, same as string(cap typesym)'s own typesym argument */
+  ComValue typev(stack_arg(1, true));
+  boolean typeflag = typev.type()==ComValue::SymbolType;
+  reset_stack();
+
+  AttributeValue::ValueType blocktype = AttributeValue::UnknownType;
+  int chunksz = 0;
+  if (typeflag) {
+    blocktype = ring_valuetype_for_symid(typev.symbol_val());
+    chunksz = AttributeValue::type_size(blocktype);
+  }
+  int cap = typeflag ? capv.int_val()*chunksz : capv.int_val();
+  int newid = cap>=0 ? symbol_new((unsigned)cap, false) : -1;
+  if (newid<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  ComValue bufv((unsigned int)newid, ComValue::StringType);
+  if (typeflag) bufv.blocktype(blocktype);
+
+  ComValue stream(ring_stream_value(comterp(), bufv, true));
+  push_stack(stream);
+}
+
+/*****************************************************************************/
 
 ChunkFunc::ChunkFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
