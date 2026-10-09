@@ -189,6 +189,11 @@ void set_continuation_prompt_disabled(int val);
 int get_continuation_prompt_disabled();
 void set_command_prompt(const char* prompt);
 const char* get_command_prompt();
+void set_prompt_lineno_mode(int val);
+int get_prompt_lineno_mode();
+const char* get_command_prompt_with_lineno(int linenum);
+// get_command_prompt(), with ":<linenum>" spliced in before the closing
+// ')' when the lineno mode is on; unchanged otherwise.
 
 /* stdin echo control (from ttyecho.c) -- see that file's header comment.
    tty_echo_off() no-ops unless stdin is a real tty; safe to call

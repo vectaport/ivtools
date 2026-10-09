@@ -78,6 +78,21 @@ comterp run src/comterp_/examples/<name>.comt
   the consumer, not the stream -- `chunk` pays when C can swallow a block
   whole, and does nothing when every element read must be emitted again.   
   
+- **lru.comt** -- an LRU cache built from three parallel ordered lists
+  (`keys`, `vals`, `hits`): list order IS recency order, so a hit is
+  delete-then-reappend (moves to the end) and a miss past capacity evicts
+  index 0 before appending the new entry. The whole body stays at top
+  level rather than inside `func()`s, because a `func()`'s free-variable
+  writes do not write back to the caller's scalar -- only a mutated-in-place
+  list does -- so wrapping this in helper funcs silently drops the counters.
+  First a fully-traced 15-request walkthrough against a capacity-4 cache
+  (the last 3 are repeat hits on survivors, so the final hit counts aren't
+  all zero);
+  then a scaled benchmark (200-key space, capacity 32, 5000 requests,
+  `rand()*rand()` skewed toward a hot subset so the cache settles into a
+  steady-state hit rate), timed with `time(:mono :us)`, reporting hit/miss
+  rate and throughput.
+
 - **txpose.comt** -- four ways to transpose a stream of streams, each
   redefining `txpose`, each demonstrated as it is defined, with a timing table
   measured live. Draining to lists and calling `xpose()` once (0.086s); the

@@ -44,11 +44,27 @@ History:        Written by Scott E. Johnston, April 1989
 int _continuation_prompt;
 int _continuation_prompt_disabled = 0;
 static const char* _command_prompt_string = "";
+static int _prompt_lineno_mode = 0;
 
 void set_continuation_prompt_disabled(int val) { _continuation_prompt_disabled = val; }
 int get_continuation_prompt_disabled() { return _continuation_prompt_disabled; }
 void set_command_prompt(const char* prompt) { _command_prompt_string = prompt; }
 const char* get_command_prompt() { return _command_prompt_string; }
+void set_prompt_lineno_mode(int val) { _prompt_lineno_mode = val; }
+int get_prompt_lineno_mode() { return _prompt_lineno_mode; }
+
+const char* get_command_prompt_with_lineno(int linenum) {
+  static char buf[64];
+  const char* base = get_command_prompt();
+  const char* paren;
+  int prefixlen;
+  if (!_prompt_lineno_mode || !*base || !(paren = strrchr(base, ')')))
+    return base;
+  prefixlen = paren - base;
+  if (prefixlen > 48) prefixlen = 48;
+  snprintf(buf, sizeof(buf), "%.*s:%d%s", prefixlen, base, linenum, paren);
+  return buf;
+}
 
 int _skip_shell_comments = 0;
 infuncptr _oneshot_infunc = NULL;
