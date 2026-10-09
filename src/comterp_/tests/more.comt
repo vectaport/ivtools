@@ -77,8 +77,8 @@ f9=open("./more.comt")
 s9=feed(f9 :raw)
 m9=more(s9)
 n9=next(s9)
-ok=ok&&(type(m9)==type(n9))&&(m9==n9)
-print("9 s9=feed(open(...) :raw); more(s9)==next(s9), same FileObj (expect true): %v\n" (type(m9)==type(n9))&&(m9==n9))
+ok=ok&&(m9!=nil)&&(type(m9)==type(n9))&&(m9==n9)
+print("9 s9=feed(open(...) :raw); more(s9)==next(s9), same non-nil FileObj (expect true): %v\n" (m9!=nil)&&(type(m9)==type(n9))&&(m9==n9))
 
 print("more: %v\n" ok)
 ok
