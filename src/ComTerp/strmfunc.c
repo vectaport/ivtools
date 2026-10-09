@@ -2299,6 +2299,8 @@ void InfoFunc::execute() {
     static int wrap_sym = symbol_add("wrap");
     static int free_sym = symbol_add("free");
     static int traffic_sym = symbol_add("traffic");
+    static int blocksz_sym2 = symbol_add("blocksz");
+    static int blocktype_sym2 = symbol_add("blocktype");
     static int buf_sym = symbol_add("buf");
     ComValue bufv(*((AttributeValue*)avl->Get(0)));
     int head = ((AttributeValue*)avl->Get(1))->int_val();
@@ -2334,6 +2336,12 @@ void InfoFunc::execute() {
        printed) is a 6th avl slot older rings may lack -- report 0
        rather than reading past the end. */
     ComValue trafficv(avl->Number()>5 ? ((AttributeValue*)avl->Get(5))->int_val() : 0);
+    /* the buffer's own declared element width/type -- 0/UnknownType for an
+       ordinary char-granular ring, the typed values for string(n type) --
+       same fields and rendering info() gives a plain string. */
+    ComValue blockszv2(bufv.blocksz());
+    ComValue blocktypev2(AttributeValue::type_symid(bufv.blocktype()), ComValue::SymbolType);
+    blocktypev2.bquote(1);
     al->add_attr(mode_sym3, modeval);
     al->add_attr(base_sym, basev);
     al->add_attr(head_sym, headv);
@@ -2343,6 +2351,8 @@ void InfoFunc::execute() {
     al->add_attr(wrap_sym, wrapv);
     al->add_attr(free_sym, freev);
     al->add_attr(traffic_sym, trafficv);
+    al->add_attr(blocksz_sym2, blockszv2);
+    al->add_attr(blocktype_sym2, blocktypev2);
 
     if (count>0) {
       /* one contiguous run when it doesn't straddle the end, two when it

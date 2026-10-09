@@ -1,6 +1,6 @@
 // src/comterp_/tests/ring.comt -- ring(), shorthand for feed(string())
 //
-// coverage: 5/7 (71%)
+// coverage: 6/7 (86%)
 // funcs: ring
 // missing: ring(stress) ring(random)
 //
@@ -49,6 +49,17 @@ print("4 ring(8 AnyType) and feed(string(8 AnyType)) print the same traffic (exp
 // --- 5: return type -- a fresh ring is a StreamType, same as feed(string()) ---
 ok=ok&&(type(ring(2))==`StreamType)
 print("5 type(ring(2)) (expect StreamType): %v\n" type(ring(2)))
+
+// --- 6: info()'s :blocksz/:blocktype report the ring's own element
+// width/type, same fields and values info() on the backing string itself
+// would give -- 0/UnknownType for an ordinary char-granular ring, the
+// typed values for a typed one. ---
+i6a=info(ring(3))
+ok=ok&&(i6a.blocksz==0)&&(i6a.blocktype==`UnknownType)
+print("6a info(ring(3)).blocksz/.blocktype (expect 0 UnknownType): %v %v\n" i6a.blocksz i6a.blocktype)
+i6b=info(ring(4 UIntType))
+ok=ok&&(i6b.blocksz==4)&&(i6b.blocktype==`UIntType)
+print("6b info(ring(4 UIntType)).blocksz/.blocktype (expect 4 UIntType): %v %v\n" i6b.blocksz i6b.blocktype)
 
 print("ring: %v\n" ok)
 ok
