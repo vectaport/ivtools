@@ -930,9 +930,28 @@ void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int li
     }
 
     if (varname.is_object(Attribute::class_symid())) {
-      /* a dot()-destination -- write the pulled value into it, same as
-	 AssignFunc's al.field=val, reporting nil instead on a self-
-	 insertion refusal rather than the unwritten value. */
+      if (!from_each) {
+	/* default "stream builds stream": defer the pull-and-write into a
+	   lazy wrapper (DotNextFunc) instead of writing here. */
+	static DotNextFunc* dnfunc = nil;
+	if (!dnfunc) {
+	  dnfunc = new DotNextFunc(comterp());
+	  dnfunc->funcid(symbol_add("dotnext"));
+	}
+	AttributeValueList* avl = new AttributeValueList();
+	avl->Append(new AttributeValue(streamv));
+	avl->Append(new AttributeValue(varname));
+	ComValue linenumv(linenum, ComValue::IntType);
+	avl->Append(new AttributeValue(linenumv));
+	ComValue stream(dnfunc, avl);
+	stream.stream_mode(STREAM_INTERNAL);
+	push_stack(stream);
+	return;
+      }
+
+      /* each()/**-forced: write the one pulled value in place immediately,
+	 same as AssignFunc's al.field=val, reporting nil instead on a
+	 self-insertion refusal rather than the unwritten value. */
       execute_impl(comterp(), streamv);
       ComValue pulled(comterp()->stack_top());
       Attribute* attr = (Attribute*)varname.obj_val();
@@ -1005,6 +1024,48 @@ void NextVarNextFunc::execute() {
       return;   // the value from execute_impl is already on the stack
     } else
       push_stack(ComValue::nullval());
+}
+
+DotNextFunc::DotNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void DotNextFunc::execute() {
+    ComValue operand1(stack_arg(0));
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (!avl) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    Iterator i;
+    avl->First(i);
+    AttributeValue* srcval = avl->GetAttrVal(i);       // [0] source stream
+    avl->Next(i);
+    AttributeValue* attrval = avl->GetAttrVal(i);      // [1] destination Attribute
+    avl->Next(i);
+    AttributeValue* linenumval = avl->GetAttrVal(i);   // [2] source line number
+
+    ComValue srccopy(*srcval);
+    NextFunc::execute_impl(comterp(), srccopy);
+    if (comterp()->stack_top().is_unknown()) {
+      /* exhausted -- peek (not pop) before taking anything off the stack,
+	 same discipline NextVarNextFunc's own pairing uses above. */
+      comterp()->pop_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue pulled(comterp()->pop_stack());
+
+    Attribute* attr = (Attribute*)attrval->obj_val();
+    AttributeList* owner = attr->Owner();
+    if (owner && value_contains_container(pulled, (void*)owner, true)) {
+      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+	      linenumval->int_val());
+      push_stack(ComValue::nullval());
+      return;
+    }
+    attr->Value(new ComValue(pulled));
+    push_stack(pulled);
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
@@ -1453,7 +1514,10 @@ void EachFunc::execute() {
      "at()'s lhs flag"); checked before stack_arg_post_eval touches
      anything, same ordering ListAtFunc's own check uses. */
   boolean for_batch = comterp()->stack_top(nkeys()+1).lhs_assign();
-  ComValue strmv(stack_arg_post_eval(0));
+  /* symbol=true preserves a dot() destination's live Attribute handle
+     during a batch handoff -- an ordinary stream argument is unaffected,
+     since there's nothing for symbol to resolve. */
+  ComValue strmv(stack_arg_post_eval(0, for_batch));
 
   if (for_batch) {
     /* hand back the still-live driving stream itself, flagged, so the

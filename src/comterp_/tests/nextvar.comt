@@ -1,18 +1,19 @@
 // src/comterp_/tests/nextvar.comt -- next(stream var), the optional second
 // argument that assigns the pulled value to a variable
 //
-// coverage: 13 tests of next()'s optional 2nd arg -- scalar assignment, a
+// coverage: 16 tests of next()'s optional 2nd arg -- scalar assignment, a
 // feed()-ring source (Scott's own motivating example), exhaustion assigning
 // nil, a non-symbol 2nd argument being ignored for backward compatibility,
 // assignment landing in an already-existing variable's own scope, a
 // streamed at() destination (the next()/AssignFunc zipper), a scalar at()
-// destination, a dot() destination (vivified and pre-existing), a
-// func-local var staying in the func's own frame rather than leaking to
-// global scope, a temp() var staying isolated per call, an each()/**-
-// wrapped non-assignable var batch-draining to a pull count, and a plain
-// stream var deferring next() itself into a lazy "stream builds stream"
-// wrapper
-// funcs: next feed string istype func temp global at dot each
+// destination, a dot() destination deferring into a lazy stream by default
+// (vivified and pre-existing fields, each()/**-forced immediate write,
+// exhaustion, self-insertion refusal), a func-local var staying in the
+// func's own frame rather than leaking to global scope, a temp() var
+// staying isolated per call, an each()/**-wrapped non-assignable var
+// batch-draining to a pull count, and a plain stream var deferring next()
+// itself into a lazy "stream builds stream" wrapper
+// funcs: next feed string istype func temp global at dot each ring
 
 //
 // var is read unevaluated, the same way AssignFunc reads its own lhs: a
@@ -30,9 +31,12 @@
 // same lhs machinery AssignFunc's own '=' uses: a streamed at() (r@lo:hi)
 // zip-writes each pulled value across the index stream and returns the
 // write count instead of a single value (NextFunc::zip_assign_stream,
-// shared with AssignFunc's own r@lo:hi=val); a scalar at() (r@n) or a dot()
-// (al.field) write the one pulled value in place and still return it, like
-// the plain-symbol case.
+// shared with AssignFunc's own r@lo:hi=val); a scalar at() (r@n) writes the
+// one pulled value in place and still returns it, like the plain-symbol
+// case. A dot() (al.field) destination instead gets the "stream builds
+// stream" default, same as a plain stream var: next() itself defers into a
+// lazy wrapper that pulls-and-writes one element per later demand, and
+// each()/**var forces the immediate write, returning the pulled value.
 
 ok=true
 
@@ -98,21 +102,27 @@ v7=next(s7 r7@1)
 ok=ok&&(v7==7)&&(r7@1==7)
 print("7 next(s r@1) writes the pulled value in place, still returns it (expect 7, 7): %v %v\n" v7 r7@1)
 
-// --- 8: a dot() destination writes the pulled value into that attribute,
-// vivifying it if it didn't already exist ---
+// --- 8: a dot() destination is lazy by default -- next() returns a
+// stream, vivifying and writing the field only once that stream is
+// actually pulled ---
 al8=(:x 1)
 s8=$$(42)
-v8=next(s8 al8.y)
+n8=next(s8 al8.y)
+lazy8=istype(n8 StreamType)
+before8=al8.y
+ok=ok&&lazy8&&(before8==nil)
+print("8a next(s al.y) is lazy -- istype(n StreamType), al.y before any pull (expect true nil): %v %v\n" lazy8 before8)
+v8=next(n8)
 ok=ok&&(v8==42)&&(al8.y==42)
-print("8 next(s al.y) vivifies and writes a new field (expect 42, 42): %v %v\n" v8 al8.y)
+print("8b next(n) pulls and vivifies al.y (expect 42, 42): %v %v\n" v8 al8.y)
 
-// --- 9: a dot() destination on an already-existing field updates it in
-// place rather than adding a second entry ---
+// --- 9: each()/**var forces the write immediately on an already-existing
+// field, same contract the old eager-always default had ---
 al9=(:x 1)
 s9=$$(99)
-next(s9 al9.x)
+next(s9 **al9.x)
 ok=ok&&(al9.x==99)
-print("9 next(s al.x) updates an existing field in place (expect 99): %v\n" al9.x)
+print("9 next(s **al.x) forces the write immediately on an existing field (expect 99): %v\n" al9.x)
 
 // --- 10: a func-local var stays in the func's own frame -- next(stream var)
 // inside a func body must not leak the write out to global scope, the same
@@ -153,6 +163,28 @@ p13c=*v13
 p13d=*v13
 ok=ok&&(p13a==10)&&(p13b==20)&&(p13c==30)&&(p13d==nil)
 print("13 next(s plainstream) defers into a lazy stream paced by the var stream (expect 10 20 30 nil): %v %v %v %v\n" p13a p13b p13c p13d)
+
+// --- 14: pulling a dot() lazy wrapper past exhaustion returns nil and
+// leaves the field at its last written value, same as a plain stream var
+// would leave var untouched past the end ---
+al14=(:f 5)
+s14=$$(1)
+n14=next(s14 al14.f)
+v14a=next(n14)
+v14b=next(n14)
+ok=ok&&(v14a==1)&&(al14.f==1)&&(v14b==nil)&&(al14.f==1)
+print("14 next(n) past exhaustion returns nil, al.f stays at its last write (expect 1 1 nil 1): %v %v %v %v\n" v14a al14.f v14b al14.f)
+
+// --- 15: a self-insertion refusal still applies under the lazy default --
+// pulling the wrapper when the source's next element is the attrlist's own
+// owner returns nil instead of creating a reference cycle ---
+al15=(:f nil)
+r15=ring(1 AnyType)
+s15=feed(r15 al15)
+n15=next(s15 al15.f)
+m15=next(n15)
+ok=ok&&(m15==nil)&&(al15.f==nil)
+print("15 next(n) refuses a self-insertion, same as the eager path (expect nil, nil): %v %v\n" m15 al15.f)
 
 print("nextvar: %v\n" ok)
 ok
