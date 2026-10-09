@@ -293,12 +293,13 @@ public:
 *s is unary-prefix sugar for %1$s(s)\n\
 with var, also assigns the pulled value (including nil) to that variable\n\
 var may also be a settable expression: a streamed at() (r@lo:hi) zip-writes\n\
-each pulled value and returns the write count; a scalar at() (r@n) or a\n\
-dot() (al.field) write the one pulled value in place and still return it\n\
-each()/**var batch-drains var in place of the lazy default, returning the\n\
-write count (or just the pull count if var isn't itself assignable); a\n\
-var that's a stream but not each()-wrapped instead makes %1$s itself lazy,\n\
-returning a stream that performs one pull per element on later demand"; }
+each pulled value and returns the write count; a scalar at() (r@n) writes\n\
+the one pulled value in place and still returns it\n\
+a dot() (al.field) var, or a var that's a plain stream, instead makes\n\
+%1$s itself lazy by default, returning a stream that pulls-and-writes (or\n\
+just pulls, for a plain stream var) one element per later demand\n\
+each()/**var batch-drains that lazy default immediately, returning the\n\
+write count (or just the pull count if var isn't itself assignable)"; }
 
     static int next_depth() { return _next_depth; }
 protected:
@@ -334,6 +335,25 @@ public:
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() {
       return "hidden func used by next command for the stream-builds-stream default."; }
+};
+
+//: hidden func used by next() to drive the "stream builds stream" default
+// for a dot() destination (al.field): defers the pull-and-write into a
+// lazy stream unless each()/**-wrapped, the same convention
+// NextVarNextFunc applies to a plain stream var.  Holds [0] the source
+// stream, [1] the destination Attribute, [2] the source line number (for
+// a self-insertion warning) in its own stream's stream_list().  Each
+// pull reads one value from the source and writes it into the
+// attribute, refusing a self-insertion the same way the eager path
+// does; nil once the source is exhausted.
+class DotNextFunc : public StrmFunc {
+public:
+    DotNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return false; }
+    virtual const char* docstring() {
+      return "hidden func used by next command for dot()'s stream-builds-stream default."; }
 };
 
 //: lookahead -- see what next() would return without losing it.
