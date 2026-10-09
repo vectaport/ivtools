@@ -755,5 +755,14 @@ ok=ok&&(dot(al75 z75())==al75.z75())&&(dot(al75 z75())==99)
 print("75 dot(al75 p75)==al75.p75, dot(al75 m75(4))==al75.m75(4), dot(al75 z75())==al75.z75() (expect true): %v\n\n" ok)
 prev_ok=check_fail(:ok ok)
 
+// --- test 76: dot(al "name") -- a literal string key creates/reads a
+// plain field, same as the bare-symbol form, rather than being misread
+// as a zero-arg method call just because a string also carries nids==0 ---
+al76=(:q76 3)
+dot(al76 "r76")=9
+ok=ok&&(dot(al76 "r76")==9)&&(al76.r76==9)&&(dot(al76 "q76")==3)
+print("76 dot(al76 \"r76\")=9 creates r76; dot(al76 \"q76\") reads existing q76 (expect true): %v\n\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok
