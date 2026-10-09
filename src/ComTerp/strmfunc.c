@@ -1213,16 +1213,9 @@ MoreFunc::MoreFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void MoreFunc::execute() {
-  /* symbol=true -- suppress the default auto-resolve (ComTerp::pop_stack's
-     is_symbol()/is_attribute() handling) so a dot expression (al.field)
-     hands back the Attribute DotFunc found (dotfunc.c:622) rather than
-     its value, and a bare name stays a SymbolType -- either way, a handle
-     to WHERE the stream lives, not just a copy of what it held a moment
-     ago.  Needed because a stream's own avl pointer, though shared by an
-     ordinary variable read, does NOT survive an attribute's read-then-
-     auto-resolve copy (ComTerp::pop_stack, comterp.c:1513-1516) -- so the
-     restash below has to be written back to that handle explicitly, not
-     left to aliasing. */
+  /* symbol=true suppresses the usual symbol/attribute auto-resolve, so a
+     dot expression hands back its Attribute (a handle, not a copy) for
+     the explicit write-back below. */
   ComValue rawarg(stack_arg_post_eval(0, true));
   reset_stack();
 
@@ -1256,10 +1249,35 @@ void MoreFunc::execute() {
   push_stack(peeked);
 }
 
+MorePeekNextFunc::MorePeekNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+/* same single-element pop as StreamNextFunc's list case, minus its
+   FileObj/PipeObj read-ahead -- a peeked value replays exactly as stored,
+   even when it happens to be a file or pipe object. */
+void MorePeekNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+  AttributeValueList* avl = operand1.stream_list();
+  Iterator i;
+  if (avl) avl->First(i);
+  AttributeValue* retval = (avl && !avl->Done(i)) ? avl->GetAttrVal(i) : nil;
+  if (retval) {
+    push_stack(*retval);
+    avl->Remove(retval);
+    delete retval;
+  } else
+    push_stack(ComValue::nullval());
+}
+
 ComValue MoreFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
-  if (streamv.stream_mode_raw()&STREAM_RING)
-    /* random-access over its own buffer -- read without popping, so
-       there's nothing to lose and nothing to restash. */
+  /* STREAM_RING also tags a lazy FeedRingNextFunc [ring,source] wrapper
+     (strmfunc.c's feed()), which isn't random-access -- only a real ring's
+     own stream_func/avl shape gets the direct peek; anything else falls
+     through to the generic pull-and-restash path below. */
+  if ((streamv.stream_mode_raw()&STREAM_RING) &&
+      streamv.stream_func()==(void*)ring_next_func(comterp) &&
+      streamv.stream_list() && streamv.stream_list()->Number()>=5)
     return ring_peek_char(streamv.stream_list());
 
   /* no random access -- the only way to see the next value is to pull it
@@ -1271,20 +1289,16 @@ ComValue MoreFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
        nothing was produced to hold onto. */
     return peeked;
 
-  /* restash the peeked value at the front of this SAME stream object (its
-     avl is a shared pointer, not a copy of whatever variable/expression
-     referenced it) -- the identical STREAM_NESTED+Prepend idiom
-     execute_impl's own nested-stream handling uses above, so the next
-     real pull against this stream, however it's later reached, drains
-     this one-shot wrapper first and re-delivers the peeked value. */
-  static StreamNextFunc* snfunc = nil;
-  if (!snfunc) {
-    snfunc = new StreamNextFunc(comterp);
-    snfunc->funcid(symbol_add("streamnext"));
+  /* restash via the STREAM_NESTED+Prepend idiom used above, on the same
+     (shared-pointer) avl, so the next real pull replays it unchanged. */
+  static MorePeekNextFunc* mpfunc = nil;
+  if (!mpfunc) {
+    mpfunc = new MorePeekNextFunc(comterp);
+    mpfunc->funcid(symbol_add("morepeeknext"));
   }
   AttributeValueList* peekavl = new AttributeValueList();
   peekavl->Append(new AttributeValue(peeked));
-  ComValue* peekstream = new ComValue(snfunc, peekavl);
+  ComValue* peekstream = new ComValue(mpfunc, peekavl);
   peekstream->stream_mode(STREAM_INTERNAL|STREAM_NESTED);
   streamv.stream_list()->Prepend(peekstream);
 
@@ -2730,19 +2744,24 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
   ComValue streamv(v);
   for (;;) {
     if (ring_avail(avl)<=0) {
-      /* out of room -- "genuinely refused" (source still has a value,
-	 lost otherwise) and "nothing left to refuse" (source is also
-	 spent) both reach this check looking identical from avail alone,
-	 so peek the source via more() rather than assume the worst; a
-	 real peeked value is already restashed onto streamv by more()
-	 itself, so a later feed() call on the same source resumes
-	 without loss. */
+      /* full: peek rather than assume refused, so "source also spent"
+	 (or ending in a delimiter) isn't mistaken for "source has more"
+	 -- a real peeked value stays restashed on streamv for later. */
       ComValue peeked(MoreFunc::execute_impl(comterp, streamv));
       if (_draining_guard_tripped_avl==avl) {
 	_draining_guard_tripped_avl = 0;
 	return false;
       }
-      return peeked.is_null();
+      if (peeked.is_null()) return true;
+      if (StrmFunc::is_delimiter(peeked)) {
+	/* consume the restashed delimiter for real, same as the ordinary
+	   per-element pull below does, so it isn't left sitting at the
+	   front of the source. */
+	NextFunc::execute_impl(comterp, streamv);
+	comterp->pop_stack();
+	return true;
+      }
+      return false;
     }
     NextFunc::execute_impl(comterp, streamv);
     ComValue popval(comterp->pop_stack());

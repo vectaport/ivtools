@@ -351,6 +351,17 @@ public:
 // real pull -- against this stream, however it's later referenced --
 // re-delivers it instead of cranking the source again.  A nil result
 // means the stream is exhausted; there's nothing to restash.
+//: hidden func used by more()'s restash to replay a single peeked value
+//: verbatim -- unlike StreamNextFunc, never reads a FileObj/PipeObj it holds.
+class MorePeekNextFunc : public StrmFunc {
+public:
+    MorePeekNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by more() to replay a single peeked value unchanged."; }
+};
+
 class MoreFunc : public StrmFunc {
 public:
     MoreFunc(ComTerp*);
