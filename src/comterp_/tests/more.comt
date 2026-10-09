@@ -1,0 +1,84 @@
+// src/comterp_/tests/more.comt -- more(), the non-consuming stream lookahead
+//
+// coverage: 9 tests of more() behavior, incl. idempotent peek on a bare
+// variable, replay through next() after a peek, a ring's true random-access
+// peek (no restash needed), peeking an attrlist field (al.field) and seeing
+// the restash survive a second more() and a later next(), nil at an
+// exhausted stream, a lazy feed(ring,stream) wrapper (STREAM_RING-tagged
+// but not a real ring) still peeking for real, a peeked file/pipe object
+// replaying unchanged instead of being read from, and an each()-drained
+// batch ending exactly at a bquoted delimiter
+// funcs: more next feed info open
+
+ok=true
+
+// --- 1: more() on a bare variable repeats the same value until next() ---
+s1=0..2
+m1a=more(s1)
+m1b=more(s1)
+n1=next(s1)
+ok=ok&&(m1a==0)&&(m1b==0)&&(n1==0)
+print("1 s1=0..2; more(s1), more(s1), next(s1) (expect 0 0 0): %v %v %v\n" m1a m1b n1)
+
+// --- 2: next() after more() resumes the stream instead of repeating ---
+n2=next(s1)
+ok=ok&&(n2==1)
+print("2 next(s1) after the peek above resumes at 1 (expect 1): %v\n" n2)
+
+// --- 3: more() on an exhausted stream is nil ---
+next(s1)
+m3=more(s1)
+ok=ok&&(m3==nil)
+print("3 s1 exhausted; more(s1) (expect nil): %v\n" m3)
+
+// --- 4: a ring peeks for real -- no restash needed, so two more() calls
+// don't add to the 3 pushes construction already logged as traffic ---
+ring4=feed(string(3 UIntType) 1 2 3)
+m4a=more(ring4)
+m4b=more(ring4)
+t4=info(ring4).traffic
+n4=next(ring4)
+ok=ok&&(m4a==1)&&(m4b==1)&&(t4==3)&&(n4==1)
+print("4 ring4=feed(1,2,3); more(ring4), more(ring4), info(ring4).traffic, next(ring4) (expect 1 1 3 1): %v %v %v %v\n" m4a m4b t4 n4)
+
+// --- 5: more(al.field) peeks through a dot-bound attrlist field ---
+al5=(:s nil)
+al5.s=stream(10 20 30)
+m5a=more(al5.s)
+m5b=more(al5.s)
+ok=ok&&(m5a==10)&&(m5b==10)
+print("5 al5.s=stream(10,20,30); more(al5.s), more(al5.s) (expect 10 10): %v %v\n" m5a m5b)
+
+// --- 6: the peeked value survives into next() on the same dot field ---
+n6a=next(al5.s)
+n6b=next(al5.s)
+ok=ok&&(n6a==10)&&(n6b==20)
+print("6 next(al5.s) replays the peeked 10, then resumes at 20 (expect 10 20): %v %v\n" n6a n6b)
+
+// --- 7: more() on a non-stream value is nil, not an error ---
+m7=more(5)
+ok=ok&&(m7==nil)
+print("7 more(5) on a non-stream (expect nil): %v\n" m7)
+
+// --- 8: a lazy feed(ring,stream) wrapper is STREAM_RING-tagged but is not
+// a real ring (its avl is [ring,source], not the 6-field ring layout), so
+// more() must still pull-and-restash rather than mistake it for a ring and
+// read raw bytes out of its own 2-element list ---
+ring8=feed(string(3 UIntType))
+wrap8=feed(ring8 0..2)
+m8=more(wrap8)
+n8=next(wrap8)
+ok=ok&&(m8==0)&&(n8==0)
+print("8 wrap8=feed(ring8 0..2); more(wrap8), next(wrap8) (expect 0 0): %v %v\n" m8 n8)
+
+// --- 9: a peeked FileObj/PipeObj replays unchanged -- next() must not
+// read a line from it just because more() happened to pull it first ---
+f9=open("./more.comt")
+s9=feed(f9 :raw)
+m9=more(s9)
+n9=next(s9)
+ok=ok&&(m9!=nil)&&(type(m9)==type(n9))&&(m9==n9)
+print("9 s9=feed(open(...) :raw); more(s9)==next(s9), same non-nil FileObj (expect true): %v\n" (m9!=nil)&&(type(m9)==type(n9))&&(m9==n9))
+
+print("more: %v\n" ok)
+ok

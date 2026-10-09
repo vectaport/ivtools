@@ -2022,6 +2022,7 @@ void ComTerp::add_defaults() {
     add_command("replay", new ReplayFunc(this));
     add_command("iterate", new IterateFunc(this));
     add_command("next", new NextFunc(this));
+    add_command("more", new MoreFunc(this));
     add_command("info", new InfoFunc(this));
     add_command("each", new EachFunc(this));
     add_command("filter", new FilterFunc(this));
