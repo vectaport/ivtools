@@ -1,7 +1,7 @@
 // src/comterp_/tests/feedring.comt -- feed(str), a fixed-capacity ring FIFO
 // over a string's own bytes
 //
-// coverage: 38 tests of feed(str)/:noring/next()/info() ring behavior,
+// coverage: 40 tests of feed(str)/:noring/next()/info() ring behavior,
 // incl. survival of a nested-stream drain, :raw on a push (refused over
 // one byte, honored at exactly one) and on construction, an embedded-NUL
 // push, a sliced first argument, a push overlapping the ring's own
@@ -9,8 +9,10 @@
 // built over a typed (string(n type)) buffer operating in whole elements
 // with promotion/demotion on push, info()'s :free field, a stream
 // argument run into the ring rather than stored, a ring's own print
-// showing traffic since it was last printed instead of a bare "[]", and
-// **ring's own drain-count report zeroing that same counter
+// showing traffic since it was last printed instead of a bare "[]",
+// **ring's own drain-count report zeroing that same counter, an
+// each()-driven push whose source exactly fills the ring's remaining room,
+// and the same exact fit ending at a bquoted delimiter instead of nil
 // funcs: feed next info string char at
 //
 // A bare (unprotected) string argument to feed(), with no existing FIFO,
@@ -457,6 +459,28 @@ feed(ring37 'd' 'e')
 t37b=info(ring37).traffic
 ok=ok&&(drained37==3)&&(t37a==0)&&(t37b==2)
 print("37 **ring zeroes traffic after reporting its own count (expect 3, 0, then 2): %v %v %v\n" drained37 t37a t37b)
+
+// --- 38: an each()-driven push whose source exactly fills the ring's
+// remaining room used to read as a refusal indistinguishable from the
+// source itself being exhausted, so the whole feed() silently reported
+// nil instead of the pushed count -- more()'s peek now tells the two
+// apart, so an exact fit still returns the count. ---
+ring38=string(8 UIntType)
+cnt38=feed(ring38 **0..7)
+ok=ok&&(cnt38==8)&&(list(ring38)==(0,1,2,3,4,5,6,7))
+print("38 feed(ring38 **0..7) on an exactly-sized ring (expect 8, {0..7}): %v %v\n" cnt38 list(ring38))
+
+// --- 39: an each()-driven push that fills the ring exactly where the
+// source's very next element is a bquoted delimiter, not exhaustion --
+// the delimiter must be consumed (ending the batch successfully, same as
+// the ordinary per-element drain) rather than left stuck at the front of
+// the source. ---
+src39=feed(1 2 `EOS 3)
+ring39=string(2 UIntType)
+cnt39=feed(ring39 **src39)
+n39=next(src39)
+ok=ok&&(cnt39==2)&&(list(ring39)==(1,2))&&(n39==3)
+print("39 feed(ring39 **src39) exact-fit ending at `EOS (expect 2, {1,2}, 3): %v %v %v\n" cnt39 list(ring39) n39)
 
 print("feedring: %v\n" ok)
 ok

@@ -30,6 +30,7 @@
 
 #include <ComTerp/debugfunc.h>
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/_comutil.h>
 #include <strstream>
 #include <iostream>
 #include <fstream>
@@ -70,6 +71,29 @@ void ComterpTraceFunc::execute() {
       comterp()->trace_mode(retval.int_val());
       push_stack(retval);
     }
+  }
+}
+
+/*****************************************************************************/
+
+LineNoFunc::LineNoFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void LineNoFunc::execute() {
+  static int comt_symid = symbol_add("comt");
+  ComValue comtval(stack_key(comt_symid, false, ComValue::blankval()));
+  reset_stack();
+  if (comtval.is_nil()) {
+    ComValue retval((int)comterp()->linenum(), ComValue::IntType);
+    push_stack(retval);
+  } else if (comtval.is_blank()) {
+    ComValue retval(get_prompt_lineno_mode(), ComValue::IntType);
+    push_stack(retval);
+  } else {
+    int flag = comtval.is_true();
+    set_prompt_lineno_mode(flag);
+    ComValue retval(flag, ComValue::IntType);
+    push_stack(retval);
   }
 }
 

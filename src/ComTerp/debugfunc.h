@@ -51,6 +51,24 @@ public:
     }
 };
 
+//: command for the current comt line number, or the (comt) prompt's lineno flag
+// int=lineno(:comt [flag]) -- current line number, or get/set whether the (comt) prompt shows it
+class LineNoFunc : public ComFunc {
+public:
+    LineNoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "int=%s(:comt [flag]) -- current line number, or get/set whether the (comt) prompt shows it"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":comt      bare: get the prompt's lineno flag; with a value: set it",
+	nil
+      };
+      return keys;
+    }
+};
+
 //: command to pause script execution until C/R
 // pause -- pause script execution until C/R
 class ComterpPauseFunc : public ComFunc {
