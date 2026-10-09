@@ -1,0 +1,37 @@
+// src/comterp_/tests/lineno.comt -- lineno(), the (comt) prompt's line-number flag
+//
+// funcs: lineno
+//
+// lineno() with no args returns the parser's current line number;
+// lineno(:comt [flag]) gets (bare) or sets (with a value) whether the
+// (comt) prompt shows it.
+
+ok=true
+
+// --- 1: lineno() with no args returns the current line number, which
+//        strictly increases as more lines are consumed ---
+ln1=lineno()
+ln2=lineno()
+ok=ok&&(ln2>ln1)
+print("1 lineno() strictly increases across lines (expect true): %v\n" (ln2>ln1))
+
+// --- 2: lineno(:comt) bare queries the flag without changing it ---
+q1=lineno(:comt)
+q2=lineno(:comt)
+ok=ok&&(q1==q2)
+print("2 lineno(:comt) is idempotent (expect true): %v\n" (q1==q2))
+
+// --- 3: lineno(:comt true) turns the flag on and returns the new state ---
+on=lineno(:comt true)
+ok=ok&&(on==1)
+ok=ok&&(lineno(:comt)==1)
+print("3 lineno(:comt true) sets the flag, lineno(:comt) confirms it (expect 1 1): %v %v\n" on lineno(:comt))
+
+// --- 4: lineno(:comt false) turns it back off ---
+off=lineno(:comt false)
+ok=ok&&(off==0)
+ok=ok&&(lineno(:comt)==0)
+print("4 lineno(:comt false) clears the flag (expect 0 0): %v %v\n" off lineno(:comt))
+
+print("lineno: %v\n" ok)
+ok
