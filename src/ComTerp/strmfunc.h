@@ -298,8 +298,10 @@ the one pulled value in place and still returns it\n\
 a dot() (al.field) var, or a var that's a plain stream, instead makes\n\
 %1$s itself lazy by default, returning a stream that pulls-and-writes (or\n\
 just pulls, for a plain stream var) one element per later demand\n\
-each()/**var batch-drains that lazy default immediately, returning the\n\
-write count (or just the pull count if var isn't itself assignable)"; }
+each()/**var forces that default immediately: for a dot() var, pulls and\n\
+writes the one value and returns it; for a plain stream var, batch-drains\n\
+and returns the write count (or just the pull count if var isn't itself\n\
+assignable)"; }
 
     static int next_depth() { return _next_depth; }
 protected:

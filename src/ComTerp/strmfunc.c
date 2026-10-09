@@ -1514,10 +1514,9 @@ void EachFunc::execute() {
      "at()'s lhs flag"); checked before stack_arg_post_eval touches
      anything, same ordering ListAtFunc's own check uses. */
   boolean for_batch = comterp()->stack_top(nkeys()+1).lhs_assign();
-  /* symbol=true only for a batch handoff -- a dot() destination needs its
-     live Attribute handle preserved (not auto-resolved to its stored
-     value) so the caller can write through it; an ordinary **stream
-     argument is unaffected since there's nothing for symbol to resolve. */
+  /* symbol=true preserves a dot() destination's live Attribute handle
+     during a batch handoff -- an ordinary stream argument is unaffected,
+     since there's nothing for symbol to resolve. */
   ComValue strmv(stack_arg_post_eval(0, for_batch));
 
   if (for_batch) {
