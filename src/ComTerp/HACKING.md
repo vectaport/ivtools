@@ -668,6 +668,111 @@ localtable()->insert(symid, val);
 ComValue val(symid, (void*)ptr);
 localtable()->insert(symid, val);  // DO NOT DO THIS
 ```
+## Ring Watchers (`watch()`)
+
+`watch(ring func)` (`strmfunc.c`, `WatchFunc`) registers `func` to run on
+every later push to `ring`, firing it with the pushed value as its one
+positional arg. A few design points that don't fit in the in-code
+comments without blowing past the one/two-line budget:
+
+- **`func` is read unevaluated.** Like `help(cmd)`/`info(cmd)`, `watch()`
+  is `post_eval`, and its arg 1 is peeked with `stack_arg(1, true)` so a
+  bare FuncObj reference doesn't auto-fire. Three shapes are recognized:
+  a bare symbol (resolved via `lookup_symval()`), an already-built
+  `FuncObj` (an inline `func(...)` literal — safe to fire directly, since
+  building a `FuncObj` never calls its body), and a dot-bound field
+  (`al.cb`), identified via its `Attribute` the same way `info(a.f)`
+  does. The resolved value is carried as a `ComValue` all the way to
+  registration, never unwrapped to a raw `FuncObj*`: an inline literal's
+  `FuncObj` has no owner but that `ComValue`, so extracting a bare
+  pointer before `reset_stack()` runs leaves it dangling the moment the
+  transient stack slot is released.
+
+- **Firing is reentrant on the same `ComTerp` instance.** `ring_fire_watchers()`
+  calls `comterp->fire_funcobj()` from inside `ring_push_elt()`, the same
+  pattern `NextFunc`'s `STREAM_FUNCOBJ` dispatch already uses to fire a
+  FuncObj from inside another command's `execute()` — safe because
+  ComTerp's dispatch is single-threaded/cooperative throughout, so no
+  second `ComTerp` instance is needed.
+
+- **Firing runs over a fixed watcher count**, captured before the loop
+  starts rather than re-read each iteration: a watcher that registers
+  another watcher on the same ring during its own firing takes effect
+  on the *next* push, not the current one, so it can't grow the list as
+  fast as the loop advances and hang the push.
+
+- **The destination recursive-stream guard (`_draining_avls`) is lifted
+  for the ring's own entries while watchers fire, then restored by their
+  exact original stack positions.** That guard exists to stop `feed()`/`->`
+  from feeding a ring into itself forever; left in place during firing,
+  it would also refuse a watcher's own read of the ring it's watching
+  (e.g. `next(ring)`) as a false self-feed — the pushed value is already
+  landed by the time watchers run, so there's nothing left to protect
+  against for that ring there. Position, not just count, matters on
+  restore: `DrainingAVLGuard`'s destructor always pops the vector's last
+  entry, so if an enclosing guard (e.g. an ancestor `ring_push_arg()`
+  call still mid-pull on the C++ stack) sits above the ring's own entry,
+  appending the lifted entry back at the end instead of its original
+  slot would make that ancestor's own unwind pop the wrong guard,
+  stranding its real one and refusing its next pull as a false self-feed.
+
+- **A multi-byte string push snapshots the whole string up front**, not
+  just however many bytes looked available before the loop started: a
+  watcher that pops from the ring mid-push can free room the precomputed
+  count didn't account for, and only a snapshot of the real remaining
+  bytes (checked one `ring_push_char()` at a time against live capacity)
+  avoids writing zero bytes in their place.
+
+## Cross-Interpreter Ring Sharing
+
+`comterp server`/`comterp listen` run one `ComTerp` C++ instance per
+connection, plus a separate one for the server's own stdin console
+(`main.c`'s `server_flag`/`listen_flag` branches, each a fresh
+`new ComterpHandler()`). All of them share the same process-wide
+globals (`ComTerp::_globaltable`, a `static` member) and the same
+process-wide `AttributeValueList`s, so a ring created by one instance
+and referenced by a global name is a legitimate, shared communication
+channel between any two of them -- one instance pushes, another reads,
+or both do either, same as `watch()`'s callback model but now spanning
+interpreters instead of just call frames.
+
+What makes this work mechanically: a ring's own "next" and "feed"
+dispatch (`RingNextFunc`/`FeedRingNextFunc`, `ring_next_func()` /
+`frnfunc` in `strmfunc.c`) are each a single process-wide singleton --
+one instance total, shared by *every* ring and *every* `ComTerp`
+instance, not one per ring. Like any `ComFunc`, its `stack_arg()` /
+`push_stack()` / `reset_stack()` calls all go through whichever
+`ComTerp*` is cached on it (`ComFunc::_comterp`, `comfunc.h`), so before
+calling `exec()` on it, `NextFunc::execute_impl` (`strmfunc.c`, the
+`STREAM_INTERNAL` branch) always retargets that cached pointer to
+*this* call's `comterp` argument first. This isn't a fallback for an
+unexpected case -- it is the hand-off itself, needed on every single
+call where the instance touching the ring differs from whichever one
+touched it last.
+
+ACE's reactor services one event at a time, so there's no *true*
+concurrency here -- but `update()` (`ctrlfunc.c`'s `UpdateFunc`) pumps
+that same reactor reentrantly from inside any running command,
+including a `watch()` callback's body. If a callback calls `update()`,
+another connection's command can run to completion nested inside the
+current call, and if that command also touches a ring, it retargets
+the very same singleton out from under the call that's still
+in progress. `FeedRingNextFunc::execute()` is the one place that reads
+its own cached `comterp()` *after* a point where this can happen (after
+`ring_push_one()` fires watchers): it now captures the calling
+interpreter in a local before that point and re-asserts it before using
+`comterp()` again, rather than trusting the cached pointer to have
+survived.
+
+What's still worth knowing before relying on this:
+- A `watch()` callback fires using whichever instance performed the
+  *push*, not whichever instance registered the watch -- so the
+  callback's own `*ring`/`next(ring)` reads (and anything else it does)
+  run against the pushing instance's stack and funcstate.
+- Everything the callback needs to behave consistently across
+  instances should come from globals or the ring itself, not from
+  per-instance local state.
+
 ## See Also
 
 - `src/DrawServ/HACKING.md`
