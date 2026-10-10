@@ -519,6 +519,28 @@ void GrabNewFunc::execute() {
 
 /*****************************************************************************/
 
+PauseFunc::PauseFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void PauseFunc::execute() {
+    reset_stack();
+    ((DrawServ*)unidraw)->pause();
+    push_stack(ComValue::trueval());
+}
+
+/*****************************************************************************/
+
+UnpauseFunc::UnpauseFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void UnpauseFunc::execute() {
+    reset_stack();
+    ((DrawServ*)unidraw)->unpause();
+    push_stack(ComValue::falseval());
+}
+
+/*****************************************************************************/
+
 LinkSelectFunc::LinkSelectFunc(ComTerp* comterp, Editor* ed)
 : SelectFunc(comterp, ed) {
 }

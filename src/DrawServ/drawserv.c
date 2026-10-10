@@ -137,6 +137,8 @@ void DrawServ::Init() {
   _freeze_acks_pending = 0;
   _freeze_done = false;
 
+  _paused = false;
+
   create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
   gethostname(hostbuf, HOST_NAME_MAX);
@@ -456,9 +458,15 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       
     }
     
-    /* then send everywhere else */
-    if (original || linklist()->Number()>0) 
-      DistributeCmdString(sbuf.str().c_str(), linkget(sid));
+    /* then send everywhere else, unless pause() is holding this node's
+       outgoing distribution -- incoming commands keep applying normally
+       the whole time, only this node's own local edits wait */
+    if (original || linklist()->Number()>0) {
+      if (_paused)
+	_pause_outbuf.push_back(sbuf.str());
+      else
+	DistributeCmdString(sbuf.str().c_str(), linkget(sid));
+    }
     
     if (cmd->Reversible()) {
       cmd->Log();
@@ -553,6 +561,18 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
     }
     Resource::unref(link);
   }
+}
+
+void DrawServ::pause() {
+  _paused = true;
+}
+
+void DrawServ::unpause() {
+  _paused = false;
+  std::vector<std::string> outbuf;
+  outbuf.swap(_pause_outbuf);
+  for (unsigned int i = 0; i < outbuf.size(); i++)
+    DistributeCmdString(outbuf[i].c_str());
 }
 
 // generate request to register each locally unique session id

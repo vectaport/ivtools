@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <stdint.h>   /* uint32_t -- pulled in transitively on macOS, not on Linux */
 #include <strstream>
+#include <string>
+#include <vector>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
@@ -105,6 +107,17 @@ public:
   
   virtual void SendCmdString(DrawLink* link, const char* cmdstring);
   // execute command string on one remote DrawServ
+
+  boolean paused() { return _paused; }
+  // whether local commands are currently held back from distribution
+
+  void pause();
+  // hold back distribution of locally-executed commands; incoming
+  // commands keep applying normally in the meantime
+
+  void unpause();
+  // resume distribution, sending every command held back since pause()
+  // as a single catch-up burst, oldest first
 
   virtual void SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged);
   // send copies of everything to remote DrawServ to paste on front
@@ -300,6 +313,13 @@ protected:
   // arrived from that direction; if link is a still-unacked relay target,
   // count it as acked and drop it, so its loss can never dangle a pointer
   // or leave the local hold waiting on an ack that will never come
+
+  boolean _paused;
+  // whether pause() is withholding this node's outgoing distribution
+
+  std::vector<std::string> _pause_outbuf;
+  // command strings deferred by pause(), oldest first; sent and cleared
+  // by unpause()
 
   boolean write_full(int fd, const char* buf, size_t len);
   // write len bytes to fd, retrying past a short write or a transient

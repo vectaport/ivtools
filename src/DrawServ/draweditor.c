@@ -90,6 +90,8 @@ void DrawEditor::AddCommands(ComTerp* comterp) {
   comterp->add_command("sid", new SessionIdFunc(comterp, this));
   comterp->add_command("grid", new GraphicIdFunc(comterp, this));
   comterp->add_command("grabnew", new GrabNewFunc(comterp, this));
+  comterp->add_command("pause", new PauseFunc(comterp, this));
+  comterp->add_command("unpause", new UnpauseFunc(comterp, this));
 
   comterp->add_command("points", new DrawPointsFunc(comterp, this));
 

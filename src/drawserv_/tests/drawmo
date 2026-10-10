@@ -3,7 +3,7 @@
 # drawmo  drawserv orchestrator and test suite
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
-#   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
+#   names: all updown updown1 updown2 pauseunpause updown3A updown3B updown4A updown4B
 #          updown4C cycle ringpair ringpair7 ringpair10 frontback move
 #          transform sel eagain parsetest optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
@@ -22,6 +22,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      all                 everything below\n");
     print("      updown              one drawserv up and down again\n");
     print("      updown1 updown2     one linked, then two\n");
+    print("      pauseunpause        pause()/unpause() withholds then flushes distribution\n");
     print("      updown3A updown3B   three, chained and forked\n");
     print("      updown4A updown4B updown4C\n");
     print("                          four, to the second level\n");
@@ -120,14 +121,16 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
    command fires it -- `optable with no arguments segfaults; bquoted (`name)
    it crashes EqualFunc instead, since a bareword is resolved against the
    command table before bquote can protect it.  parsetest, optabletest and
-   cycle keep their names for that reason and not for tidiness. */
+   cycle keep their names for that reason and not for tidiness; pause() is
+   also a pre-existing comterp debugger command, which is why this test is
+   named pauseunpause rather than pause. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -181,6 +184,13 @@ if(tests_flag :then
         print("updown2: pass\n" :err)
       :else
         print("updown2: FAIL\n" :err);
+        ok=false));
+    if(t==`pauseunpause || t==`all :then
+      print("running pause test\n" :err);
+      if(pause_test(:dummy 0) :then
+        print("pause: pass\n" :err)
+      :else
+        print("pause: FAIL\n" :err);
         ok=false));
     if(t==`updown3A || t==`all :then
       print("running updown3A test\n" :err);

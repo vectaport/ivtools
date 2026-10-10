@@ -146,6 +146,22 @@ assertion is `size(sidtable)==1`.
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
 
+### pauseunpause
+
+**What:** Link ds1 -> ds2. Call `pause()` on ds1, create a graphic there,
+confirm ds2 does not see it, call `unpause()` on ds1, confirm ds2 then
+receives it.
+
+**Checks:**
+- `pause()` returns true, `unpause()` returns false
+- ds2's `grid(:table)` stays empty for several real polling intervals
+  while ds1 is paused
+- `grid_has_id()` finds the graphic's id on ds2 after `unpause()`
+
+**Purpose:** Verifies that `pause()` withholds a node's own outgoing
+command distribution without disturbing the link itself, and that
+`unpause()` flushes exactly what was held.
+
 ### ringpair, ringpair7, ringpair10
 
 **What:** Build two independent chains of `chainlen` drawservs each, then
