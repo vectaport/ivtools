@@ -215,6 +215,11 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("nrows", new NRowsFunc(comterp, this));
     comterp->add_command("handles", new HandlesFunc(comterp, this));
 
+    comterp->add_command("undo", new UndoFunc(comterp, this));
+    comterp->add_command("redo", new RedoFunc(comterp, this));
+    comterp->add_command("undoable", new UndoableFunc(comterp, this));
+    comterp->add_command("redoable", new RedoableFunc(comterp, this));
+
 #if 0
     if (OverlayKit::bincheck("plotmtv"))
       comterp->add_command("barplot", new BarPlotFunc(comterp, this));

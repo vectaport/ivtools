@@ -2028,6 +2028,7 @@ void ComTerp::add_defaults() {
     add_command("filter", new FilterFunc(this));
     add_command("feed", new FeedFunc(this));
     add_command("ring", new RingFunc(this));
+    add_command("watch", new WatchFunc(this));
     add_command("chunk", new ChunkFunc(this));
     add_command("arrow", new ArrowFunc(this));
 

@@ -949,7 +949,7 @@ void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int li
 	return;
       }
 
-      /* each()/**-forced: write the one pulled value in place immediately,
+      /* each() | ** - forced: write the one pulled value in place immediately,
 	 same as AssignFunc's al.field=val, reporting nil instead on a
 	 self-insertion refusal rather than the unwritten value. */
       execute_impl(comterp(), streamv);
@@ -1132,12 +1132,11 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
     if (streamv.stream_mode()&STREAM_INTERNAL) {
 
-      /* internal execution of next mechanism -- handled by stream func */
+      /* internal execution of next mechanism -- handled by stream func,
+	 retargeted to the calling interpreter (HACKING.md's "Cross-Interpreter
+	 Ring Sharing"). */
       comterp->push_stack(streamv);
-      if(((ComFunc*)streamv.stream_func())->comterp()!=comterp) {
-	((ComFunc*)streamv.stream_func())->comterp(comterp); // just in case
-	 fprintf(stderr, "unexpected need to fix comterp in stream_func\n");
-	 }
+      ((ComFunc*)streamv.stream_func())->comterp(comterp);
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
       /* a ring's avl is head/tail/count bookkeeping, not remaining elements --
 	 nil is "empty for now," so clearing it would destroy a feedable ring. */
@@ -2363,6 +2362,7 @@ void InfoFunc::execute() {
     static int wrap_sym = symbol_add("wrap");
     static int free_sym = symbol_add("free");
     static int traffic_sym = symbol_add("traffic");
+    static int watchers_sym = symbol_add("watchers");
     static int blocksz_sym2 = symbol_add("blocksz");
     static int blocktype_sym2 = symbol_add("blocktype");
     static int buf_sym = symbol_add("buf");
@@ -2400,6 +2400,15 @@ void InfoFunc::execute() {
        printed) is a 6th avl slot older rings may lack -- report 0
        rather than reading past the end. */
     ComValue trafficv(avl->Number()>5 ? ((AttributeValue*)avl->Get(5))->int_val() : 0);
+    /* watchers (the funcs registered via watch(), answering "what's
+       watching what") is a 7th avl slot older rings may lack, and is
+       nil until a first watch() call allocates its list. */
+    ComValue watchersv(ComValue::nullval());
+    if (avl->Number()>6) {
+      AttributeValue* watchav = (AttributeValue*)avl->Get(6);
+      if (watchav->is_list() && watchav->array_val())
+	watchersv = ComValue(watchav->array_val());
+    }
     /* the buffer's own declared element width/type -- 0/UnknownType for an
        ordinary char-granular ring, the typed values for string(n type) --
        same fields and rendering info() gives a plain string. */
@@ -2415,6 +2424,7 @@ void InfoFunc::execute() {
     al->add_attr(wrap_sym, wrapv);
     al->add_attr(free_sym, freev);
     al->add_attr(traffic_sym, trafficv);
+    al->add_attr(watchers_sym, watchersv);
     al->add_attr(blocksz_sym2, blockszv2);
     al->add_attr(blocktype_sym2, blocktypev2);
 
@@ -2599,10 +2609,14 @@ static int ring_avail(AttributeValueList* avl) {
 }
 
 /* build a fresh ring FIFO over buf's own bytes (or its sliced window).  avl
-   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) [5]=traffic --
-   wrap=0 (:noring) never reclaims space freed from the head, wrap=1 is the
-   circular default.  traffic counts elements pushed or popped since this
-   ring was last printed (ComValue::StreamType's print case, comvalue.c).
+   layout: [0]=buf [1]=head [2]=tail [3]=count [4]=wrap(0|1) [5]=traffic
+   [6]=watchers -- wrap=0 (:noring) never reclaims space freed from the
+   head, wrap=1 is the circular default.  traffic counts elements pushed
+   or popped since this ring was last printed (ComValue::StreamType's
+   print case, comvalue.c).  watchers is nil until watch() first
+   registers a func on this ring, then an ArrayType list of the
+   registered FuncObj values, fired in order on every later push
+   (ring_fire_watchers(), below).
 
    buf's own content up to its first NUL (bounded by its capacity) seeds
    the ring as already-queued data, immediately poppable -- string(cap) is
@@ -2634,9 +2648,43 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
   avl->Append(new AttributeValue(initial, AttributeValue::IntType));  // count
   avl->Append(new AttributeValue(wrap ? 1 : 0, AttributeValue::IntType));  // wrap
   avl->Append(new AttributeValue(0, AttributeValue::IntType));  // [5] traffic since last print
+  avl->Append(new AttributeValue());  // [6] watchers, UnknownType until watch()
   ComValue stream(ring_next_func(comterp), avl);
   stream.stream_mode(STREAM_INTERNAL | STREAM_RING);
   return stream;
+}
+
+/* fire each func registered via watch(ring func), passing the pushed
+   value as its one positional arg; a fixed watcher count and a lifted
+   recursion guard avoid a self-registering watcher hanging and a
+   watcher's own ring read being refused as a false self-feed -- see
+   "Ring Watchers (watch())" in HACKING.md. */
+static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComValue& pushedval) {
+  if (avl->Number()<=6) return;
+  AttributeValue* watchav = (AttributeValue*)avl->Get(6);
+  AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
+  if (!watchers) return;
+  /* lifted and later restored by exact stack position, not just appended
+     back -- see "Ring Watchers (watch())" in HACKING.md for why position
+     (not just count) matters here. */
+  std::vector<size_t> positions;
+  for (size_t j=0; j<_draining_avls.size(); j++)
+    if (_draining_avls[j]==avl) positions.push_back(j);
+  for (int j=(int)positions.size()-1; j>=0; j--)
+    _draining_avls.erase(_draining_avls.begin()+positions[j]);
+  int n = watchers->Number();
+  for (int i=0; i<n; i++) {
+    AttributeValue* wav = watchers->Get(i);
+    if (!wav->is_object(FuncObj::class_symid())) continue;
+    ComValue fobjv(*wav);
+    fobjv.narg(1);
+    fobjv.nkey(0);
+    comterp->push_stack(pushedval);
+    comterp->fire_funcobj(fobjv);
+    comterp->pop_stack();
+  }
+  for (size_t j=0; j<positions.size(); j++)
+    _draining_avls.insert(_draining_avls.begin()+positions[j], avl);
 }
 
 /* push one element into a ring FIFO's avl; false (refused) when full --
@@ -2645,8 +2693,12 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
    A typed (blocktype()!=UnknownType) ring encodes v at that type's own
    width via comval_encode() -- the same promotion/demotion at(s N :set
    v) already does -- instead of coercing through char_val(); an
-   ordinary byte ring stores v.char_val() directly. */
-static boolean ring_push_elt(AttributeValueList* avl, ComValue& v) {
+   ordinary byte ring stores v.char_val() directly.  A successful push
+   fires any watch()-registered observers with v as their arg(0),
+   AFTER the ring's own state (tail/count/traffic) is updated, so a
+   watcher that reads the ring (e.g. info()) sees the push already
+   landed. */
+static boolean ring_push_elt(ComTerp* comterp, AttributeValueList* avl, ComValue& v) {
   if (!avl || avl->Number()<5) return false;
   AttributeValue* bufav = (AttributeValue*)avl->Get(0);
   AttributeValue* tailav = (AttributeValue*)avl->Get(2);
@@ -2670,12 +2722,13 @@ static boolean ring_push_elt(AttributeValueList* avl, ComValue& v) {
   tailav->int_ref() = newtail;
   countav->int_ref() = count+1;
   if (avl->Number()>5) ((AttributeValue*)avl->Get(5))->int_ref()++;
+  ring_fire_watchers(comterp, avl, v);
   return true;
 }
 
-static boolean ring_push_char(AttributeValueList* avl, char ch) {
+static boolean ring_push_char(ComTerp* comterp, AttributeValueList* avl, char ch) {
   ComValue cv(ch);
-  return ring_push_elt(avl, cv);
+  return ring_push_elt(comterp, avl, cv);
 }
 
 /* push a value into a ring FIFO's avl.
@@ -2703,36 +2756,40 @@ static boolean ring_push_char(AttributeValueList* avl, char ch) {
    rather than silently truncated through char_val().  A non-string value
    pushes via char_val() as before.
 
-   Snapshots only as many bytes as ring_avail() says have room, not the
-   whole string, so pushing a long string at a full or nearly-full ring
-   copies at most what could actually land.
+   Snapshots the whole string before pushing any of it (not just however
+   much ring_avail() says has room right now): a watcher fired by one of
+   these pushes can itself pop from this same ring, reopening room this
+   loop hasn't reached yet, so how far the string actually lands can only
+   be decided one real ring_push_char() at a time, against the room
+   genuinely available at that moment -- not guessed once up front.
 
    Stops at the first refusal (buffer full or an un-splittable string),
    leaving whatever already landed in place, and reports that refusal to
    the caller. */
-static boolean ring_push_value(AttributeValueList* avl, ComValue& v, boolean rawflag) {
+static boolean ring_push_value(ComTerp* comterp, AttributeValueList* avl, ComValue& v, boolean rawflag) {
   if (!avl || avl->Number()<5) return false;
   if (ring_buf_blocktype((AttributeValue*)avl->Get(0)) != AttributeValue::UnknownType)
-    return ring_push_elt(avl, v);
+    return ring_push_elt(comterp, avl, v);
   if (!rawflag && streams_as_characters(v)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
     if (len==0) return true;
-    int avail = ring_avail(avl);
-    if (avail<=0) return false;
-    int tocopy = len<avail ? len : avail;
-    std::string snapshot(base, tocopy);
+    /* no watcher can free room before the first byte of THIS push lands,
+       so a ring already full is refused up front, before paying to copy
+       a string that can't land any of it anyway. */
+    if (ring_avail(avl)<=0) return false;
+    std::string snapshot(base, len);
     for (int k=0; k<len; k++)
-      if (!ring_push_char(avl, k<tocopy ? snapshot[k] : 0)) return false;
+      if (!ring_push_char(comterp, avl, snapshot[k])) return false;
     return true;
   }
   if (v.is_type(ComValue::StringType)) {
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
     if (len!=1) return false;
-    return ring_push_char(avl, base[0]);
+    return ring_push_char(comterp, avl, base[0]);
   }
-  return ring_push_char(avl, v.char_val());
+  return ring_push_char(comterp, avl, v.char_val());
 }
 
 /* pop one element from a ring FIFO's avl; ComValue::nullval() when empty.
@@ -2780,7 +2837,7 @@ static ComValue ring_peek_char(AttributeValueList* avl) {
    slot like any other value -- only a numeric blocktype's lossy conversion
    needs refusing a string outright; an untyped (byte) ring refuses a
    multi-byte string that wouldn't fit the room actually left. */
-static boolean ring_push_one(AttributeValueList* avl, ComValue& popval, boolean rawflag) {
+static boolean ring_push_one(ComTerp* comterp, AttributeValueList* avl, ComValue& popval, boolean rawflag) {
   AttributeValue::ValueType bt = ring_buf_blocktype((AttributeValue*)avl->Get(0));
   boolean numeric_ring = bt!=AttributeValue::UnknownType && bt!=AttributeValue::AnyType;
   if (numeric_ring && popval.is_type(ComValue::StringType)) return false;
@@ -2788,7 +2845,7 @@ static boolean ring_push_one(AttributeValueList* avl, ComValue& popval, boolean 
     int len = popval.sliced() ? popval.slicelen() : symbol_len(popval.string_val());
     if (len>ring_avail(avl)) return false;
   }
-  return ring_push_value(avl, popval, rawflag);
+  return ring_push_value(comterp, avl, popval, rawflag);
 }
 
 /* push one feed() argument onto a ring: a stream is run, not stored --
@@ -2808,7 +2865,7 @@ static boolean ring_push_one(AttributeValueList* avl, ComValue& popval, boolean 
 static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue& v,
 			      boolean rawflag, int* count = nil) {
   if (rawflag || !v.is_stream()) {
-    boolean ok = ring_push_value(avl, v, rawflag);
+    boolean ok = ring_push_value(comterp, avl, v, rawflag);
     if (ok && count) (*count)++;
     return ok;
   }
@@ -2846,7 +2903,7 @@ static boolean ring_push_arg(ComTerp* comterp, AttributeValueList* avl, ComValue
       return false;
     }
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval)) return true;
-    if (!ring_push_one(avl, popval, rawflag)) return false;
+    if (!ring_push_one(comterp, avl, popval, rawflag)) return false;
     if (count) (*count)++;
   }
 }
@@ -3092,6 +3149,65 @@ void RingFunc::execute() {
 
 /*****************************************************************************/
 
+WatchFunc::WatchFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void WatchFunc::execute() {
+  /* arg 0 is the ring's value, fetched ordinarily; arg 1 (func) is
+     peeked unevaluated below -- see "Ring Watchers (watch())" in
+     HACKING.md for why and how each of its three shapes is resolved. */
+  ComValue ringv(stack_arg_post_eval(0));
+
+  ComValue peekval(stack_arg(1, true));
+  ComValue funcval(ComValue::nullval());
+  static int dot_symid = symbol_add("dot");
+  if (peekval.is_type(AttributeValue::SymbolType)) {
+    ComValue resolved(comterp()->lookup_symval(peekval));
+    if (resolved.is_object(FuncObj::class_symid()))
+      funcval = resolved;
+  } else if (peekval.is_object(FuncObj::class_symid())) {
+    funcval = peekval;
+  } else if (peekval.is_type(AttributeValue::CommandType) &&
+	     peekval.command_symid()==dot_symid && peekval.narg()==2) {
+    /* al.cb -- identified via its Attribute, same as info(a.f). */
+    ComValue dotval(stack_arg_post_eval(1, true));
+    if (dotval.class_symid()==Attribute::class_symid()) {
+      Attribute* attr = (Attribute*) dotval.obj_val();
+      if (attr->Value()->is_object(FuncObj::class_symid()))
+	funcval = *attr->Value();
+    } else if (dotval.is_object(FuncObj::class_symid())) {
+      funcval = dotval;
+    }
+  } else {
+    /* an inline func(...) literal -- safe to fire: building a FuncObj
+       never calls its body. */
+    ComValue fired(stack_arg_post_eval(1));
+    if (fired.is_object(FuncObj::class_symid()))
+      funcval = fired;
+  }
+  reset_stack();
+
+  AttributeValueList* avl = ringv.is_stream() ? ringv.stream_list() : nil;
+  if (!funcval.is_object(FuncObj::class_symid()) || !avl ||
+      ringv.stream_func() != (void*)ring_next_func(comterp()) ||
+      avl->Number()<=6) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValue* watchav = (AttributeValue*)avl->Get(6);
+  AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
+  if (!watchers) {
+    watchers = new AttributeValueList();
+    AttributeValue listav(watchers);
+    *watchav = listav;
+  }
+  watchers->Append(new AttributeValue(funcval));
+  push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 ChunkFunc::ChunkFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -3229,6 +3345,10 @@ FeedRingNextFunc::FeedRingNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void FeedRingNextFunc::execute() {
+  /* a watcher fired below can pump another interpreter's commands and
+     retarget this shared singleton, so the caller is captured here and
+     re-asserted after (HACKING.md's "Cross-Interpreter Ring Sharing"). */
+  ComTerp* self = comterp();
   ComValue operand1(stack_arg(0));
   reset_stack();
 
@@ -3264,8 +3384,9 @@ void FeedRingNextFunc::execute() {
      pulling through srccopy advances the shared source, so a later pull
      against this same wrapper resumes where this one left off. */
   ComValue srccopy(*srcav);
-  NextFunc::execute_impl(comterp(), srccopy);
-  ComValue popval(comterp()->pop_stack());
+  NextFunc::execute_impl(self, srccopy);
+  comterp(self);
+  ComValue popval(self->pop_stack());
   if (_draining_guard_tripped_avl==avl) {
     _draining_guard_tripped_avl = 0;
     push_stack(ComValue::nullval());
@@ -3275,10 +3396,11 @@ void FeedRingNextFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  if (!ring_push_one(avl, popval, false)) {
+  if (!ring_push_one(self, avl, popval, false)) {
     push_stack(ComValue::nullval());
     return;
   }
+  comterp(self);
   push_stack(popval);
 }
 

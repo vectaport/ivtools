@@ -1724,10 +1724,9 @@ void GrDeleteFunc::execute() {
         owner->Remove(attr);
       }
     } else if (obj.object_compview()) {
-      /* val stays nil -- DeleteCmd::Execute() below destroys the comp
-         with no undo retention, so the compview would come back stale. */
+      /* val stays nil; returning the live compview for repaste is deferred. */
       ComponentView* comview = (ComponentView*)obj.obj_val();
-      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+      OverlayComp* comp = live_subject(comview);
       if (comp) delcb->Append(comp);
     }
     if (removed) removed->Append(new AttributeValue(val));
@@ -1736,9 +1735,8 @@ void GrDeleteFunc::execute() {
   delete [] args;
 
   DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
-  delcmd->Execute();
+  execute_log(delcmd);
   unidraw->Update();
-  delete delcmd;
 
   if (removed) {
     ComValue retval(removed);

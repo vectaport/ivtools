@@ -106,6 +106,9 @@ public:
 
     void alive(boolean);
     void updated(boolean);
+
+    int UndoDepth(Component*);
+    int RedoDepth(Component*);
 protected:
     void Init(Catalog*, World*);
     void InitAttributes();
