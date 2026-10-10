@@ -30,6 +30,7 @@
 
 class Command;
 class ComTerp;
+class ComponentView;
 class OverlayComp;
 class OvImportCmd;
 class OvSaveCompCmd;
@@ -45,6 +46,11 @@ public:
     Editor* GetEditor() { return editor(); }
     Editor* editor() { return _ed; }
     void editor(Editor* ed) { _ed=ed; }
+
+    static OverlayComp* live_subject(ComponentView*);
+    // view's subject, or nil if that subject has been delete()d -- a
+    // tombstoned comp stays alive (undoable) but detached from its parent,
+    // so it must never reach a command that assumes it's still in the tree.
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;
@@ -424,6 +430,46 @@ public:
       return keys;
     }
 
+};
+
+//: command to undo the last Unidraw command
+// undo([n]) -- undo the last n commands (default 1), local only (never crosses a drawlink)
+class UndoFunc : public UnidrawFunc {
+public:
+    UndoFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "%s([n]) -- undo the last n Unidraw commands (default 1)"; }
+};
+
+//: command to redo the last undone Unidraw command
+// redo([n]) -- redo the last n undone commands (default 1), local only
+class RedoFunc : public UnidrawFunc {
+public:
+    RedoFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "%s([n]) -- redo the last n undone Unidraw commands (default 1)"; }
+};
+
+//: command to return the number of commands undo() can still undo
+// n=undoable() -- depth of the undo history, 0 if none
+class UndoableFunc : public UnidrawFunc {
+public:
+    UndoableFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "n=%s() -- number of commands undo() can still undo, 0 if none"; }
+};
+
+//: command to return the number of commands redo() can still redo
+// n=redoable() -- depth of the redo history, 0 if none
+class RedoableFunc : public UnidrawFunc {
+public:
+    RedoableFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "n=%s() -- number of commands redo() can still redo, 0 if none"; }
 };
 
 #endif /* !defined(_unifunc_h) */

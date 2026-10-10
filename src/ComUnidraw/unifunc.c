@@ -79,7 +79,7 @@ void UnidrawFunc::execute_log(Command* cmd) {
 #if 0
     if (cmd != nil) {
 	cmd->Execute();
-	
+
 	if (cmd->Reversible()) {
 	    cmd->Log();
 	} else {
@@ -89,6 +89,12 @@ void UnidrawFunc::execute_log(Command* cmd) {
 #else
     unidraw->ExecuteCmd(cmd);
 #endif
+}
+
+OverlayComp* UnidrawFunc::live_subject(ComponentView* view) {
+    if (!view) return nil;
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    return (comp && comp->GetParent()) ? comp : nil;
 }
 
 void UnidrawFunc::menulength_execute(const char* kind) {
@@ -1130,5 +1136,59 @@ void KeynameTestFunc::execute() {
 	| (superflag ? ComEditor::SUPER_FLAG : 0);
   ComValue retval(ed->keyname(code));
   push_stack(retval);
+}
+
+/*****************************************************************************/
+
+UndoFunc::UndoFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void UndoFunc::execute() {
+    ComValue nv(stack_arg(0, false, ComValue::oneval()));
+    int n = nv.int_val();
+    reset_stack();
+    if (n < 1) n = 1;
+
+    unidraw->Undo(GetEditor()->GetComponent(), n);
+    unidraw->Update();
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+RedoFunc::RedoFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void RedoFunc::execute() {
+    ComValue nv(stack_arg(0, false, ComValue::oneval()));
+    int n = nv.int_val();
+    reset_stack();
+    if (n < 1) n = 1;
+
+    unidraw->Redo(GetEditor()->GetComponent(), n);
+    unidraw->Update();
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+UndoableFunc::UndoableFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void UndoableFunc::execute() {
+    reset_stack();
+    ComValue retval(unidraw->UndoDepth(GetEditor()->GetComponent()));
+    push_stack(retval);
+}
+
+/*****************************************************************************/
+
+RedoableFunc::RedoableFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void RedoableFunc::execute() {
+    reset_stack();
+    ComValue retval(unidraw->RedoDepth(GetEditor()->GetComponent()));
+    push_stack(retval);
 }
 

@@ -50,10 +50,10 @@ void GrowGroupFunc::execute() {
     OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
 
     ComponentView* groupview = (ComponentView*)groupval.obj_val();
-    OverlayComp* groupcomp = groupview ? (OverlayComp*)groupview->GetSubject() : nil;
- 
+    OverlayComp* groupcomp = live_subject(groupview);
+
     ComponentView* grview = (ComponentView*)grval.obj_val();
-    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+    OverlayComp* grcomp = live_subject(grview);
 
     if (groupcomp && grcomp) {
 
@@ -112,10 +112,10 @@ void TrimGroupFunc::execute() {
     OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
 
     ComponentView* groupview = (ComponentView*)groupval.obj_val();
-    OverlayComp* groupcomp = groupview ? (OverlayComp*)groupview->GetSubject() : nil;
- 
+    OverlayComp* groupcomp = live_subject(groupview);
+
     ComponentView* grview = (ComponentView*)grval.obj_val();
-    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+    OverlayComp* grcomp = live_subject(grview);
 
     if (groupcomp && grcomp) {
 
@@ -212,7 +212,7 @@ void UngroupFunc::execute() {
     Clipboard* cb = new Clipboard();
     if (grval.object_compview()) {
 	ComponentView* grview = (ComponentView*)grval.obj_val();
-	OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+	OverlayComp* grcomp = live_subject(grview);
 	if (grcomp) cb->Append(grcomp);
     } else
 	cb->Init(viewer->GetSelection());
@@ -254,12 +254,13 @@ void BackSelectionFunc::execute() {
 	return;
     }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
-    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-    // a view can outlive the comp it represented; a subjectless view is
+    OverlayComp* grcomp = live_subject(grview);
+    // a view can outlive the comp it represented, and delete() leaves a
+    // tombstoned comp alive (for undo) but detached; either way it's
     // treated as gone rather than handed to the Clipboard.
     if (grview && !grcomp) {
 	cerr << "WARNING: back()'s argument's subject is already gone"
-		" (stale graphic reference) -- line "
+		" (stale or deleted graphic reference) -- line "
 	     << funcstate()->linenum() << "\n";
 	push_stack(ComValue::nullval());
 	return;
@@ -300,12 +301,13 @@ void FrontSelectionFunc::execute() {
 	return;
     }
     ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
-    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-    // a view can outlive the comp it represented; a subjectless view is
+    OverlayComp* grcomp = live_subject(grview);
+    // a view can outlive the comp it represented, and delete() leaves a
+    // tombstoned comp alive (for undo) but detached; either way it's
     // treated as gone rather than handed to the Clipboard.
     if (grview && !grcomp) {
 	cerr << "WARNING: front()'s argument's subject is already gone"
-		" (stale graphic reference) -- line "
+		" (stale or deleted graphic reference) -- line "
 	     << funcstate()->linenum() << "\n";
 	push_stack(ComValue::nullval());
 	return;

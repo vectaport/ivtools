@@ -523,3 +523,23 @@ void Unidraw::ExecuteCmd(Command *command) {
 	}
     }
 }
+
+int Unidraw::UndoDepth (Component* comp) {
+    UList* past, *future;
+    GetHistory(comp, past, future);
+    int n = 0;
+    for (UList* cur = past->First(); cur != past->End(); cur = cur->Next()) {
+        ++n;
+    }
+    return n;
+}
+
+int Unidraw::RedoDepth (Component* comp) {
+    UList* past, *future;
+    GetHistory(comp, past, future);
+    int n = 0;
+    for (UList* cur = future->First(); cur != future->End(); cur = cur->Next()) {
+        ++n;
+    }
+    return n;
+}
