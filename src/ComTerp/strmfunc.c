@@ -2664,13 +2664,31 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
    instance is needed for that to be safe, since ComTerp's dispatch is
    single-threaded/cooperative throughout.  comterp->fire_funcobj() leaves
    its own return value on the stack, same as any command's exec(); that
-   value is discarded here since a watcher is fired for effect only. */
+   value is discarded here since a watcher is fired for effect only.
+
+   Runs over a fixed count of watchers (Number() read once, before firing
+   any of them), not the list's live count -- a watcher that registers
+   another watcher on this same ring fires it starting next push, not
+   this one, so a self-registering watcher can't grow the list as fast as
+   this loop advances and never finish.
+
+   Lifts avl's own entries out of the destination recursive-stream guard
+   (_draining_avls) for the duration of firing, then restores exactly as
+   many afterward: that guard exists to stop a ring from feeding into
+   itself through feed()/-> forever, not to refuse a watcher's own read
+   (e.g. next(ring)) of the ring that just received the push it's being
+   fired for -- the value is already landed by the time watchers run, so
+   there's nothing left to protect against for that avl here. */
 static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComValue& pushedval) {
   if (avl->Number()<=6) return;
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
   if (!watchers) return;
-  for (int i=0; i<watchers->Number(); i++) {
+  int lifted = std::count(_draining_avls.begin(), _draining_avls.end(), avl);
+  _draining_avls.erase(std::remove(_draining_avls.begin(), _draining_avls.end(), avl),
+			_draining_avls.end());
+  int n = watchers->Number();
+  for (int i=0; i<n; i++) {
     AttributeValue* wav = watchers->Get(i);
     if (!wav->is_object(FuncObj::class_symid())) continue;
     ComValue fobjv(*wav);
@@ -2680,6 +2698,7 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
     comterp->fire_funcobj(fobjv);
     comterp->pop_stack();
   }
+  for (int k=0; k<lifted; k++) _draining_avls.push_back(avl);
 }
 
 /* push one element into a ring FIFO's avl; false (refused) when full --
@@ -2751,9 +2770,12 @@ static boolean ring_push_char(ComTerp* comterp, AttributeValueList* avl, char ch
    rather than silently truncated through char_val().  A non-string value
    pushes via char_val() as before.
 
-   Snapshots only as many bytes as ring_avail() says have room, not the
-   whole string, so pushing a long string at a full or nearly-full ring
-   copies at most what could actually land.
+   Snapshots the whole string before pushing any of it (not just however
+   much ring_avail() says has room right now): a watcher fired by one of
+   these pushes can itself pop from this same ring, reopening room this
+   loop hasn't reached yet, so how far the string actually lands can only
+   be decided one real ring_push_char() at a time, against the room
+   genuinely available at that moment -- not guessed once up front.
 
    Stops at the first refusal (buffer full or an un-splittable string),
    leaving whatever already landed in place, and reports that refusal to
@@ -2766,12 +2788,9 @@ static boolean ring_push_value(ComTerp* comterp, AttributeValueList* avl, ComVal
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
     if (len==0) return true;
-    int avail = ring_avail(avl);
-    if (avail<=0) return false;
-    int tocopy = len<avail ? len : avail;
-    std::string snapshot(base, tocopy);
+    std::string snapshot(base, len);
     for (int k=0; k<len; k++)
-      if (!ring_push_char(comterp, avl, k<tocopy ? snapshot[k] : 0)) return false;
+      if (!ring_push_char(comterp, avl, snapshot[k])) return false;
     return true;
   }
   if (v.is_type(ComValue::StringType)) {

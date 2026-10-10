@@ -2,7 +2,7 @@
 // fired on every later push to a ring, the push-notification complement
 // to polling a ring's more()==nil
 //
-// coverage: 9 tests of watch()
+// coverage: 11 tests of watch()
 // funcs: watch ring feed next info global func arg dot
 
 //
@@ -18,7 +18,10 @@
 // refuses (full) never fires a watcher. Several watchers on the same
 // ring all fire, in registration order, on each landed push.
 // info(ring).watchers answers "what's watching what" -- nil until a
-// first watch() call, then the list of registered funcs.
+// first watch() call, then the list of registered funcs. A watcher
+// running mid-push can itself read the ring (e.g. next()) without
+// corrupting a multi-byte string push still landing bytes behind it, or
+// being refused as a false "recursive stream".
 
 ok=true
 
@@ -98,6 +101,28 @@ feed(r9 1)
 feed(r9 2)
 ok=ok&&(al9.hits==2)
 print("9 watch(r al.cb) -- a dot-bound field fires too (expect 2): %v\n" al9.hits)
+
+// --- 10: a watcher that pops from the ring it's watching (freeing room)
+// doesn't corrupt bytes a multi-char string push hasn't landed yet ---
+global(slog10)=""
+r10=ring(1)
+cb10=func(v=arg(0); p=next(r10); global(slog10)=global(slog10)+print(p :str))
+watch(r10 cb10)
+feed(r10 "abc")
+ok=ok&&(global(slog10)=="abc")
+print("10 a watcher popping mid-string-push doesn't corrupt later bytes (expect abc): %v\n" global(slog10))
+
+// --- 11: a watcher's next(r) during a stream-sourced push (-> or
+// feed(r each(s))) isn't refused as a false "recursive stream" -- the
+// ring just received the push it's being fired for, not a self-feed ---
+global(slog11)=""
+r11=ring(4 AnyType)
+cb11=func(v=arg(0); p=next(r11); global(slog11)=global(slog11)+print(p :str))
+watch(r11 cb11)
+s11=$$(1,2,3)
+s11 -> r11
+ok=ok&&(global(slog11)=="123")
+print("11 watcher's next(r) during -> sees every pushed element (expect 123): %v\n" global(slog11))
 
 print("watch: %v\n" ok)
 ok
