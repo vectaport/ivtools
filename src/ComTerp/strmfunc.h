@@ -511,6 +511,28 @@ public:
 
 };
 
+//: command to register a func as an observer on a ring FIFO, fired
+//: synchronously whenever a push lands -- the push-notification
+//: complement to polling a ring's more()==nil.
+// nil=%s(ring func) -- call func(pushed value) on every later push to ring
+class WatchFunc : public ComFunc {
+public:
+    WatchFunc(ComTerp*);
+
+    virtual void execute();
+    /* post_eval, same as help()/info(): func must reach execute() as a
+       live postfix token, not already auto-fired as an ordinary eager
+       argument would be -- a bare FuncObj reference evaluates by calling
+       it, which is exactly what registering it here must not do. */
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "nil=%s(ring func) -- register func to run on every later push to ring;\n\
+func fires with the pushed value as its one positional arg, read via\n\
+arg(0) in the body; func is read unevaluated, the same way help(cmd)\n\
+peeks a bare name, so naming it to watch with doesn't fire it"; }
+
+};
+
 //: command to re-grain a stream: pull up to n elements into an indexed list,
 //: one block per next(), so a script loop pays interpretation once per block
 //: instead of once per element.
