@@ -668,6 +668,54 @@ localtable()->insert(symid, val);
 ComValue val(symid, (void*)ptr);
 localtable()->insert(symid, val);  // DO NOT DO THIS
 ```
+## Ring Watchers (`watch()`)
+
+`watch(ring func)` (`strmfunc.c`, `WatchFunc`) registers `func` to run on
+every later push to `ring`, firing it with the pushed value as its one
+positional arg. A few design points that don't fit in the in-code
+comments without blowing past the one/two-line budget:
+
+- **`func` is read unevaluated.** Like `help(cmd)`/`info(cmd)`, `watch()`
+  is `post_eval`, and its arg 1 is peeked with `stack_arg(1, true)` so a
+  bare FuncObj reference doesn't auto-fire. Three shapes are recognized:
+  a bare symbol (resolved via `lookup_symval()`), an already-built
+  `FuncObj` (an inline `func(...)` literal — safe to fire directly, since
+  building a `FuncObj` never calls its body), and a dot-bound field
+  (`al.cb`), identified via its `Attribute` the same way `info(a.f)`
+  does. The resolved value is carried as a `ComValue` all the way to
+  registration, never unwrapped to a raw `FuncObj*`: an inline literal's
+  `FuncObj` has no owner but that `ComValue`, so extracting a bare
+  pointer before `reset_stack()` runs leaves it dangling the moment the
+  transient stack slot is released.
+
+- **Firing is reentrant on the same `ComTerp` instance.** `ring_fire_watchers()`
+  calls `comterp->fire_funcobj()` from inside `ring_push_elt()`, the same
+  pattern `NextFunc`'s `STREAM_FUNCOBJ` dispatch already uses to fire a
+  FuncObj from inside another command's `execute()` — safe because
+  ComTerp's dispatch is single-threaded/cooperative throughout, so no
+  second `ComTerp` instance is needed.
+
+- **Firing runs over a fixed watcher count**, captured before the loop
+  starts rather than re-read each iteration: a watcher that registers
+  another watcher on the same ring during its own firing takes effect
+  on the *next* push, not the current one, so it can't grow the list as
+  fast as the loop advances and hang the push.
+
+- **The destination recursive-stream guard (`_draining_avls`) is lifted
+  for the ring's own entries while watchers fire, then restored.** That
+  guard exists to stop `feed()`/`->` from feeding a ring into itself
+  forever; left in place during firing, it would also refuse a watcher's
+  own read of the ring it's watching (e.g. `next(ring)`) as a false
+  self-feed — the pushed value is already landed by the time watchers
+  run, so there's nothing left to protect against for that ring there.
+
+- **A multi-byte string push snapshots the whole string up front**, not
+  just however many bytes looked available before the loop started: a
+  watcher that pops from the ring mid-push can free room the precomputed
+  count didn't account for, and only a snapshot of the real remaining
+  bytes (checked one `ring_push_char()` at a time against live capacity)
+  avoids writing zero bytes in their place.
+
 ## See Also
 
 - `src/DrawServ/HACKING.md`

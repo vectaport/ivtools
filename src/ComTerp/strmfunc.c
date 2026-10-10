@@ -2655,30 +2655,11 @@ static ComValue ring_stream_value(ComTerp* comterp, ComValue& buf, boolean wrap)
   return stream;
 }
 
-/* run each func registered via watch(ring func) against the value just
-   written, passing it as that func's one positional arg (read via arg(0)
-   in the body).  Fired reentrantly on the SAME comterp instance that's
-   doing the push -- the same pattern NextFunc's own stream-destination
-   dispatch already uses (STREAM_FUNCOBJ branch, this file) to fire a
-   FuncObj from inside another command's execute(); no separate ComTerp
-   instance is needed for that to be safe, since ComTerp's dispatch is
-   single-threaded/cooperative throughout.  comterp->fire_funcobj() leaves
-   its own return value on the stack, same as any command's exec(); that
-   value is discarded here since a watcher is fired for effect only.
-
-   Runs over a fixed count of watchers (Number() read once, before firing
-   any of them), not the list's live count -- a watcher that registers
-   another watcher on this same ring fires it starting next push, not
-   this one, so a self-registering watcher can't grow the list as fast as
-   this loop advances and never finish.
-
-   Lifts avl's own entries out of the destination recursive-stream guard
-   (_draining_avls) for the duration of firing, then restores exactly as
-   many afterward: that guard exists to stop a ring from feeding into
-   itself through feed()/-> forever, not to refuse a watcher's own read
-   (e.g. next(ring)) of the ring that just received the push it's being
-   fired for -- the value is already landed by the time watchers run, so
-   there's nothing left to protect against for that avl here. */
+/* fire each func registered via watch(ring func), passing the pushed
+   value as its one positional arg; a fixed watcher count and a lifted
+   recursion guard avoid a self-registering watcher hanging and a
+   watcher's own ring read being refused as a false self-feed -- see
+   "Ring Watchers (watch())" in HACKING.md. */
 static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComValue& pushedval) {
   if (avl->Number()<=6) return;
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
@@ -3163,22 +3144,11 @@ WatchFunc::WatchFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void WatchFunc::execute() {
-  /* ring's own value is needed, not its name, so an ordinary post_eval
-     fetch is correct for arg 0 -- only func (arg 1, below) is read
-     unevaluated. */
+  /* arg 0 is the ring's value, fetched ordinarily; arg 1 (func) is
+     peeked unevaluated below -- see "Ring Watchers (watch())" in
+     HACKING.md for why and how each of its three shapes is resolved. */
   ComValue ringv(stack_arg_post_eval(0));
 
-  /* func is peeked unevaluated (symbol=true), the same symbol-preserving
-     pattern help(cmd)/info(cmd) use to describe a func without firing
-     it -- a bare name resolves to its FuncObj via lookup_symval() rather
-     than being called (an already-fired bare reference auto-calls a
-     zero-arg func, same hazard info(cmd)/help(cmd) avoid this way).
-     funcval, not a raw FuncObj*, carries the result all the way to
-     registration below: an inline func(...) literal's FuncObj has no
-     owner but the ComValue holding it, so unwrapping to a bare pointer
-     here and letting that ComValue go out of scope before registering
-     it would leave the pointer dangling once reset_stack() releases
-     whatever stack slot it came from. */
   ComValue peekval(stack_arg(1, true));
   ComValue funcval(ComValue::nullval());
   static int dot_symid = symbol_add("dot");
@@ -3190,9 +3160,7 @@ void WatchFunc::execute() {
     funcval = peekval;
   } else if (peekval.is_type(AttributeValue::CommandType) &&
 	     peekval.command_symid()==dot_symid && peekval.narg()==2) {
-    /* al.cb -- fire the pending "dot" call via stack_arg_post_eval(),
-       same mechanism info(a.f) uses, so a dot-bound func is identified
-       by its field's Attribute rather than being called. */
+    /* al.cb -- identified via its Attribute, same as info(a.f). */
     ComValue dotval(stack_arg_post_eval(1, true));
     if (dotval.class_symid()==Attribute::class_symid()) {
       Attribute* attr = (Attribute*) dotval.obj_val();
@@ -3202,11 +3170,8 @@ void WatchFunc::execute() {
       funcval = dotval;
     }
   } else {
-    /* anything else -- an inline func(...) literal, most commonly --
-       isn't a reference to an existing func, so firing it via the
-       ordinary post_eval path is safe: it only ever constructs and
-       returns a FuncObj, the same as any other expression's result,
-       never invokes a body. */
+    /* an inline func(...) literal -- safe to fire: building a FuncObj
+       never calls its body. */
     ComValue fired(stack_arg_post_eval(1));
     if (fired.is_object(FuncObj::class_symid()))
       funcval = fired;
