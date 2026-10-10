@@ -723,6 +723,46 @@ comments without blowing past the one/two-line budget:
   bytes (checked one `ring_push_char()` at a time against live capacity)
   avoids writing zero bytes in their place.
 
+## Cross-Interpreter Ring Sharing
+
+`comterp server`/`comterp listen` run one `ComTerp` C++ instance per
+connection, plus a separate one for the server's own stdin console
+(`main.c`'s `server_flag`/`listen_flag` branches, each a fresh
+`new ComterpHandler()`). All of them share the same process-wide
+globals (`ComTerp::_globaltable`, a `static` member) and the same
+process-wide `AttributeValueList`s, so a ring created by one instance
+and referenced by a global name is a legitimate, shared communication
+channel between any two of them -- one instance pushes, another reads,
+or both do either, same as `watch()`'s callback model but now spanning
+interpreters instead of just call frames.
+
+What makes this work mechanically: a ring's own "next" and "feed"
+dispatch (`RingNextFunc`/`FeedRingNextFunc`, `ring_next_func()` /
+`frnfunc` in `strmfunc.c`) are each a single process-wide singleton --
+one instance total, shared by *every* ring and *every* `ComTerp`
+instance, not one per ring. Like any `ComFunc`, its `stack_arg()` /
+`push_stack()` / `reset_stack()` calls all go through whichever
+`ComTerp*` is cached on it (`ComFunc::_comterp`, `comfunc.h`), so before
+calling `exec()` on it, `NextFunc::execute_impl` (`strmfunc.c`, the
+`STREAM_INTERNAL` branch) always retargets that cached pointer to
+*this* call's `comterp` argument first. This isn't a fallback for an
+unexpected case -- it is the hand-off itself, needed on every single
+call where the instance touching the ring differs from whichever one
+touched it last. The dispatch is otherwise single-threaded/cooperative
+(ACE's reactor services one event at a time, same as the reentrant
+firing in "Ring Watchers" above), so there's never a moment where two
+instances are mid-`exec()` on the same singleton at once -- retargeting
+right before the call is complete and sufficient, not a race.
+
+What's still worth knowing before relying on this:
+- A `watch()` callback fires using whichever instance performed the
+  *push*, not whichever instance registered the watch -- so the
+  callback's own `*ring`/`next(ring)` reads (and anything else it does)
+  run against the pushing instance's stack and funcstate.
+- Everything the callback needs to behave consistently across
+  instances should come from globals or the ring itself, not from
+  per-instance local state.
+
 ## See Also
 
 - `src/DrawServ/HACKING.md`

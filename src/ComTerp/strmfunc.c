@@ -1132,12 +1132,12 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
     if (streamv.stream_mode()&STREAM_INTERNAL) {
 
-      /* internal execution of next mechanism -- handled by stream func */
+      /* internal execution of next mechanism -- handled by stream func.
+	 Hands this shared, process-wide stream func to whichever
+	 interpreter is calling right now -- see "Cross-Interpreter Ring
+	 Sharing" in HACKING.md. */
       comterp->push_stack(streamv);
-      if(((ComFunc*)streamv.stream_func())->comterp()!=comterp) {
-	((ComFunc*)streamv.stream_func())->comterp(comterp); // just in case
-	 fprintf(stderr, "unexpected need to fix comterp in stream_func\n");
-	 }
+      ((ComFunc*)streamv.stream_func())->comterp(comterp);
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
       /* a ring's avl is head/tail/count bookkeeping, not remaining elements --
 	 nil is "empty for now," so clearing it would destroy a feedable ring. */
