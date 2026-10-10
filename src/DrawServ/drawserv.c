@@ -460,12 +460,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       
     }
     
-    /* then send everywhere else, unless pause() is holding back this
-       node's own outgoing edits -- a command already here because it
-       arrived over a link is a relay, not a local edit, and must keep
-       flowing immediately (with its source still excluded) whether or
-       not pause() is in effect, or a relayed chain stalls and a paused
-       hop's eventual flush would echo it straight back to its sender */
+    /* a relayed command (arrived over a link) always keeps flowing, source
+       still excluded, regardless of pause() -- only a local edit is held */
     boolean incoming = DrawServHandler::current() && DrawServHandler::current()->drawlink();
     boolean reversible = cmd->Reversible();
     if (original || linklist()->Number()>0) {
@@ -577,25 +573,25 @@ void DrawServ::pause() {
 void DrawServ::unpause() {
   if (_flushing) return;
   _flushing = true;
-  /* stay paused through the whole drain: write_full() pumps the reactor
-     past a full socket, and a local edit that lands during that pump
-     must queue behind what's already draining rather than send ahead of
-     it, so re-loop until a pass adds nothing new before clearing _paused */
+  /* _paused stays true through the drain: write_full() pumps the reactor,
+     so a local edit landing mid-drain queues behind it, not ahead of it */
   while (!_pause_outbuf.empty()) {
-    std::vector<PauseEntry> outbuf;
-    outbuf.swap(_pause_outbuf);
-    for (unsigned int i = 0; i < outbuf.size(); i++)
-      if (outbuf[i].active)
-	DistributeCmdString(outbuf[i].script.c_str());
+    /* swapped into _draining, not a local, so NotifyUndo/NotifyRedo can
+       still reach an entry while this pass is sending it */
+    _draining.swap(_pause_outbuf);
+    for (unsigned int i = 0; i < _draining.size(); i++)
+      if (_draining[i].active)
+	DistributeCmdString(_draining[i].script.c_str());
+    _draining.clear();
+    // re-loop until a pass adds nothing new, then clear _paused
   }
   _paused = false;
   _flushing = false;
 }
 
 /* Log() wraps a first edit's command in a MacroCmd paired with a DirtyCmd
-   (Unidraw::Log(), unidraw.c), so the command Undo()/Redo() hands back is
-   not always the same pointer ExecuteCmd buffered -- it may be a MacroCmd
-   containing it. */
+   (unidraw.c), so Undo()/Redo() can hand back a MacroCmd containing the
+   pointer a PauseEntry holds rather than that pointer itself. */
 static boolean cmd_contains(Command* logged, Command* target) {
   if (logged == target) return true;
   if (logged->IsA(MACRO_CMD)) {
@@ -607,22 +603,26 @@ static boolean cmd_contains(Command* logged, Command* target) {
   return false;
 }
 
-void DrawServ::NotifyUndo(Command* cmd) {
-  for (int i = (int)_pause_outbuf.size()-1; i >= 0; i--) {
-    if (_pause_outbuf[i].cmd && cmd_contains(cmd, _pause_outbuf[i].cmd) && _pause_outbuf[i].active) {
-      _pause_outbuf[i].active = false;
-      return;
+boolean DrawServ::withhold_entry(std::vector<PauseEntry>& buf, Command* cmd, boolean wantactive) {
+  for (int i = (int)buf.size()-1; i >= 0; i--) {
+    if (buf[i].cmd && buf[i].active==wantactive && cmd_contains(cmd, buf[i].cmd)) {
+      buf[i].active = !wantactive;
+      return true;
     }
   }
+  return false;
+}
+
+void DrawServ::NotifyUndo(Command* cmd) {
+  // the mid-drain batch is checked too, in case undo() runs from a
+  // reactor pump nested inside unpause()'s own distribution
+  if (!withhold_entry(_pause_outbuf, cmd, true))
+    withhold_entry(_draining, cmd, true);
 }
 
 void DrawServ::NotifyRedo(Command* cmd) {
-  for (int i = (int)_pause_outbuf.size()-1; i >= 0; i--) {
-    if (_pause_outbuf[i].cmd && cmd_contains(cmd, _pause_outbuf[i].cmd) && !_pause_outbuf[i].active) {
-      _pause_outbuf[i].active = true;
-      return;
-    }
-  }
+  if (!withhold_entry(_pause_outbuf, cmd, false))
+    withhold_entry(_draining, cmd, false);
 }
 
 // generate request to register each locally unique session id

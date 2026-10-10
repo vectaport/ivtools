@@ -342,6 +342,14 @@ protected:
   // commands deferred by pause(), oldest first; active entries are sent
   // and the vector cleared by unpause()
 
+  std::vector<PauseEntry> _draining;
+  // the batch unpause() is currently sending, swapped out of
+  // _pause_outbuf so NotifyUndo/NotifyRedo can still reach it mid-drain
+
+  boolean withhold_entry(std::vector<PauseEntry>& buf, Command* cmd, boolean wantactive);
+  // flip the matching entry's active flag, searched newest-first; used by
+  // NotifyUndo/NotifyRedo on both _pause_outbuf and _draining
+
   boolean write_full(int fd, const char* buf, size_t len);
   // write len bytes to fd, retrying past a short write or a transient
   // EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's
