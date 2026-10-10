@@ -949,7 +949,7 @@ void NextFunc::execute_var_dispatch(ComValue& streamv, ComValue& varname, int li
 	return;
       }
 
-      /* each()/**-forced: write the one pulled value in place immediately,
+      /* each() | ** - forced: write the one pulled value in place immediately,
 	 same as AssignFunc's al.field=val, reporting nil instead on a
 	 self-insertion refusal rather than the unwritten value. */
       execute_impl(comterp(), streamv);
