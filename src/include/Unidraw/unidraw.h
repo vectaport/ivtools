@@ -87,6 +87,12 @@ public:
     virtual void ExecuteCmd(Command*);
     // indirection for command execution, will delete object
 
+    virtual void NotifyUndo(Command*) {}
+    // hook for a subclass to react to Undo() reversing this command
+
+    virtual void NotifyRedo(Command*) {}
+    // hook for a subclass to react to Redo() re-executing this command
+
 protected:
     virtual void Process();
 

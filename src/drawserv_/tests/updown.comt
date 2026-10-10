@@ -488,6 +488,213 @@ pause_test=func(
   print("pause: ds2 shut down\n" :err);
   ok)
 
+/* pauseundo test -- link ds1 -> ds2; while ds1 is pause()d, create a
+   graphic then undo() it locally before unpause()ing. The undone
+   graphic must never reach ds2: undo() withholds the still-buffered
+   command instead of leaving it to be sent regardless. */
+pauseundo_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_uppauseundo1)=false;
+  print("pauseundo: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uppauseundo1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uppauseundo1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("pauseundo: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_uppauseundo1) :then
+    print("pauseundo: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("pauseundo: ds1 up on %d\n" ds1_port :err);
+
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_uppauseundo2)=false;
+  print("pauseundo: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uppauseundo2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uppauseundo2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("pauseundo: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_uppauseundo2) :then
+    print("pauseundo: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("pauseundo: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType :then
+    print("pauseundo: FAIL could not connect to both drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+
+  remote(sock1 "pause()");
+  remote(sock1 "ellipse(100,100,40,40)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
+  had_it=remote(sock1 "size(grid(:table))")>0;
+  print("pauseundo: ellipse created locally on ds1: %v\n" had_it :err);
+  remote(sock1 "undo()");
+  /* grid(:table) is DrawServ's relay bookkeeping, not the document itself,
+     and undo() doesn't touch it even outside of pause() -- select(:all)
+     reflects what's actually left in the drawing */
+  still_has_it=remote(sock1 "size(select(:all))")>0;
+  print("pauseundo: ds1's own graphic gone after undo(): %v\n" !still_has_it :err);
+  remote(sock1 "unpause()");
+
+  /* real polling, not a single check -- a leftover send would show up
+     within a couple of seconds the same way pause_test's positive case does */
+  reached=false;
+  for(k=0 k<5 k++
+    usleep(poll_usec);
+    if(remote(sock2 "size(grid(:table))")>0 :then reached=true));
+  print("pauseundo: undone graphic never reached ds2: %v\n" !reached :err);
+  if(reached :then print("pauseundo: FAIL the undone graphic was sent to ds2 anyway\n" :err));
+
+  ok=had_it && !still_has_it && !reached;
+
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  print("pauseundo: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  print("pauseundo: ds2 shut down\n" :err);
+  ok)
+
+/* pauserelay test -- CHAIN topology: ds1 -> ds2 -> ds3. pause() the
+   MIDDLE hop (ds2). A graphic created on ds1 arrives at ds2 as a relay,
+   not a local edit, so it must keep flowing to ds3 immediately,
+   pause() or not -- and must not echo back to ds1. */
+pauserelay_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_uppauserelay1)=false;
+  print("pauserelay: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uppauserelay1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uppauserelay1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("pauserelay: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_uppauserelay1) :then
+    print("pauserelay: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("pauserelay: ds1 up on %d\n" ds1_port :err);
+
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_uppauserelay2)=false;
+  print("pauserelay: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uppauserelay2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uppauserelay2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("pauserelay: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_uppauserelay2) :then
+    print("pauserelay: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("pauserelay: ds2 up on %d\n" ds2_port :err);
+
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_uppauserelay3)=false;
+  print("pauserelay: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_uppauserelay3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_uppauserelay3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("pauserelay: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_uppauserelay3) :then
+    print("pauserelay: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("pauserelay: ds3 up on %d\n" ds3_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
+    print("pauserelay: FAIL could not connect to all three drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
+    return(false));
+
+  print("pauserelay: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
+
+  /* pause() the middle hop, not the originator */
+  remote(sock2 "pause()");
+
+  remote(sock1 "ellipse(100,100,40,40)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("pauserelay: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("pauserelay: FAIL could not read grid id from ds1 (got %v)\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    return(false));
+
+  /* ds2 itself applies it right away (incoming, not withheld by its own pause) */
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("pauserelay: graphic reached ds2 (relay target) while ds2 paused: %v\n" on2 :err);
+
+  /* ds3 must receive it promptly even while ds2 stays paused -- this is
+     exactly what pause() must never block */
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("pauserelay: graphic relayed on to ds3 while ds2 paused: %v\n" on3 :err);
+  if(!on3 :then print("pauserelay: FAIL relay stalled behind ds2's pause()\n" :err));
+
+  /* ds2's own held outbuf is empty (nothing of ds2's own buffered) --
+     unpause() must not then echo the relay back to ds1 */
+  table1_before=remote(sock1 "size(grid(:table))");
+  remote(sock2 "unpause()");
+  usleep(poll_usec);
+  table1_after=remote(sock1 "size(grid(:table))");
+  no_echo=eq(table1_before table1_after);
+  print("pauserelay: ds1's table unchanged by ds2's unpause() (no echo-back): %v\n" no_echo :err);
+  if(!no_echo :then print("pauserelay: FAIL the relay echoed back to ds1 on unpause()\n" :err));
+
+  ok=on2 && on3 && no_echo;
+
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  print("pauserelay: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  print("pauserelay: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+  print("pauserelay: ds3 shut down\n" :err);
+  ok)
+
 /* updown3A test -- CHAIN topology: ds1 -> ds2 -> ds3.
    create a graphic on ds1, verify it propagates two hops to ds3.
    each drawlink command is sent to the node that must initiate it:

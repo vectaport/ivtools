@@ -474,6 +474,7 @@ void Unidraw::Undo (Component* comp, int n) {
     for (int i = 0; i < n && cur != past->End(); ++i) {
         Command* cmd = command(cur);
         cmd->Unexecute();
+        NotifyUndo(cmd);
         past->Remove(cur);
         future->Prepend(cur);
         cur = past->First();
@@ -488,6 +489,7 @@ void Unidraw::Redo (Component* comp, int n) {
     for (int i = 0; i < n && cur != future->End(); ++i) {
         Command* cmd = command(cur);
         cmd->Execute();
+        NotifyRedo(cmd);
         future->Remove(cur);
         past->Prepend(cur);
         cur = future->First();

@@ -3,7 +3,8 @@
 # drawmo  drawserv orchestrator and test suite
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
-#   names: all updown updown1 updown2 pauseunpause updown3A updown3B updown4A updown4B
+#   names: all updown updown1 updown2 pauseunpause pauseundo pauserelay
+#          updown3A updown3B updown4A updown4B
 #          updown4C cycle ringpair ringpair7 ringpair10 frontback move
 #          transform sel eagain parsetest optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
@@ -23,6 +24,8 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      updown              one drawserv up and down again\n");
     print("      updown1 updown2     one linked, then two\n");
     print("      pauseunpause        pause()/unpause() withholds then flushes distribution\n");
+    print("      pauseundo           undo() while paused withholds the undone command\n");
+    print("      pauserelay          pause() never blocks relaying someone else's command\n");
     print("      updown3A updown3B   three, chained and forked\n");
     print("      updown4A updown4B updown4C\n");
     print("                          four, to the second level\n");
@@ -121,7 +124,7 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -191,6 +194,20 @@ if(tests_flag :then
         print("pause: pass\n" :err)
       :else
         print("pause: FAIL\n" :err);
+        ok=false));
+    if(t==`pauseundo || t==`all :then
+      print("running pauseundo test\n" :err);
+      if(pauseundo_test(:dummy 0) :then
+        print("pauseundo: pass\n" :err)
+      :else
+        print("pauseundo: FAIL\n" :err);
+        ok=false));
+    if(t==`pauserelay || t==`all :then
+      print("running pauserelay test\n" :err);
+      if(pauserelay_test(:dummy 0) :then
+        print("pauserelay: pass\n" :err)
+      :else
+        print("pauserelay: FAIL\n" :err);
         ok=false));
     if(t==`updown3A || t==`all :then
       print("running updown3A test\n" :err);

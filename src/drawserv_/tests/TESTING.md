@@ -162,6 +162,36 @@ receives it.
 command distribution without disturbing the link itself, and that
 `unpause()` flushes exactly what was held.
 
+### pauseundo
+
+**What:** Link ds1 -> ds2. `pause()` ds1, create a graphic, `undo()` it
+locally, then `unpause()`.
+
+**Checks:**
+- the graphic exists on ds1 right after creation, and is gone after
+  `undo()`
+- ds2 never sees it, even after `unpause()` and several real polling
+  intervals
+
+**Purpose:** Verifies that `undo()` withholds a still-buffered,
+not-yet-sent command rather than leaving it queued to go out regardless
+of the local reversal.
+
+### pauserelay
+
+**What:** Chain ds1 -> ds2 -> ds3. `pause()` the middle hop (ds2), then
+create a graphic on ds1.
+
+**Checks:**
+- ds2 applies the incoming command right away despite being paused
+- ds3 receives the relay promptly, without waiting for ds2's `unpause()`
+- `unpause()` on ds2 (which has nothing of its own buffered) does not
+  echo the relay back to ds1
+
+**Purpose:** Verifies that `pause()` only withholds a node's own locally
+originated commands — a command arriving over a link for relay keeps
+flowing immediately, source-link exclusion intact.
+
 ### ringpair, ringpair7, ringpair10
 
 **What:** Build two independent chains of `chainlen` drawservs each, then

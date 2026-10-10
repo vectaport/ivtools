@@ -101,7 +101,15 @@ public:
   
   virtual void ExecuteCmd(Command*);
   // execute Command's locally, and on remote linked DrawServ's.
-  
+
+  virtual void NotifyUndo(Command*);
+  // withhold a still-paused, not-yet-sent entry so undo()'s local
+  // reversal isn't contradicted by later sending it anyway
+
+  virtual void NotifyRedo(Command*);
+  // restore an entry NotifyUndo() withheld, if redo() brings its
+  // command back before unpause()
+
   virtual void DistributeCmdString(const char* cmdstring, DrawLink* orglink=nil);
   // send command string to every remote DrawServ (except where it came from).
   
@@ -317,9 +325,22 @@ protected:
   boolean _paused;
   // whether pause() is withholding this node's outgoing distribution
 
-  std::vector<std::string> _pause_outbuf;
-  // command strings deferred by pause(), oldest first; sent and cleared
-  // by unpause()
+  boolean _flushing;
+  // set for unpause()'s own duration, so a nested/re-entrant unpause()
+  // (e.g. from a local edit triggered while write_full() pumps the
+  // reactor mid-flush) no-ops instead of racing the same flush
+
+  struct PauseEntry {
+    Command* cmd;
+    // the command this script distributes; nil for one that can't be
+    // undone/redone (never withheld, so NotifyUndo/NotifyRedo skip it)
+    std::string script;
+    boolean active;
+    // false while undo() has withheld this entry; redo() sets it back
+  };
+  std::vector<PauseEntry> _pause_outbuf;
+  // commands deferred by pause(), oldest first; active entries are sent
+  // and the vector cleared by unpause()
 
   boolean write_full(int fd, const char* buf, size_t len);
   // write len bytes to fd, retrying past a short write or a transient

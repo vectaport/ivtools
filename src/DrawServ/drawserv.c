@@ -52,6 +52,7 @@
 
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Commands/edit.h>
+#include <Unidraw/Commands/macro.h>
 #include <Unidraw/catalog.h>
 #include <Unidraw/clipboard.h>
 #include <Unidraw/creator.h>
@@ -138,6 +139,7 @@ void DrawServ::Init() {
   _freeze_done = false;
 
   _paused = false;
+  _flushing = false;
 
   create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
@@ -458,17 +460,22 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       
     }
     
-    /* then send everywhere else, unless pause() is holding this node's
-       outgoing distribution -- incoming commands keep applying normally
-       the whole time, only this node's own local edits wait */
+    /* then send everywhere else, unless pause() is holding back this
+       node's own outgoing edits -- a command already here because it
+       arrived over a link is a relay, not a local edit, and must keep
+       flowing immediately (with its source still excluded) whether or
+       not pause() is in effect, or a relayed chain stalls and a paused
+       hop's eventual flush would echo it straight back to its sender */
+    boolean incoming = DrawServHandler::current() && DrawServHandler::current()->drawlink();
+    boolean reversible = cmd->Reversible();
     if (original || linklist()->Number()>0) {
-      if (_paused)
-	_pause_outbuf.push_back(sbuf.str());
+      if (_paused && !incoming)
+	_pause_outbuf.push_back(PauseEntry{reversible ? cmd : nil, sbuf.str(), true});
       else
 	DistributeCmdString(sbuf.str().c_str(), linkget(sid));
     }
-    
-    if (cmd->Reversible()) {
+
+    if (reversible) {
       cmd->Log();
     } else {
       delete cmd;
@@ -568,11 +575,54 @@ void DrawServ::pause() {
 }
 
 void DrawServ::unpause() {
+  if (_flushing) return;
+  _flushing = true;
+  /* stay paused through the whole drain: write_full() pumps the reactor
+     past a full socket, and a local edit that lands during that pump
+     must queue behind what's already draining rather than send ahead of
+     it, so re-loop until a pass adds nothing new before clearing _paused */
+  while (!_pause_outbuf.empty()) {
+    std::vector<PauseEntry> outbuf;
+    outbuf.swap(_pause_outbuf);
+    for (unsigned int i = 0; i < outbuf.size(); i++)
+      if (outbuf[i].active)
+	DistributeCmdString(outbuf[i].script.c_str());
+  }
   _paused = false;
-  std::vector<std::string> outbuf;
-  outbuf.swap(_pause_outbuf);
-  for (unsigned int i = 0; i < outbuf.size(); i++)
-    DistributeCmdString(outbuf[i].c_str());
+  _flushing = false;
+}
+
+/* Log() wraps a first edit's command in a MacroCmd paired with a DirtyCmd
+   (Unidraw::Log(), unidraw.c), so the command Undo()/Redo() hands back is
+   not always the same pointer ExecuteCmd buffered -- it may be a MacroCmd
+   containing it. */
+static boolean cmd_contains(Command* logged, Command* target) {
+  if (logged == target) return true;
+  if (logged->IsA(MACRO_CMD)) {
+    MacroCmd* mc = (MacroCmd*)logged;
+    Iterator i;
+    for (mc->First(i); !mc->Done(i); mc->Next(i))
+      if (cmd_contains(mc->GetCommand(i), target)) return true;
+  }
+  return false;
+}
+
+void DrawServ::NotifyUndo(Command* cmd) {
+  for (int i = (int)_pause_outbuf.size()-1; i >= 0; i--) {
+    if (_pause_outbuf[i].cmd && cmd_contains(cmd, _pause_outbuf[i].cmd) && _pause_outbuf[i].active) {
+      _pause_outbuf[i].active = false;
+      return;
+    }
+  }
+}
+
+void DrawServ::NotifyRedo(Command* cmd) {
+  for (int i = (int)_pause_outbuf.size()-1; i >= 0; i--) {
+    if (_pause_outbuf[i].cmd && cmd_contains(cmd, _pause_outbuf[i].cmd) && !_pause_outbuf[i].active) {
+      _pause_outbuf[i].active = true;
+      return;
+    }
+  }
 }
 
 // generate request to register each locally unique session id
