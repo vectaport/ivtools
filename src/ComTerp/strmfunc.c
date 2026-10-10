@@ -1132,10 +1132,9 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
     if (streamv.stream_mode()&STREAM_INTERNAL) {
 
-      /* internal execution of next mechanism -- handled by stream func.
-	 Hands this shared, process-wide stream func to whichever
-	 interpreter is calling right now -- see "Cross-Interpreter Ring
-	 Sharing" in HACKING.md. */
+      /* internal execution of next mechanism -- handled by stream func,
+	 retargeted to the calling interpreter (HACKING.md's "Cross-Interpreter
+	 Ring Sharing"). */
       comterp->push_stack(streamv);
       ((ComFunc*)streamv.stream_func())->comterp(comterp);
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
@@ -3346,6 +3345,10 @@ FeedRingNextFunc::FeedRingNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void FeedRingNextFunc::execute() {
+  /* a watcher fired below can pump another interpreter's commands and
+     retarget this shared singleton, so the caller is captured here and
+     re-asserted after (HACKING.md's "Cross-Interpreter Ring Sharing"). */
+  ComTerp* self = comterp();
   ComValue operand1(stack_arg(0));
   reset_stack();
 
@@ -3381,8 +3384,9 @@ void FeedRingNextFunc::execute() {
      pulling through srccopy advances the shared source, so a later pull
      against this same wrapper resumes where this one left off. */
   ComValue srccopy(*srcav);
-  NextFunc::execute_impl(comterp(), srccopy);
-  ComValue popval(comterp()->pop_stack());
+  NextFunc::execute_impl(self, srccopy);
+  comterp(self);
+  ComValue popval(self->pop_stack());
   if (_draining_guard_tripped_avl==avl) {
     _draining_guard_tripped_avl = 0;
     push_stack(ComValue::nullval());
@@ -3392,10 +3396,11 @@ void FeedRingNextFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  if (!ring_push_one(comterp(), avl, popval, false)) {
+  if (!ring_push_one(self, avl, popval, false)) {
     push_stack(ComValue::nullval());
     return;
   }
+  comterp(self);
   push_stack(popval);
 }
 

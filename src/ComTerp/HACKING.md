@@ -748,11 +748,21 @@ calling `exec()` on it, `NextFunc::execute_impl` (`strmfunc.c`, the
 *this* call's `comterp` argument first. This isn't a fallback for an
 unexpected case -- it is the hand-off itself, needed on every single
 call where the instance touching the ring differs from whichever one
-touched it last. The dispatch is otherwise single-threaded/cooperative
-(ACE's reactor services one event at a time, same as the reentrant
-firing in "Ring Watchers" above), so there's never a moment where two
-instances are mid-`exec()` on the same singleton at once -- retargeting
-right before the call is complete and sufficient, not a race.
+touched it last.
+
+ACE's reactor services one event at a time, so there's no *true*
+concurrency here -- but `update()` (`ctrlfunc.c`'s `UpdateFunc`) pumps
+that same reactor reentrantly from inside any running command,
+including a `watch()` callback's body. If a callback calls `update()`,
+another connection's command can run to completion nested inside the
+current call, and if that command also touches a ring, it retargets
+the very same singleton out from under the call that's still
+in progress. `FeedRingNextFunc::execute()` is the one place that reads
+its own cached `comterp()` *after* a point where this can happen (after
+`ring_push_one()` fires watchers): it now captures the calling
+interpreter in a local before that point and re-asserts it before using
+`comterp()` again, rather than trusting the cached pointer to have
+survived.
 
 What's still worth knowing before relying on this:
 - A `watch()` callback fires using whichever instance performed the
