@@ -2665,9 +2665,17 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
   if (!watchers) return;
-  int lifted = std::count(_draining_avls.begin(), _draining_avls.end(), avl);
-  _draining_avls.erase(std::remove(_draining_avls.begin(), _draining_avls.end(), avl),
-			_draining_avls.end());
+  /* lifted by exact position, restored at those same positions below --
+     not just appended back -- so an enclosing guard entry pushed around
+     avl's own (e.g. an ancestor ring_push_arg() call still mid-pull
+     higher up the C++ stack) keeps its original place; DrainingAVLGuard's
+     destructor always pops the vector's last entry, so restoring out of
+     position would make that ancestor's own unwind pop the wrong one. */
+  std::vector<size_t> positions;
+  for (size_t j=0; j<_draining_avls.size(); j++)
+    if (_draining_avls[j]==avl) positions.push_back(j);
+  for (int j=(int)positions.size()-1; j>=0; j--)
+    _draining_avls.erase(_draining_avls.begin()+positions[j]);
   int n = watchers->Number();
   for (int i=0; i<n; i++) {
     AttributeValue* wav = watchers->Get(i);
@@ -2679,7 +2687,8 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
     comterp->fire_funcobj(fobjv);
     comterp->pop_stack();
   }
-  for (int k=0; k<lifted; k++) _draining_avls.push_back(avl);
+  for (size_t j=0; j<positions.size(); j++)
+    _draining_avls.insert(_draining_avls.begin()+positions[j], avl);
 }
 
 /* push one element into a ring FIFO's avl; false (refused) when full --
@@ -2769,6 +2778,10 @@ static boolean ring_push_value(ComTerp* comterp, AttributeValueList* avl, ComVal
     const char* base = v.string_ptr() + (v.sliced() ? v.sliceoff() : 0);
     int len = v.sliced() ? v.slicelen() : symbol_len(v.string_val());
     if (len==0) return true;
+    /* no watcher can free room before the first byte of THIS push lands,
+       so a ring already full is refused up front, before paying to copy
+       a string that can't land any of it anyway. */
+    if (ring_avail(avl)<=0) return false;
     std::string snapshot(base, len);
     for (int k=0; k<len; k++)
       if (!ring_push_char(comterp, avl, snapshot[k])) return false;
