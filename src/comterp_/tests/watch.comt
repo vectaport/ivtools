@@ -1,0 +1,80 @@
+// src/comterp_/tests/watch.comt -- watch(ring func), observer callbacks
+// fired on every later push to a ring, the push-notification complement
+// to polling a ring's more()==nil
+//
+// coverage: 7 tests of watch()
+// funcs: watch ring feed next info global func arg
+
+//
+// watch(ring func) registers func to be called whenever ring is pushed
+// to, by feed() or ->, in either direction; func fires with the pushed
+// value as its one positional arg, read via arg(0) in the body. func is
+// read unevaluated (the same symbol-preserving peek help(cmd)/info(cmd)
+// use), so naming it to watch with doesn't fire it -- watch() is
+// post_eval for exactly this reason. A push the ring refuses (full)
+// never fires a watcher. Several watchers on the same ring all fire, in
+// registration order, on each landed push. info(ring).watchers answers
+// "what's watching what" -- nil until a first watch() call, then the
+// list of registered funcs.
+
+ok=true
+
+// --- 1: watch() itself doesn't fire func -- registering is silent ---
+global(hits1)=0
+cb1=func(v=arg(0); global(hits1)=global(hits1)+1)
+r1=ring(4 AnyType)
+rv1=watch(r1 cb1)
+ok=ok&&(rv1==nil)&&(global(hits1)==0)
+print("1 watch(r cb) doesn't fire cb, returns nil (expect nil 0): %v %v\n" rv1 global(hits1))
+
+// --- 2: feed() into the watched ring fires cb with the pushed value as
+// arg(0) ---
+feed(r1 42)
+ok=ok&&(global(hits1)==1)
+print("2 feed(r 42) fires the watcher once (expect 1): %v\n" global(hits1))
+
+// --- 3: info(ring).watchers lists the registered func ---
+w3=info(r1).watchers
+ok=ok&&istype(w3 ListType)&&(size(w3)==1)
+print("3 info(r).watchers after one watch() (expect ListType, size 1): %v %v\n" istype(w3 ListType) size(w3))
+
+// --- 4: a fresh ring with no watch() call reports nil watchers ---
+r4=ring(2)
+w4=info(r4).watchers
+ok=ok&&(w4==nil)
+print("4 info(ring()).watchers with no watch() call (expect nil): %v\n" w4)
+
+// --- 5: several watchers on the same ring all fire, in registration
+// order, on each landed push ---
+global(log5)=""
+cba=func(v=arg(0); global(log5)=global(log5)+"a"+print(v :str))
+cbb=func(v=arg(0); global(log5)=global(log5)+"b"+print(v :str))
+r5=ring(4 AnyType)
+watch(r5 cba)
+watch(r5 cbb)
+feed(r5 1)
+ok=ok&&(global(log5)=="a1b1")
+print("5 two watchers both fire, in registration order (expect a1b1): %v\n" global(log5))
+
+// --- 6: a push the ring refuses (full) never fires a watcher ---
+global(hits6)=0
+cb6=func(v=arg(0); global(hits6)=global(hits6)+1)
+r6=ring(1 AnyType)
+watch(r6 cb6)
+feed(r6 1)
+feed(r6 2)
+ok=ok&&(global(hits6)==1)
+print("6 a refused push (ring full) doesn't fire the watcher (expect 1): %v\n" global(hits6))
+
+// --- 7: -> into a watched ring fires the watcher too, same as feed() ---
+global(hits7)=0
+cb7=func(v=arg(0); global(hits7)=global(hits7)+1)
+r7=ring(2 AnyType)
+watch(r7 cb7)
+s7=$$(7)
+s7 -> r7
+ok=ok&&(global(hits7)==1)
+print("7 s -> r fires the watcher, same as feed() (expect 1): %v\n" global(hits7))
+
+print("watch: %v\n" ok)
+ok
