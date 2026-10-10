@@ -2665,12 +2665,9 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
   if (!watchers) return;
-  /* lifted by exact position, restored at those same positions below --
-     not just appended back -- so an enclosing guard entry pushed around
-     avl's own (e.g. an ancestor ring_push_arg() call still mid-pull
-     higher up the C++ stack) keeps its original place; DrainingAVLGuard's
-     destructor always pops the vector's last entry, so restoring out of
-     position would make that ancestor's own unwind pop the wrong one. */
+  /* lifted and later restored by exact stack position, not just appended
+     back -- see "Ring Watchers (watch())" in HACKING.md for why position
+     (not just count) matters here. */
   std::vector<size_t> positions;
   for (size_t j=0; j<_draining_avls.size(); j++)
     if (_draining_avls[j]==avl) positions.push_back(j);

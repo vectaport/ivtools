@@ -702,12 +702,19 @@ comments without blowing past the one/two-line budget:
   fast as the loop advances and hang the push.
 
 - **The destination recursive-stream guard (`_draining_avls`) is lifted
-  for the ring's own entries while watchers fire, then restored.** That
-  guard exists to stop `feed()`/`->` from feeding a ring into itself
-  forever; left in place during firing, it would also refuse a watcher's
-  own read of the ring it's watching (e.g. `next(ring)`) as a false
-  self-feed — the pushed value is already landed by the time watchers
-  run, so there's nothing left to protect against for that ring there.
+  for the ring's own entries while watchers fire, then restored by their
+  exact original stack positions.** That guard exists to stop `feed()`/`->`
+  from feeding a ring into itself forever; left in place during firing,
+  it would also refuse a watcher's own read of the ring it's watching
+  (e.g. `next(ring)`) as a false self-feed — the pushed value is already
+  landed by the time watchers run, so there's nothing left to protect
+  against for that ring there. Position, not just count, matters on
+  restore: `DrainingAVLGuard`'s destructor always pops the vector's last
+  entry, so if an enclosing guard (e.g. an ancestor `ring_push_arg()`
+  call still mid-pull on the C++ stack) sits above the ring's own entry,
+  appending the lifted entry back at the end instead of its original
+  slot would make that ancestor's own unwind pop the wrong guard,
+  stranding its real one and refusing its next pull as a false self-feed.
 
 - **A multi-byte string push snapshots the whole string up front**, not
   just however many bytes looked available before the loop started: a
