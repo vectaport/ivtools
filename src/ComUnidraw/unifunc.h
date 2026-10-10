@@ -47,10 +47,13 @@ public:
     Editor* editor() { return _ed; }
     void editor(Editor* ed) { _ed=ed; }
 
-    static OverlayComp* live_subject(ComponentView*);
+    OverlayComp* live_subject(ComponentView*);
     // view's subject, or nil if that subject has been delete()d -- a
-    // tombstoned comp stays alive (undoable) but detached from its parent,
-    // so it must never reach a command that assumes it's still in the tree.
+    // tombstoned comp stays alive (undoable) but detached from the
+    // document, so it must never reach a command that assumes it's
+    // still in the tree. Detachment is checked by root, not by an
+    // immediate parent, since a tombstoned group's children still
+    // point to it as their parent.
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;

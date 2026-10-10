@@ -50,6 +50,7 @@
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Commands/edit.h>
 #include <Unidraw/Components/compview.h>
+#include <Unidraw/Components/grview.h>
 #include <Unidraw/Graphic/graphic.h>
 #include <InterViews/transformer.h>
 #include <InterViews/window.h>
@@ -94,7 +95,10 @@ void UnidrawFunc::execute_log(Command* cmd) {
 OverlayComp* UnidrawFunc::live_subject(ComponentView* view) {
     if (!view) return nil;
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
-    return (comp && comp->GetParent()) ? comp : nil;
+    if (!comp) return nil;
+    GraphicView* rootview = GetEditor()->GetViewer()->GetGraphicView();
+    Component* docroot = rootview ? rootview->GetGraphicComp() : nil;
+    return (docroot && comp->GetRoot() == docroot) ? comp : nil;
 }
 
 void UnidrawFunc::menulength_execute(const char* kind) {

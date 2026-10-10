@@ -1724,10 +1724,9 @@ void GrDeleteFunc::execute() {
         owner->Remove(attr);
       }
     } else if (obj.object_compview()) {
-      /* val stays nil here; returning the live compview for repaste is
-         deferred to future work even though delcmd below is now undoable. */
+      /* val stays nil; returning the live compview for repaste is deferred. */
       ComponentView* comview = (ComponentView*)obj.obj_val();
-      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+      OverlayComp* comp = live_subject(comview);
       if (comp) delcb->Append(comp);
     }
     if (removed) removed->Append(new AttributeValue(val));
