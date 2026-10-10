@@ -507,19 +507,31 @@ void Unidraw::GetHistory (Component* comp, UList*& past, UList*& future) {
 
 void Unidraw::ExecuteCmd(Command *command) {
     if (command) {
-	if (command->Reversible()) {
-	    command->Execute();
-            if (command->Reversible()) {
-                command->Log();
-            } else {
-                delete command;
-            }
-	}
-	else {
-	    command->Execute();
-            if (command->Reversible()) {
-                command->Log();
-            }
-	}
+        command->Execute();
+        if (command->Reversible()) {
+            command->Log();
+        } else {
+            delete command;
+        }
     }
+}
+
+int Unidraw::UndoDepth (Component* comp) {
+    UList* past, *future;
+    GetHistory(comp, past, future);
+    int n = 0;
+    for (UList* cur = past->First(); cur != past->End(); cur = cur->Next()) {
+        ++n;
+    }
+    return n;
+}
+
+int Unidraw::RedoDepth (Component* comp) {
+    UList* past, *future;
+    GetHistory(comp, past, future);
+    int n = 0;
+    for (UList* cur = future->First(); cur != future->End(); cur = cur->Next()) {
+        ++n;
+    }
+    return n;
 }
