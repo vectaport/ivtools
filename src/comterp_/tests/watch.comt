@@ -2,20 +2,23 @@
 // fired on every later push to a ring, the push-notification complement
 // to polling a ring's more()==nil
 //
-// coverage: 7 tests of watch()
-// funcs: watch ring feed next info global func arg
+// coverage: 9 tests of watch()
+// funcs: watch ring feed next info global func arg dot
 
 //
 // watch(ring func) registers func to be called whenever ring is pushed
 // to, by feed() or ->, in either direction; func fires with the pushed
-// value as its one positional arg, read via arg(0) in the body. func is
-// read unevaluated (the same symbol-preserving peek help(cmd)/info(cmd)
-// use), so naming it to watch with doesn't fire it -- watch() is
-// post_eval for exactly this reason. A push the ring refuses (full)
-// never fires a watcher. Several watchers on the same ring all fire, in
-// registration order, on each landed push. info(ring).watchers answers
-// "what's watching what" -- nil until a first watch() call, then the
-// list of registered funcs.
+// value as its one positional arg, read via arg(0) in the body. func may
+// be a bare variable holding a FuncObj (read unevaluated, the same
+// symbol-preserving peek help(cmd)/info(cmd) use, so naming it to watch
+// with doesn't fire it -- watch() is post_eval for exactly this reason),
+// an inline func(...) literal (safe to evaluate directly: building a
+// FuncObj never calls its body), or a dot-bound field (al.cb, identified
+// via its Attribute the same way info(a.f) does). A push the ring
+// refuses (full) never fires a watcher. Several watchers on the same
+// ring all fire, in registration order, on each landed push.
+// info(ring).watchers answers "what's watching what" -- nil until a
+// first watch() call, then the list of registered funcs.
 
 ok=true
 
@@ -75,6 +78,26 @@ s7=$$(7)
 s7 -> r7
 ok=ok&&(global(hits7)==1)
 print("7 s -> r fires the watcher, same as feed() (expect 1): %v\n" global(hits7))
+
+// --- 8: an inline func(...) literal works directly as watch()'s 2nd
+// arg -- evaluating it only constructs the FuncObj, never calls it ---
+global(hits8)=0
+r8=ring(2 AnyType)
+watch(r8 func(v=arg(0); global(hits8)=global(hits8)+1))
+feed(r8 5)
+ok=ok&&(global(hits8)==1)
+print("8 watch(r func(...)) -- an inline literal fires too (expect 1): %v\n" global(hits8))
+
+// --- 9: a dot-bound field (al.cb) works as watch()'s 2nd arg -- the
+// field is identified via its Attribute, same as info(a.f) ---
+al9=(:cb nil :hits 0)
+al9.cb=func(v=arg(0); al9.hits=al9.hits+1)
+r9=ring(2 AnyType)
+watch(r9 al9.cb)
+feed(r9 1)
+feed(r9 2)
+ok=ok&&(al9.hits==2)
+print("9 watch(r al.cb) -- a dot-bound field fires too (expect 2): %v\n" al9.hits)
 
 print("watch: %v\n" ok)
 ok

@@ -2673,7 +2673,7 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
   for (int i=0; i<watchers->Number(); i++) {
     AttributeValue* wav = watchers->Get(i);
     if (!wav->is_object(FuncObj::class_symid())) continue;
-    ComValue fobjv(FuncObj::class_symid(), wav->obj_val());
+    ComValue fobjv(*wav);
     fobjv.narg(1);
     fobjv.nkey(0);
     comterp->push_stack(pushedval);
@@ -3152,20 +3152,51 @@ void WatchFunc::execute() {
   /* func is peeked unevaluated (symbol=true), the same symbol-preserving
      pattern help(cmd)/info(cmd) use to describe a func without firing
      it -- a bare name resolves to its FuncObj via lookup_symval() rather
-     than being called. */
+     than being called (an already-fired bare reference auto-calls a
+     zero-arg func, same hazard info(cmd)/help(cmd) avoid this way).
+     funcval, not a raw FuncObj*, carries the result all the way to
+     registration below: an inline func(...) literal's FuncObj has no
+     owner but the ComValue holding it, so unwrapping to a bare pointer
+     here and letting that ComValue go out of scope before registering
+     it would leave the pointer dangling once reset_stack() releases
+     whatever stack slot it came from. */
   ComValue peekval(stack_arg(1, true));
-  FuncObj* fo = nil;
+  ComValue funcval(ComValue::nullval());
+  static int dot_symid = symbol_add("dot");
   if (peekval.is_type(AttributeValue::SymbolType)) {
     ComValue resolved(comterp()->lookup_symval(peekval));
     if (resolved.is_object(FuncObj::class_symid()))
-      fo = (FuncObj*) resolved.obj_val();
+      funcval = resolved;
   } else if (peekval.is_object(FuncObj::class_symid())) {
-    fo = (FuncObj*) peekval.obj_val();
+    funcval = peekval;
+  } else if (peekval.is_type(AttributeValue::CommandType) &&
+	     peekval.command_symid()==dot_symid && peekval.narg()==2) {
+    /* al.cb -- fire the pending "dot" call via stack_arg_post_eval(),
+       same mechanism info(a.f) uses, so a dot-bound func is identified
+       by its field's Attribute rather than being called. */
+    ComValue dotval(stack_arg_post_eval(1, true));
+    if (dotval.class_symid()==Attribute::class_symid()) {
+      Attribute* attr = (Attribute*) dotval.obj_val();
+      if (attr->Value()->is_object(FuncObj::class_symid()))
+	funcval = *attr->Value();
+    } else if (dotval.is_object(FuncObj::class_symid())) {
+      funcval = dotval;
+    }
+  } else {
+    /* anything else -- an inline func(...) literal, most commonly --
+       isn't a reference to an existing func, so firing it via the
+       ordinary post_eval path is safe: it only ever constructs and
+       returns a FuncObj, the same as any other expression's result,
+       never invokes a body. */
+    ComValue fired(stack_arg_post_eval(1));
+    if (fired.is_object(FuncObj::class_symid()))
+      funcval = fired;
   }
   reset_stack();
 
   AttributeValueList* avl = ringv.is_stream() ? ringv.stream_list() : nil;
-  if (!fo || !avl || ringv.stream_func() != (void*)ring_next_func(comterp()) ||
+  if (!funcval.is_object(FuncObj::class_symid()) || !avl ||
+      ringv.stream_func() != (void*)ring_next_func(comterp()) ||
       avl->Number()<=6) {
     push_stack(ComValue::nullval());
     return;
@@ -3178,8 +3209,7 @@ void WatchFunc::execute() {
     AttributeValue listav(watchers);
     *watchav = listav;
   }
-  ComValue fobjv(FuncObj::class_symid(), (void*)fo);
-  watchers->Append(new AttributeValue(fobjv));
+  watchers->Append(new AttributeValue(funcval));
   push_stack(ComValue::nullval());
 }
 
