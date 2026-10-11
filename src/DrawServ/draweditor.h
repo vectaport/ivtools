@@ -53,7 +53,7 @@ public:
 
     void ToggleDraftShare();
     // flip DrawServ's draft()/share() state
-    void SyncDraftShare(boolean paused);
+    virtual void SyncDraftShare(boolean paused);
     // reflect DrawServ's current draft/share state in the menu checkbox;
     // called from DrawServ::pause()/unpause(), so a draft()/share() call
     // from ComTerp stays in sync with the menu too

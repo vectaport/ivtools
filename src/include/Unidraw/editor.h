@@ -77,6 +77,12 @@ public:
 
     virtual boolean DependsOn(Component*);
 
+    virtual void SyncDraftShare(boolean) {}
+    // no-op here; DrawEditor (DrawServ) overrides it to reflect DrawServ's
+    // draft/share state in its menu checkbox. Lets DrawServ::ExecuteCmd's
+    // sync_draftshare() reach whichever window is current -- a Flipbook
+    // or GraphEditor window has no such checkbox and just no-ops.
+
     virtual void InsertDialog(Glyph*);
     virtual void RemoveDialog(Glyph*);
 

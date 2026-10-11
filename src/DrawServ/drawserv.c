@@ -602,7 +602,9 @@ void DrawServ::sync_draftshare() {
   Iterator it;
   First(it);
   Editor* ed = GetEditor(it); // only 1 Editor per Unidraw
-  if (ed) ((DrawEditor*)ed)->SyncDraftShare(_paused);
+  /* virtual dispatch, not a cast: a Flipbook or GraphEditor window has
+     no draft/share checkbox and just no-ops (Editor::SyncDraftShare) */
+  if (ed) ed->SyncDraftShare(_paused);
 }
 
 /* Log() wraps a first edit's command in a MacroCmd paired with a DirtyCmd
