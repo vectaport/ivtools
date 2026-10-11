@@ -69,3 +69,33 @@ void CopyMoveGraphFrameCmd::Execute() {
   MacroCmd::Execute();
 }
 
+/*****************************************************************************/
+DraftShareCmd::DraftShareCmd(ControlInfo* i)
+: Command(i)
+{
+}
+
+DraftShareCmd::DraftShareCmd(Editor* e)
+: Command(e)
+{
+}
+
+ClassId DraftShareCmd::GetClassId() { return DRAFTSHARE_CMD; }
+boolean DraftShareCmd::IsA(ClassId id) {
+    return id == DRAFTSHARE_CMD || Command::IsA(id);
+}
+
+Command* DraftShareCmd::Copy() {
+    Command* copy = new DraftShareCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+boolean DraftShareCmd::Reversible() { return false; }
+
+void DraftShareCmd::Execute() {
+  ((DrawEditor*)GetEditor())->ToggleDraftShare();
+}
+
+implementActionCallback(DraftShareCmd)
+

@@ -32,6 +32,8 @@
 #include <ComTerp/comterpserv.h>
 #include <ComUnidraw/grfunc.h>
 
+#include <InterViews/telltale.h>
+
 /*****************************************************************************/
 
 DrawEditor::DrawEditor(OverlayComp* comp, OverlayKit* kit) 
@@ -69,6 +71,7 @@ void DrawEditor::Init (OverlayComp* comp, const char* name) {
   _texteditor = nil;
   _autonewframe = false;
   _autonewframe_tts = nil;
+  _draftshare_tts = nil;
   if (!comp) comp = new DrawIdrawComp;
   _terp = new ComTerpServ();
   ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -81,6 +84,15 @@ void DrawEditor::Init (OverlayComp* comp, const char* name) {
 
 void DrawEditor::InitCommands() {
   FrameEditor::InitCommands();
+}
+
+void DrawEditor::ToggleDraftShare() {
+  DrawServ* ds = (DrawServ*)unidraw;
+  if (ds->paused())
+    ds->unpause();
+  else
+    ds->pause();
+  if (_draftshare_tts) _draftshare_tts->set(TelltaleState::is_chosen, ds->paused());
 }
 
 void DrawEditor::AddCommands(ComTerp* comterp) {

@@ -29,6 +29,7 @@
 class DrawKit;
 class DrawLink;
 class Selection;
+class TelltaleState;
 
 //: editor for DrawServ application
 class DrawEditor : public FrameEditor {
@@ -49,9 +50,15 @@ public:
 
     Selection* last_selection() { return _last_selection; }
     // return point to Selection that shadows the last setting.
-  
+
+    void ToggleDraftShare();
+    // flip DrawServ's draft()/share() state and sync the menu checkbox
+    TelltaleState* draftshare_tts() { return _draftshare_tts; }
+    void draftshare_tts(TelltaleState* tts) { _draftshare_tts = tts; }
+
 protected:
     Selection* _last_selection;
+    TelltaleState* _draftshare_tts;
 
 friend class DrawKit;
 

@@ -454,10 +454,17 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case DRAFTSHARE_CMD:
+	/* a local UI toggle, never distributed or buffered by pause() itself */
+	cmd->Execute();
+	delete cmd;
+	OverlayScript::ptlist_parens(oldflag);
+	return;
+
       default:
 	cmd->Execute();
 	break;
-      
+
     }
     
     /* a relayed command (arrived over a link) always keeps flowing, source

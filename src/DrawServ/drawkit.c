@@ -86,6 +86,7 @@
 #include <Unidraw/ctrlinfo.h>
 #include <Unidraw/keymap.h>
 #include <Unidraw/kybd.h>
+#include <Unidraw/uctrls.h>
 #include <Unidraw/unidraw.h>
 
 #include <IVGlyph/figure.h>
@@ -592,6 +593,21 @@ MenuItem * DrawKit::MakeViewersMenu() {
     MenuItem* menu_item = kit.menu_item(kit.label("Connect"));
     menu_item->action(new RemoteConnectPopupAction(GetEditor()));
     mbi->menu()->append_item(menu_item);
+
+    DrawEditor* ed = (DrawEditor*)GetEditor();
+    DraftShareCmd* draftshare_cmd =
+      new DraftShareCmd(new ControlInfo("Draft (Hold Outgoing)", "^P", "\020"));
+    draftshare_cmd->SetEditor(ed);
+    ed->GetKeyMap()->Register(new CommandControl(draftshare_cmd->GetControlInfo()));
+    MenuItem* draftshare_item =
+      kit.check_menu_item(lk.hbox(kit.label("Draft (Hold Outgoing)"),
+				   lk.hglue(),
+				   kit.label(draftshare_cmd->GetControlInfo()->GetKeyLabel())));
+    draftshare_item->state()->set(TelltaleState::is_chosen, ((DrawServ*)unidraw)->paused());
+    ed->draftshare_tts(draftshare_item->state());
+    draftshare_item->action(new ActionCallback(DraftShareCmd)
+			     (draftshare_cmd, &DraftShareCmd::Execute));
+    mbi->menu()->append_item(draftshare_item);
 
     return mbi;
 }
