@@ -149,12 +149,12 @@ spiro=func(
 
 // spiro_tick(curve i) -- crank the wheel to tick i and drop one pen
 // mark where it lands, reusing the angle formula spiro() already ran
-// across every tick at once.  A stream for i (e.g. ticks=0..9) makes
-// the whole call lazy; each($$(spiro_tick(c ticks))) drains it, one
-// crank per element in order with its own update() -- the marks
-// appear live instead of all at once.  Bind the stream to a variable
-// first: a bare name directly before "(" parses as a call, so
-// spiro_tick(c 0..9) reads as c(0..9), not two arguments.
+// across every tick at once.  A stream for i (e.g. 0..99) makes the
+// whole call lazy; each($$(spiro_tick(c 0..99))) drains it, one crank
+// per element in order with its own update() -- the marks appear live
+// instead of all at once.  Write the range bare, with no enclosing
+// parens: a bare name directly before "(" parses as a call, so
+// spiro_tick(c (0..99)) reads as c(0..99), not two arguments.
 spiro_tick=func(
   c=arg(0); i=arg(1);
   if(c==nil||i==nil :then return(nil));
