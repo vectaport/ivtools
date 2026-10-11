@@ -52,6 +52,7 @@
 
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Commands/edit.h>
+#include <Unidraw/Commands/macro.h>
 #include <Unidraw/catalog.h>
 #include <Unidraw/clipboard.h>
 #include <Unidraw/creator.h>
@@ -136,6 +137,9 @@ void DrawServ::Init() {
   _freeze_sent_to = nil;
   _freeze_acks_pending = 0;
   _freeze_done = false;
+
+  _paused = false;
+  _flushing = false;
 
   create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
@@ -450,17 +454,31 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case DRAFTSHARE_CMD:
+	/* a local UI toggle, never distributed or buffered by pause() itself */
+	cmd->Execute();
+	delete cmd;
+	OverlayScript::ptlist_parens(oldflag);
+	return;
+
       default:
 	cmd->Execute();
 	break;
-      
+
     }
     
-    /* then send everywhere else */
-    if (original || linklist()->Number()>0) 
-      DistributeCmdString(sbuf.str().c_str(), linkget(sid));
-    
-    if (cmd->Reversible()) {
+    /* a relayed command (arrived over a link) always keeps flowing, source
+       still excluded, regardless of pause() -- only a local edit is held */
+    boolean incoming = DrawServHandler::current() && DrawServHandler::current()->drawlink();
+    boolean reversible = cmd->Reversible();
+    if (original || linklist()->Number()>0) {
+      if (_paused && !incoming)
+	_pause_outbuf.push_back(PauseEntry{reversible ? cmd : nil, sbuf.str(), true});
+      else
+	DistributeCmdString(sbuf.str().c_str(), linkget(sid));
+    }
+
+    if (reversible) {
       cmd->Log();
     } else {
       delete cmd;
@@ -553,6 +571,76 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
     }
     Resource::unref(link);
   }
+}
+
+void DrawServ::pause() {
+  _paused = true;
+  sync_draftshare();
+}
+
+void DrawServ::unpause() {
+  if (_flushing) return;
+  _flushing = true;
+  /* _paused stays true through the drain: write_full() pumps the reactor,
+     so a local edit landing mid-drain queues behind it, not ahead of it */
+  while (!_pause_outbuf.empty()) {
+    /* swapped into _draining, not a local, so NotifyUndo/NotifyRedo can
+       still reach an entry while this pass is sending it */
+    _draining.swap(_pause_outbuf);
+    for (unsigned int i = 0; i < _draining.size(); i++)
+      if (_draining[i].active)
+	DistributeCmdString(_draining[i].script.c_str());
+    _draining.clear();
+    // re-loop until a pass adds nothing new, then clear _paused
+  }
+  _paused = false;
+  _flushing = false;
+  sync_draftshare();
+}
+
+void DrawServ::sync_draftshare() {
+  Iterator it;
+  First(it);
+  Editor* ed = GetEditor(it); // only 1 Editor per Unidraw
+  /* virtual dispatch, not a cast: a Flipbook or GraphEditor window has
+     no draft/share checkbox and just no-ops (Editor::SyncDraftShare) */
+  if (ed) ed->SyncDraftShare(_paused);
+}
+
+/* Log() wraps a first edit's command in a MacroCmd paired with a DirtyCmd
+   (unidraw.c), so Undo()/Redo() can hand back a MacroCmd containing the
+   pointer a PauseEntry holds rather than that pointer itself. */
+static boolean cmd_contains(Command* logged, Command* target) {
+  if (logged == target) return true;
+  if (logged->IsA(MACRO_CMD)) {
+    MacroCmd* mc = (MacroCmd*)logged;
+    Iterator i;
+    for (mc->First(i); !mc->Done(i); mc->Next(i))
+      if (cmd_contains(mc->GetCommand(i), target)) return true;
+  }
+  return false;
+}
+
+boolean DrawServ::withhold_entry(std::vector<PauseEntry>& buf, Command* cmd, boolean wantactive) {
+  for (int i = (int)buf.size()-1; i >= 0; i--) {
+    if (buf[i].cmd && buf[i].active==wantactive && cmd_contains(cmd, buf[i].cmd)) {
+      buf[i].active = !wantactive;
+      return true;
+    }
+  }
+  return false;
+}
+
+void DrawServ::NotifyUndo(Command* cmd) {
+  // the mid-drain batch is checked too, in case undo() runs from a
+  // reactor pump nested inside unpause()'s own distribution
+  if (!withhold_entry(_pause_outbuf, cmd, true))
+    withhold_entry(_draining, cmd, true);
+}
+
+void DrawServ::NotifyRedo(Command* cmd) {
+  if (!withhold_entry(_pause_outbuf, cmd, false))
+    withhold_entry(_draining, cmd, false);
 }
 
 // generate request to register each locally unique session id

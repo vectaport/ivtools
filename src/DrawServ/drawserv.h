@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <stdint.h>   /* uint32_t -- pulled in transitively on macOS, not on Linux */
 #include <strstream>
+#include <string>
+#include <vector>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
@@ -99,12 +101,31 @@ public:
   
   virtual void ExecuteCmd(Command*);
   // execute Command's locally, and on remote linked DrawServ's.
-  
+
+  virtual void NotifyUndo(Command*);
+  // withhold a still-paused, not-yet-sent entry so undo()'s local
+  // reversal isn't contradicted by later sending it anyway
+
+  virtual void NotifyRedo(Command*);
+  // restore an entry NotifyUndo() withheld, if redo() brings its
+  // command back before unpause()
+
   virtual void DistributeCmdString(const char* cmdstring, DrawLink* orglink=nil);
   // send command string to every remote DrawServ (except where it came from).
   
   virtual void SendCmdString(DrawLink* link, const char* cmdstring);
   // execute command string on one remote DrawServ
+
+  boolean paused() { return _paused; }
+  // whether local commands are currently held back from distribution
+
+  void pause();
+  // hold back distribution of locally-executed commands; incoming
+  // commands keep applying normally in the meantime
+
+  void unpause();
+  // resume distribution, sending every command held back since pause()
+  // as a single catch-up burst, oldest first
 
   virtual void SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged);
   // send copies of everything to remote DrawServ to paste on front
@@ -300,6 +321,38 @@ protected:
   // arrived from that direction; if link is a still-unacked relay target,
   // count it as acked and drop it, so its loss can never dangle a pointer
   // or leave the local hold waiting on an ack that will never come
+
+  boolean _paused;
+  // whether pause() is withholding this node's outgoing distribution
+
+  boolean _flushing;
+  // set for unpause()'s own duration, so a nested/re-entrant unpause()
+  // (e.g. from a local edit triggered while write_full() pumps the
+  // reactor mid-flush) no-ops instead of racing the same flush
+
+  struct PauseEntry {
+    Command* cmd;
+    // the command this script distributes; nil for one that can't be
+    // undone/redone (never withheld, so NotifyUndo/NotifyRedo skip it)
+    std::string script;
+    boolean active;
+    // false while undo() has withheld this entry; redo() sets it back
+  };
+  std::vector<PauseEntry> _pause_outbuf;
+  // commands deferred by pause(), oldest first; active entries are sent
+  // and the vector cleared by unpause()
+
+  std::vector<PauseEntry> _draining;
+  // the batch unpause() is currently sending, swapped out of
+  // _pause_outbuf so NotifyUndo/NotifyRedo can still reach it mid-drain
+
+  boolean withhold_entry(std::vector<PauseEntry>& buf, Command* cmd, boolean wantactive);
+  // flip the matching entry's active flag, searched newest-first; used by
+  // NotifyUndo/NotifyRedo on both _pause_outbuf and _draining
+
+  void sync_draftshare();
+  // reflect _paused in the current editor's draft/share menu checkbox,
+  // so a draft()/share() call from ComTerp stays in sync with the menu
 
   boolean write_full(int fd, const char* buf, size_t len);
   // write len bytes to fd, retrying past a short write or a transient

@@ -40,4 +40,20 @@ public:
 protected:
 };
 
+//: command to toggle a DrawEditor's draft()/share() distribution state.
+class DraftShareCmd : public Command {
+public:
+    DraftShareCmd(ControlInfo*);
+    DraftShareCmd(Editor* = nil);
+
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+    virtual Command* Copy();
+    virtual void Execute();
+    virtual boolean Reversible();
+    // never logged to undo history; a link state toggle, not an edit
+};
+
+declareActionCallback(DraftShareCmd)
+
 #endif

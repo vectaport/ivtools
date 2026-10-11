@@ -47,5 +47,6 @@
 #define LINK_MOVE_CMD       9813
 #define LINK_SCALE_CMD      9814
 #define LINK_ROTATE_CMD     9815
+#define DRAFTSHARE_CMD      9816
 
 #endif

@@ -32,6 +32,8 @@
 #include <ComTerp/comterpserv.h>
 #include <ComUnidraw/grfunc.h>
 
+#include <InterViews/telltale.h>
+
 /*****************************************************************************/
 
 DrawEditor::DrawEditor(OverlayComp* comp, OverlayKit* kit) 
@@ -69,6 +71,7 @@ void DrawEditor::Init (OverlayComp* comp, const char* name) {
   _texteditor = nil;
   _autonewframe = false;
   _autonewframe_tts = nil;
+  _draftshare_tts = nil;
   if (!comp) comp = new DrawIdrawComp;
   _terp = new ComTerpServ();
   ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -83,6 +86,18 @@ void DrawEditor::InitCommands() {
   FrameEditor::InitCommands();
 }
 
+void DrawEditor::ToggleDraftShare() {
+  DrawServ* ds = (DrawServ*)unidraw;
+  if (ds->paused())
+    ds->unpause();
+  else
+    ds->pause();
+}
+
+void DrawEditor::SyncDraftShare(boolean paused) {
+  if (_draftshare_tts) _draftshare_tts->set(TelltaleState::is_chosen, paused);
+}
+
 void DrawEditor::AddCommands(ComTerp* comterp) {
   FrameEditor::AddCommands(comterp);
 
@@ -90,6 +105,8 @@ void DrawEditor::AddCommands(ComTerp* comterp) {
   comterp->add_command("sid", new SessionIdFunc(comterp, this));
   comterp->add_command("grid", new GraphicIdFunc(comterp, this));
   comterp->add_command("grabnew", new GrabNewFunc(comterp, this));
+  comterp->add_command("draft", new PauseFunc(comterp, this));
+  comterp->add_command("share", new UnpauseFunc(comterp, this));
 
   comterp->add_command("points", new DrawPointsFunc(comterp, this));
 
