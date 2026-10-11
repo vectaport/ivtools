@@ -23,9 +23,9 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      all                 everything below\n");
     print("      updown              one drawserv up and down again\n");
     print("      updown1 updown2     one linked, then two\n");
-    print("      pauseunpause        pause()/unpause() withholds then flushes distribution\n");
-    print("      pauseundo           undo() while paused withholds the undone command\n");
-    print("      pauserelay          pause() never blocks relaying someone else's command\n");
+    print("      pauseunpause        draft()/share() withholds then flushes distribution\n");
+    print("      pauseundo           undo() while drafting withholds the undone command\n");
+    print("      pauserelay          draft() never blocks relaying someone else's command\n");
     print("      updown3A updown3B   three, chained and forked\n");
     print("      updown4A updown4B updown4C\n");
     print("                          four, to the second level\n");
@@ -132,8 +132,9 @@ all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,u
    it crashes EqualFunc instead, since a bareword is resolved against the
    command table before bquote can protect it.  parsetest, optabletest and
    cycle keep their names for that reason and not for tidiness; pause() is
-   also a pre-existing comterp debugger command, which is why this test is
-   named pauseunpause rather than pause. */
+   also a pre-existing comterp debugger command (draft()/share() are the
+   DrawServ commands this test exercises), which is why this test is named
+   pauseunpause rather than pause. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then

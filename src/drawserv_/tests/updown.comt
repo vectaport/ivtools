@@ -394,8 +394,8 @@ updown2_test=func(
   print("updown2: ds2 shut down\n" :err);
   ok)
 
-/* pause test -- link ds1 -> ds2; while ds1 is pause()d, a graphic created
-   on ds1 must stay off ds2 (distribution withheld); unpause() must then
+/* pause test -- link ds1 -> ds2; while ds1 is draft()d, a graphic created
+   on ds1 must stay off ds2 (distribution withheld); share() must then
    deliver it. */
 pause_test=func(
 
@@ -447,8 +447,8 @@ pause_test=func(
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
 
   /* --- pause ds1, then create a graphic on ds1 --- */
-  paused=remote(sock1 "pause()");
-  print("pause: pause() on ds1 returned %v\n" paused :err);
+  paused=remote(sock1 "draft()");
+  print("pause: draft() on ds1 returned %v\n" paused :err);
   remote(sock1 "ellipse(100,100,40,40)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
@@ -468,14 +468,14 @@ pause_test=func(
     usleep(poll_usec);
     if(remote(sock2 "size(grid(:table))")>0 :then stayed_off=false));
   print("pause: ds2 stayed clear while ds1 paused: %v\n" stayed_off :err);
-  if(!stayed_off :then print("pause: FAIL graphic reached ds2 before unpause()\n" :err));
+  if(!stayed_off :then print("pause: FAIL graphic reached ds2 before share()\n" :err));
 
   /* --- unpause ds1: the held command must now flow to ds2 --- */
-  unpaused=remote(sock1 "unpause()");
-  print("pause: unpause() on ds1 returned %v\n" unpaused :err);
+  unpaused=remote(sock1 "share()");
+  print("pause: share() on ds1 returned %v\n" unpaused :err);
   on2=grid_has_id(:gh_sock sock2 :gh_id id1);
-  print("pause: graphic reached ds2 after unpause(): %v\n" on2 :err);
-  if(!on2 :then print("pause: FAIL graphic did not reach ds2 after unpause()\n" :err));
+  print("pause: graphic reached ds2 after share(): %v\n" on2 :err);
+  if(!on2 :then print("pause: FAIL graphic did not reach ds2 after share()\n" :err));
 
   ok=stayed_off && on2 && paused && !unpaused;
 
@@ -488,8 +488,8 @@ pause_test=func(
   print("pause: ds2 shut down\n" :err);
   ok)
 
-/* pauseundo test -- link ds1 -> ds2; while ds1 is pause()d, create a
-   graphic then undo() it locally before unpause()ing. The undone
+/* pauseundo test -- link ds1 -> ds2; while ds1 is draft()d, create a
+   graphic then undo() it locally before share()ing. The undone
    graphic must never reach ds2: undo() withholds the still-buffered
    command instead of leaving it to be sent regardless. */
 pauseundo_test=func(
@@ -538,7 +538,7 @@ pauseundo_test=func(
     return(false));
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
 
-  remote(sock1 "pause()");
+  remote(sock1 "draft()");
   remote(sock1 "ellipse(100,100,40,40)");
   cnt=0;
   while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
@@ -546,11 +546,11 @@ pauseundo_test=func(
   print("pauseundo: ellipse created locally on ds1: %v\n" had_it :err);
   remote(sock1 "undo()");
   /* grid(:table) is DrawServ's relay bookkeeping, not the document itself,
-     and undo() doesn't touch it even outside of pause() -- select(:all)
+     and undo() doesn't touch it even outside of draft() -- select(:all)
      reflects what's actually left in the drawing */
   still_has_it=remote(sock1 "size(select(:all))")>0;
   print("pauseundo: ds1's own graphic gone after undo(): %v\n" !still_has_it :err);
-  remote(sock1 "unpause()");
+  remote(sock1 "share()");
 
   /* real polling, not a single check -- a leftover send would show up
      within a couple of seconds the same way pause_test's positive case does */
@@ -571,10 +571,10 @@ pauseundo_test=func(
   print("pauseundo: ds2 shut down\n" :err);
   ok)
 
-/* pauserelay test -- CHAIN topology: ds1 -> ds2 -> ds3. pause() the
+/* pauserelay test -- CHAIN topology: ds1 -> ds2 -> ds3. draft() the
    MIDDLE hop (ds2). A graphic created on ds1 arrives at ds2 as a relay,
    not a local edit, so it must keep flowing to ds3 immediately,
-   pause() or not -- and must not echo back to ds1. */
+   draft() or not -- and must not echo back to ds1. */
 pauserelay_test=func(
 
   poll_usec=2000000;
@@ -644,8 +644,8 @@ pauserelay_test=func(
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
   remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
 
-  /* pause() the middle hop, not the originator */
-  remote(sock2 "pause()");
+  /* draft() the middle hop, not the originator */
+  remote(sock2 "draft()");
 
   remote(sock1 "ellipse(100,100,40,40)");
   cnt=0;
@@ -667,20 +667,20 @@ pauserelay_test=func(
   print("pauserelay: graphic reached ds2 (relay target) while ds2 paused: %v\n" on2 :err);
 
   /* ds3 must receive it promptly even while ds2 stays paused -- this is
-     exactly what pause() must never block */
+     exactly what draft() must never block */
   on3=grid_has_id(:gh_sock sock3 :gh_id id1);
   print("pauserelay: graphic relayed on to ds3 while ds2 paused: %v\n" on3 :err);
-  if(!on3 :then print("pauserelay: FAIL relay stalled behind ds2's pause()\n" :err));
+  if(!on3 :then print("pauserelay: FAIL relay stalled behind ds2's draft()\n" :err));
 
   /* ds2's own held outbuf is empty (nothing of ds2's own buffered) --
-     unpause() must not then echo the relay back to ds1 */
+     share() must not then echo the relay back to ds1 */
   table1_before=remote(sock1 "size(grid(:table))");
-  remote(sock2 "unpause()");
+  remote(sock2 "share()");
   usleep(poll_usec);
   table1_after=remote(sock1 "size(grid(:table))");
   no_echo=eq(table1_before table1_after);
-  print("pauserelay: ds1's table unchanged by ds2's unpause() (no echo-back): %v\n" no_echo :err);
-  if(!no_echo :then print("pauserelay: FAIL the relay echoed back to ds1 on unpause()\n" :err));
+  print("pauserelay: ds1's table unchanged by ds2's share() (no echo-back): %v\n" no_echo :err);
+  if(!no_echo :then print("pauserelay: FAIL the relay echoed back to ds1 on share()\n" :err));
 
   ok=on2 && on3 && no_echo;
 

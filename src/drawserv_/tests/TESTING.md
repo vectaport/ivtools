@@ -148,29 +148,29 @@ which connected-peer tests will diff.
 
 ### pauseunpause
 
-**What:** Link ds1 -> ds2. Call `pause()` on ds1, create a graphic there,
-confirm ds2 does not see it, call `unpause()` on ds1, confirm ds2 then
+**What:** Link ds1 -> ds2. Call `draft()` on ds1, create a graphic there,
+confirm ds2 does not see it, call `share()` on ds1, confirm ds2 then
 receives it.
 
 **Checks:**
-- `pause()` returns true, `unpause()` returns false
+- `draft()` returns true, `share()` returns false
 - ds2's `grid(:table)` stays empty for several real polling intervals
   while ds1 is paused
-- `grid_has_id()` finds the graphic's id on ds2 after `unpause()`
+- `grid_has_id()` finds the graphic's id on ds2 after `share()`
 
-**Purpose:** Verifies that `pause()` withholds a node's own outgoing
+**Purpose:** Verifies that `draft()` withholds a node's own outgoing
 command distribution without disturbing the link itself, and that
-`unpause()` flushes exactly what was held.
+`share()` flushes exactly what was held.
 
 ### pauseundo
 
-**What:** Link ds1 -> ds2. `pause()` ds1, create a graphic, `undo()` it
-locally, then `unpause()`.
+**What:** Link ds1 -> ds2. `draft()` ds1, create a graphic, `undo()` it
+locally, then `share()`.
 
 **Checks:**
 - the graphic exists on ds1 right after creation, and is gone after
   `undo()`
-- ds2 never sees it, even after `unpause()` and several real polling
+- ds2 never sees it, even after `share()` and several real polling
   intervals
 
 **Purpose:** Verifies that `undo()` withholds a still-buffered,
@@ -179,16 +179,16 @@ of the local reversal.
 
 ### pauserelay
 
-**What:** Chain ds1 -> ds2 -> ds3. `pause()` the middle hop (ds2), then
+**What:** Chain ds1 -> ds2 -> ds3. `draft()` the middle hop (ds2), then
 create a graphic on ds1.
 
 **Checks:**
 - ds2 applies the incoming command right away despite being paused
-- ds3 receives the relay promptly, without waiting for ds2's `unpause()`
-- `unpause()` on ds2 (which has nothing of its own buffered) does not
+- ds3 receives the relay promptly, without waiting for ds2's `share()`
+- `share()` on ds2 (which has nothing of its own buffered) does not
   echo the relay back to ds1
 
-**Purpose:** Verifies that `pause()` only withholds a node's own locally
+**Purpose:** Verifies that `draft()` only withholds a node's own locally
 originated commands — a command arriving over a link for relay keeps
 flowing immediately, source-link exclusion intact.
 

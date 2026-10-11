@@ -95,27 +95,27 @@ public:
 };
 
 //: command to hold back this node's outgoing distribution, in drawserv.
-// flag=pause() -- stop sending this node's own locally-executed commands
+// flag=draft() -- stop sending this node's own locally-executed commands
 // (including undo()/redo()) to its links; incoming commands keep applying
 // normally.  Held commands queue in arrival order and go out as a single
-// burst on unpause().  Returns true (now paused).
+// burst on share().  Returns true (now drafting).
 class PauseFunc : public UnidrawFunc {
 public:
     PauseFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "flag=%s() -- hold back this node's outgoing commands until unpause(), returns true"; }
+	return "flag=%s() -- hold back this node's outgoing commands until share(), returns true"; }
 };
 
-//: command to resume outgoing distribution held by pause(), in drawserv.
-// flag=unpause() -- send every command queued since pause(), oldest first,
-// then resume distributing normally.  Returns false (no longer paused).
+//: command to resume outgoing distribution held by draft(), in drawserv.
+// flag=share() -- send every command queued since draft(), oldest first,
+// then resume distributing normally.  Returns false (no longer drafting).
 class UnpauseFunc : public UnidrawFunc {
 public:
     UnpauseFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "flag=%s() -- send commands queued by pause() and resume distributing normally, returns false"; }
+	return "flag=%s() -- send commands queued by draft() and resume distributing normally, returns false"; }
 };
 
 #endif /* !defined(_drawfunc_h) */
