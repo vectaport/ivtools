@@ -92,7 +92,10 @@ void DrawEditor::ToggleDraftShare() {
     ds->unpause();
   else
     ds->pause();
-  if (_draftshare_tts) _draftshare_tts->set(TelltaleState::is_chosen, ds->paused());
+}
+
+void DrawEditor::SyncDraftShare(boolean paused) {
+  if (_draftshare_tts) _draftshare_tts->set(TelltaleState::is_chosen, paused);
 }
 
 void DrawEditor::AddCommands(ComTerp* comterp) {

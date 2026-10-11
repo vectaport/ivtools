@@ -596,7 +596,7 @@ MenuItem * DrawKit::MakeViewersMenu() {
 
     DrawEditor* ed = (DrawEditor*)GetEditor();
     DraftShareCmd* draftshare_cmd =
-      new DraftShareCmd(new ControlInfo("Draft (Hold Outgoing)", "^P", "\020"));
+      new DraftShareCmd(new ControlInfo("Draft (Hold Outgoing)", "^T", "\024"));
     draftshare_cmd->SetEditor(ed);
     ed->GetKeyMap()->Register(new CommandControl(draftshare_cmd->GetControlInfo()));
     MenuItem* draftshare_item =

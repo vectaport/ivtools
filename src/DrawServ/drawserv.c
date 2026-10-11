@@ -575,6 +575,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
 
 void DrawServ::pause() {
   _paused = true;
+  sync_draftshare();
 }
 
 void DrawServ::unpause() {
@@ -594,6 +595,14 @@ void DrawServ::unpause() {
   }
   _paused = false;
   _flushing = false;
+  sync_draftshare();
+}
+
+void DrawServ::sync_draftshare() {
+  Iterator it;
+  First(it);
+  Editor* ed = GetEditor(it); // only 1 Editor per Unidraw
+  if (ed) ((DrawEditor*)ed)->SyncDraftShare(_paused);
 }
 
 /* Log() wraps a first edit's command in a MacroCmd paired with a DirtyCmd

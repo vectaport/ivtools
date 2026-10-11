@@ -350,6 +350,10 @@ protected:
   // flip the matching entry's active flag, searched newest-first; used by
   // NotifyUndo/NotifyRedo on both _pause_outbuf and _draining
 
+  void sync_draftshare();
+  // reflect _paused in the current editor's draft/share menu checkbox,
+  // so a draft()/share() call from ComTerp stays in sync with the menu
+
   boolean write_full(int fd, const char* buf, size_t len);
   // write len bytes to fd, retrying past a short write or a transient
   // EINTR/EAGAIN instead of losing the tail silently. A dialed DrawLink's

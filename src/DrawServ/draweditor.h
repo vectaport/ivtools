@@ -52,7 +52,11 @@ public:
     // return point to Selection that shadows the last setting.
 
     void ToggleDraftShare();
-    // flip DrawServ's draft()/share() state and sync the menu checkbox
+    // flip DrawServ's draft()/share() state
+    void SyncDraftShare(boolean paused);
+    // reflect DrawServ's current draft/share state in the menu checkbox;
+    // called from DrawServ::pause()/unpause(), so a draft()/share() call
+    // from ComTerp stays in sync with the menu too
     TelltaleState* draftshare_tts() { return _draftshare_tts; }
     void draftshare_tts(TelltaleState* tts) { _draftshare_tts = tts; }
 
