@@ -1,10 +1,11 @@
 // Command proplist_poc proves that a Go type can hold and mutate a live
 // C++ AttributeList via a cgo handle (shim.h/shim.cc), rather than a
-// translated copy. Method shapes mirror the flowgraph.PropList interface
-// (Get/Set/Delete/Has/Len/Keys/Touch/At) so this is a drop-in C++-backed
-// sibling of that Go-only implementation; GetField/SetField/Empty/Base
-// are left for a follow-up once the per-entry-field design (plain fields
-// vs. a nested attrlist) is settled.
+// translated copy. CppPropList implements flowgraph.PropList directly,
+// so DupCppPropList clones a source PropList the same way
+// flowgraph.DupPropList does -- switching Go-backed for C++-backed
+// storage is then just calling a different constructor. GetField/
+// SetField are stubbed as always-not-found/no-op pending a decision on
+// the per-entry-field design (plain fields vs. a nested attrlist).
 package main
 
 /*
@@ -19,7 +20,11 @@ import "C"
 import (
 	"fmt"
 	"unsafe"
+
+	"github.com/vectaport/flowgraph"
 )
+
+var _ flowgraph.PropList = (*CppPropList)(nil)
 
 // CppPropList is a flowgraph.PropList-shaped wrapper around a live
 // AttributeList held entirely on the C++ side; every method is a cgo
@@ -47,7 +52,7 @@ func (p *CppPropList) Get(key string) (any, bool) {
 	return C.GoString(v), true
 }
 
-func (p *CppPropList) Set(key string, v any) *CppPropList {
+func (p *CppPropList) Set(key string, v any) flowgraph.PropList {
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
 	cval := C.CString(fmt.Sprint(v))
@@ -107,6 +112,29 @@ func (p *CppPropList) Print() string {
 	return C.GoString(C.proplist_print(p.h))
 }
 
+// GetField, SetField: deferred -- see the AttributeList-nested-field
+// design question this PoC doesn't settle. Always report not-found/
+// no-op rather than panic, so CppPropList still satisfies PropList.
+func (p *CppPropList) GetField(key, field string) (any, bool) { return nil, false }
+func (p *CppPropList) SetField(key, field string, v any) bool { return false }
+
+func (p *CppPropList) Empty() bool { return p == nil }
+func (p *CppPropList) Base() any   { return p }
+
+// DupCppPropList clones src via the PropList interface alone (the
+// same At()-based loop as flowgraph.DupPropList), proving a caller
+// can swap Go-backed for C++-backed storage by changing only the
+// constructor it calls.
+func DupCppPropList(src flowgraph.PropList) flowgraph.PropList {
+	p := NewCppPropList()
+	for i := 0; i < src.Len(); i++ {
+		if k, v, ok := src.At(i); ok {
+			p.Set(k, v)
+		}
+	}
+	return p
+}
+
 func main() {
 	p := NewCppPropList()
 	defer p.Close()
@@ -131,4 +159,16 @@ func main() {
 	// Same live AttributeList, rendered by ComTerp's own serialize() --
 	// proves this is the boundary-crossing case, not a translated copy.
 	fmt.Printf("AttributeList::serialize() = %s\n", p.Print())
+
+	// One-line swap: identical clone logic, Go-backed or C++-backed,
+	// chosen only by which constructor is called.
+	src := flowgraph.NewPropList()
+	src.Set("x", "10").Set("y", "20")
+
+	goClone := flowgraph.DupPropList(src)
+	cppClone := DupCppPropList(src)
+	defer cppClone.(*CppPropList).Close()
+
+	fmt.Printf("goClone.Keys() = %v\n", goClone.Keys())
+	fmt.Printf("cppClone.Keys() = %v\n", cppClone.Keys())
 }

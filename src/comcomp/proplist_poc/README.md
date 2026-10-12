@@ -3,8 +3,14 @@
 Proof of concept for a Go type (`CppPropList`) backed by a live C++
 `AttributeList`, reached through a flat `extern "C"` shim
 (`shim.h`/`shim.cc`) the same way `comcomp/bridge_poc` reaches
-`ComTerpServ`. Method shapes mirror the Go-only `flowgraph.PropList`
-interface (`Get`/`Set`/`Delete`/`Has`/`Len`/`Keys`/`Touch`/`At`).
+`ComTerpServ`. `CppPropList` implements the
+[`flowgraph.PropList`](https://github.com/vectaport/flowgraph) interface
+directly (`GetField`/`SetField` stubbed as always-not-found/no-op
+pending a decision on the per-entry-field design), so
+`DupCppPropList` clones a source `PropList` the same way
+`flowgraph.DupPropList` does -- switching Go-backed for C++-backed
+storage is then just calling a different constructor; see the demo's
+`goClone`/`cppClone` pair in `main.go`.
 
 ## Building
 
