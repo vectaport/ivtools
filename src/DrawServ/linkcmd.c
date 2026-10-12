@@ -909,10 +909,8 @@ const char* LinkDupCmd::dist_script() {
         OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
         if (!comp) continue;
 
-        /* Copy() carries over the original's :grid/:sid attributes, but a
-           duplicate is a brand-new graphic -- without clearing them first,
-           add_grid() mistakes it for that same original already registered
-           and reuses its identity instead of minting a fresh one. */
+        /* clear Copy()'s carried-over :grid/:sid so add_grid() mints a
+           fresh identity instead of reusing the original's. */
         AttributeList* al = comp->GetAttributeList();
         if (al) {
             Attribute* a = al->GetAttr(grid_sym);
@@ -921,10 +919,8 @@ const char* LinkDupCmd::dist_script() {
             if (a) al->Remove(a);
         }
 
-        /* add_grid() only fills grid/sid in from the comp's own attributes
-           (just cleared above) or by generating fresh ones -- it never
-           clears a value already sitting in these variables, so each
-           duplicate needs its own cleared pair, not the previous one's. */
+        /* add_grid() never clears grid/sid itself, so each duplicate needs
+           its own cleared pair rather than the previous one's. */
         uuid_clear(grid);
         uuid_clear(sid);
         drawserv->add_grid(comp, grid, sid);
@@ -934,6 +930,10 @@ const char* LinkDupCmd::dist_script() {
             creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
         if (scripter) {
             scripter->SetSubject(comp);
+            /* a group's Definition() reads its child views from _views,
+               which only Update() populates -- without it a duplicated
+               group would script as empty. */
+            scripter->Update();
             if (comp->IsA(OVRASTER_COMP))
                 ((RasterScript*)scripter)->SetCommandSerialize(true);
             if (scripted) sbuf << ';';

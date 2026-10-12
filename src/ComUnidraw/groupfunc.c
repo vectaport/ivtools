@@ -335,11 +335,8 @@ DupSelectionFunc::DupSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(c
 void DupSelectionFunc::execute() {
     reset_stack();
 
-    // DupCmd's own clipboard, once Interpret() has run, holds the
-    // duplicate(s) it created -- Store()'d there for redo -- so it's never
-    // a target to duplicate; dup() always acts on the live selection, the
-    // same as the Duplicate menu item (select() first to duplicate a
-    // specific graphic by id).
+    // dup() always acts on the live selection, like the Duplicate menu
+    // item -- select() first to duplicate a specific graphic by id.
     OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
     DupCmd* cmd = kit->make_dup_cmd(GetEditor());
     execute_log(cmd);
