@@ -129,8 +129,11 @@ spiro=func(
   curve.epi=eflag; curve.color=color; curve.pts=n;
   // stashed for spiro_tick(): the same per-point formula spiro() just
   // overdrove across 0..(n-1) in one pass, available one angle at a time.
+  // The true (unscaled) A, not Ac -- Ac/Dc are enlarged to offset
+  // closedspline()'s averaging shrink, which a straight line() segment
+  // never has; curve.d already holds the true d from the recipe above.
   curve.cx=cx; curve.cy=cy; curve.s=s; curve.h=h; curve.k=k;
-  curve.Ac=Ac; curve.Dc=Dc;
+  curve.A=A;
   // the curve can tell you its own recipe, self-bound: curve.recipe()
   // reads R/r/d/epi/color/pts straight off the object it's called on,
   // no arguments, same trick as ducktyping.comt's obj.method().
@@ -170,17 +173,22 @@ spiro=func(
 // either, for the same reason: deleting even a batch of this curve's
 // own segments under real interactive X11 leaves curve's cached
 // component-view pointer dangling, so every later dot-field read on
-// curve (c.cx, c.Ac, ...) fails with "nil subject on compview value" --
+// curve (c.cx, c.A, ...) fails with "nil subject on compview value" --
 // confirmed not reproducible in any batch/headless test, only at a
 // real (comt) prompt.
 spiro_tick=func(
   c=arg(0); i=arg(1);
   if(c==nil||i==nil :then return(nil));
-  x=int(round(c.cx+c.Ac*cos(c.h*i)+c.s*c.Dc*cos(c.k*c.h*i)));
-  y=int(round(c.cy+c.Ac*sin(c.h*i)-c.Dc*sin(c.k*c.h*i)));
+  x=int(round(c.cx+c.A*cos(c.h*i)+c.s*c.d*cos(c.k*c.h*i)));
+  y=int(round(c.cy+c.A*sin(c.h*i)-c.d*sin(c.k*c.h*i)));
   px=c.lastx; py=c.lasty;
   seg=nil;
   if(px!=nil&&py!=nil :then
+    // clear any pre-existing selection first -- colorsrgb()/brush()/
+    // pattern() restyle whatever is currently selected, not just new
+    // shapes, so a shape the user already had selected must not be
+    // touched by the trail's own styling.
+    select(:clear);
     colorsrgb(c.color "#FFFFFF");
     brush(65535,2);
     pattern(1);
@@ -206,10 +214,14 @@ spiro_tick=func(
 // call just keeps going from curve.ticknum, appending more segments
 // rather than restarting -- see spiro_tick()'s comment for why
 // deleting old segments isn't safe here.  Call spiro() again for a
-// clean start.
+// clean start.  n must be a positive whole number of ticks: the
+// recorded curve.ticknum always matches the number of ticks the loop
+// actually ran, or the next call would reconnect to the wrong point.
 spiro_grow=func(
   c=arg(0); n=arg(1);
   if(c==nil||n==nil :then return(nil));
+  n=int(n);
+  if(n<1 :then return(nil));
   start=c.ticknum;
   if(start==nil :then start=0);
   for(i=start i<start+n i++ spiro_tick(c i));
