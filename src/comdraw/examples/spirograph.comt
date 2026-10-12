@@ -147,55 +147,70 @@ spiro=func(
   update();
   curve)
 
-// spiro_tick(curve i) -- crank the wheel to tick i and grow curve's own
-// trail one point further along its path, reusing the angle formula
-// spiro() already ran across every tick at once.  Call it with a plain
-// scalar i, one tick per call -- see spiro_grow() below to drive a run
-// of ticks.  A stream passed straight in as i (e.g. spiro_tick(c 0..9))
-// still works for an independent one-shot mark per tick (each element
-// gets its own fresh call), but NOT for this growing trail: automatic
-// per-element stream replay doesn't carry curve.trailpts/curve.trail's
-// mutations from one replayed element to the next, so every element
-// would start the trail over from empty.
+// spiro_tick(curve i) -- crank the wheel to tick i and draw one more
+// segment of curve's own trail, from the previous tick's point to this
+// one, reusing the angle formula spiro() already ran across every tick
+// at once.  Call it with a plain scalar i, one tick per call -- see
+// spiro_grow() below to drive a run of ticks from a clean start.  A
+// stream passed straight in as i (e.g. spiro_tick(c 0..9)) still works
+// for an independent one-shot mark per tick (each element gets its own
+// fresh call), but NOT for this growing trail: automatic per-element
+// stream replay doesn't carry curve.lastx/lasty's mutations from one
+// replayed element to the next, so every element would think it's the
+// first tick.
 //
-// comdraw has no way to append a point to an already-drawn spline, so
-// each tick deletes the trail's previous version and redraws a fresh
-// openspline() through every point accumulated so far -- the growing
-// trail is its own comp (curve.trail), separate from the full
-// reference curve spiro() drew, which is left untouched.
+// Draws a straight segment per tick rather than redrawing one ever-
+// growing spline: deleting and recreating a comp every tick churns
+// Unidraw's view/undo bookkeeping fast enough to desync it under real
+// interactive use (confirmed: same two calls that are clean in a
+// batch script hit "nil subject on compview value" at the (comt)
+// prompt) -- a plain line() per tick never deletes anything, so there
+// is nothing to desync.  At spiro()'s own point density the segments
+// read as one smooth curve.
 spiro_tick=func(
   c=arg(0); i=arg(1);
   if(c==nil||i==nil :then return(nil));
   x=int(round(c.cx+c.Ac*cos(c.h*i)+c.s*c.Dc*cos(c.k*c.h*i)));
   y=int(round(c.cy+c.Ac*sin(c.h*i)-c.Dc*sin(c.k*c.h*i)));
-  pts=c.trailpts;
-  if(pts==nil :then pts=list());
-  pts,x; pts,y;
-  oldtrail=c.trail;
-  colorsrgb(c.color "#FFFFFF");
-  brush(65535,2);
-  pattern(1);
-  if(size(pts)>=4 :then newtrail=openspline(pts) :else newtrail=nil);
-  if(oldtrail!=nil :then delete(oldtrail));
-  select(:clear);
-  colorsrgb("#000000" "#FFFFFF");
-  brush(65535,0);
-  pattern(1);
-  update();
-  c.trailpts=pts;
-  c.trail=newtrail;
-  newtrail)
+  px=c.lastx; py=c.lasty;
+  seg=nil;
+  if(px!=nil&&py!=nil :then
+    colorsrgb(c.color "#FFFFFF");
+    brush(65535,2);
+    pattern(1);
+    seg=line(px,py, x,y);
+    select(:clear);
+    colorsrgb("#000000" "#FFFFFF");
+    brush(65535,0);
+    pattern(1);
+    update();
+    segs=c.segs;
+    if(segs==nil :then segs=list());
+    segs,seg;
+    c.segs=segs);
+  c.lastx=x; c.lasty=y;
+  seg)
 
-// spiro_grow(curve n) -- crank the wheel n times from tick 0, growing
+// spiro_grow(curve n) -- crank the wheel n times from tick 0, drawing
 // curve's trail live.  Plain count, like orbit(steps)/orb3d(steps)'s
 // own convention -- a for() loop drives ordinary sequential spiro_tick()
-// calls, not a stream argument, so curve.trailpts/curve.trail persist
-// correctly from one tick to the next (see spiro_tick()'s comment).
+// calls, not a stream argument, so curve.lastx/lasty persist correctly
+// from one tick to the next (see spiro_tick()'s comment).  A second
+// call starts over: any segments a previous call drew are deleted
+// together, once, before the new run -- one bulk delete per call,
+// not one per tick, well clear of the churn spiro_tick()'s comment
+// describes.
 spiro_grow=func(
   c=arg(0); n=arg(1);
   if(c==nil||n==nil :then return(nil));
+  oldsegs=c.segs;
+  if(oldsegs!=nil :then
+    segstrm=$$(oldsegs);
+    while(s=*segstrm delete(s));
+    update());
+  c.segs=nil; c.lastx=nil; c.lasty=nil;
   for(i=0 i<n i++ spiro_tick(c i));
-  c.trail)
+  c.segs)
 
 // ============================================================
 // LAYER 3: the magic words
