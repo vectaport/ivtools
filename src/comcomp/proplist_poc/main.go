@@ -9,7 +9,8 @@ package main
 
 /*
 #cgo CXXFLAGS: -std=gnu++17 -I${SRCDIR}/../.. -I${SRCDIR}/../../include -I${SRCDIR}/../../include/ivstd -I${SRCDIR}/../../include/ACE-lite
-#cgo LDFLAGS: -L${SRCDIR}/../../Attribute/LINUX -lAttribute -L${SRCDIR}/../../ComUtil/LINUX -lComUtil -L${SRCDIR}/../../Unidraw-common/LINUX -lUnidraw-common -L${SRCDIR}/../../IV-common/LINUX -lIV-common -Wl,-rpath,${SRCDIR}/../../Attribute/LINUX -Wl,-rpath,${SRCDIR}/../../ComUtil/LINUX -Wl,-rpath,${SRCDIR}/../../Unidraw-common/LINUX -Wl,-rpath,${SRCDIR}/../../IV-common/LINUX -lstdc++
+#cgo linux LDFLAGS: -L${SRCDIR}/../../Attribute/LINUX -lAttribute -L${SRCDIR}/../../ComUtil/LINUX -lComUtil -L${SRCDIR}/../../Unidraw-common/LINUX -lUnidraw-common -L${SRCDIR}/../../IV-common/LINUX -lIV-common -Wl,-rpath,${SRCDIR}/../../Attribute/LINUX -Wl,-rpath,${SRCDIR}/../../ComUtil/LINUX -Wl,-rpath,${SRCDIR}/../../Unidraw-common/LINUX -Wl,-rpath,${SRCDIR}/../../IV-common/LINUX -lstdc++
+#cgo darwin LDFLAGS: -L${SRCDIR}/../../Attribute/DARWIN -lAttribute -L${SRCDIR}/../../ComUtil/DARWIN -lComUtil -L${SRCDIR}/../../Unidraw-common/DARWIN -lUnidraw-common -L${SRCDIR}/../../IV-common/DARWIN -lIV-common -Wl,-rpath,${SRCDIR}/../../Attribute/DARWIN -Wl,-rpath,${SRCDIR}/../../ComUtil/DARWIN -Wl,-rpath,${SRCDIR}/../../Unidraw-common/DARWIN -Wl,-rpath,${SRCDIR}/../../IV-common/DARWIN
 #include "shim.h"
 #include <stdlib.h>
 */
