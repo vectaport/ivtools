@@ -243,14 +243,19 @@ prev_ok=check_fail(:ok ok)
 //        literal and a separately built string() buffer holding the
 //        same text must still collapse to the same symbol, confirming
 //        the fix (reading text via cstr()+symbol_add()) didn't turn
-//        symadd() into an always-fresh, non-deduping command ---
-a32="dup"
+//        symadd() into an always-fresh, non-deduping command. The text
+//        itself is arbitrary -- picked to not collide with any comterp
+//        command name (a command's own symbol entry isn't pinned
+//        against this test's later symbol_add()/unref() cycle, so a
+//        colliding string gets a second, unequal symbol id instead of
+//        deduping to the command's). ---
+a32="vqz"
 b32=string(3)
-at(b32 0 :set 'd')
-at(b32 1 :set 'u')
-at(b32 2 :set 'p')
+at(b32 0 :set 'v')
+at(b32 1 :set 'q')
+at(b32 2 :set 'z')
 ok=ok&&(symadd(a32)==symadd(b32))
-print("32 symadd(\"dup\")==symadd(string(3)-built \"dup\") (expect true): %v\n" symadd(a32)==symadd(b32))
+print("32 symadd(\"vqz\")==symadd(string(3)-built \"vqz\") (expect true): %v\n" symadd(a32)==symadd(b32))
 prev_ok=check_fail(:ok ok)
 
 // --- test 33: symbol(id) backquotes its result by default, so a
