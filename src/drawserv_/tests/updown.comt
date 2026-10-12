@@ -2044,6 +2044,140 @@ move_test=func(
 
   ok)
 
+/* duplicate test -- dup() propagation ds1->ds2, closing the gap where
+   Duplicate had no DrawServCmd counterpart (LinkDupCmd): the duplicate's
+   comp doesn't exist anywhere until Execute() creates it, so unlike
+   move()/front()/back() this checks that a brand-new comp, not just a
+   changed existing one, reaches ds2 -- same gap PASTE_CMD already closes
+   for pasted comps. The new comp's own position (DupCmd's hardcoded
+   +8,+8 offset from the original) is checked via trans(), same as
+   move_test, so this also confirms the duplicate's geometry, not just
+   its existence. */
+duplicate_test=func(
+  poll_usec=200000;
+  timeout=30*1000000/poll_usec;
+
+  /* --- launch ds1 (source) -- tiled side by side with ds2, same 756x491
+     layout as move_test's --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_updp1)=false;
+  print("duplicate: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_updp1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_updp1) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_updp1) :then
+    print("duplicate: FAIL ds1 did not come up\n" :err);
+    return(false));
+  print("duplicate: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_updp2)=false;
+  print("duplicate: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_updp2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_updp2) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_updp2) :then
+    print("duplicate: FAIL ds2 did not come up\n" :err);
+    return(false));
+  print("duplicate: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(!sock1 || !sock2 :then
+    print("duplicate: FAIL could not connect to both nodes\n" :err);
+    return(false));
+
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(drawlink(:table))")<1 && cnt<timeout usleep(poll_usec);cnt++);
+
+  /* --- ds1: one circle, centered in the left window --- */
+  remote(sock1 "c1=ellipse(158,245,80,80 :fillbg 1 :fgcolor \"Black\",0,0,0 :bgcolor \"SeaGreen\",0.18,0.55,0.34 :graypat 1.0)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<timeout usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  if(type(id1)!=`StringType :then
+    print("duplicate: FAIL could not read circle's grid id\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    return(false));
+  print("duplicate: created c1=%v on ds1\n" id1 :err);
+
+  /* bold label, purely decorative -- creating it makes it, not c1, the
+     current selection, same lesson as frontback_test/move_test -- so c1
+     needs an explicit select() to re-establish it before dup(), which
+     (like front()/back()) always acts on the live selection, never an
+     explicit argument.  Also gets its own grid id once linked, like any
+     other graphic, so it's tracked here to tell apart from the dup(). */
+  remote(sock1 "text(40,40 \"DUPLICATE TEST\")");
+  remote(sock1 "font(6)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<2 && cnt<timeout usleep(100000);cnt++);
+  e0=remote(sock1 "at(grid(:table) 0).grid");
+  e1=remote(sock1 "at(grid(:table) 1).grid");
+  label_id=e1; if(e0!=id1 :then label_id=e0);
+
+  ok=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("duplicate: ds2 has c1=%v\n" ok :err);
+  if(!ok :then print("duplicate: FAIL circle did not propagate to ds2\n" :err));
+
+  /* baseline is the circle's own transform, not the ellipse() creation
+     args -- see move_test's identical comment. */
+  base=remote(sock2 print("trans(grid(%c%s%c))" 34 id1 34 :str));
+  x=int(base@4); y=int(base@5);
+
+  if(demo_flag :then remote(sock1 "update(300000)"));
+
+  /* --- ds1: select c1, then duplicate it -- table goes from 2 entries
+     (c1, label) to 3; the dup() is whichever of the 3 is neither --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id1 34 :str));
+  remote(sock1 "dup()");
+  cnt=0;
+  while(ok && remote(sock1 "size(grid(:table))")<3 && cnt<timeout usleep(100000);cnt++);
+  ok=ok && remote(sock1 "size(grid(:table))")==3;
+  if(!ok :then print("duplicate: FAIL dup() did not create a third comp on ds1\n" :err));
+
+  id2=nil;
+  if(ok :then
+    for(i=0 i<3 i++
+      cand=remote(sock1 print("at(grid(:table) %d).grid" i :str));
+      if(cand!=id1 && cand!=label_id :then id2=cand)));
+  print("duplicate: ds1 has c1=%v dup=%v\n" id1 id2 :err);
+
+  if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
+
+  /* --- confirm the duplicate's own comp, not just a changed c1, reached
+     ds2 -- with its own position, offset +8,+8 from c1's.  grid_has_id()
+     already polls internally, so it's called once, not wrapped in
+     another retry loop. --- */
+  found=ok && grid_has_id(:gh_sock sock2 :gh_id id2);
+  print("duplicate: ds2 has dup=%v\n" found :err);
+  if(!found :then print("duplicate: FAIL duplicate did not propagate to ds2\n" :err));
+  ok=ok && found;
+
+  expr=print("trans(grid(%c%s%c))==(1,0,0,1,%d,%d)" 34 id2 34 x+8 y+8 :str);
+  posok=ok && remote(sock2 expr)==true;
+  print("duplicate: ds2's dup at c1's position+8,+8 = %v\n" posok :err);
+  if(!posok :then print("duplicate: FAIL duplicate's position did not propagate correctly\n" :err));
+  ok=ok && posok;
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("duplicate: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("duplicate: ds2 shut down\n" :err);
+
+  ok)
+
 /* transform test -- distributed move()/scale()/rotate() together (issue
    #376), closed by LinkScaleCmd/LinkRotateCmd joining LinkMoveCmd: each
    op relays the comp's resulting ABSOLUTE transform via trans(), not the

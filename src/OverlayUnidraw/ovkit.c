@@ -977,7 +977,7 @@ MenuItem* OverlayKit::MakeEditMenu() {
 	     "Copy   ");
     MakeMenu(mbi, new PasteCmd(new ControlInfo("Paste", KLBL_PASTE, CODE_PASTE)),
 	     "Paste   ");
-    MakeMenu(mbi, new DupCmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
+    MakeMenu(mbi, make_dup_cmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
 	     "Duplicate   ");
     MakeMenu(mbi, new OvDeleteCmd(new ControlInfo("Delete", KLBL_DEL, CODE_DEL)),
 	     "Delete   ");
@@ -1128,6 +1128,14 @@ BackCmd* OverlayKit::make_back_cmd(ControlInfo* ctrlInfo) {
 
 BackCmd* OverlayKit::make_back_cmd(Editor* ed) {
     return new BackCmd(ed);
+}
+
+DupCmd* OverlayKit::make_dup_cmd(ControlInfo* ctrlInfo) {
+    return new DupCmd(ctrlInfo);
+}
+
+DupCmd* OverlayKit::make_dup_cmd(Editor* ed) {
+    return new DupCmd(ed);
 }
 
 MoveCmd* OverlayKit::make_move_cmd(Editor* ed, float dx, float dy) {

@@ -456,6 +456,17 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case LINK_DUP_CMD:
+      {
+	/* the duplicated comps don't exist until Execute() creates them,
+	   so it runs first here, like LINK_FRONT_CMD/LINK_SCALE_CMD. */
+	cmd->Execute();
+	const char* script = ((LinkDupCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkDupCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
       case DRAFTSHARE_CMD:
 	/* a local UI toggle, never distributed or buffered by pause() itself */
 	cmd->Execute();

@@ -206,7 +206,7 @@ MenuItem* GraphKit::MakeEditMenu() {
 	     "Copy   ");
     MakeMenu(mbi, new GraphPasteCmd(new ControlInfo("Paste", KLBL_PASTE, CODE_PASTE)),
 	     "Paste   ");
-    MakeMenu(mbi, new GraphDupCmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
+    MakeMenu(mbi, make_dup_cmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
 	     "Duplicate   ");
     MakeMenu(mbi, new GraphDeleteCmd(new ControlInfo("Delete", KLBL_DEL, CODE_DEL)),
 	     "Delete   ");
@@ -241,6 +241,14 @@ MenuItem* GraphKit::MakeEditMenu() {
 	     "Precise Rotate   ");
 
     return mbi;
+}
+
+DupCmd* GraphKit::make_dup_cmd(ControlInfo* ctrlInfo) {
+    return new GraphDupCmd(ctrlInfo);
+}
+
+DupCmd* GraphKit::make_dup_cmd(Editor* ed) {
+    return new GraphDupCmd(ed);
 }
 
 MenuItem* GraphKit::MakeViewMenu() {

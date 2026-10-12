@@ -327,6 +327,22 @@ void FrontSelectionFunc::execute() {
     return;
 }
 
+/*****************************************************************************/
+
+DupSelectionFunc::DupSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void DupSelectionFunc::execute() {
+    reset_stack();
+
+    // dup() always acts on the live selection, like the Duplicate menu
+    // item -- select() first to duplicate a specific graphic by id.
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    DupCmd* cmd = kit->make_dup_cmd(GetEditor());
+    execute_log(cmd);
+    push_stack(ComValue::oneval());
+    return;
+}
 
 
 

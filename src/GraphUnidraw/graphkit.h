@@ -49,6 +49,10 @@ public:
     virtual MenuItem* MakeViewMenu();
     virtual MenuItem* MakeToolsMenu();
     virtual Glyph* MakeToolbar();
+    virtual DupCmd* make_dup_cmd(ControlInfo*);
+    // factory for dup()'s command; returns a GraphDupCmd so duplicated
+    // edges stay wired to the duplicated nodes.
+    virtual DupCmd* make_dup_cmd(Editor* = nil);
 
     static GraphKit* Instance();
     // return default instance of GraphKit.

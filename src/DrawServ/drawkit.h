@@ -69,6 +69,9 @@ public:
     virtual BackCmd* make_back_cmd(ControlInfo*);
     // override to create LinkBackCmd for distributed z-order changes
     virtual BackCmd* make_back_cmd(Editor* = nil);
+    virtual DupCmd* make_dup_cmd(ControlInfo*);
+    // override to create LinkDupCmd for distributed duplication
+    virtual DupCmd* make_dup_cmd(Editor* = nil);
     virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
     // override to create LinkMoveCmd for distributed moves
     virtual ScaleCmd* make_scale_cmd(Editor* = nil, float = 1, float = 1, Alignment = 4);

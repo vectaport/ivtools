@@ -247,6 +247,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("ungroup", new UngroupFunc(comterp, this));
     comterp->add_command("front", new FrontSelectionFunc(comterp, this));
     comterp->add_command("back", new BackSelectionFunc(comterp, this));
+    comterp->add_command("dup", new DupSelectionFunc(comterp, this));
 
     comterp->add_command("pause", new UnidrawPauseFunc(comterp, this));
 
