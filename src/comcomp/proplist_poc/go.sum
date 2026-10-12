@@ -1,7 +1,7 @@
 github.com/vectaport/fgbase v0.0.0-20260727144629-3d6fc55bdfc3 h1:h379/8jcj6DJj5y17GYm6kSnm9d8D230CIMgwD3x1fw=
 github.com/vectaport/fgbase v0.0.0-20260727144629-3d6fc55bdfc3/go.mod h1:2KfUV4Y1DOwD9sIogjqQfYNjD52/X4wW7w5nHk7+AnA=
-github.com/vectaport/flowgraph v1.0.1-0.20261012154503-d668b430076d h1:rCsmByP+r2kNt9+DnqlVwD0FqOO+pishAwxTcsNjTeo=
-github.com/vectaport/flowgraph v1.0.1-0.20261012154503-d668b430076d/go.mod h1:gmRyYM9a+HKMvaec5enxIZEQ1Dbhm1dQYtn5CYDw6P0=
+github.com/vectaport/flowgraph v1.0.1-0.20261012163541-1bbe071fcdc4 h1:0APiDK1j/bQYbfcYNcM+V+uAi6Y4uajtwtKHJyC2g2g=
+github.com/vectaport/flowgraph v1.0.1-0.20261012163541-1bbe071fcdc4/go.mod h1:gmRyYM9a+HKMvaec5enxIZEQ1Dbhm1dQYtn5CYDw6P0=
 golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
 golang.org/x/crypto v0.54.0/go.mod h1:KWL8ny2AZdGR2cWmzeHrp2azQPGogOv+HeQaVEXC2dk=
 golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
