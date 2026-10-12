@@ -166,7 +166,13 @@ spiro=func(
 // batch script hit "nil subject on compview value" at the (comt)
 // prompt) -- a plain line() per tick never deletes anything, so there
 // is nothing to desync.  At spiro()'s own point density the segments
-// read as one smooth curve.
+// read as one smooth curve.  spiro_grow() never deletes a segment
+// either, for the same reason: deleting even a batch of this curve's
+// own segments under real interactive X11 leaves curve's cached
+// component-view pointer dangling, so every later dot-field read on
+// curve (c.cx, c.Ac, ...) fails with "nil subject on compview value" --
+// confirmed not reproducible in any batch/headless test, only at a
+// real (comt) prompt.
 spiro_tick=func(
   c=arg(0); i=arg(1);
   if(c==nil||i==nil :then return(nil));
@@ -191,25 +197,23 @@ spiro_tick=func(
   c.lastx=x; c.lasty=y;
   seg)
 
-// spiro_grow(curve n) -- crank the wheel n times from tick 0, drawing
-// curve's trail live.  Plain count, like orbit(steps)/orb3d(steps)'s
-// own convention -- a for() loop drives ordinary sequential spiro_tick()
-// calls, not a stream argument, so curve.lastx/lasty persist correctly
-// from one tick to the next (see spiro_tick()'s comment).  A second
-// call starts over: any segments a previous call drew are deleted
-// together, once, before the new run -- one bulk delete per call,
-// not one per tick, well clear of the churn spiro_tick()'s comment
-// describes.
+// spiro_grow(curve n) -- crank the wheel n more ticks, continuing
+// curve's trail live from wherever it last left off.  Plain count,
+// like orbit(steps)/orb3d(steps)'s own convention -- a for() loop
+// drives ordinary sequential spiro_tick() calls, not a stream
+// argument, so curve.lastx/lasty persist correctly from one tick to
+// the next (see spiro_tick()'s comment).  Never deletes: a second
+// call just keeps going from curve.ticknum, appending more segments
+// rather than restarting -- see spiro_tick()'s comment for why
+// deleting old segments isn't safe here.  Call spiro() again for a
+// clean start.
 spiro_grow=func(
   c=arg(0); n=arg(1);
   if(c==nil||n==nil :then return(nil));
-  oldsegs=c.segs;
-  if(oldsegs!=nil :then
-    segstrm=$$(oldsegs);
-    while(s=*segstrm delete(s));
-    update());
-  c.segs=nil; c.lastx=nil; c.lasty=nil;
-  for(i=0 i<n i++ spiro_tick(c i));
+  start=c.ticknum;
+  if(start==nil :then start=0);
+  for(i=start i<start+n i++ spiro_tick(c i));
+  c.ticknum=start+n;
   c.segs)
 
 // ============================================================
