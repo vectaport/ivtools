@@ -189,7 +189,7 @@ MenuItem* DrawKit::MakeEditMenu() {
 	     "Copy   ");
     MakeMenu(mbi, new GraphPasteCmd(new ControlInfo("Paste", KLBL_PASTE, CODE_PASTE)),
 	     "Paste   ");
-    MakeMenu(mbi, new GraphDupCmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
+    MakeMenu(mbi, make_dup_cmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
 	     "Duplicate   ");
     MakeMenu(mbi, new GraphDeleteCmd(new ControlInfo("Delete", KLBL_DEL, CODE_DEL)),
 	     "Delete   ");
@@ -640,6 +640,14 @@ BackCmd* DrawKit::make_back_cmd(ControlInfo* ctrlInfo) {
 
 BackCmd* DrawKit::make_back_cmd(Editor* ed) {
     return new LinkBackCmd(ed);
+}
+
+DupCmd* DrawKit::make_dup_cmd(ControlInfo* ctrlInfo) {
+    return new LinkDupCmd(ctrlInfo);
+}
+
+DupCmd* DrawKit::make_dup_cmd(Editor* ed) {
+    return new LinkDupCmd(ed);
 }
 
 MoveCmd* DrawKit::make_move_cmd(Editor* ed, float dx, float dy) {

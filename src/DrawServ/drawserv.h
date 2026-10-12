@@ -136,6 +136,12 @@ public:
   DrawLinkList* linklist() { return _linklist; }
   // return pointer to list of DrawLink's
   
+  boolean add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid);
+  // register comp with a grid id (generating one if it has none yet) and
+  // the session id that owns it; returns true if this is the first time
+  // comp has been registered. Used to distribute brand-new graphics, such
+  // as a paste() or duplicate()'s resulting comps.
+
   GraphicIdTable* gridtable() { return _gridtable; }
   // return pointer to table of GraphicId's.
   
@@ -269,8 +275,6 @@ public:
   // if really not there.
 
 protected:
-  boolean add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid);
-  
   DrawLinkList* _linklist;
   // DrawLink list
   GraphicIdTable* _gridtable;

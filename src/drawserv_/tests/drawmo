@@ -124,7 +124,7 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -321,6 +321,13 @@ if(tests_flag :then
         print("frontback: pass\n" :err)
       :else
         print("frontback: FAIL\n" :err);
+        ok=false));
+    if(t==`duplicate || t==`all :then
+      print("running duplicate test\n" :err);
+      if(duplicate_test(:dummy 0) :then
+        print("duplicate: pass\n" :err)
+      :else
+        print("duplicate: FAIL\n" :err);
         ok=false));
     if(t==`updown4C || t==`all :then
       print("running updown4C test\n" :err);

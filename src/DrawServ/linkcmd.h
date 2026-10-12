@@ -28,6 +28,7 @@
 #ifndef linkcmd_h
 #define linkcmd_h
 
+#include <GraphUnidraw/graphcmds.h>
 #include <Unidraw/Commands/brushcmd.h>
 #include <Unidraw/Commands/colorcmd.h>
 #include <Unidraw/Commands/font.h>
@@ -322,6 +323,33 @@ public:
     // a00,...,a21);...;select(s :lock key)", one trans() per comp in the
     // live selection this node may relay, or empty string if none. Must be
     // called after Execute() -- see LinkScaleCmd's class comment.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
+//: GraphDupCmd with distributed script generation for DrawServ
+// Mixes GraphDupCmd with DrawServCmd to relay a duplicate as the full
+// definition of each new comp it creates. Unlike the other Link*Cmd's,
+// the comps being relayed don't exist until Execute() runs, so
+// DrawServ::ExecuteCmd always calls Execute() before dist_script() for
+// this command, then dist_script() registers each new comp with
+// DrawServ::add_grid() and writes its Script Definition(), the same
+// per-comp scripting DrawServ::ExecuteCmd already does inline for
+// PASTE_CMD.
+class LinkDupCmd : public GraphDupCmd, public DrawServCmd {
+public:
+    LinkDupCmd(ControlInfo*, Clipboard* = nil);
+    LinkDupCmd(Editor* = nil, Clipboard* = nil);
+
+    virtual const char* dist_script();
+    // return a ';'-separated Script Definition() for each comp this
+    // Execute() created, or empty string if none. Must be called after
+    // Execute() -- see class comment.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

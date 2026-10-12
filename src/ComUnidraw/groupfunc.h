@@ -82,8 +82,18 @@ class BackSelectionFunc : public UnidrawFunc {
 public:
     BackSelectionFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
 	return "%s([compview]) -- move selection or graphic to the back"; }
+};
+
+//: command to duplicate the current selection
+// dup() -- duplicate the current selection
+class DupSelectionFunc : public UnidrawFunc {
+public:
+    DupSelectionFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "%s() -- duplicate the current selection"; }
 };
 
 #endif /* !defined(_groupfunc_h) */

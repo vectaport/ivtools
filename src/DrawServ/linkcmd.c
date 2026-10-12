@@ -21,14 +21,21 @@
  */
 
 #include <DrawServ/linkcmd.h>
+#include <Attribute/attribute.h>
+#include <Attribute/attrlist.h>
 #include <DrawServ/linkselection.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/grid.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/ovraster.h>
 #include <OverlayUnidraw/ovviews.h>
+#include <OverlayUnidraw/scriptview.h>
 #include <Unidraw/Graphic/pspaint.h>
+#include <Unidraw/catalog.h>
+#include <Unidraw/classes.h>
+#include <Unidraw/creator.h>
 #include <Unidraw/editor.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/selection.h>
@@ -873,3 +880,82 @@ Command* LinkRotateCmd::Copy() {
 
 ClassId LinkRotateCmd::GetClassId() { return LINK_ROTATE_CMD; }
 boolean LinkRotateCmd::IsA(ClassId id) { return id == LINK_ROTATE_CMD || RotateCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkDupCmd::LinkDupCmd(ControlInfo* ci, Clipboard* cb) : GraphDupCmd(ci, cb) {}
+LinkDupCmd::LinkDupCmd(Editor* ed, Clipboard* cb) : GraphDupCmd(ed, cb) {}
+
+const char* LinkDupCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    Clipboard* cb = GetClipboard();
+    if (!cb) return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf;
+    boolean scripted = false;
+    uuid_t grid, sid;
+
+    static int grid_sym = symbol_add("grid");
+    static int sid_sym = symbol_add("sid");
+
+    Iterator it;
+    for (cb->First(it); !cb->Done(it); cb->Next(it)) {
+        OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
+        if (!comp) continue;
+
+        /* Copy() carries over the original's :grid/:sid attributes, but a
+           duplicate is a brand-new graphic -- without clearing them first,
+           add_grid() mistakes it for that same original already registered
+           and reuses its identity instead of minting a fresh one. */
+        AttributeList* al = comp->GetAttributeList();
+        if (al) {
+            Attribute* a = al->GetAttr(grid_sym);
+            if (a) al->Remove(a);
+            a = al->GetAttr(sid_sym);
+            if (a) al->Remove(a);
+        }
+
+        /* add_grid() only fills grid/sid in from the comp's own attributes
+           (just cleared above) or by generating fresh ones -- it never
+           clears a value already sitting in these variables, so each
+           duplicate needs its own cleared pair, not the previous one's. */
+        uuid_clear(grid);
+        uuid_clear(sid);
+        drawserv->add_grid(comp, grid, sid);
+
+        Creator* creator = unidraw->GetCatalog()->GetCreator();
+        OverlayScript* scripter = (OverlayScript*)
+            creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
+        if (scripter) {
+            scripter->SetSubject(comp);
+            if (comp->IsA(OVRASTER_COMP))
+                ((RasterScript*)scripter)->SetCommandSerialize(true);
+            if (scripted) sbuf << ';';
+            else scripted = true;
+            scripter->Definition(sbuf);
+            delete scripter;
+        }
+    }
+
+    if (scripted) {
+        uuid_copy(_dist_owner_sid, sid);
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkDupCmd::Copy() {
+    LinkDupCmd* copy = new LinkDupCmd(CopyControlInfo(), GetClipboard());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkDupCmd::GetClassId() { return LINK_DUP_CMD; }
+boolean LinkDupCmd::IsA(ClassId id) { return id == LINK_DUP_CMD || GraphDupCmd::IsA(id); }

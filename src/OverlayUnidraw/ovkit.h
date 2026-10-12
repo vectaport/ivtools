@@ -41,6 +41,7 @@ class ColorCmd;
 class FontCmd;
 class FrontCmd;
 class BackCmd;
+class DupCmd;
 class TransformCmd;
 class Transformer;
 class PatternCmd;
@@ -247,6 +248,13 @@ public:
     // factory for back()'s command; see make_front_cmd.
     virtual BackCmd* make_back_cmd(Editor* = nil);
     // factory method for creating BackCmd; see the ControlInfo form
+    virtual DupCmd* make_dup_cmd(ControlInfo*);
+    // factory for dup()'s command; unlike make_front_cmd, the caller
+    // leaves its clipboard unset -- DupCmd's own clipboard holds the
+    // duplicate(s) Interpret() creates (for redo), not a target, so
+    // duplication is always driven by the editor's current selection.
+    virtual DupCmd* make_dup_cmd(Editor* = nil);
+    // factory method for creating DupCmd; see the ControlInfo form
     virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
     // factory for move()'s command; like the graphic-state factories, it
     // applies to whatever is selected -- no clipboard target, no ControlInfo
