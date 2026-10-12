@@ -531,7 +531,7 @@ func fires with the pushed value as its one positional arg, read via\n\
 arg(0) in the body; func is read unevaluated, the same way help(cmd)\n\
 peeks a bare name, so naming it to watch with doesn't fire it;\n\
 :stop unregisters func from ring instead; either way the watching func\n\
-is returned, or nil if ring/func wasn't valid"; }
+is returned, or nil if ring/func wasn't valid or :stop found no match"; }
 
 };
 

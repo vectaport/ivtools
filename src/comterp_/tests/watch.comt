@@ -2,7 +2,7 @@
 // fired on every later push to a ring, the push-notification complement
 // to polling a ring's more()==nil
 //
-// coverage: 14 tests of watch()
+// coverage: 16 tests of watch()
 // funcs: watch ring feed next info global func arg dot
 
 //
@@ -158,6 +158,42 @@ r14=ring(2 AnyType)
 rv14=watch(r14 cb14 :stop)
 ok=ok&&(rv14==nil)
 print("14 watch(r cb :stop) with no matching registration (expect nil): %v\n" rv14)
+
+// --- 15: the FuncObj watch() hands back is the real registered handle,
+// not just some object -- saving it from an inline func(...) literal
+// (which has no other name) and :stop'ing through that saved value
+// removes the right watcher ---
+global(hits15)=0
+r15=ring(2 AnyType)
+rv15=watch(r15 func(v=arg(0); global(hits15)=global(hits15)+1))
+feed(r15 1)
+rv15b=watch(r15 rv15 :stop)
+feed(r15 2)
+ok=ok&&istype(rv15b ObjectType)&&(global(hits15)==1)
+print("15 the handle watch() returns can itself :stop the watcher it names (expect true 1): %v %v\n" istype(rv15b ObjectType) global(hits15))
+
+// --- 16: a watcher that :stops another watcher on the same ring
+// during its own firing doesn't corrupt or crash the dispatch loop --
+// ring_fire_watchers() fires from a snapshot taken before the loop
+// runs, so a removal mid-fire can't shift or shorten what a later
+// iteration indexes into; the removed watcher still fires for this
+// push (the snapshot already captured it) but not for a later one.
+// cbB16 must be defined before cbA16 captures a reference to it --
+// a func's bare-name references snapshot at definition, so a watcher
+// can never :stop itself by name this way (it doesn't exist yet at
+// its own definition) ---
+global(log16)=""
+r16=ring(4 AnyType)
+cbB16=func(v=arg(0); global(log16)=global(log16)+"B")
+cbA16=func(v=arg(0); global(log16)=global(log16)+"A"; watch(r16 cbB16 :stop))
+watch(r16 cbA16)
+watch(r16 cbB16)
+feed(r16 1)
+ok=ok&&(global(log16)=="AB")
+print("16 a watcher :stop'ing a later watcher mid-fire doesn't crash, still fires it this push (expect AB): %v\n" global(log16))
+feed(r16 2)
+ok=ok&&(global(log16)=="ABA")
+print("16b the stopped watcher stays stopped on a later push (expect ABA): %v\n" global(log16))
 
 print("watch: %v\n" ok)
 ok

@@ -2672,11 +2672,17 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
     if (_draining_avls[j]==avl) positions.push_back(j);
   for (int j=(int)positions.size()-1; j>=0; j--)
     _draining_avls.erase(_draining_avls.begin()+positions[j]);
+  /* fire from a snapshot, not the live list -- a watcher's own body can
+     :stop another entry on this same ring, which would otherwise shift
+     or shorten the list this loop is still indexing into. */
   int n = watchers->Number();
+  std::vector<ComValue> snapshot;
+  snapshot.reserve(n);
+  for (int i=0; i<n; i++) snapshot.push_back(*watchers->Get(i));
   for (int i=0; i<n; i++) {
-    AttributeValue* wav = watchers->Get(i);
-    if (!wav->is_object(FuncObj::class_symid())) continue;
-    ComValue fobjv(*wav);
+    ComValue& wav = snapshot[i];
+    if (!wav.is_object(FuncObj::class_symid())) continue;
+    ComValue fobjv(wav);
     fobjv.narg(1);
     fobjv.nkey(0);
     comterp->push_stack(pushedval);
@@ -3202,10 +3208,7 @@ void WatchFunc::execute() {
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
 
   if (stopflag) {
-    /* remove by FuncObj identity -- the same object watch() appended,
-       e.g. the FuncObj a bound variable or a dot-bound field still
-       holds; an inline func(...) literal never matches a prior
-       registration since each one is a fresh object. */
+    /* remove every registration holding the same FuncObj. */
     boolean stopped = false;
     if (watchers) {
       void* target = funcval.obj_val();

@@ -717,11 +717,22 @@ comments without blowing past the one/two-line budget:
   ComTerp's dispatch is single-threaded/cooperative throughout, so no
   second `ComTerp` instance is needed.
 
-- **Firing runs over a fixed watcher count**, captured before the loop
-  starts rather than re-read each iteration: a watcher that registers
-  another watcher on the same ring during its own firing takes effect
-  on the *next* push, not the current one, so it can't grow the list as
-  fast as the loop advances and hang the push.
+- **Firing runs over a snapshot of the watcher list**, copied by value
+  before the loop starts rather than re-read from the live list each
+  iteration: a watcher can `watch()`/`watch(:stop)` another watcher on
+  the same ring from inside its own firing without shifting or
+  shortening what a later iteration indexes into (stopping a watcher
+  *by its own bare name* can't come up in practice — a func's
+  references to outside names snapshot at definition, so a watcher
+  never yet has a name to call itself by at the point it's defined;
+  a dot-bound field doesn't snapshot this way, so `al.cb=func(...;
+  watch(ring al.cb :stop))` can self-stop). A watcher that registers
+  another watcher during its own firing takes effect on the *next*
+  push, not the current one, since the snapshot was already taken; a
+  watcher that gets `:stop`'d mid-dispatch still finishes out this
+  push if the snapshot already captured it, since by value means the
+  snapshot holds its own reference to the `FuncObj`, independent of
+  the live list entry `:stop` removed.
 
 - **The destination recursive-stream guard (`_draining_avls`) is lifted
   for the ring's own entries while watchers fire, then restored by their
