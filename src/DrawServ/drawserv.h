@@ -142,6 +142,10 @@ public:
   // comp has been registered. Used to distribute brand-new graphics, such
   // as a paste() or duplicate()'s resulting comps.
 
+  void remove_grid(OverlayComp* comp);
+  // unregister comp's GraphicId, clearing it from both gridtable and
+  // compidtable. Used once a comp is actually gone, such as a delete().
+
   GraphicIdTable* gridtable() { return _gridtable; }
   // return pointer to table of GraphicId's.
   

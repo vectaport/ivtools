@@ -2178,6 +2178,123 @@ duplicate_test=func(
 
   ok)
 
+/* delete test -- delete() propagation ds1->ds2, closing the gap where
+   Delete had no DrawServCmd counterpart (LinkDeleteCmd): deleting a comp
+   never removed it on a linked peer, unlike move()/front()/back()/dup().
+   Mirrors duplicate_test's two-comp setup (a target circle plus a
+   decorative label, both grid-registered) so the check is specific to
+   the deleted comp, not just "something changed" on ds2. */
+delete_test=func(
+  poll_usec=200000;
+  timeout=30*1000000/poll_usec;
+
+  /* --- launch ds1 (source) -- tiled side by side with ds2, same 756x491
+     layout as move_test's --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_updl1)=false;
+  print("delete: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_updl1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_updl1) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_updl1) :then
+    print("delete: FAIL ds1 did not come up\n" :err);
+    return(false));
+  print("delete: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_updl2)=false;
+  print("delete: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_updl2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_updl2) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_updl2) :then
+    print("delete: FAIL ds2 did not come up\n" :err);
+    return(false));
+  print("delete: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(!sock1 || !sock2 :then
+    print("delete: FAIL could not connect to both nodes\n" :err);
+    return(false));
+
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(drawlink(:table))")<1 && cnt<timeout usleep(poll_usec);cnt++);
+
+  /* --- ds1: one circle, centered in the left window --- */
+  remote(sock1 "c1=ellipse(158,245,80,80 :fillbg 1 :fgcolor \"Black\",0,0,0 :bgcolor \"SeaGreen\",0.18,0.55,0.34 :graypat 1.0)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<timeout usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  if(type(id1)!=`StringType :then
+    print("delete: FAIL could not read circle's grid id\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    return(false));
+  print("delete: created c1=%v on ds1\n" id1 :err);
+
+  /* bold label, purely decorative -- same role as duplicate_test's: it
+     gets its own grid id once linked, so the post-delete table size and
+     membership check is specific to c1, not "any one entry". */
+  remote(sock1 "text(40,40 \"DELETE TEST\")");
+  remote(sock1 "font(6)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<2 && cnt<timeout usleep(100000);cnt++);
+  e0=remote(sock1 "at(grid(:table) 0).grid");
+  e1=remote(sock1 "at(grid(:table) 1).grid");
+  label_id=e1; if(e0!=id1 :then label_id=e0);
+
+  ok=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("delete: ds2 has c1=%v\n" ok :err);
+  if(!ok :then print("delete: FAIL circle did not propagate to ds2\n" :err));
+
+  if(demo_flag :then remote(sock1 "update(300000)"));
+
+  /* --- ds1: delete c1 by id -- unlike front()/back()/dup(), delete()
+     always names its target(s) explicitly and is a no-op with none, but
+     creating the label afterward made it, not c1, the live selection, so
+     relaying still needs the same re-select(grid(...)) front()/back() use
+     to reclaim LocallySelected before the ownership-gated relay below.
+     Table goes from 2 entries (c1, label) down to 1, the label. --- */
+  remote(sock1 print("select(grid(%c%s%c))" 34 id1 34 :str));
+  remote(sock1 print("delete(grid(%c%s%c))" 34 id1 34 :str));
+  cnt=0;
+  while(ok && remote(sock1 "size(grid(:table))")>1 && cnt<timeout usleep(100000);cnt++);
+  ok=ok && remote(sock1 "size(grid(:table))")==1;
+  if(!ok :then print("delete: FAIL delete() did not remove c1 on ds1\n" :err));
+
+  remaining=nil;
+  if(ok :then remaining=remote(sock1 "at(grid(:table) 0).grid"));
+  ok=ok && remaining==label_id;
+  print("delete: ds1 has remaining=%v (expect label=%v)\n" remaining label_id :err);
+  if(!ok :then print("delete: FAIL wrong comp remained on ds1 after delete()\n" :err));
+
+  if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
+
+  /* --- confirm c1 itself, not just ds1's count, is gone from ds2 --- */
+  gone=ok && grid_lacks_id(:gh_sock sock2 :gh_id id1);
+  print("delete: ds2 lacks c1=%v\n" gone :err);
+  if(!gone :then print("delete: FAIL delete did not propagate to ds2\n" :err));
+  ok=ok && gone;
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("delete: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("delete: ds2 shut down\n" :err);
+
+  ok)
+
 /* transform test -- distributed move()/scale()/rotate() together (issue
    #376), closed by LinkScaleCmd/LinkRotateCmd joining LinkMoveCmd: each
    op relays the comp's resulting ABSOLUTE transform via trans(), not the
