@@ -217,6 +217,9 @@ spiro_tick=func(
 // clean start.  n must be a positive whole number of ticks: the
 // recorded curve.ticknum always matches the number of ticks the loop
 // actually ran, or the next call would reconnect to the wrong point.
+// Stops at one full cycle (curve.pts ticks): past there the angle
+// formula just retraces the same closed loop from tick 0, and asking
+// for more ticks than that is a no-op rather than a second lap.
 spiro_grow=func(
   c=arg(0); n=arg(1);
   if(c==nil||n==nil :then return(nil));
@@ -224,6 +227,9 @@ spiro_grow=func(
   if(n<1 :then return(nil));
   start=c.ticknum;
   if(start==nil :then start=0);
+  cap=c.pts;
+  if(cap!=nil&&start+n>cap :then n=cap-start);
+  if(n<1 :then return(c.segs));
   for(i=start i<start+n i++ spiro_tick(c i));
   c.ticknum=start+n;
   c.segs)
