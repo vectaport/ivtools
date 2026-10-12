@@ -688,6 +688,28 @@ comments without blowing past the one/two-line budget:
   pointer before `reset_stack()` runs leaves it dangling the moment the
   transient stack slot is released.
 
+- **`watch()` returns the watching `FuncObj`** (not `nil`) whenever
+  `ring`/`func` are valid, whether registering or `:stop`-ping — `nil`
+  means the call didn't do anything (not a ring, `func` didn't resolve
+  to a `FuncObj`, or, for `:stop`, no matching registration was found).
+
+- **`:stop` unregisters by `FuncObj` identity**, not by value equality:
+  it removes any watcher whose resolved `FuncObj` is the same object
+  `watch()` originally appended — the object a bound variable or a
+  dot-bound field still holds. An inline `func(...)` literal can never
+  be `:stop`'d this way, since each one evaluates to a fresh `FuncObj`
+  with no prior registration to match. `:stop`ping the last watcher off
+  a ring reverts its `[6]` slot to the same `UnknownType` a never-watched
+  ring has, so `info(ring).watchers` reads `nil` either way, not an
+  empty list.
+
+- **The returned `FuncObj` is "hot" the same way any `FuncObj`-bound
+  variable is**: storing it, or peeking it back into `watch(ring var
+  :stop)`, is safe, but an ordinary reference — `==`, `!=`, `print(:str)`
+  — evaluates it, firing the watcher as a side effect of the comparison
+  or print. This isn't new to `watch()`; it's the same rule its own
+  arg-reading has always had to route around (see above).
+
 - **Firing is reentrant on the same `ComTerp` instance.** `ring_fire_watchers()`
   calls `comterp->fire_funcobj()` from inside `ring_push_elt()`, the same
   pattern `NextFunc`'s `STREAM_FUNCOBJ` dispatch already uses to fire a
@@ -695,11 +717,22 @@ comments without blowing past the one/two-line budget:
   ComTerp's dispatch is single-threaded/cooperative throughout, so no
   second `ComTerp` instance is needed.
 
-- **Firing runs over a fixed watcher count**, captured before the loop
-  starts rather than re-read each iteration: a watcher that registers
-  another watcher on the same ring during its own firing takes effect
-  on the *next* push, not the current one, so it can't grow the list as
-  fast as the loop advances and hang the push.
+- **Firing runs over a snapshot of the watcher list**, copied by value
+  before the loop starts rather than re-read from the live list each
+  iteration: a watcher can `watch()`/`watch(:stop)` another watcher on
+  the same ring from inside its own firing without shifting or
+  shortening what a later iteration indexes into (stopping a watcher
+  *by its own bare name* can't come up in practice — a func's
+  references to outside names snapshot at definition, so a watcher
+  never yet has a name to call itself by at the point it's defined;
+  a dot-bound field doesn't snapshot this way, so `al.cb=func(...;
+  watch(ring al.cb :stop))` can self-stop). A watcher that registers
+  another watcher during its own firing takes effect on the *next*
+  push, not the current one, since the snapshot was already taken; a
+  watcher that gets `:stop`'d mid-dispatch still finishes out this
+  push if the snapshot already captured it, since by value means the
+  snapshot holds its own reference to the `FuncObj`, independent of
+  the live list entry `:stop` removed.
 
 - **The destination recursive-stream guard (`_draining_avls`) is lifted
   for the ring's own entries while watchers fire, then restored by their
