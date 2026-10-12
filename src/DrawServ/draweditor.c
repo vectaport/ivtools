@@ -24,7 +24,9 @@
 #include <DrawServ/drawcomps.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawfunc.h>
+#include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
+#include <DrawServ/drawstates.h>
 
 #include <Unidraw/catalog.h>
 #include <Unidraw/selection.h>
@@ -72,6 +74,8 @@ void DrawEditor::Init (OverlayComp* comp, const char* name) {
   _autonewframe = false;
   _autonewframe_tts = nil;
   _draftshare_tts = nil;
+  _draftsharestate = nil;
+  _linkliststate = nil;
   if (!comp) comp = new DrawIdrawComp;
   _terp = new ComTerpServ();
   ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -96,6 +100,8 @@ void DrawEditor::ToggleDraftShare() {
 
 void DrawEditor::SyncDraftShare(boolean paused) {
   if (_draftshare_tts) _draftshare_tts->set(TelltaleState::is_chosen, paused);
+  if (_draftsharestate) _draftsharestate->paused(paused);
+  if (_linkliststate) _linkliststate->links(((DrawServ*)unidraw)->linklist());
 }
 
 void DrawEditor::AddCommands(ComTerp* comterp) {
