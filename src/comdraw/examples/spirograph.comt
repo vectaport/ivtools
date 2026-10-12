@@ -147,29 +147,55 @@ spiro=func(
   update();
   curve)
 
-// spiro_tick(curve i) -- crank the wheel to tick i and drop one pen
-// mark where it lands, reusing the angle formula spiro() already ran
-// across every tick at once.  A stream for i (e.g. 0..99) makes the
-// whole call lazy; each($$(spiro_tick(c 0..99))) drains it, one crank
-// per element in order with its own update() -- the marks appear live
-// instead of all at once.  Write the range bare, with no enclosing
-// parens: a bare name directly before "(" parses as a call, so
-// spiro_tick(c (0..99)) reads as c(0..99), not two arguments.
+// spiro_tick(curve i) -- crank the wheel to tick i and grow curve's own
+// trail one point further along its path, reusing the angle formula
+// spiro() already ran across every tick at once.  Call it with a plain
+// scalar i, one tick per call -- see spiro_grow() below to drive a run
+// of ticks.  A stream passed straight in as i (e.g. spiro_tick(c 0..9))
+// still works for an independent one-shot mark per tick (each element
+// gets its own fresh call), but NOT for this growing trail: automatic
+// per-element stream replay doesn't carry curve.trailpts/curve.trail's
+// mutations from one replayed element to the next, so every element
+// would start the trail over from empty.
+//
+// comdraw has no way to append a point to an already-drawn spline, so
+// each tick deletes the trail's previous version and redraws a fresh
+// openspline() through every point accumulated so far -- the growing
+// trail is its own comp (curve.trail), separate from the full
+// reference curve spiro() drew, which is left untouched.
 spiro_tick=func(
   c=arg(0); i=arg(1);
   if(c==nil||i==nil :then return(nil));
   x=int(round(c.cx+c.Ac*cos(c.h*i)+c.s*c.Dc*cos(c.k*c.h*i)));
   y=int(round(c.cy+c.Ac*sin(c.h*i)-c.Dc*sin(c.k*c.h*i)));
+  pts=c.trailpts;
+  if(pts==nil :then pts=list());
+  pts,x; pts,y;
+  oldtrail=c.trail;
   colorsrgb(c.color "#FFFFFF");
-  brush(65535,0);
+  brush(65535,2);
   pattern(1);
-  mark=ellipse(x,y, 3,3);
+  if(size(pts)>=4 :then newtrail=openspline(pts) :else newtrail=nil);
+  if(oldtrail!=nil :then delete(oldtrail));
   select(:clear);
   colorsrgb("#000000" "#FFFFFF");
   brush(65535,0);
   pattern(1);
   update();
-  mark)
+  c.trailpts=pts;
+  c.trail=newtrail;
+  newtrail)
+
+// spiro_grow(curve n) -- crank the wheel n times from tick 0, growing
+// curve's trail live.  Plain count, like orbit(steps)/orb3d(steps)'s
+// own convention -- a for() loop drives ordinary sequential spiro_tick()
+// calls, not a stream argument, so curve.trailpts/curve.trail persist
+// correctly from one tick to the next (see spiro_tick()'s comment).
+spiro_grow=func(
+  c=arg(0); n=arg(1);
+  if(c==nil||n==nil :then return(nil));
+  for(i=0 i<n i++ spiro_tick(c i));
+  c.trail)
 
 // ============================================================
 // LAYER 3: the magic words
