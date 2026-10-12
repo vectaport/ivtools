@@ -2672,11 +2672,17 @@ static void ring_fire_watchers(ComTerp* comterp, AttributeValueList* avl, ComVal
     if (_draining_avls[j]==avl) positions.push_back(j);
   for (int j=(int)positions.size()-1; j>=0; j--)
     _draining_avls.erase(_draining_avls.begin()+positions[j]);
+  /* fire from a snapshot, not the live list -- a watcher's own body can
+     :stop another entry on this same ring, which would otherwise shift
+     or shorten the list this loop is still indexing into. */
   int n = watchers->Number();
+  std::vector<ComValue> snapshot;
+  snapshot.reserve(n);
+  for (int i=0; i<n; i++) snapshot.push_back(*watchers->Get(i));
   for (int i=0; i<n; i++) {
-    AttributeValue* wav = watchers->Get(i);
-    if (!wav->is_object(FuncObj::class_symid())) continue;
-    ComValue fobjv(*wav);
+    ComValue& wav = snapshot[i];
+    if (!wav.is_object(FuncObj::class_symid())) continue;
+    ComValue fobjv(wav);
     fobjv.narg(1);
     fobjv.nkey(0);
     comterp->push_stack(pushedval);
@@ -3185,6 +3191,9 @@ void WatchFunc::execute() {
     if (fired.is_object(FuncObj::class_symid()))
       funcval = fired;
   }
+
+  static int stop_symid = symbol_add("stop");
+  boolean stopflag = stack_key_post_eval(stop_symid).is_true();
   reset_stack();
 
   AttributeValueList* avl = ringv.is_stream() ? ringv.stream_list() : nil;
@@ -3197,13 +3206,38 @@ void WatchFunc::execute() {
 
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
+
+  if (stopflag) {
+    /* remove every registration holding the same FuncObj. */
+    boolean stopped = false;
+    if (watchers) {
+      void* target = funcval.obj_val();
+      for (int i=watchers->Number()-1; i>=0; i--) {
+	AttributeValue* wav = watchers->Get(i);
+	if (wav->is_object(FuncObj::class_symid()) && wav->obj_val()==target) {
+	  watchers->Remove(wav);
+	  delete wav;
+	  stopped = true;
+	}
+      }
+      /* an emptied watchers list reverts to the same UnknownType slot a
+	 never-watched ring has, so info(ring).watchers reads nil either way. */
+      if (watchers->Number()==0) {
+	AttributeValue blankav;
+	*watchav = blankav;
+      }
+    }
+    push_stack(stopped ? funcval : ComValue::nullval());
+    return;
+  }
+
   if (!watchers) {
     watchers = new AttributeValueList();
     AttributeValue listav(watchers);
     *watchav = listav;
   }
   watchers->Append(new AttributeValue(funcval));
-  push_stack(ComValue::nullval());
+  push_stack(funcval);
 }
 
 /*****************************************************************************/
