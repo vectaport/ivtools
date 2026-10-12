@@ -3,9 +3,13 @@
 // translated copy. CppPropList implements flowgraph.PropList directly,
 // so DupCppPropList clones a source PropList the same way
 // flowgraph.DupPropList does -- switching Go-backed for C++-backed
-// storage is then just calling a different constructor. GetField/
-// SetField are stubbed as always-not-found/no-op pending a decision on
-// the per-entry-field design (plain fields vs. a nested attrlist).
+// storage is then just calling a different constructor, for a
+// string-valued PropList (the underlying AttributeList is string-only
+// for this spike: Set stringifies any other value via fmt.Sprint, so
+// a non-string source round-trips as its string form, not its type).
+// GetField/SetField are stubbed as always-not-found/no-op pending a
+// decision on the per-entry-field design (plain fields vs. a nested
+// attrlist).
 package main
 
 /*
@@ -52,6 +56,9 @@ func (p *CppPropList) Get(key string) (any, bool) {
 	return C.GoString(v), true
 }
 
+// Set stores v as its fmt.Sprint string form -- the underlying
+// AttributeList is string-only for this spike, so a non-string v
+// round-trips through Get as that string, not its original type.
 func (p *CppPropList) Set(key string, v any) flowgraph.PropList {
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
@@ -124,7 +131,8 @@ func (p *CppPropList) Base() any   { return p }
 // DupCppPropList clones src via the PropList interface alone (the
 // same At()-based loop as flowgraph.DupPropList), proving a caller
 // can swap Go-backed for C++-backed storage by changing only the
-// constructor it calls.
+// constructor it calls -- for a string-valued src, since Set
+// stringifies anything else.
 func DupCppPropList(src flowgraph.PropList) flowgraph.PropList {
 	p := NewCppPropList()
 	for i := 0; i < src.Len(); i++ {
