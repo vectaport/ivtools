@@ -688,6 +688,28 @@ comments without blowing past the one/two-line budget:
   pointer before `reset_stack()` runs leaves it dangling the moment the
   transient stack slot is released.
 
+- **`watch()` returns the watching `FuncObj`** (not `nil`) whenever
+  `ring`/`func` are valid, whether registering or `:stop`-ping — `nil`
+  means the call didn't do anything (not a ring, `func` didn't resolve
+  to a `FuncObj`, or, for `:stop`, no matching registration was found).
+
+- **`:stop` unregisters by `FuncObj` identity**, not by value equality:
+  it removes any watcher whose resolved `FuncObj` is the same object
+  `watch()` originally appended — the object a bound variable or a
+  dot-bound field still holds. An inline `func(...)` literal can never
+  be `:stop`'d this way, since each one evaluates to a fresh `FuncObj`
+  with no prior registration to match. `:stop`ping the last watcher off
+  a ring reverts its `[6]` slot to the same `UnknownType` a never-watched
+  ring has, so `info(ring).watchers` reads `nil` either way, not an
+  empty list.
+
+- **The returned `FuncObj` is "hot" the same way any `FuncObj`-bound
+  variable is**: storing it, or peeking it back into `watch(ring var
+  :stop)`, is safe, but an ordinary reference — `==`, `!=`, `print(:str)`
+  — evaluates it, firing the watcher as a side effect of the comparison
+  or print. This isn't new to `watch()`; it's the same rule its own
+  arg-reading has always had to route around (see above).
+
 - **Firing is reentrant on the same `ComTerp` instance.** `ring_fire_watchers()`
   calls `comterp->fire_funcobj()` from inside `ring_push_elt()`, the same
   pattern `NextFunc`'s `STREAM_FUNCOBJ` dispatch already uses to fire a

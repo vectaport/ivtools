@@ -3185,6 +3185,9 @@ void WatchFunc::execute() {
     if (fired.is_object(FuncObj::class_symid()))
       funcval = fired;
   }
+
+  static int stop_symid = symbol_add("stop");
+  boolean stopflag = stack_key_post_eval(stop_symid).is_true();
   reset_stack();
 
   AttributeValueList* avl = ringv.is_stream() ? ringv.stream_list() : nil;
@@ -3197,13 +3200,41 @@ void WatchFunc::execute() {
 
   AttributeValue* watchav = (AttributeValue*)avl->Get(6);
   AttributeValueList* watchers = watchav->is_list() ? watchav->array_val() : nil;
+
+  if (stopflag) {
+    /* remove by FuncObj identity -- the same object watch() appended,
+       e.g. the FuncObj a bound variable or a dot-bound field still
+       holds; an inline func(...) literal never matches a prior
+       registration since each one is a fresh object. */
+    boolean stopped = false;
+    if (watchers) {
+      void* target = funcval.obj_val();
+      for (int i=watchers->Number()-1; i>=0; i--) {
+	AttributeValue* wav = watchers->Get(i);
+	if (wav->is_object(FuncObj::class_symid()) && wav->obj_val()==target) {
+	  watchers->Remove(wav);
+	  delete wav;
+	  stopped = true;
+	}
+      }
+      /* an emptied watchers list reverts to the same UnknownType slot a
+	 never-watched ring has, so info(ring).watchers reads nil either way. */
+      if (watchers->Number()==0) {
+	AttributeValue blankav;
+	*watchav = blankav;
+      }
+    }
+    push_stack(stopped ? funcval : ComValue::nullval());
+    return;
+  }
+
   if (!watchers) {
     watchers = new AttributeValueList();
     AttributeValue listav(watchers);
     *watchav = listav;
   }
   watchers->Append(new AttributeValue(funcval));
-  push_stack(ComValue::nullval());
+  push_stack(funcval);
 }
 
 /*****************************************************************************/

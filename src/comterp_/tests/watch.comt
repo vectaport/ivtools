@@ -2,7 +2,7 @@
 // fired on every later push to a ring, the push-notification complement
 // to polling a ring's more()==nil
 //
-// coverage: 11 tests of watch()
+// coverage: 14 tests of watch()
 // funcs: watch ring feed next info global func arg dot
 
 //
@@ -21,17 +21,26 @@
 // first watch() call, then the list of registered funcs. A watcher
 // running mid-push can itself read the ring (e.g. next()) without
 // corrupting a multi-byte string push still landing bytes behind it, or
-// being refused as a false "recursive stream".
+// being refused as a false "recursive stream". watch(ring func :stop)
+// unregisters func instead of registering it. Either way watch()
+// returns the watching func, or nil if ring/func wasn't valid.
+//
+// Checking that returned func with == or print(:str) is unsafe -- a
+// bare FuncObj-bound value fires on any ordinary reference, same as
+// naming cb1 itself anywhere outside watch()'s own unevaluated peek
+// would. istype(v ObjectType) peeks without evaluating, so it's used
+// below in place of an identity comparison.
 
 ok=true
 
-// --- 1: watch() itself doesn't fire func -- registering is silent ---
+// --- 1: watch() itself doesn't fire func -- registering is silent,
+// and returns the watching func, not nil ---
 global(hits1)=0
 cb1=func(v=arg(0); global(hits1)=global(hits1)+1)
 r1=ring(4 AnyType)
 rv1=watch(r1 cb1)
-ok=ok&&(rv1==nil)&&(global(hits1)==0)
-print("1 watch(r cb) doesn't fire cb, returns nil (expect nil 0): %v %v\n" rv1 global(hits1))
+ok=ok&&istype(rv1 ObjectType)&&(global(hits1)==0)
+print("1 watch(r cb) doesn't fire cb, returns a func (expect true 0): %v %v\n" istype(rv1 ObjectType) global(hits1))
 
 // --- 2: feed() into the watched ring fires cb with the pushed value as
 // arg(0) ---
@@ -123,6 +132,32 @@ s11=$$(1,2,3)
 s11 -> r11
 ok=ok&&(global(slog11)=="123")
 print("11 watcher's next(r) during -> sees every pushed element (expect 123): %v\n" global(slog11))
+
+// --- 12: watch(ring func :stop) unregisters func -- a later push no
+// longer fires it, and :stop still returns the watching func ---
+global(hits12)=0
+cb12=func(v=arg(0); global(hits12)=global(hits12)+1)
+r12=ring(4 AnyType)
+watch(r12 cb12)
+feed(r12 1)
+rv12=watch(r12 cb12 :stop)
+feed(r12 2)
+ok=ok&&istype(rv12 ObjectType)&&(global(hits12)==1)
+print("12 watch(r cb :stop) unregisters cb, returns a func (expect true 1): %v %v\n" istype(rv12 ObjectType) global(hits12))
+
+// --- 13: info(ring).watchers drops back to nil once the only watcher
+// is :stop'd ---
+w13=info(r12).watchers
+ok=ok&&(w13==nil)
+print("13 info(r).watchers after :stop'ing the only watcher (expect nil): %v\n" w13)
+
+// --- 14: :stop'ing a func that was never registered is a silent
+// no-op, returning nil since nothing was stopped ---
+cb14=func(v=arg(0))
+r14=ring(2 AnyType)
+rv14=watch(r14 cb14 :stop)
+ok=ok&&(rv14==nil)
+print("14 watch(r cb :stop) with no matching registration (expect nil): %v\n" rv14)
 
 print("watch: %v\n" ok)
 ok
