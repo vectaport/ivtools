@@ -106,6 +106,23 @@ grid_has_id=func(
     if(!found :then usleep(poll_usec);cnt++));
   found)
 
+/* grid_lacks_id: poll a far node's grid table until a row's :grid (8-char
+   prefix) no longer matches the given id, or timeout.  returns true once
+   absent -- the inverse check for a delete that should have propagated. */
+grid_lacks_id=func(
+  gone=false;
+  poll_usec=2000000;
+  timeout=30*1000000/poll_usec;
+  cnt=0;
+  while(!gone && cnt<timeout
+    t=remote(gh_sock "grid(:table)");
+    n=size(t);
+    gone=true;
+    for(j=0 j<n j++
+      if(at(t j).grid==gh_id :then gone=false));
+    if(!gone :then usleep(poll_usec);cnt++));
+  gone)
+
 /* The test functions live in two grouped files, loaded here.  Order matters: a
    func definition binds its symbol only when evaluated, but an expression that
    calls it resolves the symbol at PARSE time -- so each run() must be its own
@@ -124,7 +141,7 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,delcmd,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -134,7 +151,8 @@ all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,u
    cycle keep their names for that reason and not for tidiness; pause() is
    also a pre-existing comterp debugger command (draft()/share() are the
    DrawServ commands this test exercises), which is why this test is named
-   pauseunpause rather than pause. */
+   pauseunpause rather than pause; delete()'s own test is named delcmd
+   for the same reason. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -328,6 +346,13 @@ if(tests_flag :then
         print("duplicate: pass\n" :err)
       :else
         print("duplicate: FAIL\n" :err);
+        ok=false));
+    if(t==`delcmd || t==`all :then
+      print("running delete test\n" :err);
+      if(delete_test(:dummy 0) :then
+        print("delete: pass\n" :err)
+      :else
+        print("delete: FAIL\n" :err);
         ok=false));
     if(t==`updown4C || t==`all :then
       print("running updown4C test\n" :err);

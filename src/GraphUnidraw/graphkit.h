@@ -53,6 +53,10 @@ public:
     // factory for dup()'s command; returns a GraphDupCmd so duplicated
     // edges stay wired to the duplicated nodes.
     virtual DupCmd* make_dup_cmd(Editor* = nil);
+    virtual DeleteCmd* make_delete_cmd(ControlInfo*);
+    // factory for delete()'s command; returns a GraphDeleteCmd so deleting
+    // a node also deletes its edges.
+    virtual DeleteCmd* make_delete_cmd(Editor* = nil, Clipboard* = nil);
 
     static GraphKit* Instance();
     // return default instance of GraphKit.

@@ -42,6 +42,8 @@ class FontCmd;
 class FrontCmd;
 class BackCmd;
 class DupCmd;
+class DeleteCmd;
+class Clipboard;
 class TransformCmd;
 class Transformer;
 class PatternCmd;
@@ -255,6 +257,13 @@ public:
     // duplication is always driven by the editor's current selection.
     virtual DupCmd* make_dup_cmd(Editor* = nil);
     // factory method for creating DupCmd; see the ControlInfo form
+    virtual DeleteCmd* make_delete_cmd(ControlInfo*);
+    // factory for delete()'s command and the Delete menu item; unlike
+    // make_dup_cmd, delete() names its targets explicitly, so the Editor
+    // form below takes a clipboard the ControlInfo (menu) form leaves nil,
+    // same live-selection default as DupCmd's clipboard-less menu use.
+    virtual DeleteCmd* make_delete_cmd(Editor* = nil, Clipboard* = nil);
+    // factory method for creating DeleteCmd; see the ControlInfo form
     virtual MoveCmd* make_move_cmd(Editor* = nil, float = 0, float = 0);
     // factory for move()'s command; like the graphic-state factories, it
     // applies to whatever is selected -- no clipboard target, no ControlInfo

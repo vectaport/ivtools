@@ -303,11 +303,11 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   
   boolean original = false;
   
-  if(!_linklist || _linklist->Number()==0) 
-    
+  if(!_linklist || _linklist->Number()==0)
+
     /* normal Unidraw command execution */
     Unidraw::ExecuteCmd(cmd);
-  
+
   else {
     
     /* indirect command execution, all by script */
@@ -464,6 +464,21 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	const char* script = ((LinkDupCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	uuid_copy(sid, ((LinkDupCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
+      case LINK_DELETE_CMD:
+      {
+	/* Execute() drops each target from the live selection, and that
+	   alone clears GraphicId::selected() back to NotSelected (see
+	   LinkSelection::Reserve()) before dist_script() would get to read
+	   it -- so ownership is captured first, then Execute() runs, then
+	   dist_script() builds the relay script from what was captured. */
+	((LinkDeleteCmd*)cmd)->capture_dist_state();
+	cmd->Execute();
+	const char* script = ((LinkDeleteCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkDeleteCmd*)cmd)->dist_owner_sid());
 	break;
       }
 
@@ -1509,6 +1524,12 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 	SendCmdString(link, sbuf.str().c_str());
     }
     
+}
+
+void DrawServ::remove_grid(OverlayComp* comp) {
+    void* ptr = nil;
+    compidtable()->find_and_remove(ptr, (void*)comp);
+    if (ptr) delete (GraphicId*)ptr;   // destructor erases the gridtable entry
 }
 
 boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {

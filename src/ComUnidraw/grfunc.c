@@ -1734,7 +1734,10 @@ void GrDeleteFunc::execute() {
   }
   delete [] args;
 
-  DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
+  /* routed through the kit's factory, like move()/scale()/rotate(), so a
+     DrawKit context gets LinkDeleteCmd and relays to linked peers. */
+  OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+  DeleteCmd* delcmd = kit->make_delete_cmd(GetEditor(), delcb);
   execute_log(delcmd);
   unidraw->Update();
 

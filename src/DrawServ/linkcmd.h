@@ -36,7 +36,9 @@
 #include <Unidraw/Commands/struct.h>
 #include <Unidraw/Commands/transforms.h>
 #include <OverlayUnidraw/ovcmds.h>
+#include <cstdint>
 #include <string>
+#include <vector>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
@@ -356,6 +358,46 @@ public:
     virtual boolean IsA(ClassId);
 
 protected:
+    std::string _dist_script_buf;
+};
+
+//: GraphDeleteCmd with distributed script generation for DrawServ
+// Mixes GraphDeleteCmd with DrawServCmd to relay a delete as the removal
+// of each comp it deletes, by grid id, on linked peers. Like LinkDupCmd,
+// a menu-driven delete constructs with a nil clipboard that Execute()
+// fills from the live selection, so DrawServ::ExecuteCmd calls Execute()
+// before dist_script() for this command too.
+class LinkDeleteCmd : public GraphDeleteCmd, public DrawServCmd {
+public:
+    LinkDeleteCmd(ControlInfo*, Clipboard* = nil);
+    LinkDeleteCmd(Editor* = nil, Clipboard* = nil);
+
+    virtual void capture_dist_state();
+    // record each clipboard comp's relay ownership before Execute() runs.
+    // Execute() drops the deleted comp from the live selection, and that
+    // alone -- via LinkSelection::Reserve() -- clears GraphicId::selected()
+    // back to NotSelected, so dist_script() can no longer read ownership
+    // off the GraphicId once Execute() has run. Must be called before it.
+
+    virtual const char* dist_script();
+    // return a ';'-separated script removing each comp this Execute()
+    // deleted, or empty string if none. Must be called after Execute() --
+    // see class comment.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    struct DistTarget {
+        OverlayComp* comp;
+        std::string idstr;
+        boolean relayable;
+        boolean locallyowned;
+        uint32_t selectorkey;
+        uuid_t selector;
+    };
+    std::vector<DistTarget> _dist_targets;
     std::string _dist_script_buf;
 };
 
