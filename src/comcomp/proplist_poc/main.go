@@ -1,11 +1,10 @@
-// Command proplist_poc proves the "attrlist that crosses the boundary"
-// half of issue #709: a Go type backed by a live C++ AttributeList via
-// a cgo handle (shim.h/shim.cc), rather than a translated copy. Method
-// shapes mirror the flowgraph.PropList interface (Get/Set/Delete/Has/
-// Len/Keys/Touch/At) so this is a drop-in C++-backed sibling of that
-// Go-only implementation; GetField/SetField/Empty/Base are left for a
-// follow-up once the per-entry-field design (plain fields vs. a nested
-// attrlist) is settled.
+// Command proplist_poc proves that a Go type can hold and mutate a live
+// C++ AttributeList via a cgo handle (shim.h/shim.cc), rather than a
+// translated copy. Method shapes mirror the flowgraph.PropList interface
+// (Get/Set/Delete/Has/Len/Keys/Touch/At) so this is a drop-in C++-backed
+// sibling of that Go-only implementation; GetField/SetField/Empty/Base
+// are left for a follow-up once the per-entry-field design (plain fields
+// vs. a nested attrlist) is settled.
 package main
 
 /*

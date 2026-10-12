@@ -1,6 +1,5 @@
 /* Flat C ABI over a live AttributeList, so Go (via cgo) can hold and
-   mutate the same object ComTerp itself reads and writes -- the
-   "attrlist that crosses the boundary" case from issue #709, proved
+   mutate the same object ComTerp itself reads and writes, proved
    standalone here before any comcomp/funccompile.comt wiring. Values
    are string-only for this spike; other AttributeValue types are
    future work. */
