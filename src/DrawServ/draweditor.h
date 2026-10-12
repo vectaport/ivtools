@@ -26,8 +26,10 @@
 
 #include <FrameUnidraw/frameeditor.h>
 
+class DraftShareState;
 class DrawKit;
 class DrawLink;
+class DrawLinkListState;
 class Selection;
 class TelltaleState;
 
@@ -60,9 +62,16 @@ public:
     TelltaleState* draftshare_tts() { return _draftshare_tts; }
     void draftshare_tts(TelltaleState* tts) { _draftshare_tts = tts; }
 
+    DraftShareState*& draftsharestate() { return _draftsharestate; }
+    // return reference to pointer to draft/share banner state variable
+    DrawLinkListState*& linkliststate() { return _linkliststate; }
+    // return reference to pointer to link-list banner state variable
+
 protected:
     Selection* _last_selection;
     TelltaleState* _draftshare_tts;
+    DraftShareState* _draftsharestate;
+    DrawLinkListState* _linkliststate;
 
 friend class DrawKit;
 

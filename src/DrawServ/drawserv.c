@@ -191,6 +191,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
     }
     if (link->open(link->linkid())==0 && link->ok()) {
       _linklist->add_drawlink(link);
+      sync_draftshare();
       return link;
     } else {
       delete link;
@@ -251,6 +252,7 @@ int DrawServ::linkdown(DrawLink* link) {
     link->close();
     remove_sids(link);
     Resource::unref(link);
+    sync_draftshare();
     return 0;
   } else
     return -1;

@@ -34,10 +34,12 @@
 #include <DrawServ/drawimport.h>
 #include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
+#include <DrawServ/drawstates.h>
 #include <DrawServ/linkselection.h>
 #include <DrawServ/rcdialog.h>
 
 #include <FrameUnidraw/frameeditor.h>
+#include <FrameUnidraw/framestates.h>
 
 #include <GraphUnidraw/edgecomp.h>
 #include <GraphUnidraw/nodecomp.h>
@@ -610,6 +612,30 @@ MenuItem * DrawKit::MakeViewersMenu() {
     mbi->menu()->append_item(draftshare_item);
 
     return mbi;
+}
+
+Glyph* DrawKit::MakeStates() {
+    DrawEditor* ed = (DrawEditor*)_ed;
+    ed->framenumstate() = new FrameNumberState();
+    ed->frameliststate() = new FrameListState();
+    ed->draftsharestate() = new DraftShareState();
+    ed->linkliststate() = new DrawLinkListState();
+    ed->SyncDraftShare(((DrawServ*)unidraw)->paused());
+
+    NameView* fnumview = new NameView(ed->framenumstate());
+    NameView* flistview = new NameView(ed->frameliststate());
+    NameView* draftshareview = new NameView(ed->draftsharestate());
+    NameView* linklistview = new NameView(ed->linkliststate());
+
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    return kit.inset_frame(
+	lk.margin(
+	    lk.hbox(fnumview, lk.hspace(40), flistview, lk.hspace(40),
+		    draftshareview, lk.hspace(40), linklistview, lk.hglue()),
+	    4, 2
+	    )
+    );
 }
 
 /*****************************************************************************/
