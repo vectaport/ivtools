@@ -39,6 +39,7 @@ Obj26(drawfunc)
 #endif
 Obj26(drawserv)
 Obj26A(drawserv-handler)
+Obj26(drawstates)
 Obj26(drawviews)
 #ifdef AceEnabled
 Obj26(grid)

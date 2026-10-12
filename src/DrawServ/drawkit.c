@@ -34,6 +34,7 @@
 #include <DrawServ/drawimport.h>
 #include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
+#include <DrawServ/drawstates.h>
 #include <DrawServ/linkselection.h>
 #include <DrawServ/rcdialog.h>
 
@@ -610,6 +611,28 @@ MenuItem * DrawKit::MakeViewersMenu() {
     mbi->menu()->append_item(draftshare_item);
 
     return mbi;
+}
+
+Glyph* DrawKit::MakeStates() {
+    Glyph* framestates = FrameKit::MakeStates();
+
+    DrawEditor* ed = (DrawEditor*)_ed;
+    ed->draftsharestate() = new DraftShareState();
+    ed->linkliststate() = new DrawLinkListState();
+    ed->SyncDraftShare(((DrawServ*)unidraw)->paused());
+    NameView* draftshareview = new NameView(ed->draftsharestate());
+    NameView* linklistview = new NameView(ed->linkliststate());
+
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    Glyph* linkstates = kit.inset_frame(
+	lk.margin(
+	    lk.hbox(draftshareview, lk.hspace(20), linklistview, lk.hglue()),
+	    4, 2
+	    )
+    );
+
+    return lk.vbox(framestates, linkstates);
 }
 
 /*****************************************************************************/
