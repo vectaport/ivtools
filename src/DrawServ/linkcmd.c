@@ -1019,7 +1019,12 @@ void LinkDeleteCmd::Unexecute() {
     DrawServ* drawserv = (DrawServ*)unidraw;
     for (size_t i = 0; i < _dist_targets.size(); i++) {
         DistTarget& t = _dist_targets[i];
-        drawserv->restore_grid(t.comp, t.id, t.selector);
+
+        /* Execute() ran remove_grid() on every node that saw the delete,
+           origin and relay recipients alike, so the saved selector no
+           longer has this id anywhere -- reviving it here makes this node
+           the sole claimant, not a return to the old owner. */
+        drawserv->restore_grid(t.comp, t.id, drawserv->sessionid());
     }
 
     /* the base undo already selected these comps and ran Reserve() with
