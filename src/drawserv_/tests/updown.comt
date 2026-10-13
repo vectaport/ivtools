@@ -2310,23 +2310,27 @@ delete_test=func(
   if(undo_ok && !owned :then print("delete: FAIL undo() left c1 NotSelected despite being selected\n" :err));
   ok=ok && owned;
 
-  /* --- ds2: undo a RECEIVED delete -- c2 arrives on ds2 owned by ds1, so
-     restore_grid()'s saved selector points to ds1, which already purged
-     this id too when it relayed the delete.  Reclaiming must not go
-     through Reserve()'s remote-request path, since no node is left to
-     grant it. --- */
+  /* --- ds2: undo a delete it RECEIVED via relay -- c2 is owned by ds1,
+     deleted there (locally owned, so it relays and both nodes purge the
+     id), then ds2 undoes its own execution of that relayed delete.
+     restore_grid()'s saved selector points to ds1, which no longer has
+     this id either, so reclaiming must not go through Reserve()'s
+     remote-request path -- nothing is left to grant it. --- */
   remote(sock1 "c2=ellipse(258,345,60,60)");
   cnt=0;
-  while(ok && remote(sock1 "size(grid(:table))")<2 && cnt<timeout usleep(100000);cnt++);
-  id2=remote(sock1 "at(grid(:table) 1).grid");
-  if(id2==id1 :then id2=remote(sock1 "at(grid(:table) 0).grid"));
+  while(ok && remote(sock1 "size(grid(:table))")<3 && cnt<timeout usleep(100000);cnt++);
+  findnew=print("t=grid(:table);n=size(t);r=nil;for(i=0 i<n i++ if(at(t i).grid!=%c%s%c && at(t i).grid!=%c%s%c :then r=at(t i).grid));r" 34 id1 34 34 label_id 34 :str);
+  id2=nil; if(ok :then id2=remote(sock1 findnew));
   on2=ok && grid_has_id(:gh_sock sock2 :gh_id id2);
   print("delete: ds2 has c2=%v\n" on2 :err);
   ok=ok && on2;
 
-  remote(sock2 print("delete(grid(%c%s%c))" 34 id2 34 :str));
-  cnt=0;
-  while(ok && grid_has_id(:gh_sock sock2 :gh_id id2) && cnt<timeout usleep(100000);cnt++);
+  remote(sock1 print("select(grid(%c%s%c))" 34 id2 34 :str));
+  remote(sock1 print("delete(grid(%c%s%c))" 34 id2 34 :str));
+  gone2=ok && grid_lacks_id(:gh_sock sock1 :gh_id id2) && grid_lacks_id(:gh_sock sock2 :gh_id id2);
+  print("delete: c2 dropped on both ds1 and ds2=%v\n" gone2 :err);
+  ok=ok && gone2;
+
   remote(sock2 "undo()");
   findsel2=print("t=grid(:table);n=size(t);r=nil;for(i=0 i<n i++ if(at(t i).grid==%c%s%c :then r=at(t i).selected));r" 34 id2 34 :str);
   owned2=false;

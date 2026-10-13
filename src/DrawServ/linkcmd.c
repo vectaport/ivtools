@@ -1020,11 +1020,14 @@ void LinkDeleteCmd::Unexecute() {
     for (size_t i = 0; i < _dist_targets.size(); i++) {
         DistTarget& t = _dist_targets[i];
 
-        /* Execute() ran remove_grid() on every node that saw the delete,
+        /* a relayable delete ran remove_grid() on every node that saw it,
            origin and relay recipients alike, so the saved selector no
-           longer has this id anywhere -- reviving it here makes this node
-           the sole claimant, not a return to the old owner. */
-        drawserv->restore_grid(t.comp, t.id, drawserv->sessionid());
+           longer has the id anywhere -- reviving it here makes this node
+           the sole claimant.  A non-relayable delete never left this node,
+           so the saved owner still legitimately holds its own copy. */
+        uuid_t owner;
+        uuid_copy(owner, t.relayable ? drawserv->sessionid() : t.selector);
+        drawserv->restore_grid(t.comp, t.id, owner);
     }
 
     /* the base undo already selected these comps and ran Reserve() with
