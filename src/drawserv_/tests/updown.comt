@@ -2342,6 +2342,24 @@ delete_test=func(
   if(ok && !owned2 :then print("delete: FAIL ds2 did not reclaim ownership after undoing a received delete\n" :err));
   ok=ok && owned2;
 
+  /* --- ds1: select(:all) then delete(select()) must delete everything
+     currently selected (c1 and the label), not just comps named as
+     individual args -- delete() previously left an array argument, such
+     as select()'s own return value, untouched, so this silently no-op'd. --- */
+  remote(sock1 "select(:all)");
+  remote(sock1 "delete(select())");
+  cnt=0;
+  while(ok && remote(sock1 "size(grid(:table))")>0 && cnt<timeout usleep(100000);cnt++);
+  allgone=ok && remote(sock1 "size(grid(:table))")==0;
+  print("delete: select(:all);delete(select()) empties ds1's grid table=%v\n" allgone :err);
+  if(ok && !allgone :then print("delete: FAIL select(:all);delete(select()) left comps on ds1\n" :err));
+  ok=ok && allgone;
+
+  allgone2=ok && grid_lacks_id(:gh_sock sock2 :gh_id id1) && grid_lacks_id(:gh_sock sock2 :gh_id label_id);
+  print("delete: c1 and label dropped from ds2 too=%v\n" allgone2 :err);
+  if(ok && !allgone2 :then print("delete: FAIL select-all delete did not relay to ds2\n" :err));
+  ok=ok && allgone2;
+
   /* --- tear both down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   cnt=0;

@@ -1686,6 +1686,28 @@ void SelectFunc::execute() {
 GrDeleteFunc::GrDeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
+void GrDeleteFunc::delete_target(AttributeValue& obj, Clipboard* delcb,
+                                  AttributeValueList* removed, ComValue& removedval) {
+  ComValue val(ComValue::nullval());
+  if (obj.is_attribute()) {
+    /* not a Unidraw command -- same AttributeList::Remove() as the
+       base delete(), so it has no undo/redo. */
+    Attribute* attr = (Attribute*) obj.obj_val();
+    AttributeList* owner = attr->Owner();
+    if (owner) {
+      val = ComValue(obj);
+      owner->Remove(attr);
+    }
+  } else if (obj.object_compview()) {
+    /* val stays nil; returning the live compview for repaste is deferred. */
+    ComponentView* comview = (ComponentView*)obj.obj_val();
+    OverlayComp* comp = live_subject(comview);
+    if (comp) delcb->Append(comp);
+  }
+  if (removed) removed->Append(new AttributeValue(val));
+  else removedval = val;
+}
+
 void GrDeleteFunc::execute() {
   Viewer* viewer = _ed->GetViewer();
 
@@ -1705,32 +1727,28 @@ void GrDeleteFunc::execute() {
 
   Clipboard* delcb = new Clipboard();
 
+  /* an array arg (e.g. select()'s result after select(:all)) contributes
+     one target per element, the same as passing its members separately,
+     so the list-vs-single-value split below must count through it. */
+  int ntargets = 0;
+  for (int i=0; i<nf; i++)
+    ntargets += args[i].is_array() ? args[i].array_val()->Number() : 1;
+
   /* returns the removed item itself; an Attribute auto-expands into its
      value on ordinary read. A deleted compview stays nil (see below). */
-  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  AttributeValueList* removed = ntargets>1 ? new AttributeValueList() : nil;
   ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
     ComValue& obj = args[i];
     if (!obj.is_attribute() && obj.is_symbol())
       comterp()->lookup_symval(obj);
-    ComValue val(ComValue::nullval());
-    if (obj.is_attribute()) {
-      /* not a Unidraw command -- same AttributeList::Remove() as the
-         base delete(), so it has no undo/redo. */
-      Attribute* attr = (Attribute*) obj.obj_val();
-      AttributeList* owner = attr->Owner();
-      if (owner) {
-        val = obj;
-        owner->Remove(attr);
-      }
-    } else if (obj.object_compview()) {
-      /* val stays nil; returning the live compview for repaste is deferred. */
-      ComponentView* comview = (ComponentView*)obj.obj_val();
-      OverlayComp* comp = live_subject(comview);
-      if (comp) delcb->Append(comp);
-    }
-    if (removed) removed->Append(new AttributeValue(val));
-    else removedval = val;
+    if (obj.is_array()) {
+      Iterator it;
+      AttributeValueList* al = obj.array_val();
+      for (al->First(it); !al->Done(it); al->Next(it))
+        delete_target(*al->GetAttrVal(it), delcb, removed, removedval);
+    } else
+      delete_target(obj, delcb, removed, removedval);
   }
   delete [] args;
 

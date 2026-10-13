@@ -34,6 +34,7 @@ class OverlaySelection;
 class Graphic;
 class RasterOvComp;
 class Transformer;
+class Clipboard;
 
 //: base class for graphic construction func's
 class CreateGraphicFunc : public UnidrawFunc {
@@ -323,13 +324,19 @@ public:
 // delete(compview|attribute [compview|attribute ...]) -- delete graphic(s)
 // and/or remove attribute(s) from their owning attribute list, returning
 // each removed attribute's value (nil for a compview, or a list when
-// given more than one argument).
+// more than one target results, including from an array argument).
 class GrDeleteFunc : public UnidrawFunc {
 public:
     GrDeleteFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "val=%s([compview|attribute ...]) -- delete graphic(s) and/or remove attribute(s)"; }
+	return "val=%s([compview|attribute|array ...]) -- delete graphic(s) and/or remove attribute(s)"; }
+
+protected:
+    void delete_target(AttributeValue&, Clipboard*, AttributeValueList*, ComValue&);
+    // remove one compview or attribute target, appending its removed
+    // value to 'removed' (list form) or storing it in 'removedval'
+    // (single-value form, when 'removed' is nil).
 };
 
 //: command to move current selection in comdraw
