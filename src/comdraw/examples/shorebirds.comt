@@ -1,0 +1,305 @@
+// shorebirds.comt -- PACIFIC SHOREBIRDS IN FLIGHT
+//
+// A single Sanderling glides across the paper, wings beating, nose
+// always pointed the way it's going.  Pale gray-brown above, white
+// below, with the bold white wing-stripe sanderlings actually flash
+// in flight -- the two-polygon glyph below reads that contrast even
+// at demo scale.  (murmuration() -- a later addition -- flocks a
+// whole group of these along a dynamic nearest-neighbor graph
+// instead of one scripted path.)
+//
+// Start it like this:
+//
+//     comdraw -runfile src/comdraw/examples/shorebirds.comt
+//
+// Then try:   flightdemo()
+
+// ============================================================
+// LAYER 1: the machine
+// ============================================================
+
+// bird() -- one Sanderling silhouette: nose along its own +x axis,
+// wingtips along +-y.  Two parts, grouped: the dark gray-brown back
+// and wings, then a thin white stripe along each wing's trailing
+// edge for the flight flash -- all closedspline(), same petals.comt
+// shape tool, so the outline reads as feathered rather than faceted.
+// place() (below) does the actual flying every tick -- the shape
+// itself never changes.  Each child shape gets its own
+// trans(... 1,0,0,1,0,0 :set) right after creation, same as
+// quarterpusher.comt's backdrop graphics: a literal-coordinate
+// creation call bakes in whatever pan the current view happens to
+// have, and group()'s own transform doesn't strip that baked-in pan
+// from its children -- only from itself -- so without this, every
+// later absolute trans() on the grouped bird would be offset by
+// that leftover child-level pan.
+bird=func(
+  dorsal=closedspline(16,0, 2,-3, -15,-18, -5,-4, -10,0, -5,4, -15,18, 2,3);
+  trans(dorsal 1,0,0,1,0,0 :set);
+  colorsrgb("#5C5248" "#5C5248");
+  pattern(2);
+  brush(65535,0);
+  stripe=closedspline(-6,-3, -13,-15, -9,-13, -4,-4);
+  trans(stripe 1,0,0,1,0,0 :set);
+  colorsrgb("#FFFFFF" "#FFFFFF");
+  pattern(2);
+  stripe2=closedspline(-6,3, -13,15, -9,13, -4,4);
+  trans(stripe2 1,0,0,1,0,0 :set);
+  colorsrgb("#FFFFFF" "#FFFFFF");
+  pattern(2);
+  select(dorsal,stripe,stripe2);
+  b=group();
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  pattern(1);
+  brush(65535,0);
+  b.kind="bird";
+  b)
+
+// flap(t freq) -- wing-spread factor for tick t: narrow on the
+// upstroke, wide on the downstroke, never fully closed.
+flap=func(
+  t=arg(0); freq=arg(1);
+  if(freq==nil :then freq=0.18);
+  0.65+0.35*sin(2*pi()*freq*t))
+
+// place(b heading px py t [freq]) -- the one trans() that moves,
+// turns, and flaps a bird in a single absolute step, same idiom as
+// carousel.comt's placecoin(): no accumulated move()/rotate() drift.
+// heading is in radians, measured from the bird's nose-forward +x.
+place=func(
+  b=arg(0); heading=arg(1); px=arg(2); py=arg(3); t=arg(4); freq=arg(5);
+  f=flap(t freq);
+  c=cos(heading); s=sin(heading);
+  a00=c; a01=s; a10=(0.0-s)*f; a11=c*f; a20=px; a21=py;
+  trans(b a00,a01,a10,a11,a20,a21 :set))
+
+// listhas(lst v) -- true if v is already one of lst's elements
+listhas=func(
+  lst=arg(0); v=arg(1);
+  found=0;
+  for(ii=0 ii<size(lst) ii++ if(lst@ii==v :then found=1));
+  found)
+
+// ============================================================
+// LAYER 2: the murmuration -- flock is one dot-bound object (same
+// idiom as quarterpusher.comt's pusher), holding every bird's state
+// as parallel lists plus each bird's own small neighbor-id list --
+// the dynamic nearest-neighbor graph.  The graph is never globally
+// recomputed: flock.tick() only ever prunes a bird's CURRENT
+// neighbors by distance and grows the set from candidates its
+// current neighbors introduce ("who's near me might be near you"),
+// so discovering a bird that's drifted into range takes a few ticks
+// of hop-by-hop introduction, same as a gossip protocol -- not a
+// global sort every tick.  No edges are drawn; only the flock's
+// motion shows the graph's effect.
+//
+// tick() runs in the two phases PipeEventQueue::tick() (vectaport's
+// ipl-1.1, src/IplServ/eventqueue.c) uses for exactly this reason:
+// phase 1 computes every bird's new neighbor set and desired heading
+// from last tick's committed state only, into fresh temp() lists --
+// nothing is written yet, so bird #12's computation can never see
+// bird #3's already-updated position from later in the same loop.
+// Phase 2 commits all of it at once (the whole-list fields below),
+// then redraws.  Every scratch value inside tick()/build() goes
+// through temp(), per LANGUAGE.md's self-bound-call scoping rule --
+// a dot-bound call's frame IS flock's own permanent attrlist, so a
+// bare write to anything not a declared field would leak onto flock
+// as a stray permanent field instead of disappearing when the call
+// returns.
+flock=(
+  :n 0
+  :k 7
+  :seedk 4
+  :speed 3.0
+  :dropdist 170.0
+  :sepdist 34.0
+  :alignw 0.9
+  :cohesionw 0.6
+  :sepw 1.4
+  // the paper's default view shows roughly world x:[100,900],
+  // y:[470,930] regardless of window size (confirmed by probing
+  // trans() placements against a screenshot) -- these bounds keep
+  // the flock inside that visible band rather than off the edge of
+  // the page the way a naive 0..600-ish square would land.
+  :margin 55.0
+  :xmin 150.0
+  :xmax 650.0
+  :ymin 520.0
+  :ymax 900.0
+  :t 0
+  :xs nil
+  :ys nil
+  :heads nil
+  :nbrs nil
+  :gs nil
+
+  // build(count) -- n fresh birds, clustered near the paper's
+  // center with random headings, each seeded with a handful of
+  // random neighbors (a cheap one-time bootstrap -- tick()'s gossip
+  // takes it from there every tick after).
+  :build func(
+    temp(count)=arg(0);
+    n=count;
+    xs=list(); ys=list(); heads=list(); nbrs=list(); gs=list();
+    t=0;
+    temp(cx)=(xmin+xmax)/2; temp(cy)=(ymin+ymax)/2;
+    temp(jx)=(xmax-xmin)/2-margin; temp(jy)=(ymax-ymin)/2-margin;
+    for(temp(bi)=0 bi<n bi++
+      temp(bx)=cx+rand(0.0-jx,jx);
+      temp(by)=cy+rand(0.0-jy,jy);
+      temp(bh)=rand(0.0,2*pi());
+      xs,bx; ys,by; heads,bh;
+      temp(bg)=bird();
+      place(bg bh bx by 0);
+      gs,bg;
+      temp(seed)=list();
+      for(temp(si)=0 si<seedk si++
+        temp(cand)=int(round(rand(0.0,n-1.0)));
+        if((cand!=bi)&&(!listhas(seed cand)) :then seed,cand));
+      nbrs,seed);
+    update();
+    nil)
+
+  // tick() -- one wingbeat for the whole flock: graph maintenance
+  // and heading, phase-separated from the commit, as above.
+  :tick func(
+    temp(nn)=n; temp(kk)=k;
+    temp(newnbrs)=list(); temp(newheads)=list();
+    temp(newxs)=list(); temp(newys)=list();
+
+    // -------- phase 1: compute, reading only committed state --------
+    for(temp(i)=0 i<nn i++
+      temp(mynbrs)=nbrs@i;
+      temp(mx)=xs@i; temp(my)=ys@i;
+
+      // prune: drop any neighbor that's wandered out of range
+      temp(kept)=list(); temp(keptd)=list();
+      for(temp(ji)=0 ji<size(mynbrs) ji++
+        temp(j)=mynbrs@ji;
+        temp(ddx)=(xs@j)-mx; temp(ddy)=(ys@j)-my;
+        temp(d)=sqrt(ddx*ddx+ddy*ddy);
+        if(d<dropdist :then kept,j; keptd,d));
+
+      // gossip: every kept neighbor introduces its own neighbors as
+      // candidates; a closer candidate replaces the current farthest
+      // kept neighbor once the set is full.  Lists only ever get
+      // rebuilt by appending, never patched in place by index --
+      // see the note on ListAtFunc's :set re-drive before changing
+      // that.
+      for(temp(ji2)=0 ji2<size(kept) ji2++
+        temp(cands)=nbrs@(kept@ji2);
+        for(temp(ci)=0 ci<size(cands) ci++
+          temp(c)=cands@ci;
+          if((c!=i)&&(!listhas(kept c)) :then
+            temp(dcx)=(xs@c)-mx; temp(dcy)=(ys@c)-my;
+            temp(dc)=sqrt(dcx*dcx+dcy*dcy);
+            if(size(kept)<kk :then
+              kept,c; keptd,dc
+             :else
+              temp(far)=0; temp(fard)=keptd@0;
+              for(temp(fi)=1 fi<size(keptd) fi++
+                if(keptd@fi>fard :then far=fi; fard=keptd@fi));
+              if(dc<fard :then
+                temp(nk2)=list(); temp(nkd2)=list();
+                for(temp(fi2)=0 fi2<size(kept) fi2++
+                  if(fi2!=far :then nk2,kept@fi2; nkd2,keptd@fi2));
+                nk2,c; nkd2,dc;
+                kept=nk2; keptd=nkd2)))));
+      newnbrs,kept;
+
+      // heading: alignment + cohesion + separation over kept
+      // neighbors, plus a soft push back from the paper's edges
+      temp(ax)=0.0; temp(ay)=0.0;
+      temp(cx)=0.0; temp(cy)=0.0;
+      temp(sxv)=0.0; temp(syv)=0.0;
+      temp(nk)=size(kept);
+      for(temp(ki)=0 ki<nk ki++
+        temp(j3)=kept@ki;
+        ax=ax+cos(heads@j3); ay=ay+sin(heads@j3);
+        cx=cx+(xs@j3); cy=cy+(ys@j3);
+        temp(sepx)=mx-(xs@j3); temp(sepy)=my-(ys@j3);
+        temp(sepd)=sqrt(sepx*sepx+sepy*sepy);
+        if((sepd>0.0)&&(sepd<sepdist) :then
+          temp(push)=(sepdist-sepd)/sepdist;
+          sxv=sxv+push*sepx/sepd; syv=syv+push*sepy/sepd));
+
+      temp(desx)=cos(heads@i); temp(desy)=sin(heads@i);
+      if(nk>0 :then
+        cx=cx/nk; cy=cy/nk;
+        temp(cohx)=cx-mx; temp(cohy)=cy-my;
+        temp(cohd)=sqrt(cohx*cohx+cohy*cohy);
+        if(cohd>0.0 :then cohx=cohx/cohd; cohy=cohy/cohd);
+        temp(alnd)=sqrt(ax*ax+ay*ay);
+        if(alnd>0.0 :then ax=ax/alnd; ay=ay/alnd);
+        desx=ax*alignw+cohx*cohesionw+sxv*sepw;
+        desy=ay*alignw+cohy*cohesionw+syv*sepw);
+
+      if(mx<xmin+margin :then desx=desx+(xmin+margin-mx)/margin);
+      if(mx>xmax-margin :then desx=desx-(mx-(xmax-margin))/margin);
+      if(my<ymin+margin :then desy=desy+(ymin+margin-my)/margin);
+      if(my>ymax-margin :then desy=desy-(my-(ymax-margin))/margin);
+
+      temp(desd)=sqrt(desx*desx+desy*desy);
+      temp(newhead)=heads@i;
+      if(desd>0.0 :then newhead=atan2(desy desx));
+      newheads,newhead;
+      newxs,mx+speed*cos(newhead);
+      newys,my+speed*sin(newhead));
+
+    // -------- phase 2: commit, then redraw against the new state --------
+    nbrs=newnbrs; heads=newheads; xs=newxs; ys=newys;
+    t=t+1;
+    for(temp(i2)=0 i2<nn i2++
+      place(gs@i2 heads@i2 xs@i2 ys@i2 t));
+    nil)
+)
+
+// ============================================================
+// LAYER 3: the magic words
+// ============================================================
+
+// flightdemo([steps]) -- one Sanderling glides a lazy sine-wave
+// path left to right, wings beating the whole way.  heading tracks
+// the path's own tangent (dy/dx from the sine's derivative), so the
+// bird visibly banks into its own curve instead of just sliding.
+flightdemo=func(
+  steps=arg(0);
+  if(steps==nil :then steps=200);
+  handles(false);
+  b=bird();
+  dx=1.8; amp=60; freq=0.05;
+  for(t=0 t<steps t++
+    px=150+t*dx;
+    py=700+amp*sin(t*freq);
+    dy=amp*freq*cos(t*freq);
+    heading=atan2(dy dx);
+    place(b heading px py t);
+    update(20000));
+  handles(true);
+  print("One Sanderling, %d wingbeats across the paper.\n" steps))
+
+// murmurate([n] [steps]) -- a flock of n Sanderlings, each one only
+// ever looking at its own small, drifting neighbor set (see flock's
+// header above), wheeling together for steps wingbeats.
+murmurate=func(
+  n=arg(0); steps=arg(1);
+  if(n==nil :then n=40);
+  if(steps==nil :then steps=400);
+  handles(false);
+  flock.build(n);
+  for(mi=0 mi<steps mi++ flock.tick(); update(20000));
+  handles(true);
+  print("%d Sanderlings, %d wingbeats of murmuration.\n" n steps))
+
+shorebirdhelp=func(
+  print("*** SHOREBIRDS ***\n");
+  print("  flightdemo()       -- one Sanderling glides across, wings beating\n");
+  print("  murmurate(n steps) -- a flock finds its own neighbors and wheels\n");
+  print("                        together (defaults: 40 birds, 400 beats)\n");
+  print("  bird()             -- make your own; place(b heading px py t) flies it\n"))
+
+// ============================================================
+// welcome!
+// ============================================================
+flightdemo()
+print("\nTry murmurate() or shorebirdhelp() for more.\n")
