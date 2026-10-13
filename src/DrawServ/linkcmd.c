@@ -959,3 +959,137 @@ Command* LinkDupCmd::Copy() {
 
 ClassId LinkDupCmd::GetClassId() { return LINK_DUP_CMD; }
 boolean LinkDupCmd::IsA(ClassId id) { return id == LINK_DUP_CMD || GraphDupCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkDeleteCmd::LinkDeleteCmd(ControlInfo* ci, Clipboard* cb) : GraphDeleteCmd(ci, cb) {}
+LinkDeleteCmd::LinkDeleteCmd(Editor* ed, Clipboard* cb) : GraphDeleteCmd(ed, cb) {}
+
+void LinkDeleteCmd::capture_one(DrawServ* drawserv, OverlayComp* comp) {
+    void* ptr = nil;
+    if (comp) drawserv->compidtable()->find(ptr, comp);
+    GraphicId* grid = (GraphicId*)ptr;
+    if (!grid) return;   /* not distributed yet */
+
+    DistTarget t;
+    t.comp = comp;
+    t.idstr = grid->idstr();
+    uuid_copy(t.id, grid->id());
+    t.relayable = grid->selected() == LinkSelection::LocallySelected || grid->unlocked();
+    t.locallyowned = grid->selected() == LinkSelection::LocallySelected;
+    t.selectorkey = grid->selectorkey();
+    uuid_copy(t.selector, grid->selector());
+    _dist_targets.push_back(t);
+}
+
+void LinkDeleteCmd::capture_dist_state() {
+    _dist_targets.clear();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    Clipboard* cb = GetClipboard();
+    if (cb) {
+        Iterator it;
+        for (cb->First(it); !cb->Done(it); cb->Next(it))
+            capture_one(drawserv, (OverlayComp*)cb->GetComp(it));
+        return;
+    }
+
+    Editor* ed = GetEditor();
+    Selection* s = ed ? ed->GetSelection() : nil;
+    if (!s) return;
+    Iterator it;
+    for (s->First(it); !s->Done(it); s->Next(it)) {
+        OverlayView* view = (OverlayView*)s->GetView(it);
+        if (view) capture_one(drawserv, view->GetOverlayComp());
+    }
+}
+
+void LinkDeleteCmd::Execute() {
+    capture_dist_state();
+    GraphDeleteCmd::Execute();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    for (size_t i = 0; i < _dist_targets.size(); i++)
+        drawserv->remove_grid(_dist_targets[i].comp);
+}
+
+void LinkDeleteCmd::Unexecute() {
+    GraphDeleteCmd::Unexecute();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    for (size_t i = 0; i < _dist_targets.size(); i++) {
+        DistTarget& t = _dist_targets[i];
+
+        /* a relayable delete purged the id on every node that saw it, so
+           reviving it here makes this node the sole claimant. */
+        /* a non-relayable delete never left this node, so the saved
+           owner still holds its own copy. */
+        uuid_t owner;
+        uuid_copy(owner, t.relayable ? drawserv->sessionid() : t.selector);
+        drawserv->restore_grid(t.comp, t.id, owner);
+    }
+
+    /* the base undo already selected these comps and ran Reserve() with
+       no GraphicId yet to find, so it never claimed them -- restore_grid()
+       just registered one, so Reserve() again picks up where it left off. */
+    Editor* ed = GetEditor();
+    LinkSelection* sel = ed ? (LinkSelection*)ed->GetSelection() : nil;
+    if (sel) sel->Reserve();
+}
+
+const char* LinkDeleteCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    std::ostringstream sbuf, delbuf;
+    boolean any = false;
+    uint32_t owner_key = 0;
+
+    /* delete() takes each target as its own explicit arg, unlike
+       front()/back() which always act on the just-made selection, so
+       each grid id goes into delbuf alongside the select() prefix in
+       sbuf, same two-buffer shape as LinkMoveCmd's sbuf/transbuf. */
+    for (size_t i = 0; i < _dist_targets.size(); i++) {
+        const DistTarget& t = _dist_targets[i];
+        if (!t.relayable) continue;
+
+        if (!any) {
+            sbuf << "s=select();select(grid(\"" << t.idstr << "\")";
+            any = true;
+            if (t.locallyowned) {
+                owner_key = drawserv->sessionidkey();
+                uuid_copy(_dist_owner_sid, drawserv->sessionid());
+            } else {
+                owner_key = t.selectorkey;
+                uuid_copy(_dist_owner_sid, t.selector);
+            }
+            delbuf << "delete(grid(\"" << t.idstr << "\")";
+        } else {
+            sbuf << ",grid(\"" << t.idstr << "\")";
+            delbuf << ",grid(\"" << t.idstr << "\")";
+        }
+    }
+
+    if (any) {
+        delbuf << ")";
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+	sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << ";" << delbuf.str();
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkDeleteCmd::Copy() {
+    Command* copy = new LinkDeleteCmd(CopyControlInfo());
+    InitCopy(copy);
+    ((OvDeleteCmd*)copy)->Reversable(Reversable());
+    return copy;
+}
+
+ClassId LinkDeleteCmd::GetClassId() { return LINK_DELETE_CMD; }
+boolean LinkDeleteCmd::IsA(ClassId id) { return id == LINK_DELETE_CMD || GraphDeleteCmd::IsA(id); }

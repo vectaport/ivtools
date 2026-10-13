@@ -1686,6 +1686,31 @@ void SelectFunc::execute() {
 GrDeleteFunc::GrDeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
+void GrDeleteFunc::delete_target(AttributeValue& obj, Clipboard* delcb,
+                                  AttributeValueList* removed, ComValue& removedval) {
+  ComValue val(ComValue::nullval());
+  if (obj.is_attribute()) {
+    /* not a Unidraw command -- same AttributeList::Remove() as the
+       base delete(), so it has no undo/redo. */
+    Attribute* attr = (Attribute*) obj.obj_val();
+    AttributeList* owner = attr->Owner();
+    if (owner) {
+      val = ComValue(obj);
+      owner->Remove(attr);
+    }
+  } else if (obj.object_compview()) {
+    /* val stays nil; returning the live compview for repaste is deferred. */
+    ComponentView* comview = (ComponentView*)obj.obj_val();
+    OverlayComp* comp = live_subject(comview);
+    /* a repeated target (e.g. delete(a,a)) must not queue the same
+       graphic twice -- DeleteCmd's destructor deletes every clipboard
+       entry, and a duplicate pointer would be deleted twice. */
+    if (comp && !delcb->Includes(comp)) delcb->Append(comp);
+  }
+  if (removed) removed->Append(new AttributeValue(val));
+  else removedval = val;
+}
+
 void GrDeleteFunc::execute() {
   Viewer* viewer = _ed->GetViewer();
 
@@ -1697,44 +1722,46 @@ void GrDeleteFunc::execute() {
   }
 
   ComValue* args = new ComValue[nf];
-  for (int i=0; i<nf; i++)
+  for (int i=0; i<nf; i++) {
     /* symbol=true keeps an Attribute-typed arg from being auto-dereferenced
        before execute() sees it; symbols are resolved by hand below. */
     args[i] = stack_arg(i, true);
+    /* resolved before counting, so a variable holding an array is counted
+       by its element count too, not as a single target. */
+    if (!args[i].is_attribute() && args[i].is_symbol())
+      comterp()->lookup_symval(args[i]);
+  }
   reset_stack();
 
   Clipboard* delcb = new Clipboard();
 
+  /* an array arg (e.g. select()'s result after select(:all)) contributes
+     one target per element, the same as passing its members separately,
+     so the list-vs-single-value split below must count through it. */
+  int ntargets = 0;
+  for (int i=0; i<nf; i++)
+    ntargets += args[i].is_array() ? args[i].array_val()->Number() : 1;
+
   /* returns the removed item itself; an Attribute auto-expands into its
      value on ordinary read. A deleted compview stays nil (see below). */
-  AttributeValueList* removed = nf>1 ? new AttributeValueList() : nil;
+  AttributeValueList* removed = ntargets>1 ? new AttributeValueList() : nil;
   ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
     ComValue& obj = args[i];
-    if (!obj.is_attribute() && obj.is_symbol())
-      comterp()->lookup_symval(obj);
-    ComValue val(ComValue::nullval());
-    if (obj.is_attribute()) {
-      /* not a Unidraw command -- same AttributeList::Remove() as the
-         base delete(), so it has no undo/redo. */
-      Attribute* attr = (Attribute*) obj.obj_val();
-      AttributeList* owner = attr->Owner();
-      if (owner) {
-        val = obj;
-        owner->Remove(attr);
-      }
-    } else if (obj.object_compview()) {
-      /* val stays nil; returning the live compview for repaste is deferred. */
-      ComponentView* comview = (ComponentView*)obj.obj_val();
-      OverlayComp* comp = live_subject(comview);
-      if (comp) delcb->Append(comp);
-    }
-    if (removed) removed->Append(new AttributeValue(val));
-    else removedval = val;
+    if (obj.is_array()) {
+      Iterator it;
+      AttributeValueList* al = obj.array_val();
+      for (al->First(it); !al->Done(it); al->Next(it))
+        delete_target(*al->GetAttrVal(it), delcb, removed, removedval);
+    } else
+      delete_target(obj, delcb, removed, removedval);
   }
   delete [] args;
 
-  DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
+  /* routed through the kit's factory, like move()/scale()/rotate(), so a
+     DrawKit context gets LinkDeleteCmd and relays to linked peers. */
+  OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+  DeleteCmd* delcmd = kit->make_delete_cmd(GetEditor(), delcb);
   execute_log(delcmd);
   unidraw->Update();
 

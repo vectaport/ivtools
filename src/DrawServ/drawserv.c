@@ -303,11 +303,11 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   
   boolean original = false;
   
-  if(!_linklist || _linklist->Number()==0) 
-    
+  if(!_linklist || _linklist->Number()==0)
+
     /* normal Unidraw command execution */
     Unidraw::ExecuteCmd(cmd);
-  
+
   else {
     
     /* indirect command execution, all by script */
@@ -464,6 +464,17 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	const char* script = ((LinkDupCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	uuid_copy(sid, ((LinkDupCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
+      case LINK_DELETE_CMD:
+      {
+	/* Execute() itself captures ownership and unregisters each grid id,
+	   so a solo (unlinked) node drops stale table entries too. */
+	cmd->Execute();
+	const char* script = ((LinkDeleteCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkDeleteCmd*)cmd)->dist_owner_sid());
 	break;
       }
 
@@ -1509,6 +1520,20 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 	SendCmdString(link, sbuf.str().c_str());
     }
     
+}
+
+void DrawServ::remove_grid(OverlayComp* comp) {
+    void* ptr = nil;
+    compidtable()->find_and_remove(ptr, (void*)comp);
+    if (ptr) delete (GraphicId*)ptr;   // destructor erases the gridtable entry
+}
+
+void DrawServ::restore_grid(OverlayComp* comp, uuid_t id, uuid_t selector) {
+    GraphicId* graphicid = new GraphicId(selector);
+    graphicid->grcomp(comp);
+    graphicid->set_id(id);
+    graphicid->selector(selector);
+    graphicid->selected(LinkSelection::NotSelected);
 }
 
 boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {

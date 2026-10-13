@@ -1,0 +1,33 @@
+// src/comdraw/tests/deletearray.comt -- delete() given a comma-built
+// ArrayType argument, as select() returns after select(:all).
+//
+// funcs: delete select size
+ok=true
+
+delete($$frame)
+
+// --- 1: delete(c,c), the same target twice, must not queue the same
+// graphic for deletion twice -- DeleteCmd's destructor deletes every
+// clipboard entry once, so a duplicate pointer would be deleted twice. ---
+c=ellipse(100,100,20,20)
+delete(c,c)
+ok=ok&&(size(select(:all))==0)
+print("1 delete(c,c) does not double-delete (expect 0 remaining): %v\n" size(select(:all)))
+
+// --- 2: delete(sel), where sel is a variable holding an array (not the
+// bare array expression itself), must still delete and return every
+// element -- counting targets before resolving sel's symbol undercounts
+// it as one, silently dropping all but the last removed value. ---
+delete($$frame)
+a=ellipse(100,100,20,20)
+b=ellipse(200,200,20,20)
+select(:all)
+sel=select()
+removed=delete(sel)
+ok=ok&&(size(removed)==2)
+print("2 size(delete(sel)) with sel a 2-elem array variable (expect 2): %v\n" size(removed))
+ok=ok&&(size(select(:all))==0)
+print("2b delete(sel) deletes every element (expect 0 remaining): %v\n" size(select(:all)))
+
+print("deletearray: %v\n" ok)
+ok

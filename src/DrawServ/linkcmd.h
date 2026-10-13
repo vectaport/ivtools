@@ -36,12 +36,16 @@
 #include <Unidraw/Commands/struct.h>
 #include <Unidraw/Commands/transforms.h>
 #include <OverlayUnidraw/ovcmds.h>
+#include <cstdint>
 #include <string>
+#include <vector>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
 #define IV_UUID_STRING_T_DEFINED
 typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 #endif
+
+class DrawServ;
 
 //: mixin for Commands that generate distributed scripts in DrawServ
 // Mix into any Command subclass to provide dist_script() for use
@@ -356,6 +360,49 @@ public:
     virtual boolean IsA(ClassId);
 
 protected:
+    std::string _dist_script_buf;
+};
+
+//: GraphDeleteCmd with distributed script generation for DrawServ
+// Mixes GraphDeleteCmd with DrawServCmd to relay a delete by grid id to
+// linked peers. Execute()/Unexecute() keep gridtable/compidtable in sync
+// with the delete whether or not any peer is linked.
+class LinkDeleteCmd : public GraphDeleteCmd, public DrawServCmd {
+public:
+    LinkDeleteCmd(ControlInfo*, Clipboard* = nil);
+    LinkDeleteCmd(Editor* = nil, Clipboard* = nil);
+
+    virtual void Execute();
+    // capture ownership, run the base delete, then unregister each grid
+    // id. Capture must come first: deleting clears the live selection,
+    // which wipes GraphicId::selected() before dist_script() reads it.
+
+    virtual void Unexecute();
+    // undo the delete and re-register each target's grid id.
+
+    virtual const char* dist_script();
+    // return a ';'-separated script removing each comp Execute() deleted,
+    // built from what Execute() already captured.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    struct DistTarget {
+        OverlayComp* comp;
+        std::string idstr;
+        uuid_t id;
+        boolean relayable;
+        boolean locallyowned;
+        uint32_t selectorkey;
+        uuid_t selector;
+    };
+    void capture_one(DrawServ*, OverlayComp*);
+    void capture_dist_state();
+    // fill _dist_targets from the clipboard, or from the live selection
+    // when a menu delete leaves the clipboard nil until Execute() runs.
+    std::vector<DistTarget> _dist_targets;
     std::string _dist_script_buf;
 };
 
