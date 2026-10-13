@@ -469,12 +469,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 
       case LINK_DELETE_CMD:
       {
-	/* Execute() drops each target from the live selection, and that
-	   alone clears GraphicId::selected() back to NotSelected (see
-	   LinkSelection::Reserve()) before dist_script() would get to read
-	   it -- so ownership is captured first, then Execute() runs, then
-	   dist_script() builds the relay script from what was captured. */
-	((LinkDeleteCmd*)cmd)->capture_dist_state();
+	/* Execute() itself captures ownership and unregisters each grid id,
+	   so a solo (unlinked) node drops stale table entries too. */
 	cmd->Execute();
 	const char* script = ((LinkDeleteCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
@@ -1530,6 +1526,14 @@ void DrawServ::remove_grid(OverlayComp* comp) {
     void* ptr = nil;
     compidtable()->find_and_remove(ptr, (void*)comp);
     if (ptr) delete (GraphicId*)ptr;   // destructor erases the gridtable entry
+}
+
+void DrawServ::restore_grid(OverlayComp* comp, uuid_t id, uuid_t selector) {
+    GraphicId* graphicid = new GraphicId(selector);
+    graphicid->grcomp(comp);
+    graphicid->set_id(id);
+    graphicid->selector(selector);
+    graphicid->selected(LinkSelection::NotSelected);
 }
 
 boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {

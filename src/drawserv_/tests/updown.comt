@@ -2283,6 +2283,21 @@ delete_test=func(
   if(!gone :then print("delete: FAIL delete did not propagate to ds2\n" :err));
   ok=ok && gone;
 
+  /* --- undo on ds1: c1 comes back, and under the SAME grid id, so it
+     can still be distributed -- not just re-registered under a new one. --- */
+  remote(sock1 "undo()");
+  cnt=0;
+  while(ok && remote(sock1 "size(grid(:table))")<2 && cnt<timeout usleep(100000);cnt++);
+  undo_ok=ok && remote(sock1 "size(grid(:table))")==2;
+  u0=nil; u1=nil;
+  if(undo_ok :then
+    u0=remote(sock1 "at(grid(:table) 0).grid");
+    u1=remote(sock1 "at(grid(:table) 1).grid"));
+  undo_ok=undo_ok && (u0==id1 || u1==id1);
+  print("delete: undo() restores c1's grid id, saw %v and %v (expect %v)\n" u0 u1 id1 :err);
+  if(!undo_ok :then print("delete: FAIL undo() did not restore c1's grid id\n" :err));
+  ok=ok && undo_ok;
+
   /* --- tear both down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   cnt=0;

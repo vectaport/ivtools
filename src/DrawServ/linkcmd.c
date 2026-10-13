@@ -965,29 +965,61 @@ boolean LinkDupCmd::IsA(ClassId id) { return id == LINK_DUP_CMD || GraphDupCmd::
 LinkDeleteCmd::LinkDeleteCmd(ControlInfo* ci, Clipboard* cb) : GraphDeleteCmd(ci, cb) {}
 LinkDeleteCmd::LinkDeleteCmd(Editor* ed, Clipboard* cb) : GraphDeleteCmd(ed, cb) {}
 
+void LinkDeleteCmd::capture_one(DrawServ* drawserv, OverlayComp* comp) {
+    void* ptr = nil;
+    if (comp) drawserv->compidtable()->find(ptr, comp);
+    GraphicId* grid = (GraphicId*)ptr;
+    if (!grid) return;   /* not distributed yet */
+
+    DistTarget t;
+    t.comp = comp;
+    t.idstr = grid->idstr();
+    uuid_copy(t.id, grid->id());
+    t.relayable = grid->selected() == LinkSelection::LocallySelected || grid->unlocked();
+    t.locallyowned = grid->selected() == LinkSelection::LocallySelected;
+    t.selectorkey = grid->selectorkey();
+    uuid_copy(t.selector, grid->selector());
+    _dist_targets.push_back(t);
+}
+
 void LinkDeleteCmd::capture_dist_state() {
     _dist_targets.clear();
 
     DrawServ* drawserv = (DrawServ*)unidraw;
     Clipboard* cb = GetClipboard();
-    if (!cb) return;
+    if (cb) {
+        Iterator it;
+        for (cb->First(it); !cb->Done(it); cb->Next(it))
+            capture_one(drawserv, (OverlayComp*)cb->GetComp(it));
+        return;
+    }
 
+    Editor* ed = GetEditor();
+    Selection* s = ed ? ed->GetSelection() : nil;
+    if (!s) return;
     Iterator it;
-    for (cb->First(it); !cb->Done(it); cb->Next(it)) {
-        OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
-        void* ptr = nil;
-        if (comp) drawserv->compidtable()->find(ptr, comp);
-        GraphicId* grid = (GraphicId*)ptr;
-        if (!grid) continue;   /* not distributed yet */
+    for (s->First(it); !s->Done(it); s->Next(it)) {
+        OverlayView* view = (OverlayView*)s->GetView(it);
+        if (view) capture_one(drawserv, view->GetOverlayComp());
+    }
+}
 
-        DistTarget t;
-        t.comp = comp;
-        t.idstr = grid->idstr();
-        t.relayable = grid->selected() == LinkSelection::LocallySelected || grid->unlocked();
-        t.locallyowned = grid->selected() == LinkSelection::LocallySelected;
-        t.selectorkey = grid->selectorkey();
-        uuid_copy(t.selector, grid->selector());
-        _dist_targets.push_back(t);
+void LinkDeleteCmd::Execute() {
+    capture_dist_state();
+    GraphDeleteCmd::Execute();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    for (size_t i = 0; i < _dist_targets.size(); i++)
+        drawserv->remove_grid(_dist_targets[i].comp);
+}
+
+void LinkDeleteCmd::Unexecute() {
+    GraphDeleteCmd::Unexecute();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    for (size_t i = 0; i < _dist_targets.size(); i++) {
+        DistTarget& t = _dist_targets[i];
+        drawserv->restore_grid(t.comp, t.id, t.selector);
     }
 }
 
@@ -996,18 +1028,6 @@ const char* LinkDeleteCmd::dist_script() {
     uuid_clear(_dist_owner_sid);
 
     DrawServ* drawserv = (DrawServ*)unidraw;
-
-    /* Execute() has already dropped each target from its picture and, via
-       LinkSelection::Reserve() clearing the old selection, overwritten its
-       GraphicId::selected() -- ownership was captured before that happened,
-       so this unregisters each grid id and builds the relay script purely
-       from _dist_targets, never re-reading the GraphicId. */
-    for (size_t i = 0; i < _dist_targets.size(); i++)
-        drawserv->remove_grid(_dist_targets[i].comp);
-
-    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
-        return _dist_script_buf.c_str();
-
     std::ostringstream sbuf, delbuf;
     boolean any = false;
     uint32_t owner_key = 0;

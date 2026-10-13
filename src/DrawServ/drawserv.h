@@ -146,6 +146,10 @@ public:
   // unregister comp's GraphicId, clearing it from both gridtable and
   // compidtable. Used once a comp is actually gone, such as a delete().
 
+  void restore_grid(OverlayComp* comp, uuid_t id, uuid_t selector);
+  // re-register comp under a grid id it previously held, such as undoing
+  // a delete(). Unlike add_grid(), id is never generated here.
+
   GraphicIdTable* gridtable() { return _gridtable; }
   // return pointer to table of GraphicId's.
   
