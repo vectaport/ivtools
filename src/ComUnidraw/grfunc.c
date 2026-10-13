@@ -1724,10 +1724,10 @@ void GrDeleteFunc::execute() {
   ComValue* args = new ComValue[nf];
   for (int i=0; i<nf; i++) {
     /* symbol=true keeps an Attribute-typed arg from being auto-dereferenced
-       before execute() sees it; symbols are resolved by hand below, before
-       counting targets, so a variable holding an array (not just a bare
-       array expression) is counted by its element count too. */
+       before execute() sees it; symbols are resolved by hand below. */
     args[i] = stack_arg(i, true);
+    /* resolved before counting, so a variable holding an array is counted
+       by its element count too, not as a single target. */
     if (!args[i].is_attribute() && args[i].is_symbol())
       comterp()->lookup_symval(args[i]);
   }
