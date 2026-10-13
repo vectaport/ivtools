@@ -149,7 +149,7 @@ ATan2Func::ATan2Func(ComTerp* comterp) : ComFunc(comterp) {
 
 void ATan2Func::execute() {
     ComValue operandx = stack_arg(0);
-    ComValue operandy = stack_arg(0);
+    ComValue operandy = stack_arg(1);
     reset_stack();
     if (operandx.is_nil() || operandy.is_nil()) {
       push_stack(ComValue::nullval());
