@@ -1021,6 +1021,13 @@ void LinkDeleteCmd::Unexecute() {
         DistTarget& t = _dist_targets[i];
         drawserv->restore_grid(t.comp, t.id, t.selector);
     }
+
+    /* the base undo already selected these comps and ran Reserve() with
+       no GraphicId yet to find, so it never claimed them -- restore_grid()
+       just registered one, so Reserve() again picks up where it left off. */
+    Editor* ed = GetEditor();
+    LinkSelection* sel = ed ? (LinkSelection*)ed->GetSelection() : nil;
+    if (sel) sel->Reserve();
 }
 
 const char* LinkDeleteCmd::dist_script() {

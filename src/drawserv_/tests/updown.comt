@@ -2298,6 +2298,18 @@ delete_test=func(
   if(!undo_ok :then print("delete: FAIL undo() did not restore c1's grid id\n" :err));
   ok=ok && undo_ok;
 
+  /* --- undo's own Uninterpret() selects c1 before restore_grid() can
+     re-register its id, so the Reserve() that runs as part of selecting
+     it finds no entry yet and can't claim it -- check ownership directly
+     by id (table order is not stable across calls), since the delete
+     already relayed to ds2 too and removed its copy, leaving nothing
+     there for a move() to land on. --- */
+  findsel=print("t=grid(:table);n=size(t);r=nil;for(i=0 i<n i++ if(at(t i).grid==%c%s%c :then r=at(t i).selected));r" 34 id1 34 :str);
+  owned=undo_ok && remote(sock1 findsel)=="LocallySelected";
+  print("delete: undo() reclaims ownership (selected==LocallySelected)=%v\n" owned :err);
+  if(undo_ok && !owned :then print("delete: FAIL undo() left c1 NotSelected despite being selected\n" :err));
+  ok=ok && owned;
+
   /* --- tear both down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   cnt=0;
