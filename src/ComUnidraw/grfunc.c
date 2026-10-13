@@ -1702,7 +1702,10 @@ void GrDeleteFunc::delete_target(AttributeValue& obj, Clipboard* delcb,
     /* val stays nil; returning the live compview for repaste is deferred. */
     ComponentView* comview = (ComponentView*)obj.obj_val();
     OverlayComp* comp = live_subject(comview);
-    if (comp) delcb->Append(comp);
+    /* a repeated target (e.g. delete(a,a)) must not queue the same
+       graphic twice -- DeleteCmd's destructor deletes every clipboard
+       entry, and a duplicate pointer would be deleted twice. */
+    if (comp && !delcb->Includes(comp)) delcb->Append(comp);
   }
   if (removed) removed->Append(new AttributeValue(val));
   else removedval = val;
@@ -1719,10 +1722,15 @@ void GrDeleteFunc::execute() {
   }
 
   ComValue* args = new ComValue[nf];
-  for (int i=0; i<nf; i++)
+  for (int i=0; i<nf; i++) {
     /* symbol=true keeps an Attribute-typed arg from being auto-dereferenced
-       before execute() sees it; symbols are resolved by hand below. */
+       before execute() sees it; symbols are resolved by hand below, before
+       counting targets, so a variable holding an array (not just a bare
+       array expression) is counted by its element count too. */
     args[i] = stack_arg(i, true);
+    if (!args[i].is_attribute() && args[i].is_symbol())
+      comterp()->lookup_symval(args[i]);
+  }
   reset_stack();
 
   Clipboard* delcb = new Clipboard();
@@ -1740,8 +1748,6 @@ void GrDeleteFunc::execute() {
   ComValue removedval(ComValue::nullval());
   for (int i=0; i<nf; i++) {
     ComValue& obj = args[i];
-    if (!obj.is_attribute() && obj.is_symbol())
-      comterp()->lookup_symval(obj);
     if (obj.is_array()) {
       Iterator it;
       AttributeValueList* al = obj.array_val();
