@@ -489,7 +489,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	 if (*errbuf) {
 	   status = -1;
 	   fprintf(stderr, "%s\n", errbuf);   // instead of err_print
-	   FILE* ofptr = handler() ? handler()->wrfptr() : stdout;
+	   FILE* ofptr = handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout;
 	   fputs(errbuf, ofptr);
 	   // if (ofptr != stdout) fclose(ofptr);
 	   pending_incomplete_expr = false;  // a real parser error, not accumulation
