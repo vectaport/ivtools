@@ -45,6 +45,7 @@ GraphicId::GraphicId (uuid_t sid)
   _unlocked = false;
   _reqgen = 0;
   _grantgen = 0;
+  _deleted = false;
   uuid_clear(_selector);
   memset(_selector_str, 0, sizeof(_selector_str));
   _selected = 0;
@@ -119,9 +120,11 @@ void GraphicId::grcomp(OverlayComp* comp) {
   if (_comp) {
     void* ptr = nil;
     table->find_and_remove(ptr, _comp);
-  } 
+  }
   _comp = comp;
-  table->insert((void*)comp, (void*)this);
+  /* nil isn't a valid compidtable key -- a tombstone (see deleted()) has
+     no live comp to index by. */
+  if (comp) table->insert((void*)comp, (void*)this);
 }
 
 const char* GraphicId::compclass() {
