@@ -26,6 +26,7 @@
 #include <DrawServ/linkselection.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawlinklist.h>
+#include <DrawServ/drawserv-handler.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/grid.h>
 #include <OverlayUnidraw/ovcomps.h>
@@ -1093,3 +1094,72 @@ Command* LinkDeleteCmd::Copy() {
 
 ClassId LinkDeleteCmd::GetClassId() { return LINK_DELETE_CMD; }
 boolean LinkDeleteCmd::IsA(ClassId id) { return id == LINK_DELETE_CMD || GraphDeleteCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkSetAttrCmd::LinkSetAttrCmd(ControlInfo* c, AttributeList* al)
+: SetAttrCmd(c, al), DrawServCmd() {
+}
+
+LinkSetAttrCmd::LinkSetAttrCmd(Editor* ed, AttributeList* al)
+: SetAttrCmd(ed, al), DrawServCmd() {
+}
+
+const char* LinkSetAttrCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    /* a replace() carries the list the target ends up with, and setattr()
+       only merges, so emitting it would leave a removed key behind on the
+       far side rather than diverge visibly. */
+    if (replace()) return _dist_script_buf.c_str();
+
+    Clipboard* cb = GetClipboard();
+    if (!cb || !attrlist()) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    /* the change originated here unless it arrived over a link, in which
+       case a session id reachable through that link excludes its sender
+       from the relay while the change still flows onward. */
+    DrawServHandler* handler = DrawServHandler::current();
+    DrawLink* orglink = handler ? handler->drawlink() : nil;
+    if (!orglink || !drawserv->linksid(orglink, _dist_owner_sid))
+        uuid_copy(_dist_owner_sid, drawserv->sessionid());
+
+    std::ostringstream sbuf;
+    boolean any = false;
+    Iterator it;
+    for (cb->First(it); !cb->Done(it); cb->Next(it)) {
+        OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (!grid) continue;   /* not distributed yet */
+
+        if (any) sbuf << ';';
+        any = true;
+        /* the attrlist serializes bare, as the ":key val" keywords the
+           far side's setattr() reads back -- the call recreates itself. */
+        sbuf << "setattr(grid(\"" << grid->idstr() << "\") "
+             << *attrlist() << ")";
+    }
+
+    if (any) _dist_script_buf = sbuf.str();
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkSetAttrCmd::Copy() {
+    LinkSetAttrCmd* copy = new LinkSetAttrCmd(CopyControlInfo(),
+					      new AttributeList(attrlist()));
+    copy->replace() = replace();
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkSetAttrCmd::GetClassId() { return LINK_SETATTR_CMD; }
+boolean LinkSetAttrCmd::IsA(ClassId id) {
+    return id == LINK_SETATTR_CMD || SetAttrCmd::IsA(id);
+}

@@ -696,6 +696,12 @@ RotateCmd* DrawKit::make_rotate_cmd(Editor* ed, float angle) {
     return new LinkRotateCmd(ed, angle);
 }
 
+SetAttrCmd* DrawKit::make_setattr_cmd(Editor* ed, AttributeList* al, Clipboard* cb) {
+    SetAttrCmd* cmd = new LinkSetAttrCmd(ed, al);
+    if (cb) cmd->SetClipboard(cb);
+    return cmd;
+}
+
 FontCmd* DrawKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new LinkFontCmd(ctrlInfo, font, fontnum, fontname);
 }

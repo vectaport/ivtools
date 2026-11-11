@@ -279,6 +279,20 @@ DrawLink* DrawServ::linkget(uuid_t sessionid) {
   return ptr ? ((SessionId*)ptr)->drawlink() : nil;
 }
 
+boolean DrawServ::linksid(DrawLink* link, uuid_t& sid) {
+  if (!link || !_sessionidtable) return false;
+  SessionIdTable_Iterator it(*_sessionidtable);
+  while (it.cur_entry() != nil) {
+    SessionId* sessionid = (SessionId*)it.cur_value();
+    if (sessionid && sessionid->drawlink()==link) {
+      uuid_copy(sid, sessionid->sid());
+      return true;
+    }
+    if (!it.next()) break;
+  }
+  return false;
+}
+
 void DrawServ::linkdump(FILE* fptr) {
   fprintf(fptr, "Host                            Alt.                            Port    LID       State\n");
   fprintf(fptr, "------------------------------  ------------------------------  ------  --------  -----\n");
@@ -475,6 +489,17 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	const char* script = ((LinkDeleteCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
 	uuid_copy(sid, ((LinkDeleteCmd*)cmd)->dist_owner_sid());
+	break;
+      }
+
+      case LINK_SETATTR_CMD:
+      {
+	/* the clipboard and the keyword list are both set before execution,
+	   so the script generates first, like the graphic-state cases. */
+	const char* script = ((LinkSetAttrCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkSetAttrCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
 	break;
       }
 

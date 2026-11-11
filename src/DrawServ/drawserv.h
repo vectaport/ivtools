@@ -95,6 +95,12 @@ public:
   
   DrawLink* linkget(uuid_t sessionid);
   // return pointer to existing DrawLink given a sessionid.
+
+  boolean linksid(DrawLink* link, uuid_t& sid);
+  // copy out a session id reachable through this DrawLink, for a command
+  // that has no ownership of its own to name:  linkget() maps any such id
+  // back to this same link, which is what excludes a relay's sender.
+  // false, leaving sid untouched, when the link has no session registered.
   
   void linkdump(FILE*);
   // dump text table of DrawLink's

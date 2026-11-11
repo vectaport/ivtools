@@ -43,6 +43,36 @@ select(s :lock "XXXXXXXX")
 The session key (`%08X` of `drawserv->sessionidkey()`) gates the
 unlock/lock so only the originating instance's selection is affected.
 
+### Commands that name their own target
+
+A command whose own arguments name what it acts on needs none of that
+bracket.  `setattr(grid("uuid") :key val)` already says which graphic
+it means, so `LinkSetAttrCmd::dist_script()` emits just that call, once
+per target in the command's clipboard, and never touches the remote
+selection.
+
+Two consequences follow, and they are the reason this shape exists
+rather than being a shortcut:
+
+- **No ownership gate.**  The graphic-state commands relay only
+  `LinkSelection::LocallySelected` or `unlocked()` comps, because the
+  lock protocol decides who may restyle a shared graphic.  Attributes
+  carry no lock, so every target already registered in the grid table
+  relays; one not yet distributed has nowhere to send.
+
+- **The origin is a link, not a session.**  With no lock there is no
+  owning session to stamp into `_dist_owner_sid`, so a relay instead
+  excludes the link it arrived on: `DrawServ::linksid()` returns a
+  session id reachable through that link, which `linkget()` maps back
+  to the same link in `ExecuteCmd()`'s tail.  Get this wrong and the
+  change ping-pongs between two nodes forever — `drawmo --tests
+  setattr` drives a change in both directions to pin it down.
+
+`setattr()` merges, so a command with `replace()` set (what the
+attribute dialog hands back, where an entry the user deleted has to go
+away) emits nothing: removing a key the far side still holds would need
+a call that does not exist yet.
+
 ### Implementation steps
 
 1. **drawclasses.h** — add a new class ID, incrementing from the last:
@@ -60,6 +90,9 @@ unlock/lock so only the originating instance's selection is affected.
    - Iterate `LinkSelection::LocallySelected` comps, collect grid UUIDs
    - Build the select/unlock/command/lock script into `_dist_script_buf`
    - Return `_dist_script_buf.c_str()`
+
+   A command that names its own target skips the selection walk and the
+   bracket entirely — see *Commands that name their own target* above.
 
 4. **DrawServ::ExecuteCmd()** — call `dist_script()` when the command
    is a `DrawServCmd` and distribute the script to all connected links

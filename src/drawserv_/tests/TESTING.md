@@ -332,6 +332,27 @@ checks the result and its `export()` round-trip.
 does not, so this needs a live drawserv and can't be covered by
 `comdraw/tests/import.comt`'s subprocess pattern.
 
+### setattr
+
+**What:** two drawservs, ds1 linked to ds2. ds1 creates a circle, then
+changes its attributes with `setattr(grid("uuid") :key val)` -- one keyword,
+then several in one call -- and finally **ds2** changes the same attribute,
+so the change travels back the other way.
+
+**Checks:**
+- ds2 sees a single-keyword change
+- ds2 sees a multi-keyword change intact, with the earlier key untouched
+- a change made on ds2 reaches ds1 and settles at the same value on both
+
+**Purpose:** `LinkSetAttrCmd` is the first distributed command that names its
+own target instead of acting on the selection, so it emits no
+`select()`/`:unlock` bracket and has no owning session to stamp as the
+change's origin -- it excludes the link the change arrived on instead (see
+*Commands that name their own target* in `src/DrawServ/HACKING.md`). The
+ds2-to-ds1 leg is what tests that: with the exclusion wrong the change
+ping-pongs between the two nodes forever, so the symptom is this test
+hanging rather than failing an assertion.
+
 ## agreetest — counting runs rather than trusting one
 
 `agreetest` is not a drawmo test and is run on its own:

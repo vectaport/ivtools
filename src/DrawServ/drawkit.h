@@ -83,6 +83,8 @@ public:
     // under this translation unit's naming mode at this point in the file.
     // override to create LinkScaleCmd for distributed scale/stretch changes
     virtual RotateCmd* make_rotate_cmd(Editor* = nil, float = 0);
+    virtual SetAttrCmd* make_setattr_cmd(Editor* = nil, AttributeList* = nil,
+					 Clipboard* = nil);
     // override to create LinkRotateCmd for distributed rotations
 
     static DrawKit* Instance();

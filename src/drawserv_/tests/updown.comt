@@ -2547,3 +2547,118 @@ transform_test=func(
   print("transform: ds2 shut down\n" :err);
 
   ok)
+
+/* setattr test -- distributed attribute changes.  LinkSetAttrCmd emits one
+   setattr(grid("...") :key val) per target, so the wire form is the same
+   call the sender made with a portable name substituted.  Unlike the
+   graphic-state commands there is no lock to take and no select() bracket:
+   the command names its target explicitly and carries no ownership, so a
+   relay is excluded from the link it arrived on rather than from the
+   session that owns the graphic.  The ds2->ds1 leg below is what pins that
+   down -- with the exclusion wrong, the change ping-pongs between the two
+   nodes and this test hangs instead of failing. */
+setattr_test=func(
+  poll_usec=200000;
+  timeout=30*1000000/poll_usec;
+
+  /* --- launch ds1 (source) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upsa1)=false;
+  print("setattr: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -geometry 756x491+0+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upsa1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upsa1) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_upsa1) :then
+    print("setattr: FAIL ds1 did not come up\n" :err);
+    return(false));
+  print("setattr: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (dest) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upsa2)=false;
+  print("setattr: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -geometry 756x491+756+0 -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upsa2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upsa2) && cnt<timeout update(poll_usec);cnt++);
+  if(!global(drawserv_upsa2) :then
+    print("setattr: FAIL ds2 did not come up\n" :err);
+    return(false));
+  print("setattr: ds2 up on %d\n" ds2_port :err);
+
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  if(!sock1 || !sock2 :then
+    print("setattr: FAIL could not connect to both nodes\n" :err);
+    return(false));
+
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(drawlink(:table))")<1 && cnt<timeout usleep(poll_usec);cnt++);
+
+  /* --- ds1: one circle, whose grid id names it on both nodes --- */
+  remote(sock1 "c1=ellipse(158,245,80,80 :fillbg 1 :bgcolor \"SeaGreen\",0.18,0.55,0.34 :graypat 1.0)");
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<timeout usleep(100000);cnt++);
+  id1=remote(sock1 "at(grid(:table) 0).grid");
+  if(type(id1)!=`StringType :then
+    print("setattr: FAIL could not read circle's grid id\n" :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    return(false));
+  print("setattr: created c1=%v on ds1\n" id1 :err);
+
+  ok=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("setattr: ds2 has c1=%v\n" ok :err);
+  if(!ok :then print("setattr: FAIL circle did not propagate to ds2\n" :err));
+
+  readhp=print("grid(%c%s%c).hp" 34 id1 34 :str);
+
+  /* --- ds1 -> ds2: a single keyword --- */
+  remote(sock1 print("setattr(grid(%c%s%c) :hp 7)" 34 id1 34 :str));
+  cnt=0;
+  while(ok && remote(sock2 readhp)!=7 && cnt<timeout usleep(100000);cnt++);
+  fwd=ok && remote(sock2 readhp)==7;
+  print("setattr: ds2 sees hp=%v (expect 7)\n" remote(sock2 readhp) :err);
+  if(ok && !fwd :then print("setattr: FAIL setattr() did not propagate to ds2\n" :err));
+  ok=ok && fwd;
+
+  /* --- ds1 -> ds2: several keywords in one call, leaving hp alone --- */
+  readac=print("grid(%c%s%c).ac" 34 id1 34 :str);
+  readsp=print("grid(%c%s%c).speed" 34 id1 34 :str);
+  remote(sock1 print("setattr(grid(%c%s%c) :ac 15 :speed 30)" 34 id1 34 :str));
+  cnt=0;
+  while(ok && remote(sock2 readsp)!=30 && cnt<timeout usleep(100000);cnt++);
+  multi=ok && remote(sock2 readac)==15 && remote(sock2 readsp)==30 && remote(sock2 readhp)==7;
+  print("setattr: ds2 sees ac=%v speed=%v hp=%v (expect 15 30 7)\n" remote(sock2 readac) remote(sock2 readsp) remote(sock2 readhp) :err);
+  if(ok && !multi :then print("setattr: FAIL multi-keyword setattr() did not propagate intact\n" :err));
+  ok=ok && multi;
+
+  /* --- ds2 -> ds1: the receiving node changes the same attribute.  ds2
+     relays onward but not back to ds1, and ds1's own execution of the
+     relayed call is likewise excluded from the link it arrived on, so the
+     value settles rather than echoing. --- */
+  remote(sock2 print("setattr(grid(%c%s%c) :hp 9)" 34 id1 34 :str));
+  cnt=0;
+  while(ok && remote(sock1 readhp)!=9 && cnt<timeout usleep(100000);cnt++);
+  rev=ok && remote(sock1 readhp)==9 && remote(sock2 readhp)==9;
+  print("setattr: ds1 sees hp=%v, ds2 hp=%v (expect 9 9)\n" remote(sock1 readhp) remote(sock2 readhp) :err);
+  if(ok && !rev :then print("setattr: FAIL change from ds2 did not reach ds1 and settle\n" :err));
+  ok=ok && rev;
+
+  if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
+
+  /* --- tear both down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("setattr: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 && cnt<50 usleep(100000);cnt++);
+  print("setattr: ds2 shut down\n" :err);
+
+  ok)
