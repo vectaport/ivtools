@@ -94,6 +94,7 @@
 #define PUSH_CMD              2061
 #define PULL_CMD              2062
 #define ALPHATRANSPARENT_CMD  2063
+#define SETATTR_CMD           2064
 
 #define OVERLAY_COMP          2150
 #define OVERLAYS_COMP         2151

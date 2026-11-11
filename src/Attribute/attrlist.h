@@ -131,6 +131,12 @@ public:
     // merge the contents of another AttributeList into this one,
     // replicating the AttributeValue as needed.
 
+    void clear();
+    // empty the list, unreferencing every Attribute.  Public alongside
+    // merge(), its filling counterpart, and safe for the same reason the
+    // key-based mutators are:  it removes through Remove(ALIterator&),
+    // which keeps _count and the symid index in step.
+
     boolean sealed() { return _sealed; }
     // true if no new entry may be added; an existing entry can still be
     // read or reassigned either way.  False by default.
@@ -162,9 +168,6 @@ protected:
     void Remove(ALIterator&);
     // removes the Attribute at the iterator and returns responsibility
     // for freeing it -- save a pointer to it first, before calling this.
-
-    void clear(); 
-    // empty AttributeList, deleting all Attributes.
 
 
 public:

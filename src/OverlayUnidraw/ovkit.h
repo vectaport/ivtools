@@ -50,6 +50,8 @@ class PatternCmd;
 class MoveCmd;
 class ScaleCmd;
 class RotateCmd;
+class SetAttrCmd;
+class AttributeList;
 class Command;
 class ControlInfo;
 class Deck;
@@ -278,6 +280,12 @@ public:
     // command class, so distributing ScaleCmd distributes Stretch too.
     virtual RotateCmd* make_rotate_cmd(Editor* = nil, float = 0);
     // factory for rotate()'s command; see make_move_cmd.
+    virtual SetAttrCmd* make_setattr_cmd(Editor* = nil, AttributeList* = nil,
+					 Clipboard* = nil);
+    // factory for the command behind setattr() and the attribute dialog;
+    // takes an explicit clipboard like make_delete_cmd, since both the
+    // scripted and the dialog form name one component rather than acting
+    // on whatever is selected.
 
 protected:
     Glyph* MenuLine(PSBrush*);

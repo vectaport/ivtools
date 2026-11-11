@@ -63,6 +63,10 @@ if(run("./dotattr.comt")
   :then print("pass: dotattr\n")
   :else print("FAIL: dotattr\n");ok=false)
 
+if(run("./setattrundo.comt")
+  :then print("pass: setattrundo\n")
+  :else print("FAIL: setattrundo\n");ok=false)
+
 if(run("./lastkey.comt")
   :then print("pass: lastkey\n")
   :else print("FAIL: lastkey\n");ok=false)

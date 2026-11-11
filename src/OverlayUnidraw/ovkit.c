@@ -64,6 +64,7 @@
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <OverlayUnidraw/rastercmds.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
 #include <OverlayUnidraw/slctbyattr.h>
@@ -1156,6 +1157,12 @@ ScaleCmd* OverlayKit::make_scale_cmd(Editor* ed, float sx, float sy, Alignment a
 
 RotateCmd* OverlayKit::make_rotate_cmd(Editor* ed, float angle) {
     return new RotateCmd(ed, angle);
+}
+
+SetAttrCmd* OverlayKit::make_setattr_cmd(Editor* ed, AttributeList* al, Clipboard* cb) {
+    SetAttrCmd* cmd = new SetAttrCmd(ed, al);
+    if (cb) cmd->SetClipboard(cb);
+    return cmd;
 }
 
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {

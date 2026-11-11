@@ -1,0 +1,58 @@
+// src/comdraw/tests/setattrundo.comt -- setattr() builds a command, so an
+// attribute edit joins undo/redo like any other edit.
+//
+// SetAttrCmd carries the keyword list and names its target through its own
+// clipboard rather than the selection, so one call is one undo step however
+// many keywords it writes.  Each target stores its whole prior property list
+// in the command, so undoing an edit to one component leaves the others as
+// they were, and undoing the edit that first created an attribute removes it
+// rather than zeroing it.
+//
+// funcs: setattr undo redo dot-read
+
+ok=true
+each(delete($$select(:all)))
+
+r=rect(50,50,150,150)
+
+// --- test 1: setattr creates the attribute ---
+setattr(r :hp 7)
+ok=ok&&(r.hp==7)
+print("1 setattr(r :hp 7); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 2: undo restores what the previous setattr left ---
+setattr(r :hp 3)
+ok=ok&&(r.hp==3)
+undo()
+ok=ok&&(r.hp==7)
+print("2 setattr(r :hp 3) then undo(); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 3: redo reapplies it ---
+redo()
+ok=ok&&(r.hp==3)
+print("3 redo(); r.hp (expect 3): %v\n" r.hp)
+
+// --- test 4: undoing back past the first setattr leaves no attribute ---
+undo()
+undo()
+ok=ok&&(r.hp==nil)
+print("4 undo() back past the first setattr; r.hp (expect nil): %v\n" r.hp)
+
+// --- test 5: several keywords in one call make one undo step ---
+redo()
+setattr(r :ac 15 :speed 30)
+ok=ok&&(r.ac==15)&&(r.speed==30)
+undo()
+ok=ok&&(r.ac==nil)&&(r.speed==nil)&&(r.hp==7)
+print("5 setattr(r :ac 15 :speed 30) undone in one step; r.ac r.speed r.hp (expect nil nil 7): %v %v %v\n" r.ac r.speed r.hp)
+
+// --- test 6: one component's undo leaves another's attributes alone ---
+e=rect(300,300,400,400)
+setattr(e :hp 99)
+setattr(r :hp 1)
+undo()
+ok=ok&&(r.hp==7)&&(e.hp==99)
+print("6 undo() of setattr(r :hp 1); r.hp e.hp (expect 7 99): %v %v\n" r.hp e.hp)
+
+print("setattrundo: %v\n" ok)
+ok

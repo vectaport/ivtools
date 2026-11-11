@@ -31,13 +31,16 @@
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovimport.h>
+#include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovpsview.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <ComGlyph/comtextedit.h>
 #include <ComGlyph/comtextview.h>
 #include <Unidraw/clipboard.h>
@@ -701,13 +704,15 @@ void SetAttrFunc::execute() {
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
 
-    AttributeList* comp_al = comp ? comp->attrlist() : nil;
-    if (!comp_al && comp)
-      comp->SetAttributeList(al);
-    else if (comp_al) {
-      comp_al->merge(al);
+    if (comp) {
+      /* routed through the kit's factory, like delete()/move()/rotate(), so
+         a DrawKit context gets the distributing subclass. */
+      /* the command takes over the keyword list, refcounting it for as long
+         as the undo history holds the command. */
+      OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+      execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
+    } else
       delete al;
-    }
     push_stack(viewval);
 }
 

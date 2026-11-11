@@ -93,6 +93,7 @@ Obj31(ovkit)
 Obj31(ovprint)
 Obj31(ovshowhide)
 Obj31(setattrbyexpr)
+Obj31(setattrcmd)
 Obj31(slctbyattr)
 
 /* ACE-lite (#147): built for either backend now (was external-libACE-only). */
