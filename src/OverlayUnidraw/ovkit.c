@@ -1715,7 +1715,7 @@ void OverlayKit::Annotate(OverlayComp* comp) {
 
 void OverlayKit::AttrEdit(OverlayComp* comp) {
     WidgetKit& kit = *WidgetKit::instance();
-    AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style());
+    AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style(), _ed);
     dlog->ref();
 #if 0
     if (dlog->post_for(_ed->GetWindow()))
