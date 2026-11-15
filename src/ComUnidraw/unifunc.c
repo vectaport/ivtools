@@ -31,7 +31,9 @@
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovimport.h>
+#include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovpsview.h>
 #include <OverlayUnidraw/ovunidraw.h>
@@ -1196,3 +1198,33 @@ void RedoableFunc::execute() {
     push_stack(retval);
 }
 
+
+/*****************************************************************************/
+
+AttrEditTestFunc::AttrEditTestFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void AttrEditTestFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    AttributeList* al = stack_keys();
+    reset_stack();
+    if (!viewval.is_object()) {
+      delete al;
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      delete al;
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    /* the dialog hands its own copy over and drops its reference; the
+       command refcounts the list for as long as the undo history holds it. */
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    kit->apply_attr_edit(comp, al);
+    push_stack(viewval);
+}

@@ -123,5 +123,9 @@ if(run("./quarterpusher.comt")
   :then print("pass: quarterpusher\n")
   :else print("FAIL: quarterpusher\n");ok=false)
 
+if(run("./attreditundo.comt")
+  :then print("pass: attreditundo\n")
+  :else print("FAIL: attreditundo\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

@@ -25,6 +25,11 @@
 #include <Attribute/attrlist.h>
 #include <OverlayUnidraw/ovgdialog.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/oved.h>
+#include <OverlayUnidraw/ovkit.h>
+#include <OverlayUnidraw/setattrcmd.h>
+#include <Unidraw/clipboard.h>
+#include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
 #include <Unidraw/statevars.h>
 #include <Unidraw/Components/compview.h>
@@ -171,8 +176,9 @@ friend class AttributeDialog;
     AttributeListEditor* editor_;
     ComponentView* compview_;
     AttributeList* copylist_;
+    Editor* ed_;
 
-    void init(OverlayComp*, AttributeDialog*, Style*);
+    void init(OverlayComp*, AttributeDialog*, Style*, Editor*);
     void free();
     void build(AttributeList*);
     void accept();
@@ -185,13 +191,13 @@ friend class AttributeDialog;
 declareActionCallback(AttributeDialogImpl)
 implementActionCallback(AttributeDialogImpl)
 
-AttributeDialog::AttributeDialog(OverlayComp* oc, WidgetKit* kit, Style* s) 
+AttributeDialog::AttributeDialog(OverlayComp* oc, WidgetKit* kit, Style* s, Editor* ed) 
 : Dialog(nil, s)
 {
   impl_ = new AttributeDialogImpl;
   AttributeDialogImpl& adi = *impl_;
   adi.kit_ = kit;
-  adi.init(oc, this, s);
+  adi.init(oc, this, s, ed);
 }
 
 AttributeDialog::~AttributeDialog() {
@@ -202,9 +208,10 @@ AttributeDialog::~AttributeDialog() {
 
 /** class AttributeDialogImpl **/
 
-void AttributeDialogImpl::init(OverlayComp* oc, AttributeDialog* p, Style* s) {
+void AttributeDialogImpl::init(OverlayComp* oc, AttributeDialog* p, Style* s, Editor* ed) {
   dialog_ = p;
   style_ = s;
+  ed_ = ed;
   compview_ = new ComponentView(oc);
   copylist_ = new AttributeList(oc->GetAttributeList());
   Resource::ref(copylist_);
@@ -258,7 +265,11 @@ void AttributeDialogImpl::accept() {
     // should set modified flag here if something happenns
     // ((ModifStatusVar*)<Editor>->GetState("ModifStatusVar"))->SetModifStatus(true);	
     OverlayComp* comp = (OverlayComp*)compview_->GetSubject();
-    if (comp) comp->SetAttributeList(copylist_);
+    if (comp && ed_)
+      /* the edited list goes back through the kit rather than onto the
+         component, so the edit is undoable and a DrawKit context
+         distributes it. */
+      ((OverlayEditor*)ed_)->overlay_kit()->apply_attr_edit(comp, copylist_);
     Unref(copylist_);
     dialog_->dismiss(true);
     unidraw->Update();

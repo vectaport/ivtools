@@ -36,7 +36,9 @@ public:
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
     // select component under event, and bring up dialog for editing attributes.
     virtual Command* InterpretManipulator(Manipulator*);
-    // empty method.
+    // nil: the dialog this tool maps is not modal, so the edit it produces
+    // is not finished by the time the manipulation is.  The dialog's own
+    // accept() executes the command instead.
 
     virtual Tool* Copy();
     virtual ClassId GetClassId();

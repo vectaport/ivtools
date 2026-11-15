@@ -28,6 +28,7 @@
 
 class AnnotateDialogImpl;
 class AttributeDialogImpl;
+class Editor;
 class OverlayComp;
 class WidgetKit;
 
@@ -50,7 +51,9 @@ private:
 //: dialog for editing component attributes (property list).
 class AttributeDialog : public Dialog {
 public:
-    AttributeDialog(OverlayComp*, WidgetKit*, Style*);
+    AttributeDialog(OverlayComp*, WidgetKit*, Style*, Editor*);
+    // the Editor is the one whose kit posted this dialog -- accept() builds
+    // its command through that editor, not a guess at which one is current.
     virtual ~AttributeDialog();
 private:
     AttributeDialogImpl* impl_;
