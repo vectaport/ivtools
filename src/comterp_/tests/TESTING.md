@@ -306,6 +306,30 @@ To add a new test script:
 3. Enumerate slots from the taxonomy above
 4. Write tests, add the coverage header, add the script to `run_all.comt`
 
+## Platform-Conditional Failures
+
+Two scripts pass under CI's Ubuntu/`xvfb` environment and fail on macOS
+for reasons unrelated to the behavior they test. Neither is an
+intentional failure -- those are deliberate, marked in the script, and
+announced in the log with an INTENTIONAL banner (rule 5 above). These
+are simply red here and green there, so a developer on a Mac needs to
+know which failures to discount:
+
+- **comlint_kw_wildcard.comt** shells out to `xvfb-run -a`, which
+  XQuartz does not install (it ships `Xvfb` without the `xvfb-run`
+  wrapper). The script's own header explains why it insists on a fresh
+  display instead of the ambient one; that reasoning holds, and it is
+  also what makes the script Linux-only.
+- **comvalref.comt** asserts exact `strref()` deltas read back from a
+  spawned comterp. The subprocess itself runs correctly -- it emits its
+  `RESULT` line either way -- but several deltas differ from the Linux
+  readings, so those comparisons fail. Per the script's header, the
+  readings are exact only at true top level; whatever margin that
+  exactness depends on lands differently on this platform.
+
+CI (`.github/workflows/ci.yml`) is the reference run: when it is unclear
+whether a local failure is real, check whether master is green there.
+
 ## Current Coverage Summary
 
 Every script `run_all.comt` runs, in the order it runs them. Three states:
