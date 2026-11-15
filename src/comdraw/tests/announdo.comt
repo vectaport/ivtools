@@ -76,5 +76,9 @@ print("9 undo() of the edit to r; r e (expect first note elsewhere): %v %v\n" an
 ok=ok&&(index(help() "annoedit_test" :substr)==nil)
 print("10 annoedit_test absent from help()'s listing (expect nil): %v\n" index(help() "annoedit_test" :substr))
 
+// --- test 11: a non-compview object argument returns nil, it does not crash ---
+ok=ok&&(annoedit_test(attrlist(:x 1))==nil)&&(annoedit_test(r)=="first note")
+print("11 annoedit_test(attrlist(:x 1)); retval r (expect nil first note): %v %v\n" annoedit_test(attrlist(:x 1)) annoedit_test(r))
+
 print("announdo: %v\n" ok)
 ok

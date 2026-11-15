@@ -1209,7 +1209,9 @@ void AttrEditTestFunc::execute() {
     ComValue viewval(stack_arg(0));
     AttributeList* al = stack_keys();
     reset_stack();
-    if (!viewval.is_object()) {
+    /* object_compview(), not is_object(): an AttributeList or an Attribute
+       handle is an object too, and casting one to ComponentView* crashes. */
+    if (!viewval.object_compview()) {
       delete al;
       push_stack(ComValue::nullval());
       return;
@@ -1242,7 +1244,8 @@ void AnnoEditTestFunc::execute() {
     boolean clear_flag = stack_key(clear_symid).is_true();
     reset_stack();
 
-    if (!viewval.is_object()) {
+    /* object_compview(), not is_object(): see attredit_test above. */
+    if (!viewval.object_compview()) {
       push_stack(ComValue::nullval());
       return;
     }

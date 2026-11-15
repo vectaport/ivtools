@@ -76,5 +76,23 @@ print("8 setattr(r :speed 30) merges and logs nothing; r.speed r.hp undoable()-p
 ok=ok&&(index(help() "attredit_test" :substr)==nil)
 print("9 attredit_test absent from help()'s listing (expect nil): %v\n" index(help() "attredit_test" :substr))
 
+// --- test 10: the undo snapshot survives a later write through the array ---
+// a keyword's array value arrives sharing the caller's array, so the command
+// duplicates it: mutating the script's copy afterwards must not change what
+// undo restores.
+g=rect(500,500,600,600)
+nums=1,2,3
+attredit_test(g :nums nums)
+attredit_test(g :hp 1)
+nums@0=99
+undo()
+ok=ok&&(g.nums@0==1)&&(nums@0==99)
+print("10 nums@0=99 after the edit; undo() restores g.nums@0, nums@0 (expect 1 99): %v %v\n" g.nums@0 nums@0)
+
+// --- test 11: a non-compview object argument returns nil, it does not crash ---
+// an attrlist is an object too, so is_object() is not enough of a check.
+ok=ok&&(attredit_test(attrlist(:x 1) :hp 7)==nil)&&(g.nums@0==1)
+print("11 attredit_test(attrlist(:x 1) :hp 7); retval g.nums@0 (expect nil 1): %v %v\n" attredit_test(attrlist(:x 1) :hp 7) g.nums@0)
+
 print("attreditundo: %v\n" ok)
 ok

@@ -33,7 +33,9 @@ class AttributeList;
 class AttrData : public Data {
 public:
     AttrData(AttributeList*);
-    // copies the list; the original goes on being edited.
+    // copies the list; the original goes on being edited.  Array and stream
+    // values are duplicated rather than shared, so a later write through one
+    // of them cannot rewrite what undo restores.
     virtual ~AttrData();
 
     AttributeList* attrlist() { return _attrlist; }
@@ -52,7 +54,9 @@ public:
     virtual ~SetAttrCmd();
 
     AttributeList* attrlist() { return _attrlist; }
-    // the attributes to merge into each target.
+    // the attributes to merge into each target.  The constructor takes over
+    // the caller's reference and duplicates any array or stream value in
+    // place, since the history reapplies this list on every redo.
     boolean& replace() { return _replace; }
     // when set, each target's property list is emptied before the merge, so
     // the command carries the list the target ends up with rather than an
