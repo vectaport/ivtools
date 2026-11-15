@@ -497,5 +497,26 @@ public:
 	return "comp=%s(comp :keyword value ...) -- TEST-ONLY: set `comp`'s property list to exactly the given keywords, through the same kit call the attribute dialog's accept() makes -- no dialog involved, for exercising the real command path from a CI script.  Not for driving scripts; see setattr()."; }
 };
 
+//: TEST-ONLY: call OverlayKit::apply_anno_edit() directly, no dialog required
+// anno=annoedit_test(comp [anno] :clear)
+//
+// The annotation counterpart of attredit_test above.  The Annotate dialog and
+// the text pane's Set button each hand the kit a finished string; this hands
+// it one directly, so a CI script can bracket the command with undo()/redo().
+//
+// It reads as well as writes, because nothing else exposes a component's
+// annotation to a script: a bare annoedit_test(comp) returns the current one,
+// and a set returns what the component reads back afterwards.
+//
+// :clear is how a script removes an annotation.  An unsupplied positional and
+// an explicit nil both read nil, so the keyword is what tells the two apart.
+class AnnoEditTestFunc : public UnidrawFunc {
+public:
+    AnnoEditTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "anno=%s(comp [anno] :clear) -- TEST-ONLY: read `comp`'s annotation, or set it to `anno` (:clear removes it), through the same kit call the Annotate dialog and the text pane's Set button make -- no dialog involved, for exercising the real command path from a CI script."; }
+};
+
 #endif /* !defined(_unifunc_h) */
 

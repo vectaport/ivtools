@@ -127,5 +127,9 @@ if(run("./attreditundo.comt")
   :then print("pass: attreditundo\n")
   :else print("FAIL: attreditundo\n");ok=false)
 
+if(run("./announdo.comt")
+  :then print("pass: announdo\n")
+  :else print("FAIL: announdo\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

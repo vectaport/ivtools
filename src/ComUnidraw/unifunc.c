@@ -62,6 +62,7 @@
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
 #include <stdio.h>
+#include <string>
 #include <strstream>
 #include <unistd.h>
 #include <fstream.h>
@@ -1227,4 +1228,47 @@ void AttrEditTestFunc::execute() {
     OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
     kit->apply_attr_edit(comp, al);
     push_stack(viewval);
+}
+
+/*****************************************************************************/
+
+AnnoEditTestFunc::AnnoEditTestFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void AnnoEditTestFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    ComValue annoval(stack_arg(1));
+    static int clear_symid = symbol_add("clear");
+    boolean clear_flag = stack_key(clear_symid).is_true();
+    reset_stack();
+
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    std::string scratch;
+    if (clear_flag)
+	kit->apply_anno_edit(comp, nil);
+    else if (annoval.is_string())
+	/* cstr(), not string_ptr(): a sliced string shares its parent's whole
+	   backing, so only the narrowed text is the annotation. */
+	kit->apply_anno_edit(comp, annoval.cstr(scratch));
+
+    /* read back from the component, so a set reports what the command
+       actually left rather than what it was handed. */
+    const char* anno = comp->GetAnnotation();
+    if (anno) {
+      ComValue retval(anno);
+      push_stack(retval);
+    } else
+      push_stack(ComValue::nullval());
 }
