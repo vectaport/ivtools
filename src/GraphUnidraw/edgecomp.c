@@ -141,7 +141,7 @@ void EdgeComp::GrowParamList(ParamList* pl) {
 Component* EdgeComp::Copy() {
     
     EdgeComp* comp = GetArrowLine() ? NewEdgeComp((ArrowLine*) GetArrowLine()->Copy()) : NewEdgeComp();
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     comp->_start_node = _start_node;
     comp->_end_node = _end_node;
     comp->_start_subedge = _start_subedge;
