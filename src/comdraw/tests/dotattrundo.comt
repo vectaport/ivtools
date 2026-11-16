@@ -107,5 +107,20 @@ undo()
 ok=ok&&(bare.x==2)&&(r.hp==4)
 print("11 bare.x=2 between r.hp=5 and undo(); bare.x r.hp (expect 2 4): %v %v\n" bare.x r.hp)
 
+// --- test 12: a write through attrlist(comp) logs nothing, and the history
+// does not know about it ---
+// The raw list is the raw list, which is what keeps bulk attribute work
+// cheap: no command, no undo step per write.  Both halves of that are here.
+// r.hp reverting to 4 is the proof nothing was logged for al.bulk -- had it
+// logged a step, this undo() would have reverted that step and left hp at 7.
+// r.bulk going nil is the price: undo restores the component's whole prior
+// list, so a raw write made after that command's snapshot goes with it.
+r.hp=7
+al.bulk=1
+ok=ok&&(r.bulk==1)
+undo()
+ok=ok&&(r.hp==4)&&(r.bulk==nil)
+print("12 al.bulk=1 after r.hp=7, then undo(); r.hp r.bulk (expect 4 nil): %v %v\n" r.hp r.bulk)
+
 print("dotattrundo: %v\n" ok)
 ok
