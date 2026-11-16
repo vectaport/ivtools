@@ -43,29 +43,10 @@ static char* anno_copy(const char* anno) {
 
 /*****************************************************************************/
 
-/* AttributeList's copy constructor shares each value's array or stream with
-   the original, which is right for an ordinary copy and wrong for a snapshot:
-   a later write through the shared container would rewrite history.  Arrays
-   and streams are duplicated here; dup_as_needed() goes all the way down,
-   since AttributeValueList's own copy constructor takes each element by
-   pointer and so duplicates in turn.
-
-   Object values are deliberately left shared.  Undo restores a handle to the
-   same component, and dup_as_needed() on a ComponentView would Duplicate()
-   it and Attach() the copy to the subject. */
-static void snapshot_values(AttributeList* al) {
-    ALIterator i;
-    for (al->First(i); !al->Done(i); al->Next(i)) {
-        AttributeValue* av = al->GetAttr(i)->Value();
-	if (av->is_array() || av->is_stream())
-	    av->dup_as_needed();
-    }
-}
-
 AttrData::AttrData(AttributeList* al) {
     _attrlist = new AttributeList(al);
     Resource::ref(_attrlist);
-    snapshot_values(_attrlist);
+    _attrlist->snapshot_values();
 }
 
 AttrData::~AttrData() {
@@ -87,14 +68,14 @@ boolean SetAttrCmd::IsA (ClassId id) {
 SetAttrCmd::SetAttrCmd (ControlInfo* c, AttributeList* al) : Command(c) {
     _attrlist = al;
     Resource::ref(_attrlist);
-    if (_attrlist) snapshot_values(_attrlist);
+    if (_attrlist) _attrlist->snapshot_values();
     _replace = false;
 }
 
 SetAttrCmd::SetAttrCmd (Editor* ed, AttributeList* al) : Command(ed) {
     _attrlist = al;
     Resource::ref(_attrlist);
-    if (_attrlist) snapshot_values(_attrlist);
+    if (_attrlist) _attrlist->snapshot_values();
     _replace = false;
 }
 

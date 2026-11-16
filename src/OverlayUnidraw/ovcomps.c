@@ -258,7 +258,9 @@ void OverlayComp::Interpret(Command* cmd) {
 	AttributeList* al = GetAttributeList();
 	cmd->Store(this, new AttrData(al));
 	if (sacmd->replace()) al->clear();
-	al->merge(sacmd->attrlist());
+	/* the command replays this list on every redo, so the component
+	   takes its own containers rather than sharing the command's. */
+	al->merge_snapshot(sacmd->attrlist());
 	Notify();
 
     } else if (cmd->IsA(SETANNO_CMD)) {
@@ -286,7 +288,9 @@ void OverlayComp::Uninterpret(Command* cmd) {
 	   the interpreter still holds a handle on. */
 	AttributeList* al = GetAttributeList();
 	al->clear();
-	al->merge(ad->attrlist());
+	/* the stored data stays the command's own, so a later write through
+	   the component cannot reach back into the history. */
+	al->merge_snapshot(ad->attrlist());
 	Notify();
 
     } else if (cmd->IsA(SETANNO_CMD)) {

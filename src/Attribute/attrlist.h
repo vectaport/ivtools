@@ -156,6 +156,17 @@ public:
     // linear _alist scan -- e.g. for an apples-to-apples before/after
     // benchmark against the indexed lookup. Visible via info(al :sym).
 
+    AttributeList* merge_snapshot(AttributeList*);
+    // merge() for a list that must stay immune to a later write through a
+    // container it would otherwise share with the source:  each merged
+    // value's array or stream becomes this list's own.
+    // Object values stay shared, since a restore has to name the same
+    // object rather than a duplicate of it.
+
+    void snapshot_values();
+    // apply merge_snapshot()'s rule to the entries already in this list,
+    // for a list held exclusively by its owner.
+
 protected:
     void Append(Attribute*);
     // append Attribute to end of list.  Could cause duplicates.

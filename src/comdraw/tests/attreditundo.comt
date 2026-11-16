@@ -12,7 +12,7 @@
 // The widget itself stays manual -- no XTest under xvfb.  See
 // src/comdraw/tests/TESTING.md, "What Belongs Here".
 //
-// funcs: attredit_test undo redo undoable setattr dot-read help index
+// funcs: attredit_test undo redo undoable setattr dot-read dot-write help index
 
 ok=true
 each(delete($$select(:all)))
@@ -93,6 +93,17 @@ print("10 nums@0=99 after the edit; undo() restores g.nums@0, nums@0 (expect 1 9
 // an attrlist is an object too, so is_object() is not enough of a check.
 ok=ok&&(attredit_test(attrlist(:x 1) :hp 7)==nil)&&(g.nums@0==1)
 print("11 attredit_test(attrlist(:x 1) :hp 7); retval g.nums@0 (expect nil 1): %v %v\n" attredit_test(attrlist(:x 1) :hp 7) g.nums@0)
+
+// --- test 12: a write through the component does not change what redo applies ---
+// Interpret() fills the component through merge_snapshot(), so the array the
+// command keeps for redo is not the one the component hands out to a script.
+g2=rect(700,700,800,800)
+attredit_test(g2 :nums (1,2,3))
+g2.nums@0=99
+undo()
+redo()
+ok=ok&&(g2.nums@0==1)
+print("12 g2.nums@0=99 then undo() redo(); g2.nums@0 (expect 1): %v\n" g2.nums@0)
 
 print("attreditundo: %v\n" ok)
 ok
