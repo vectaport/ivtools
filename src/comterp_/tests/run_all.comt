@@ -3,6 +3,10 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp/tests/run_all.comt")
 
+// The accumulator is named topok, not ok: run() evaluates each script in
+// this same interpreter and global namespace, so a sub-script's own `ok=true`
+// would overwrite it and a later pass would hide an earlier failure.
+
 topok=true
 
 if(run("./hello.comt")

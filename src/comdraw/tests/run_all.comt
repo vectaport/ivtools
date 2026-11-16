@@ -13,115 +13,119 @@
 // Use -stdin_off for non-interactive runs: with stdin closed (piped/backgrounded)
 // comdraw quits on the stdin EOF.
 
-ok=true
+// The accumulator is named topok, not ok: run() evaluates each script in
+// this same interpreter and global namespace, so a sub-script's own `ok=true`
+// would overwrite it and a later pass would hide an earlier failure.
+
+topok=true
 
 if(run("./pixelfunc.comt")
   :then print("pass: pixelfunc\n")
-  :else print("FAIL: pixelfunc\n");ok=false)
+  :else print("FAIL: pixelfunc\n");topok=false)
 
 if(run("./gsexim.comt")
   :then print("pass: gsexim\n")
-  :else print("FAIL: gsexim\n");ok=false)
+  :else print("FAIL: gsexim\n");topok=false)
 
 if(run("./rastereps.comt")
   :then print("pass: rastereps\n")
-  :else print("FAIL: rastereps\n");ok=false)
+  :else print("FAIL: rastereps\n");topok=false)
 
 if(run("./rasterepsbig.comt")
   :then print("pass: rasterepsbig\n")
-  :else print("FAIL: rasterepsbig\n");ok=false)
+  :else print("FAIL: rasterepsbig\n");topok=false)
 
 if(run("./group.comt")
   :then print("pass: group\n")
-  :else print("FAIL: group\n");ok=false)
+  :else print("FAIL: group\n");topok=false)
 
 if(run("./colorrasteps.comt")
   :then print("pass: colorrasteps\n")
-  :else print("FAIL: colorrasteps\n");ok=false)
+  :else print("FAIL: colorrasteps\n");topok=false)
 
 if(run("./exportcomposite.comt")
   :then print("pass: exportcomposite\n")
-  :else print("FAIL: exportcomposite\n");ok=false)
+  :else print("FAIL: exportcomposite\n");topok=false)
 
 if(run("./arrowmultiline.comt")
   :then print("pass: arrowmultiline\n")
-  :else print("FAIL: arrowmultiline\n");ok=false)
+  :else print("FAIL: arrowmultiline\n");topok=false)
 
 if(run("./arrowheadink.comt")
   :then print("pass: arrowheadink\n")
-  :else print("FAIL: arrowheadink\n");ok=false)
+  :else print("FAIL: arrowheadink\n");topok=false)
 
 if(run("./arrowheadlegacy.comt")
   :then print("pass: arrowheadlegacy\n")
-  :else print("FAIL: arrowheadlegacy\n");ok=false)
+  :else print("FAIL: arrowheadlegacy\n");topok=false)
 
 if(run("./gsget.comt")
   :then print("pass: gsget\n")
-  :else print("FAIL: gsget\n");ok=false)
+  :else print("FAIL: gsget\n");topok=false)
 
 if(run("./dotattr.comt")
   :then print("pass: dotattr\n")
-  :else print("FAIL: dotattr\n");ok=false)
+  :else print("FAIL: dotattr\n");topok=false)
 
 if(run("./lastkey.comt")
   :then print("pass: lastkey\n")
-  :else print("FAIL: lastkey\n");ok=false)
+  :else print("FAIL: lastkey\n");topok=false)
 
 if(run("./paste.comt")
   :then print("pass: paste\n")
-  :else print("FAIL: paste\n");ok=false)
+  :else print("FAIL: paste\n");topok=false)
 
 if(run("./rasterrgb.comt")
   :then print("pass: rasterrgb\n")
-  :else print("FAIL: rasterrgb\n");ok=false)
+  :else print("FAIL: rasterrgb\n");topok=false)
 
 if(run("./zoomap.comt")
   :then print("pass: zoomap\n")
-  :else print("FAIL: zoomap\n");ok=false)
+  :else print("FAIL: zoomap\n");topok=false)
 
 if(run("./spirograph.comt")
   :then print("pass: spirograph\n")
-  :else print("FAIL: spirograph\n");ok=false)
+  :else print("FAIL: spirograph\n");topok=false)
 
 if(run("./shapes.comt")
   :then print("pass: shapes\n")
-  :else print("FAIL: shapes\n");ok=false)
+  :else print("FAIL: shapes\n");topok=false)
 
 if(run("./trans.comt")
   :then print("pass: trans\n")
-  :else print("FAIL: trans\n");ok=false)
+  :else print("FAIL: trans\n");topok=false)
 
 if(run("./deletestream.comt")
   :then print("pass: deletestream\n")
-  :else print("FAIL: deletestream\n");ok=false)
+  :else print("FAIL: deletestream\n");topok=false)
 
 if(run("./deletearray.comt")
   :then print("pass: deletearray\n")
-  :else print("FAIL: deletearray\n");ok=false)
+  :else print("FAIL: deletearray\n");topok=false)
 
 if(run("./classcomps.comt")
   :then print("pass: classcomps\n")
-  :else print("FAIL: classcomps\n");ok=false)
+  :else print("FAIL: classcomps\n");topok=false)
 
 if(run("./import.comt")
   :then print("pass: import\n")
-  :else print("FAIL: import\n");ok=false)
+  :else print("FAIL: import\n");topok=false)
 
 if(run("./frontback.comt")
   :then print("pass: frontback\n")
-  :else print("FAIL: frontback\n");ok=false)
+  :else print("FAIL: frontback\n");topok=false)
 
 if(run("./carousel.comt")
   :then print("pass: carousel\n")
-  :else print("FAIL: carousel\n");ok=false)
+  :else print("FAIL: carousel\n");topok=false)
 
 if(run("./export_cutoff.comt")
   :then print("pass: export_cutoff\n")
-  :else print("FAIL: export_cutoff\n");ok=false)
+  :else print("FAIL: export_cutoff\n");topok=false)
 
 if(run("./quarterpusher.comt")
   :then print("pass: quarterpusher\n")
-  :else print("FAIL: quarterpusher\n");ok=false)
+  :else print("FAIL: quarterpusher\n");topok=false)
 
-print("\nrun_all: %v\n" ok)
-ok
+print("\nrun_all: %v\n" topok)
+topok
