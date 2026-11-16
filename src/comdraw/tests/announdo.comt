@@ -1,0 +1,84 @@
+// src/comdraw/tests/announdo.comt -- the annotation edit is a command
+//
+// An annotation is one free-text string per component, separate from the
+// property list: the Annotate dialog and the text pane's Set button each hand
+// a finished string to OverlayKit::apply_anno_edit(), which builds a
+// SetAnnoCmd and executes it.  annoedit_test() hands one over directly,
+// standing in for a typed field and a press of Apply, and reads the string
+// back so a script can see what the command left.
+//
+// The widget itself stays manual -- no XTest under xvfb.  See
+// src/comdraw/tests/TESTING.md, "What Belongs Here".
+//
+// funcs: annoedit_test undo redo undoable help index
+
+ok=true
+each(delete($$select(:all)))
+
+r=rect(50,50,150,150)
+
+// --- test 1: a component starts with no annotation ---
+ok=ok&&(annoedit_test(r)==nil)
+print("1 annoedit_test(r) on a fresh rect (expect nil): %v\n" annoedit_test(r))
+
+// --- test 2: an edit through the kit sets the string ---
+ok=ok&&(annoedit_test(r "first note")=="first note")
+print("2 annoedit_test(r \"first note\") (expect first note): %v\n" annoedit_test(r))
+
+// --- test 3: a second edit replaces it outright ---
+// one string per component, so there is nothing to merge with.
+annoedit_test(r "second note")
+ok=ok&&(annoedit_test(r)=="second note")
+print("3 annoedit_test(r \"second note\") replaces (expect second note): %v\n" annoedit_test(r))
+
+// --- test 4: undo restores the prior string, not nil ---
+undo()
+ok=ok&&(annoedit_test(r)=="first note")
+print("4 undo(); annoedit_test(r) (expect first note): %v\n" annoedit_test(r))
+
+// --- test 5: redo reapplies the replacement ---
+redo()
+ok=ok&&(annoedit_test(r)=="second note")
+print("5 redo(); annoedit_test(r) (expect second note): %v\n" annoedit_test(r))
+
+// --- test 6: undoing back past the first edit leaves no annotation ---
+// the command stores whatever was there before, which for the first edit is
+// the nil a component is created with.
+undo()
+undo()
+ok=ok&&(annoedit_test(r)==nil)
+print("6 undo() back past the first edit (expect nil): %v\n" annoedit_test(r))
+
+// --- test 7: one edit is one undo step ---
+before=undoable()
+redo()
+ok=ok&&(annoedit_test(r)=="first note")&&(undoable()==before+1)
+print("7 redo(); annoedit_test(r) undoable()-before (expect first note 1): %v %v\n" annoedit_test(r) undoable()-before)
+
+// --- test 8: :clear removes the annotation, and is itself undoable ---
+// an unsupplied positional and an explicit nil both read nil, so the keyword
+// is what distinguishes clearing from reading.
+annoedit_test(r :clear)
+ok=ok&&(annoedit_test(r)==nil)
+undo()
+ok=ok&&(annoedit_test(r)=="first note")
+print("8 annoedit_test(r :clear) then undo() (expect first note): %v\n" annoedit_test(r))
+
+// --- test 9: one component's undo leaves another's annotation alone ---
+e=rect(300,300,400,400)
+annoedit_test(e "elsewhere")
+annoedit_test(r "overwritten")
+undo()
+ok=ok&&(annoedit_test(r)=="first note")&&(annoedit_test(e)=="elsewhere")
+print("9 undo() of the edit to r; r e (expect first note elsewhere): %v %v\n" annoedit_test(r) annoedit_test(e))
+
+// --- test 10: annoedit_test stays out of help()'s listing ---
+ok=ok&&(index(help() "annoedit_test" :substr)==nil)
+print("10 annoedit_test absent from help()'s listing (expect nil): %v\n" index(help() "annoedit_test" :substr))
+
+// --- test 11: a non-compview object argument returns nil, it does not crash ---
+ok=ok&&(annoedit_test(attrlist(:x 1))==nil)&&(annoedit_test(r)=="first note")
+print("11 annoedit_test(attrlist(:x 1)); retval r (expect nil first note): %v %v\n" annoedit_test(attrlist(:x 1)) annoedit_test(r))
+
+print("announdo: %v\n" ok)
+ok

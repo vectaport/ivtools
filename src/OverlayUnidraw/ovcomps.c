@@ -37,6 +37,7 @@
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/paramlist.h>
 #include <OverlayUnidraw/scriptview.h>
+#include <OverlayUnidraw/setattrcmd.h>
 
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
@@ -252,6 +253,21 @@ void OverlayComp::Interpret(Command* cmd) {
 	}
 	Notify();
 	
+    } else if (cmd->IsA(SETATTR_CMD)) {
+	SetAttrCmd* sacmd = (SetAttrCmd*)cmd;
+	AttributeList* al = GetAttributeList();
+	cmd->Store(this, new AttrData(al));
+	if (sacmd->replace()) al->clear();
+	/* the command replays this list on every redo, so the component
+	   takes its own containers rather than sharing the command's. */
+	al->merge_snapshot(sacmd->attrlist());
+	Notify();
+
+    } else if (cmd->IsA(SETANNO_CMD)) {
+	cmd->Store(this, new AnnoData(GetAnnotation()));
+	SetAnnotation(((SetAnnoCmd*)cmd)->annotation());
+	Notify();
+
     } else {
       GraphicComp::Interpret(cmd);
     }
@@ -266,6 +282,22 @@ void OverlayComp::Uninterpret(Command* cmd) {
 	Iterator i;
 	
 	    
+    } else if (cmd->IsA(SETATTR_CMD)) {
+	AttrData* ad = (AttrData*) cmd->Recall(this);
+	/* restored in place, so the list object goes on owning any Attribute
+	   the interpreter still holds a handle on. */
+	AttributeList* al = GetAttributeList();
+	al->clear();
+	/* the stored data stays the command's own, so a later write through
+	   the component cannot reach back into the history. */
+	al->merge_snapshot(ad->attrlist());
+	Notify();
+
+    } else if (cmd->IsA(SETANNO_CMD)) {
+	AnnoData* ad = (AnnoData*) cmd->Recall(this);
+	SetAnnotation(ad->annotation());
+	Notify();
+
     } else {
 	GraphicComp::Uninterpret(cmd);
     }

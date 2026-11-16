@@ -401,8 +401,9 @@ void OverlayEditor::ResetStateVars() {
 
 void OverlayEditor::SetText() {
     GraphicComp* comp = GetFrame()->GetGraphicComp();
-    ((OverlayComp*)comp)->SetAnnotation(TextEditor()->text());
-    ((ModifStatusVar*)GetState("ModifStatusVar"))->SetModifStatus(true);
+    /* the Set button is an explicit commit, so one press is one undo step;
+       logging it marks the drawing modified. */
+    _overlay_kit->apply_anno_edit((OverlayComp*)comp, TextEditor()->text());
 }
 
 void OverlayEditor::ClearText() {

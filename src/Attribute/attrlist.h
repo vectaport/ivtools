@@ -131,6 +131,12 @@ public:
     // merge the contents of another AttributeList into this one,
     // replicating the AttributeValue as needed.
 
+    void clear();
+    // empty the list, unreferencing every Attribute.  Public alongside
+    // merge(), its filling counterpart, and safe for the same reason the
+    // key-based mutators are:  it removes through Remove(ALIterator&),
+    // which keeps _count and the symid index in step.
+
     boolean sealed() { return _sealed; }
     // true if no new entry may be added; an existing entry can still be
     // read or reassigned either way.  False by default.
@@ -150,6 +156,17 @@ public:
     // linear _alist scan -- e.g. for an apples-to-apples before/after
     // benchmark against the indexed lookup. Visible via info(al :sym).
 
+    AttributeList* merge_snapshot(AttributeList*);
+    // merge() for a list that must stay immune to a later write through a
+    // container it would otherwise share with the source:  each merged
+    // value's array or stream becomes this list's own.
+    // Object values stay shared, since a restore has to name the same
+    // object rather than a duplicate of it.
+
+    void snapshot_values();
+    // apply merge_snapshot()'s rule to the entries already in this list,
+    // for a list held exclusively by its owner.
+
 protected:
     void Append(Attribute*);
     // append Attribute to end of list.  Could cause duplicates.
@@ -162,9 +179,6 @@ protected:
     void Remove(ALIterator&);
     // removes the Attribute at the iterator and returns responsibility
     // for freeing it -- save a pointer to it first, before calling this.
-
-    void clear(); 
-    // empty AttributeList, deleting all Attributes.
 
 
 public:

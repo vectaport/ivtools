@@ -64,6 +64,7 @@
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <OverlayUnidraw/rastercmds.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
 #include <OverlayUnidraw/slctbyattr.h>
@@ -76,6 +77,7 @@
 
 #include <UniIdraw/idcatalog.h>
 
+#include <Unidraw/clipboard.h>
 #include <Unidraw/ctrlinfo.h>
 #include <Unidraw/editor.h>
 #include <Unidraw/grid.h>
@@ -1158,6 +1160,30 @@ RotateCmd* OverlayKit::make_rotate_cmd(Editor* ed, float angle) {
     return new RotateCmd(ed, angle);
 }
 
+SetAttrCmd* OverlayKit::make_setattr_cmd(Editor* ed, AttributeList* al, Clipboard* cb) {
+    SetAttrCmd* cmd = new SetAttrCmd(ed, al);
+    if (cb) cmd->SetClipboard(cb);
+    return cmd;
+}
+
+void OverlayKit::apply_attr_edit(OverlayComp* comp, AttributeList* al) {
+    SetAttrCmd* cmd = make_setattr_cmd(_ed, al, new Clipboard(comp));
+    /* replace, since an entry the editor of the list removed has to go away
+       -- a merge would leave it behind. */
+    cmd->replace() = true;
+    unidraw->ExecuteCmd(cmd);
+}
+
+SetAnnoCmd* OverlayKit::make_setanno_cmd(Editor* ed, const char* anno, Clipboard* cb) {
+    SetAnnoCmd* cmd = new SetAnnoCmd(ed, anno);
+    if (cb) cmd->SetClipboard(cb);
+    return cmd;
+}
+
+void OverlayKit::apply_anno_edit(OverlayComp* comp, const char* anno) {
+    unidraw->ExecuteCmd(make_setanno_cmd(_ed, anno, new Clipboard(comp)));
+}
+
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new FontCmd(ctrlInfo, font);
 }
@@ -1699,16 +1725,16 @@ void OverlayKit::Annotate(OverlayComp* comp) {
 	anno = "";
     AnnotateDialog* dlog = new AnnotateDialog(anno, &kit, kit.style());
     dlog->ref();
-    if (dlog->post_for(_ed->GetWindow())) {
-	const char* newtext = dlog->value();
-	comp->SetAnnotation(newtext);
-	((ModifStatusVar*)_ed->GetState("ModifStatusVar"))->SetModifStatus(true);
-    }
+    if (dlog->post_for(_ed->GetWindow()))
+	/* through the kit rather than onto the component, so the edit is
+	   undoable; logging it marks the drawing modified, which the direct
+	   write had to do for itself. */
+	apply_anno_edit(comp, dlog->value());
 }
 
 void OverlayKit::AttrEdit(OverlayComp* comp) {
     WidgetKit& kit = *WidgetKit::instance();
-    AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style());
+    AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style(), _ed);
     dlog->ref();
 #if 0
     if (dlog->post_for(_ed->GetWindow()))

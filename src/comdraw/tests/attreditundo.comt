@@ -1,0 +1,109 @@
+// src/comdraw/tests/attreditundo.comt -- the attribute dialog's edit is a command
+//
+// OverlayKit::apply_attr_edit() is the half of AttributeDialogImpl::accept()
+// that survives without the widget: it builds a SetAttrCmd through the kit's
+// factory, sets replace() so the list it carries is the component's whole new
+// property list rather than an addition to it, and executes it.  attredit_test()
+// calls it with a synthetic list, standing in for two typed fields and a press
+// of Apply.  What that buys over setattr() is the two behaviors only the dialog
+// has: replace (a key removed in the dialog goes away) and an undo step that
+// restores the whole prior list rather than the keys just written.
+//
+// The widget itself stays manual -- no XTest under xvfb.  See
+// src/comdraw/tests/TESTING.md, "What Belongs Here".
+//
+// funcs: attredit_test undo redo undoable setattr dot-read dot-write help index
+
+ok=true
+each(delete($$select(:all)))
+
+r=rect(50,50,150,150)
+
+// --- test 1: an edit through the kit sets the whole list ---
+attredit_test(r :hp 7 :ac 15)
+ok=ok&&(r.hp==7)&&(r.ac==15)
+print("1 attredit_test(r :hp 7 :ac 15); r.hp r.ac (expect 7 15): %v %v\n" r.hp r.ac)
+
+// --- test 2: replace -- a key left out of the new list goes away ---
+// setattr() merges, so this is the one semantic the dialog alone needs.
+attredit_test(r :hp 9)
+ok=ok&&(r.hp==9)&&(r.ac==nil)
+print("2 attredit_test(r :hp 9) drops the unlisted ac (expect 9 nil): %v %v\n" r.hp r.ac)
+
+// --- test 3: undo restores the whole prior list, ac included ---
+undo()
+ok=ok&&(r.hp==7)&&(r.ac==15)
+print("3 undo(); r.hp r.ac restored together (expect 7 15): %v %v\n" r.hp r.ac)
+
+// --- test 4: redo reapplies the replace ---
+redo()
+ok=ok&&(r.hp==9)&&(r.ac==nil)
+print("4 redo(); r.hp r.ac (expect 9 nil): %v %v\n" r.hp r.ac)
+
+// --- test 5: undoing back past the first edit leaves no attribute ---
+undo()
+undo()
+ok=ok&&(r.hp==nil)&&(r.ac==nil)
+print("5 undo() back past the first edit; r.hp r.ac (expect nil nil): %v %v\n" r.hp r.ac)
+
+// --- test 6: one call is one undo step however many keywords it wrote ---
+// test 1 wrote two keywords; the redo that puts them back is a single step,
+// so the depth undoable() reports moves by one.
+before=undoable()
+redo()
+ok=ok&&(r.hp==7)&&(r.ac==15)&&(undoable()==before+1)
+print("6 redo() of a two-keyword edit is one step; r.hp r.ac undoable()-before (expect 7 15 1): %v %v %v\n" r.hp r.ac undoable()-before)
+
+// --- test 7: one component's undo leaves another's attributes alone ---
+e=rect(300,300,400,400)
+attredit_test(e :hp 99)
+attredit_test(r :hp 1)
+undo()
+ok=ok&&(r.hp==7)&&(r.ac==15)&&(e.hp==99)
+print("7 undo() of the edit to r; r.hp r.ac e.hp (expect 7 15 99): %v %v %v\n" r.hp r.ac e.hp)
+
+// --- test 8: setattr() still merges, and is still not undoable ---
+// PR 1 leaves the scripted path alone: setattr() writes the list directly,
+// so it adds to what the dialog's edit left and contributes no undo step.
+pre8=undoable()
+setattr(r :speed 30)
+ok=ok&&(r.speed==30)&&(r.hp==7)&&(undoable()==pre8)
+print("8 setattr(r :speed 30) merges and logs nothing; r.speed r.hp undoable()-pre8 (expect 30 7 0): %v %v %v\n" r.speed r.hp undoable()-pre8)
+
+// --- test 9: attredit_test stays out of help()'s listing ---
+// TEST-ONLY commands are registered hidden (ComFunc::hidden()) so they don't
+// clutter help() for driving-script authors, while staying fully callable.
+ok=ok&&(index(help() "attredit_test" :substr)==nil)
+print("9 attredit_test absent from help()'s listing (expect nil): %v\n" index(help() "attredit_test" :substr))
+
+// --- test 10: the undo snapshot survives a later write through the array ---
+// a keyword's array value arrives sharing the caller's array, so the command
+// duplicates it: mutating the script's copy afterwards must not change what
+// undo restores.
+g=rect(500,500,600,600)
+nums=1,2,3
+attredit_test(g :nums nums)
+attredit_test(g :hp 1)
+nums@0=99
+undo()
+ok=ok&&(g.nums@0==1)&&(nums@0==99)
+print("10 nums@0=99 after the edit; undo() restores g.nums@0, nums@0 (expect 1 99): %v %v\n" g.nums@0 nums@0)
+
+// --- test 11: a non-compview object argument returns nil, it does not crash ---
+// an attrlist is an object too, so is_object() is not enough of a check.
+ok=ok&&(attredit_test(attrlist(:x 1) :hp 7)==nil)&&(g.nums@0==1)
+print("11 attredit_test(attrlist(:x 1) :hp 7); retval g.nums@0 (expect nil 1): %v %v\n" attredit_test(attrlist(:x 1) :hp 7) g.nums@0)
+
+// --- test 12: a write through the component does not change what redo applies ---
+// Interpret() fills the component through merge_snapshot(), so the array the
+// command keeps for redo is not the one the component hands out to a script.
+g2=rect(700,700,800,800)
+attredit_test(g2 :nums (1,2,3))
+g2.nums@0=99
+undo()
+redo()
+ok=ok&&(g2.nums@0==1)
+print("12 g2.nums@0=99 then undo() redo(); g2.nums@0 (expect 1): %v\n" g2.nums@0)
+
+print("attreditundo: %v\n" ok)
+ok

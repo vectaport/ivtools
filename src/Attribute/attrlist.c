@@ -634,3 +634,32 @@ boolean AttributeValueList::LesserThan(AttributeValueList* avl) {
   
 }
 
+/* Undo data has to survive a later write through a container the live list
+   shares with it.  Arrays and streams are duplicated, and dup_as_needed()
+   recurses from there, since AttributeValueList's copy constructor takes each
+   element by pointer. */
+/* Object values are left shared on purpose: a restore has to name the same
+   object, where dup_as_needed() on a ComponentView would Duplicate() it and
+   Attach() the copy to the subject. */
+static void snapshot_value(AttributeValue* av) {
+    if (av->is_array() || av->is_stream())
+	av->dup_as_needed();
+}
+
+void AttributeList::snapshot_values() {
+    ALIterator i;
+    for (First(i); !Done(i); Next(i))
+	snapshot_value(GetAttr(i)->Value());
+}
+
+AttributeList* AttributeList::merge_snapshot(AttributeList* al) {
+    if (al) {
+	ALIterator it;
+	for (al->First(it); !al->Done(it); al->Next(it)) {
+	    Attribute* attr = new Attribute(*al->GetAttr(it));
+	    snapshot_value(attr->Value());
+	    add_attribute(attr);
+	}
+    }
+    return this;
+}
