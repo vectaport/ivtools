@@ -1,0 +1,79 @@
+// src/comdraw/tests/setattrundo.comt -- setattr() builds a command
+//
+// setattr() goes through OverlayKit::make_setattr_cmd(), the same factory the
+// attribute dialog uses, so a scripted attribute edit joins undo/redo like any
+// other edit and a DrawKit context can substitute a distributing subclass.
+//
+// SetAttrCmd names its target through its own clipboard rather than the
+// selection, so one call is one undo step however many keywords it writes.
+// Each target stores its whole prior property list in the command, so undoing
+// an edit to one component leaves the others as they were, and undoing the
+// edit that first created an attribute removes it rather than zeroing it.
+//
+// setattr() merges; replacing is the dialog's own semantic, covered in
+// attreditundo.comt.
+//
+// funcs: setattr undo redo dot-read attrlist
+
+ok=true
+each(delete($$select(:all)))
+
+r=rect(50,50,150,150)
+
+// --- test 1: setattr creates the attribute ---
+// Never measure the step with an undoable() delta: the history has a depth
+// cap, so in a full-suite run the count is already saturated and adding a
+// command leaves it unchanged.  Test 5 pins one-call-one-step instead, by
+// reverting a two-keyword call with a single undo().
+setattr(r :hp 7)
+ok=ok&&(r.hp==7)
+print("1 setattr(r :hp 7); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 2: undo restores what the previous setattr left ---
+setattr(r :hp 3)
+ok=ok&&(r.hp==3)
+undo()
+ok=ok&&(r.hp==7)
+print("2 setattr(r :hp 3) then undo(); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 3: redo reapplies it ---
+redo()
+ok=ok&&(r.hp==3)
+print("3 redo(); r.hp (expect 3): %v\n" r.hp)
+
+// --- test 4: undoing back past the first setattr leaves no attribute ---
+// the prior list had no hp at all, so undo removes it rather than zeroing it
+undo()
+undo()
+ok=ok&&(r.hp==nil)
+print("4 undo() back past the first setattr; r.hp (expect nil): %v\n" r.hp)
+
+// --- test 5: several keywords in one call make one undo step ---
+redo()
+setattr(r :ac 15 :speed 30)
+ok=ok&&(r.ac==15)&&(r.speed==30)
+undo()
+ok=ok&&(r.ac==nil)&&(r.speed==nil)&&(r.hp==7)
+print("5 setattr(r :ac 15 :speed 30) undone in one step; r.ac r.speed r.hp (expect nil nil 7): %v %v %v\n" r.ac r.speed r.hp)
+
+// --- test 6: one component's undo leaves another's attributes alone ---
+e=rect(300,300,400,400)
+setattr(e :hp 99)
+setattr(r :hp 1)
+undo()
+ok=ok&&(r.hp==7)&&(e.hp==99)
+print("6 undo() of setattr(r :hp 1); r.hp e.hp (expect 7 99): %v %v\n" r.hp e.hp)
+
+// --- test 7: setattr merges -- a key it does not name survives ---
+setattr(r :ac 5)
+setattr(r :hp 2)
+ok=ok&&(r.hp==2)&&(r.ac==5)
+print("7 setattr(r :ac 5) then setattr(r :hp 2); r.hp r.ac (expect 2 5): %v %v\n" r.hp r.ac)
+
+// --- test 8: a non-compview object argument returns nil ---
+// an attrlist is an object too, so is_object() is not enough of a check
+ok=ok&&(setattr(attrlist(:x 1) :hp 7)==nil)&&(r.hp==2)
+print("8 setattr(attrlist(:x 1) :hp 7); retval r.hp (expect nil 2): %v %v\n" setattr(attrlist(:x 1) :hp 7) r.hp)
+
+print("setattrundo: %v\n" ok)
+ok

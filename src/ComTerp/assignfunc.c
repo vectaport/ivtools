@@ -56,13 +56,18 @@ void AssignFunc::execute() {
     }
 
     if (operand1.type() != ComValue::SymbolType) {
-        // if lhs is global()/local()/at() (including lst@N=val),
+        // if lhs is global()/local()/at() (including lst@N=val) or a dot,
         // set lhs_assign on its ComValue to distinguish lhs from rhs context
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
         static int temp_symid = symbol_add("temp");
         static int at_symid = symbol_add("at");
         static int each_symid = symbol_add("each");
+        /* the dot reads this to tell a.b=val from a read of a.b, which it
+           cannot otherwise do -- both arrive at the same field lookup.  Only
+           a dot whose before-part is a component view acts on it (GrDotFunc);
+           every other dot hands back its live Attribute as before. */
+        static int dot_symid = symbol_add("dot");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();
         int arg0top = offtop;
@@ -73,7 +78,8 @@ void AssignFunc::execute() {
         if (startval.is_type(ComValue::CommandType)) {
             ComFunc* func = (ComFunc*)startval.obj_val();
             if (func->funcid() == global_symid || func->funcid() == local_symid ||
-                func->funcid() == temp_symid || func->funcid() == at_symid)
+                func->funcid() == temp_symid || func->funcid() == at_symid ||
+                func->funcid() == dot_symid)
                 startval.lhs_assign(1);
             else if (func->funcid() == each_symid) {
                 /* **lhs: flag each()'s own token so it hands back its
@@ -194,6 +200,14 @@ void AssignFunc::execute() {
 	}
       }
       operand2_owned = true;
+    } else if (operand1.is_array() && operand1.lhs_assign() && operand1.array_val() &&
+	       operand1.array_val()->Number() > 1 &&
+	       operand1.array_val()->Get(0)->is_type(ComValue::CommandType)) {
+      /* the lhs named the command that performs the write (comp.field=val):
+         call it with the pair's fixed args and this value, rather than
+         writing whatever the lhs resolved to. */
+      ComValue result(write_func_pair(comterp(), operand1, *operand2));
+      *operand2 = result;
     } else if (operand1.is_array() && operand1.lhs_assign()) {
       /* the @ operator: lst@N=val -- ListAtFunc handed back a [list, idx] pair,
          so complete the write by re-driving at() with a real :set keyword */
@@ -542,4 +556,22 @@ void DecrAfterFunc::execute() {
     } else 
         push_stack(ComValue::nullval());
 
+}
+
+/*****************************************************************************/
+
+ComValue AssignFunc::write_func_pair(ComTerp* comterp, ComValue& pairv, ComValue& writeval) {
+  AttributeValueList* pair = pairv.array_val();
+  ComValue funcval(*pair->Get(0));
+  ComFunc* func = (ComFunc*)funcval.obj_val();
+  int narg = 0;
+  for (int i = 1; i < pair->Number(); i++) {
+    comterp->push_stack(*pair->Get(i));
+    narg++;
+  }
+  comterp->push_stack(writeval);
+  narg++;
+  /* named, so anything the callee reports carries its own name */
+  func->exec(narg, 0, 0, func->funcid());
+  return comterp->pop_stack();
 }

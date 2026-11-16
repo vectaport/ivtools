@@ -40,6 +40,7 @@
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <ComGlyph/comtextedit.h>
 #include <ComGlyph/comtextview.h>
 #include <Unidraw/clipboard.h>
@@ -93,6 +94,11 @@ void UnidrawFunc::execute_log(Command* cmd) {
 #else
     unidraw->ExecuteCmd(cmd);
 #endif
+}
+
+void UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
+    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+    execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
 }
 
 OverlayComp* UnidrawFunc::live_subject(ComponentView* view) {
@@ -696,21 +702,25 @@ void SetAttrFunc::execute() {
     ComValue viewval(stack_arg(0));
     AttributeList* al = stack_keys();
     reset_stack();
-    if (!viewval.is_object()) {
+    /* only a component view is a valid target; is_object() is true for an
+       AttributeList or an Attribute handle as well, which are not views. */
+    if (!viewval.object_compview()) {
+      delete al;
       push_stack(ComValue::nullval());
       return;
     }
 
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
-
-    AttributeList* comp_al = comp ? comp->attrlist() : nil;
-    if (!comp_al && comp)
-      comp->SetAttributeList(al);
-    else if (comp_al) {
-      comp_al->merge(al);
+    if (!comp) {
       delete al;
+      push_stack(ComValue::nullval());
+      return;
     }
+
+    /* merging, not replacing: setattr() adds to the property list, where the
+       attribute dialog hands over the whole of its new one. */
+    execute_setattr(comp, al);
     push_stack(viewval);
 }
 

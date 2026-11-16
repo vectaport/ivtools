@@ -1,0 +1,111 @@
+// src/comdraw/tests/dotattrundo.comt -- comp.field=val builds a command
+//
+// A dot write can't be completed where it is read: the dot sees the component
+// and the field but never the value, since AssignFunc does that half, down in
+// a layer that names no component type.  So in lhs context GrDotFunc hands
+// back [completing func, compview, field] and AssignFunc appends the value and
+// calls it -- the shape lst@N=val already uses to re-drive at() with :set.
+// The completing func builds a one-entry list and goes through the same
+// factory setattr() does, so one SetAttrCmd serves both spellings.
+//
+// What that buys: comp.field=val is undoable, and distributing SetAttrCmd
+// distributes the dot for free, with no second wire form.
+//
+// dotattr.comt covers the read/write behavior itself; this file covers the
+// command dimension, and the three places the lhs hook must not fire: a
+// method call, a field read, and a plain attrlist that is not a component's.
+//
+// funcs: dot-assign dot-read undo redo setattr attrlist func
+
+ok=true
+each(delete($$select(:all)))
+
+r=rect(50,50,150,150)
+
+// --- test 1: the write reports the value it wrote ---
+// Never measure the command with an undoable() delta: the history has a depth
+// cap, so in a full-suite run the count is already saturated and adding a
+// command leaves it unchanged.  Tests 2 and 4 pin the step itself, by what a
+// single undo() reverts; test 11 pins a write that logs nothing at all.
+v=(r.hp=7)
+ok=ok&&(v==7)&&(r.hp==7)
+print("1 v=(r.hp=7); v r.hp (expect 7 7): %v %v\n" v r.hp)
+
+// --- test 2: undo removes an attribute the write created ---
+undo()
+ok=ok&&(r.hp==nil)
+print("2 undo() of r.hp=7; r.hp (expect nil): %v\n" r.hp)
+
+// --- test 3: redo reapplies it ---
+redo()
+ok=ok&&(r.hp==7)
+print("3 redo(); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 4: undo of a second write restores the prior value, not nil ---
+r.hp=9
+ok=ok&&(r.hp==9)
+undo()
+ok=ok&&(r.hp==7)
+print("4 r.hp=9 then undo(); r.hp (expect 7): %v\n" r.hp)
+
+// --- test 5: one component's undo leaves another's attributes alone ---
+e=rect(300,300,400,400)
+e.ac=3
+r.hp=1
+undo()
+ok=ok&&(r.hp==7)&&(e.ac==3)
+print("5 undo() of r.hp=1; r.hp e.ac (expect 7 3): %v %v\n" r.hp e.ac)
+
+// --- test 6: a write through a func-frame binding is still one command ---
+// the binding is local to the call; the command names the comp it resolves to
+stampf=func(g=arg(0); g.stamped=99; 0)
+stampf(r)
+ok=ok&&(r.stamped==99)
+undo()
+ok=ok&&(r.stamped==nil)
+print("6 stampf=func(g=arg(0); g.stamped=99); stampf(r) then undo(); r.stamped (expect nil): %v\n" r.stamped)
+
+// --- test 7: a variable of the field's own name does not shadow the field ---
+// the field is a symbol naming a property, never a variable to resolve
+hp=99
+r.hp=4
+ok=ok&&(hp==99)&&(r.hp==4)
+print("7 hp=99 then r.hp=4; hp r.hp (expect 99 4): %v %v\n" hp r.hp)
+
+// --- test 8: setattr() and the dot write the same list ---
+setattr(r :speed 30)
+r.ac=15
+ok=ok&&(r.speed==30)&&(r.ac==15)&&(r.hp==4)
+print("8 setattr(r :speed 30) then r.ac=15; r.speed r.ac r.hp (expect 30 15 4): %v %v %v\n" r.speed r.ac r.hp)
+
+// --- test 9: attrlist(comp) is the component's own list, not a copy ---
+// handing out the real list is deliberate: a script that wants a snapshot
+// walks it.  A write through the handed-out list is the script's own
+// business -- the dot and setattr() are the spellings that build a command.
+al=attrlist(r)
+ok=ok&&(al.hp==4)
+al.viaal=8
+ok=ok&&(r.viaal==8)
+print("9 al=attrlist(r); al.hp then al.viaal=8; al.hp r.viaal (expect 4 8): %v %v\n" al.hp r.viaal)
+
+// --- test 10: a method call is a call, not a field write ---
+// the lhs hook must not fire for comp.method(args), whose result is the
+// call's; a FuncObj stored by a dot write is still callable afterwards
+r.greet=func(1234)
+ok=ok&&(r.greet()==1234)
+print("10 r.greet=func(1234); r.greet() (expect 1234): %v\n" r.greet())
+
+// --- test 11: a plain attrlist's dot write logs nothing ---
+// only a component view's dot builds a command; every other dot writes the
+// Attribute it hands back, as it always did.  The undo() lands on the comp
+// write above it rather than on bare.x, which is what proves it: a step the
+// attrlist write had logged would have been undone first.
+bare=attrlist(:x 1)
+r.hp=5
+bare.x=2
+undo()
+ok=ok&&(bare.x==2)&&(r.hp==4)
+print("11 bare.x=2 between r.hp=5 and undo(); bare.x r.hp (expect 2 4): %v %v\n" bare.x r.hp)
+
+print("dotattrundo: %v\n" ok)
+ok

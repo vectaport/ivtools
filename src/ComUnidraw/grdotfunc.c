@@ -29,6 +29,7 @@
 #include <ComTerp/listfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
+#include <Attribute/attrvalue.h>
 #include <fstream>
 #include <iostream>
 
@@ -44,6 +45,11 @@ GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 }
 
 void GrDotFunc::execute() {
+    /* read first, before anything touches the stack: the flag AssignFunc set
+       on this call's command token survives only in the stale slot just above
+       our own arguments (ARCHITECTURE.md, "at()'s lhs flag"). */
+    boolean for_write = comterp()->stack_top(nkeys()+1).lhs_assign();
+
     /* Overrides DotFunc::execute() entirely (peek_and_fire needs before_part
        threaded through first), so dot(:dbg true) is checked explicitly here. */
     if (check_dbg_keyword()) return;
@@ -62,36 +68,65 @@ void GrDotFunc::execute() {
     ComValue before_resolved = before_part;
     if (before_resolved.is_symbol())
       lookup_symval(before_resolved);
-    if (before_resolved.is_object() && before_resolved.object_compview()) {
-      ComponentView* compview = (ComponentView*)before_resolved.obj_val();
+
+    /* the compview itself, or the one an Attribute's value wraps */
+    AttributeValue* compviewval = nil;
+    if (before_resolved.is_object() && before_resolved.object_compview())
+      compviewval = &before_resolved;
+    else if (before_resolved.is_object() && before_resolved.is_attribute() &&
+	     ((Attribute*)before_resolved.obj_val())->Value()->object_compview())
+      compviewval = ((Attribute*)before_resolved.obj_val())->Value();
+
+    if (compviewval) {
+      ComponentView* compview = (ComponentView*)compviewval->obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
-      if (comp) {
-	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-	before_part = stuffval;
-      } else {
+      if (!comp) {
 	cerr << "nil subject on compview value\n";
 	reset_stack();
 	push_stack(ComValue::nullval());
 	return;
       }
-
-    } else if (before_resolved.is_object() && before_resolved.is_attribute() &&
-	       ((Attribute*)before_resolved.obj_val())->Value()->object_compview()) {
-      AttributeValue* av = ((Attribute*)before_resolved.obj_val())->Value();
-      ComponentView* compview = (ComponentView*)av->obj_val();
-      OverlayComp* comp = (OverlayComp*)compview->GetSubject();
-      if (comp) {
-	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-	before_part = stuffval;
-      } else {
-	cerr << "nil subject on compview value\n";
-	reset_stack();
-	push_stack(ComValue::nullval());
-	return;
-      }
-
+      if (for_write && write_pair(*compviewval, after_part, after_nids)) return;
+      ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
+      before_part = stuffval;
     }
     execute_core(before_part, after_part, after_nids, before_expr_text, after_expr_text);
+}
+
+boolean GrDotFunc::write_pair(AttributeValue& compviewval, ComValue& after_part,
+			       int after_nids) {
+    /* a named field only, by execute_core's own two tests: nargs()>1 tells
+       "comp.field" from the rare one-arg dot() form, and a non-string
+       after-part with real nids is a method call (comp.method(args)), whose
+       result is the call's, not a field to write. */
+    boolean is_string_key = after_part.type() == ComValue::StringType;
+    if (nargs() <= 1 || (after_nids != -1 && !is_string_key)) return false;
+    if (!after_part.is_symbol() && !is_string_key) return false;
+
+    /* registered by ComEditor; without it (a comterp built with no editor
+       commands) the write falls through to the live property list. */
+    static int dotsetattr_symid = symbol_add("dotsetattr");
+    ComValue* writefunc = comterp()->localvalue(dotsetattr_symid);
+    if (!writefunc || !writefunc->is_type(ComValue::CommandType)) return false;
+
+    int field_symid = after_part.symbol_val();
+    /* a string key becomes a symbol the list can be indexed by, same as
+       execute_core's own named-field branch does with one. */
+    if (is_string_key) symbol_reference(field_symid);
+    reset_stack();
+
+    AttributeValueList* pair = new AttributeValueList();
+    pair->Append(new AttributeValue(*writefunc));
+    /* the reference ctor, which shares -- the pointer one dup_as_needed()s,
+       and duplicating a ComponentView would hand the command a view of its
+       own while unreferencing the one the script holds. */
+    pair->Append(new AttributeValue(compviewval));
+    ComValue fieldval(field_symid, ComValue::SymbolType);
+    pair->Append(new AttributeValue(fieldval));
+    ComValue retval(pair);
+    retval.lhs_assign(1);
+    push_stack(retval);
+    return true;
 }
 
 /*****************************************************************************/
@@ -149,3 +184,38 @@ void GrAttrListFunc::execute() {
   }
 }
 
+/*****************************************************************************/
+
+GrDotSetAttrFunc::GrDotSetAttrFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GrDotSetAttrFunc::execute() {
+  ComValue viewval(stack_arg(0));
+  /* no lookup: the field is a symbol naming a property, not a variable to
+     resolve -- plain stack_arg() would read whatever `hp` is bound to. */
+  ComValue fieldval(stack_arg(1, true));
+  ComValue writeval(stack_arg(2));
+  reset_stack();
+
+  /* GrDotFunc builds the call, so a bad shape here is a bug rather than
+     something a script can provoke -- nil, not a warning. */
+  if (!viewval.object_compview() || !fieldval.is_symbol()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  ComponentView* view = (ComponentView*)viewval.obj_val();
+  OverlayComp* comp = (OverlayComp*)view->GetSubject();
+  if (!comp) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* one keyword's worth of list, merged: the command carries the field it
+     writes, and the target's other attributes are none of its business. */
+  AttributeList* al = new AttributeList();
+  al->add_attribute(new Attribute(fieldval.symbol_val(), new AttributeValue(writeval)));
+  execute_setattr(comp, al);
+
+  /* the value, so comp.field=val reports what an assignment reports */
+  push_stack(writeval);
+}
