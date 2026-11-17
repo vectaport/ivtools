@@ -2661,11 +2661,16 @@ setattr_test=func(
      and that shortens a long array to "{N more}", so 300 elements is the
      size that tells a re-parseable emission from a displayable one. --- */
   readbig=print("size(grid(%c%s%c).big)" 34 id1 34 :str);
-  remote(sock1 print("biglst=0;for(i=1 i<300 i=i+1 biglst=biglst,i);setattr(grid(%c%s%c) :big biglst)" 34 id1 34 :str) :nowait);
+  /* the request ends in the size itself, so one blocking remote() both sets
+     the array and answers for it.  setattr() does reply, so :nowait here
+     would leave that reply to be read as the answer to the next question
+     asked on this socket, shifting every later read by one. */
+  n1=remote(sock1 print("biglst=0;for(i=1 i<300 i=i+1 biglst=biglst,i);setattr(grid(%c%s%c) :big biglst);%s" 34 id1 34 readbig :str));
   cnt=0;
   while(ok && remote(sock2 readbig)!=300 && cnt<timeout usleep(100000);cnt++);
-  big=ok && remote(sock1 readbig)==300 && remote(sock2 readbig)==300;
-  print("setattr: ds1 holds %v of 300 array elements, ds2 %v (expect 300 300)\n" remote(sock1 readbig) remote(sock2 readbig) :err);
+  n2=remote(sock2 readbig);
+  big=ok && n1==300 && n2==300;
+  print("setattr: ds1 holds %v of 300 array elements, ds2 %v (expect 300 300)\n" n1 n2 :err);
   if(ok && !big :then print("setattr: FAIL a 300-element array attribute did not cross whole\n" :err));
   ok=ok && big;
 
