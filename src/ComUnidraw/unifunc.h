@@ -57,10 +57,13 @@ public:
     // point to it as their parent.
 
     boolean execute_setattr(OverlayComp*, AttributeList*);
-    // merge al into comp's property list through the kit's SetAttrCmd
-    // factory, so the edit joins the undo history and a DrawKit context
-    // substitutes the distributing subclass.  Takes over al's reference,
-    // deleting it and returning false when the merge is refused.  Shared
+    // merge al into comp's property list.  A comp in the document goes
+    // through the kit's SetAttrCmd factory, so the edit joins the undo
+    // history and a DrawKit context substitutes the distributing
+    // subclass; one outside it is merged in place, since there is no
+    // document edit to record and a command would outlive its target.
+    // Takes over al's reference, deleting it either way, and returns
+    // false without merging if a value holds comp's own list.  Shared
     // by setattr() and the dot's own completing command, which differ
     // only in how they build the list.
 
