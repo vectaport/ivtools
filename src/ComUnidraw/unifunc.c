@@ -40,6 +40,7 @@
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <ComGlyph/comtextedit.h>
 #include <ComGlyph/comtextview.h>
 #include <Unidraw/clipboard.h>
@@ -61,6 +62,8 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
+#include <ComTerp/listfunc.h>
 #include <stdio.h>
 #include <string>
 #include <strstream>
@@ -95,9 +98,47 @@ void UnidrawFunc::execute_log(Command* cmd) {
 #endif
 }
 
+boolean UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
+    AttributeList* complist = comp->GetAttributeList();
+    /* a value holding the target's own list would make the list contain
+       itself, which recurses without end on the next traversal */
+    ALIterator ai;
+    for (al->First(ai); !al->Done(ai); al->Next(ai)) {
+      if (value_contains_container(*al->GetAttr(ai)->Value(), (void*)complist, true)) {
+	/* the interpreter's line, not the funcstate's: a nested exec (the
+	   dot's completing command) pushes a funcstate with no line. */
+	fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		comterp()->linenum());
+	delete al;
+	return false;
+      }
+    }
+
+    if (live_comp(comp)) {
+      OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+      execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
+    } else {
+      /* outside the document there is no document edit to record, so the
+	 write merges in place, as every scripted one did before the command
+	 existed.  A command would also outlive its target here: logging one
+	 clears the redo half of the history, which destroys the command that
+	 owns the comp and leaves the new command holding freed memory. */
+      complist->merge(al);
+      delete al;
+    }
+
+    /* a func merged in reads the component's own list when called with no
+       receiver, the one-time home stamp an attrlist literal also gets */
+    AttrListFunc::stamp_home_attrs(complist);
+    return true;
+}
+
 OverlayComp* UnidrawFunc::live_subject(ComponentView* view) {
     if (!view) return nil;
-    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    return live_comp((OverlayComp*)view->GetSubject());
+}
+
+OverlayComp* UnidrawFunc::live_comp(OverlayComp* comp) {
     if (!comp) return nil;
     GraphicView* rootview = GetEditor()->GetViewer()->GetGraphicView();
     Component* docroot = rootview ? rootview->GetGraphicComp() : nil;
@@ -696,20 +737,27 @@ void SetAttrFunc::execute() {
     ComValue viewval(stack_arg(0));
     AttributeList* al = stack_keys();
     reset_stack();
-    if (!viewval.is_object()) {
+    /* only a component view is a valid target; is_object() is true for an
+       AttributeList or an Attribute handle as well, which are not views. */
+    if (!viewval.object_compview()) {
+      delete al;
       push_stack(ComValue::nullval());
       return;
     }
 
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
-
-    AttributeList* comp_al = comp ? comp->attrlist() : nil;
-    if (!comp_al && comp)
-      comp->SetAttributeList(al);
-    else if (comp_al) {
-      comp_al->merge(al);
+    if (!comp) {
       delete al;
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    /* merging, not replacing: setattr() adds to the property list, where the
+       attribute dialog hands over the whole of its new one. */
+    if (!execute_setattr(comp, al)) {
+      push_stack(ComValue::nullval());
+      return;
     }
     push_stack(viewval);
 }

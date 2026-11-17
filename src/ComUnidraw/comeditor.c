@@ -230,6 +230,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("export", new ExportFunc(comterp, this));
 
     comterp->add_command("dot", new GrDotFunc(comterp));
+    /* hidden: the dot's own completion for comp.field=val, reached only
+       through a dot expression, never typed */
+    comterp->add_command("dotsetattr", new GrDotSetAttrFunc(comterp, this), nil, nil, true);
     comterp->add_command("attrlist", new GrAttrListFunc(comterp));
     comterp->add_command("at", new GrListAtFunc(comterp));
     comterp->add_command("size", new GrListSizeFunc(comterp));

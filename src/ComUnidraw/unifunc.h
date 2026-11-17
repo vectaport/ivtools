@@ -28,6 +28,7 @@
 #include <Unidraw/editor.h>
 #include <ComTerp/comfunc.h>
 
+class AttributeList;
 class Command;
 class ComTerp;
 class ComponentView;
@@ -54,6 +55,22 @@ public:
     // still in the tree. Detachment is checked by root, not by an
     // immediate parent, since a tombstoned group's children still
     // point to it as their parent.
+
+    boolean execute_setattr(OverlayComp*, AttributeList*);
+    // merge al into comp's property list.  A comp in the document goes
+    // through the kit's SetAttrCmd factory, so the edit joins the undo
+    // history and a DrawKit context substitutes the distributing
+    // subclass; one outside it is merged in place, since there is no
+    // document edit to record and a command would outlive its target.
+    // Takes over al's reference, deleting it either way, and returns
+    // false without merging if a value holds comp's own list.  Shared
+    // by setattr() and the dot's own completing command, which differ
+    // only in how they build the list.
+
+    OverlayComp* live_comp(OverlayComp*);
+    // comp itself, or nil if it is not in the document -- the root test,
+    // for a caller already holding the comp; live_subject() is this plus
+    // the view hop.
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;

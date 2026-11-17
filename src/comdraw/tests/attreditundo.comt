@@ -62,13 +62,14 @@ undo()
 ok=ok&&(r.hp==7)&&(r.ac==15)&&(e.hp==99)
 print("7 undo() of the edit to r; r.hp r.ac e.hp (expect 7 15 99): %v %v %v\n" r.hp r.ac e.hp)
 
-// --- test 8: setattr() still merges, and is still not undoable ---
-// PR 1 leaves the scripted path alone: setattr() writes the list directly,
-// so it adds to what the dialog's edit left and contributes no undo step.
+// --- test 8: setattr() merges, and logs one undo step of its own ---
+// The scripted path builds its command through the same factory, so setattr()
+// adds to what the dialog's edit left and is undoable like any other edit.
+// Replace stays the dialog's own semantic (test 2), never setattr()'s.
 pre8=undoable()
 setattr(r :speed 30)
-ok=ok&&(r.speed==30)&&(r.hp==7)&&(undoable()==pre8)
-print("8 setattr(r :speed 30) merges and logs nothing; r.speed r.hp undoable()-pre8 (expect 30 7 0): %v %v %v\n" r.speed r.hp undoable()-pre8)
+ok=ok&&(r.speed==30)&&(r.hp==7)&&(undoable()==pre8+1)
+print("8 setattr(r :speed 30) merges and logs one step; r.speed r.hp undoable()-pre8 (expect 30 7 1): %v %v %v\n" r.speed r.hp undoable()-pre8)
 
 // --- test 9: attredit_test stays out of help()'s listing ---
 // TEST-ONLY commands are registered hidden (ComFunc::hidden()) so they don't

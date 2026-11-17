@@ -1,9 +1,10 @@
 // src/comdraw/tests/dotattr.comt -- dot-assignment on comps
 //
-// comp.key=val is setattr(comp :key val) spelled as plain assignment:
-// the dot's lhs resolves into the comp's AttributeList and AssignFunc's
-// Attribute branch writes through it (attr->Value).  The symbol binding
-// may be func-frame local; the mutation rides the reference.
+// comp.key=val is setattr(comp :key val) spelled as plain assignment, and
+// builds the same command: in lhs context the dot hands back the completing
+// func with [compview, field] and AssignFunc appends the value and calls it.
+// The symbol binding may be func-frame local; the write names whatever comp
+// the binding resolves to.  The undo dimension is dotattrundo.comt's.
 //
 // funcs: dot-assign dot-read setattr frame
 ok=true
