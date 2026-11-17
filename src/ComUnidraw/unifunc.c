@@ -553,13 +553,9 @@ void ExportFunc::execute() {
         return;
     }
 
-    /* resolve every component before any output state exists: an export is
-       whole or not at all, so a non-component argument -- an attribute list,
-       an Attribute handle, whose obj_val() is non-nil too -- returns nil with
-       nothing emitted.  Resolving a list element by element as it was emitted
-       instead answered differently depending on where the non-component sat:
-       a separator with no component after it when it came last, an empty
-       document when it came first, and no indication either way. */
+    /* an export is whole or nothing: every component is resolved before any
+       output state exists, so one non-component returns nil having emitted
+       nothing and left no formatting flag flipped. */
     AttributeValueList* avl = compviewv.is_array() ? compviewv.array_val() : nil;
     int nsel = avl ? avl->Number() : 1;
     OverlayComp** selcomps = new OverlayComp*[nsel];
