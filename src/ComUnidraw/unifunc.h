@@ -56,12 +56,18 @@ public:
     // immediate parent, since a tombstoned group's children still
     // point to it as their parent.
 
-    void execute_setattr(OverlayComp*, AttributeList*);
+    boolean execute_setattr(OverlayComp*, AttributeList*);
     // merge al into comp's property list through the kit's SetAttrCmd
     // factory, so the edit joins the undo history and a DrawKit context
-    // substitutes the distributing subclass.  Takes over al's reference.
-    // Shared by setattr() and the dot's own completing command, which
-    // differ only in how they build the list.
+    // substitutes the distributing subclass.  Takes over al's reference,
+    // deleting it and returning false when the merge is refused.  Shared
+    // by setattr() and the dot's own completing command, which differ
+    // only in how they build the list.
+
+    OverlayComp* live_comp(OverlayComp*);
+    // comp itself, or nil if it is not in the document -- the root test,
+    // for a caller already holding the comp; live_subject() is this plus
+    // the view hop.
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;

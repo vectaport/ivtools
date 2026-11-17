@@ -214,7 +214,10 @@ void GrDotSetAttrFunc::execute() {
      writes, and the target's other attributes are none of its business. */
   AttributeList* al = new AttributeList();
   al->add_attribute(new Attribute(fieldval.symbol_val(), new AttributeValue(writeval)));
-  execute_setattr(comp, al);
+  if (!execute_setattr(comp, al)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
 
   /* the value, so comp.field=val reports what an assignment reports */
   push_stack(writeval);

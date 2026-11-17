@@ -63,10 +63,8 @@ void AssignFunc::execute() {
         static int temp_symid = symbol_add("temp");
         static int at_symid = symbol_add("at");
         static int each_symid = symbol_add("each");
-        /* the dot reads this to tell a.b=val from a read of a.b, which it
-           cannot otherwise do -- both arrive at the same field lookup.  Only
-           a dot whose before-part is a component view acts on it (GrDotFunc);
-           every other dot hands back its live Attribute as before. */
+        /* only a component-view dot acts on the flag (GrDotFunc); every
+           other dot hands back its live Attribute as before */
         static int dot_symid = symbol_add("dot");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();

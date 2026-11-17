@@ -122,5 +122,37 @@ undo()
 ok=ok&&(r.hp==4)&&(r.bulk==nil)
 print("12 al.bulk=1 after r.hp=7, then undo(); r.hp r.bulk (expect 4 nil): %v %v\n" r.hp r.bulk)
 
+// --- test 13: a write to a comp undo() took out of the document is refused ---
+// Logging a command that names a detached comp would clear the redo half of
+// the history, which destroys the command that owns the comp and leaves the
+// new command holding freed memory.  The write declines instead; the read
+// still answers from the detached list, since a read logs nothing.
+d=rect(400,400,450,450)
+undo()
+v13=(d.hp=3)
+ok=ok&&(v13==nil)&&(d.hp==nil)
+print("13 (d.hp=3) on a comp undo() removed; retval d.hp (expect nil nil): %v %v\n" v13 d.hp)
+// released here: the next logged command frees the comp this view names
+d=nil
+
+// --- test 14: a func written by a dot reads the component's own list ---
+// a bare .hp in the body has no receiver, so it resolves against the func's
+// home list -- set to the component's own, not to the one-entry list the
+// write was carried in
+r.readhp=func(.hp)
+f=r.readhp
+ok=ok&&(f()==4)
+print("14 r.readhp=func(.hp); f=r.readhp; f() (expect 4): %v\n" f())
+
+// --- test 15: the component's own list cannot be stored into itself ---
+// a self-containing list recurses without end on the next traversal, so the
+// dot refuses it the way a plain attrlist's self-write is refused
+// (comterp_/tests/attrlist.comt test 65).  The WARNING on stderr is the
+// refusal itself.
+sal=attrlist(r)
+v15=(r.loop=sal)
+ok=ok&&(v15==nil)&&(r.loop==nil)
+print("15 (r.loop=attrlist(r)); retval r.loop (expect nil nil): %v %v\n" v15 r.loop)
+
 print("dotattrundo: %v\n" ok)
 ok

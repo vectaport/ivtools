@@ -13,7 +13,7 @@
 // setattr() merges; replacing is the dialog's own semantic, covered in
 // attreditundo.comt.
 //
-// funcs: setattr undo redo dot-read attrlist
+// funcs: setattr undo redo dot-read attrlist func
 
 ok=true
 each(delete($$select(:all)))
@@ -74,6 +74,37 @@ print("7 setattr(r :ac 5) then setattr(r :hp 2); r.hp r.ac (expect 2 5): %v %v\n
 // an attrlist is an object too, so is_object() is not enough of a check
 ok=ok&&(setattr(attrlist(:x 1) :hp 7)==nil)&&(r.hp==2)
 print("8 setattr(attrlist(:x 1) :hp 7); retval r.hp (expect nil 2): %v %v\n" setattr(attrlist(:x 1) :hp 7) r.hp)
+
+// --- test 9: a comp undo() took out of the document is refused ---
+// Logging a command that names a detached comp would clear the redo half of
+// the history, which destroys the command that owns the comp and leaves the
+// new command holding freed memory.  The write declines instead, and the
+// read above it still answers from the detached list.
+d=rect(400,400,450,450)
+undo()
+v9=setattr(d :hp 3)
+ok=ok&&(v9==nil)&&(d.hp==nil)
+print("9 setattr(d :hp 3) on a comp undo() removed; retval d.hp (expect nil nil): %v %v\n" v9 d.hp)
+// released here: the next logged command frees the comp this view names
+d=nil
+
+// --- test 10: a func merged in reads the component's own property list ---
+// a bare .hp in the body has no receiver, so it resolves against the func's
+// home list -- set to the component's own, the same one-time stamp the funcs
+// in an attrlist literal get
+setattr(r :readhp func(.hp))
+f=r.readhp
+ok=ok&&(f()==2)
+print("10 setattr(r :readhp func(.hp)); f=r.readhp; f() (expect 2): %v\n" f())
+
+// --- test 11: the component's own list cannot be stored into itself ---
+// a self-containing list recurses without end on the next traversal, so this
+// is refused the way a plain attrlist's self-write is (comterp_/tests/
+// attrlist.comt test 65).  The WARNING on stderr is the refusal itself.
+sal=attrlist(r)
+v11=setattr(r :loop sal)
+ok=ok&&(v11==nil)&&(r.loop==nil)
+print("11 setattr(r :loop attrlist(r)); retval r.loop (expect nil nil): %v %v\n" v11 r.loop)
 
 print("setattrundo: %v\n" ok)
 ok

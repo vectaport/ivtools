@@ -62,6 +62,8 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
+#include <ComTerp/listfunc.h>
 #include <stdio.h>
 #include <string>
 #include <strstream>
@@ -96,14 +98,45 @@ void UnidrawFunc::execute_log(Command* cmd) {
 #endif
 }
 
-void UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
+boolean UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
+    /* a comp outside the document is owned by a command in the history, and
+       logging a new command clears the redo half of that history -- which
+       would destroy the owner and leave this command holding freed memory. */
+    if (!live_comp(comp)) {
+      delete al;
+      return false;
+    }
+
+    AttributeList* complist = comp->GetAttributeList();
+    /* a value holding the target's own list would make the list contain
+       itself, which recurses without end on the next traversal */
+    ALIterator ai;
+    for (al->First(ai); !al->Done(ai); al->Next(ai)) {
+      if (value_contains_container(*al->GetAttr(ai)->Value(), (void*)complist, true)) {
+	/* the interpreter's line, not the funcstate's: a nested exec (the
+	   dot's completing command) pushes a funcstate with no line. */
+	fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		comterp()->linenum());
+	delete al;
+	return false;
+      }
+    }
+
     OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
     execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
+
+    /* a func merged in reads the component's own list when called with no
+       receiver, the one-time home stamp an attrlist literal also gets */
+    AttrListFunc::stamp_home_attrs(complist);
+    return true;
 }
 
 OverlayComp* UnidrawFunc::live_subject(ComponentView* view) {
     if (!view) return nil;
-    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    return live_comp((OverlayComp*)view->GetSubject());
+}
+
+OverlayComp* UnidrawFunc::live_comp(OverlayComp* comp) {
     if (!comp) return nil;
     GraphicView* rootview = GetEditor()->GetViewer()->GetGraphicView();
     Component* docroot = rootview ? rootview->GetGraphicComp() : nil;
@@ -720,7 +753,10 @@ void SetAttrFunc::execute() {
 
     /* merging, not replacing: setattr() adds to the property list, where the
        attribute dialog hands over the whole of its new one. */
-    execute_setattr(comp, al);
+    if (!execute_setattr(comp, al)) {
+      push_stack(ComValue::nullval());
+      return;
+    }
     push_stack(viewval);
 }
 
