@@ -2572,6 +2572,7 @@ setattr_test=func(
   while(!global(drawserv_upsa1) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_upsa1) :then
     print("setattr: FAIL ds1 did not come up\n" :err);
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
     return(false));
   print("setattr: ds1 up on %d\n" ds1_port :err);
 
@@ -2586,6 +2587,8 @@ setattr_test=func(
   while(!global(drawserv_upsa2) && cnt<timeout update(poll_usec);cnt++);
   if(!global(drawserv_upsa2) :then
     print("setattr: FAIL ds2 did not come up\n" :err);
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
   print("setattr: ds2 up on %d\n" ds2_port :err);
 
@@ -2593,6 +2596,10 @@ setattr_test=func(
   sock2=socket("127.0.0.1" ds2_port);
   if(!sock1 || !sock2 :then
     print("setattr: FAIL could not connect to both nodes\n" :err);
+    if(sock1 :then close(sock1));
+    if(sock2 :then close(sock2));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds1_port :str));
+    shell(print("pkill -f '[d]rawserv.*-comdraw %d' > /dev/null 2>&1" ds2_port :str));
     return(false));
 
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
@@ -2648,6 +2655,19 @@ setattr_test=func(
   print("setattr: ds1 sees hp=%v, ds2 hp=%v (expect 9 9)\n" remote(sock1 readhp) remote(sock2 readhp) :err);
   if(ok && !rev :then print("setattr: FAIL change from ds2 did not reach ds1 and settle\n" :err));
   ok=ok && rev;
+
+  /* --- an array longer than the print cutoff crosses whole.  A value is
+     rendered for the wire by the same operator<< a human-facing echo uses,
+     and that shortens a long array to "{N more}", so 300 elements is the
+     size that tells a re-parseable emission from a displayable one. --- */
+  readbig=print("size(grid(%c%s%c).big)" 34 id1 34 :str);
+  remote(sock1 print("biglst=0;for(i=1 i<300 i=i+1 biglst=biglst,i);setattr(grid(%c%s%c) :big biglst)" 34 id1 34 :str) :nowait);
+  cnt=0;
+  while(ok && remote(sock2 readbig)!=300 && cnt<timeout usleep(100000);cnt++);
+  big=ok && remote(sock1 readbig)==300 && remote(sock2 readbig)==300;
+  print("setattr: ds1 holds %v of 300 array elements, ds2 %v (expect 300 300)\n" remote(sock1 readbig) remote(sock2 readbig) :err);
+  if(ok && !big :then print("setattr: FAIL a 300-element array attribute did not cross whole\n" :err));
+  ok=ok && big;
 
   if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
 

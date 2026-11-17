@@ -23,6 +23,7 @@
 #include <DrawServ/linkcmd.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
+#include <ComTerp/comvalue.h>
 #include <DrawServ/linkselection.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawlinklist.h>
@@ -1129,6 +1130,12 @@ const char* LinkSetAttrCmd::dist_script() {
     if (!orglink || !drawserv->linksid(orglink, _dist_owner_sid))
         uuid_copy(_dist_owner_sid, drawserv->sessionid());
 
+    /* the peer parses this script, so it must stay re-parseable: elision is
+       allowed by default and would drop elements past the cutoff out of an
+       array attribute, leaving the far side a shortened value to read. */
+    boolean save_elide = ComValue::elide();
+    ComValue::elide(false);
+
     std::ostringstream sbuf;
     boolean any = false;
     Iterator it;
@@ -1146,6 +1153,8 @@ const char* LinkSetAttrCmd::dist_script() {
         sbuf << "setattr(grid(\"" << grid->idstr() << "\") "
              << *attrlist() << ")";
     }
+
+    ComValue::elide(save_elide);
 
     if (any) _dist_script_buf = sbuf.str();
     return _dist_script_buf.c_str();
