@@ -126,20 +126,46 @@ print("8b re-imported composite has the rect, all four raster colors, and the te
 ok=ok&&(parent(ura)==nil)&&(parent(ur)==nil)
 print("8c unpasted raster and rect are still parentless after export, not left half-attached (expect true): %v\n" ((parent(ura)==nil)&&(parent(ur)==nil)))
 
-// --- test 9: a non-compview argument is refused rather than cast ---
+// --- test 9: a non-compview argument is refused rather than cast, and a
+//             list is all or nothing ---
 // export() reads obj_val() and casts it to a ComponentView.  A non-view object
 // -- an attribute list, an Attribute handle -- has a non-nil obj_val() too, so
 // the cast is guarded by the compview test rather than by a nil check on what
-// it returns.
+// it returns.  Every component is resolved before anything is emitted, so one
+// non-view anywhere in a list returns nil rather than a document that silently
+// dropped it: resolving element by element as the list was emitted answered
+// differently depending on where the non-view sat -- a separator with no
+// component after it when it came last, an empty document when it came first.
+// (each result is assigned before istype(): istype() of an inline call reports
+// the command, not what it returns, the same way symid() reads its argument
+// unevaluated)
+each(delete($$select(:all)))
 al9=attrlist(:y 2)
+r9=rect(0,0,100,100)
+e9=rect(200,200,300,300)
 v9=export(al9 :string)
-// the list form keeps its own shape: it stops at the first element that is not
-// a view, so what precedes one is still emitted, inside the usual document
-// (assigned first: istype() of an inline call reports the command, not what it
-// returns, the same way symid() reads its argument unevaluated)
 w9=export((al9,al9) :string)
-ok=ok&&(v9==nil)&&istype(w9 StringType)
-print("9 export(attrlist(:y 2) :string), then the list form; retval istype (expect nil StringType): %v %v\n" v9 istype(w9 :sym))
+x9=export((r9,al9) :string)
+y9=export((al9,r9) :string)
+z9=export((r9,e9) :string)
+ok=ok&&(v9==nil)&&(w9==nil)&&(x9==nil)&&(y9==nil)&&istype(z9 StringType)
+print("9 export() of attrlist(:y 2), then (al,al) (r,al) (al,r) (r,e); istype of the last (expect nil nil nil nil StringType): %v %v %v %v %v\n" v9 w9 x9 y9 istype(z9 :sym))
+
+// --- test 10: a two-component list round-trips through the script format --
+//              the separator goes before every component but the first, so an
+//              emission never ends on one and the document reopens ---
+// the drawtool document, not the PostScript one test 5 reads back: a trailing
+// separator is read as another object to come, and the read fails there rather
+// than recovering what did come through.
+scrpath=print("/tmp/ivtools-exportcomposite-%d.drawtool" suffix :str)
+export((r9,e9) scrpath)
+page10=import(scrpath)
+ok=ok&&(page10!=nil)
+e10=export(page10 :string :percomp)
+saw10a=(index(e10 "100,100")!=nil)
+saw10b=(index(e10 "300,300")!=nil)
+ok=ok&&saw10a&&saw10b
+print("10 export((r9,e9) path) re-imported; both rects present (expect true true): %v %v\n" saw10a saw10b)
 
 print("exportcomposite: %v\n" ok)
 ok
