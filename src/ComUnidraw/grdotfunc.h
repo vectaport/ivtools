@@ -29,6 +29,7 @@
 #define _grdotfunc_h
 
 #include <ComTerp/dotfunc.h>
+#include <ComUnidraw/unifunc.h>
 
 //: . (dot) operator, for compound variables, and access to ComponentView AttributeList's.
 class GrDotFunc : public DotFunc {
@@ -42,6 +43,14 @@ public:
     virtual const char* docstring() {
       return "%s(.) makes compound variables, and gives access to ComponentView AttributeList's."; }
 
+protected:
+    boolean write_pair(AttributeValue& compviewval, ComValue& after_part, int after_nids);
+    /* In lhs context (comp.field=val), hand back the pair that routes the
+       write through a command instead of the component's live property
+       list -- see GrDotSetAttrFunc below.  Returns false, having touched
+       nothing, for anything that isn't a plain named field, which then
+       takes the ordinary read path. */
+
 };
 
 //: attrlist command, for returning the attribute list of a component.
@@ -52,7 +61,25 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "alst=%s([compview] [:<key> [val]] ... :bincnt) -- attribute list of compview, or a bare attrlist from keyword/value pairs if compview is omitted (:bincnt sizes/disables its index)."; }
+      return "alst=%s([compview] [:<key> [val]] ... :bincnt) -- the component's own attribute list, not a copy, or a bare attrlist from keyword/value pairs if compview is omitted (:bincnt sizes/disables its index)."; }
+
+};
+
+//: hidden func the dot hands back to complete comp.field=val.
+// A write through the dot has to become a command, like setattr()'s, but
+// the dot can never see the value: AssignFunc does that half, in a layer
+// that names no component type.  So for a component view in lhs context
+// GrDotFunc hands back [this func, compview, field] and AssignFunc appends
+// the value and calls it -- the same shape lst@N=val uses to re-drive at()
+// with :set, and the reason one SetAttrCmd serves both entry points.
+// Hidden: an internal completion, reached only through a dot expression.
+class GrDotSetAttrFunc : public UnidrawFunc {
+public:
+    GrDotSetAttrFunc(ComTerp*, Editor*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s(compview field val) -- internal: set one attribute of compview through the same command setattr() builds; see GrDotFunc."; }
 
 };
 
