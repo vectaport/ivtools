@@ -226,6 +226,13 @@ void PasteFunc::execute() {
     reset_stack();
 
     /* extract comp and scale/translate before pasting */
+    /* a non-view object -- an attribute list, an Attribute handle -- has a
+       non-nil obj_val(), so the cast is guarded by the compview test rather
+       than by a nil check on what it returns. */
+    if (!viewv.object_compview()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
     ComponentView* view = (ComponentView*)viewv.obj_val();
     OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
     if (comp && comp->GetParent()) {
@@ -321,8 +328,16 @@ void ReadOnlyFunc::execute() {
     ComValue clear(stack_key(clear_symid));
     reset_stack();
 
+    if (!viewval.object_compview()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
 
     AttributeList* al = comp->GetAttributeList();
     al->add_attr("readonly", ComValue::trueval());
@@ -538,6 +553,35 @@ void ExportFunc::execute() {
         return;
     }
 
+    /* an export is whole or nothing: every component is resolved before any
+       output state exists, so one non-component returns nil having emitted
+       nothing and left no formatting flag flipped. */
+    AttributeValueList* avl = compviewv.is_array() ? compviewv.array_val() : nil;
+    int nsel = avl ? avl->Number() : 1;
+    OverlayComp** selcomps = new OverlayComp*[nsel];
+    if (!avl) {
+      ComponentView* view = compviewv.object_compview() ?
+	(ComponentView*)compviewv.obj_val() : nil;
+      selcomps[0] = view ? (OverlayComp*)view->GetSubject() : nil;
+    } else {
+      Iterator i;
+      int idx = 0;
+      for (avl->First(i); !avl->Done(i); avl->Next(i), ++idx) {
+	AttributeValue* elemv = avl->GetAttrVal(i);
+	ComponentView* view = elemv->object_compview() ?
+	  (ComponentView*)elemv->obj_val() : nil;
+	selcomps[idx] = view ? (OverlayComp*)view->GetSubject() : nil;
+      }
+    }
+    boolean allcomps = true;
+    for (int idx = 0; idx < nsel; ++idx)
+      if (!selcomps[idx]) allcomps = false;
+    if (!allcomps) {
+      delete [] selcomps;
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     /* accumulate the export into an in-memory strstream, then emit it below;
        never wrap a live output fd in a FILEBUF, whose destructor closes it. */
     boolean string_mode = string.is_true() || str.is_true();
@@ -553,13 +597,9 @@ void ExportFunc::execute() {
     }
     ostream* out = new std::strstream();
 
-    if (!compviewv.is_array()) {
+    if (!avl) {
 
-      ComponentView* view = (ComponentView*)compviewv.obj_val();
-      OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-      if (!comp) { if (percomp_mode) { OverlayScript::percomp_format(false);
-	                               OverlayScript::ptlist_parens(old_ptlist_parens); }
-	           delete out; return; }
+      OverlayComp* comp = selcomps[0];
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
 	if (!percomp_mode) *out << appname() << "(\n";
 	compout(comp, out);
@@ -577,35 +617,21 @@ void ExportFunc::execute() {
 
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
 	if (!percomp_mode) *out << appname() << "(\n";
-	AttributeValueList* avl = compviewv.array_val();
-	Iterator i;
-	for(avl->First(i);!avl->Done(i); ) {
-	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-	  if (!comp) break;
-	  compout(comp, out);
-	  avl->Next(i);
-	  if (!avl->Done(i)) *out << (percomp_mode ? ";\n" : ",\n");
+	/* the separator goes before every component but the first, so an
+	   emission never ends on one */
+	for (int idx = 0; idx < nsel; ++idx) {
+	  if (idx) *out << (percomp_mode ? ";\n" : ",\n");
+	  compout(selcomps[idx], out);
 	}
 	if (!percomp_mode) *out << ")\n";
       } else {
 	/* composite via a throwaway group, like group() already does;
 	   detach and reattach any component that has a real parent, at
 	   its original position (its old next sibling, if still there). */
-	AttributeValueList* avl = compviewv.array_val();
-	int nsel = avl->Number();
-	OverlayComp** selcomps = new OverlayComp*[nsel];
 	OverlaysComp** origparents = new OverlaysComp*[nsel];
 	OverlayComp** nextsibs = new OverlayComp*[nsel];
-	Iterator i;
-	int idx = 0;
-	for(avl->First(i);!avl->Done(i); avl->Next(i), ++idx) {
-	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	  selcomps[idx] = view ? (OverlayComp*)view->GetSubject() : nil;
-	  if (!selcomps[idx]) break;
-	}
-	int nvalid = idx;
-	for (idx = 0; idx < nvalid; ++idx) {
+	int idx;
+	for (idx = 0; idx < nsel; ++idx) {
 	  origparents[idx] = (OverlaysComp*) selcomps[idx]->GetParent();
 	  nextsibs[idx] = nil;
 	  if (origparents[idx]) {
@@ -622,7 +648,7 @@ void ExportFunc::execute() {
 	  }
 	}
 	OverlaysComp* tempgroup = new OverlaysComp();
-	for (idx = 0; idx < nvalid; ++idx) {
+	for (idx = 0; idx < nsel; ++idx) {
 	  if (origparents[idx]) origparents[idx]->Remove(selcomps[idx]);
 	  tempgroup->Append(selcomps[idx]);
 	}
@@ -632,7 +658,7 @@ void ExportFunc::execute() {
 	psv->Emit(*out);
 	tempgroup->Detach(psv);
 	delete psv;
-	for (idx = 0; idx < nvalid; ++idx) {
+	for (idx = 0; idx < nsel; ++idx) {
 	  tempgroup->Remove(selcomps[idx]);
 	  if (!origparents[idx]) continue;
 	  Iterator j;
@@ -649,7 +675,6 @@ void ExportFunc::execute() {
 	  else origparents[idx]->Append(selcomps[idx]);
 	}
 	delete tempgroup;
-	delete [] selcomps;
 	delete [] origparents;
 	delete [] nextsibs;
       }
@@ -714,6 +739,7 @@ void ExportFunc::execute() {
       }
     }
 
+    delete [] selcomps;
     delete out;
 }
 
