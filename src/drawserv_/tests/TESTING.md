@@ -343,6 +343,12 @@ so the change travels back the other way.
 - ds2 sees a single-keyword change
 - ds2 sees a multi-keyword change intact, with the earlier key untouched
 - a change made on ds2 reaches ds1 and settles at the same value on both
+- a 300-element array set by `setattr()` arrives whole -- past the print
+  cutoff, so an elided `{N more}` rendering would show as a short count
+- a rect built with `pastemode(1)`, given attributes (including a
+  300-element array) while it has no grid id, then pasted, arrives on ds2
+  with every attribute whole: attributes set off-canvas travel in the
+  paste's own script, not as `setattr()` calls
 
 **Purpose:** `LinkSetAttrCmd` is the first distributed command that names its
 own target instead of acting on the selection, so it emits no

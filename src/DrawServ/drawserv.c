@@ -316,7 +316,11 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   uuid_clear(grid);
   
   boolean original = false;
-  
+
+  /* nil is no command, as in Unidraw::ExecuteCmd() -- a graphic created
+     with paste mode off logs none. */
+  if (!cmd) return;
+
   if(!_linklist || _linklist->Number()==0)
 
     /* normal Unidraw command execution */
@@ -1431,16 +1435,11 @@ boolean DrawServ::selftest(const char* host, unsigned int portnum)
 }
 
 boolean DrawServ::PrintAttributeList(ostream& out, AttributeList* attrlist) {
-  static int grid_sym = symbol_add("grid");
-  static int sid_sym = symbol_add("sid");
-
   ALIterator i;
   for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
     Attribute* attr = attrlist->GetAttr(i);
     out << " :" << attr->Name() << " ";
-    AttributeValue* attrval = attr->Value();
-    boolean special = attr->SymbolId()==grid_sym || attr->SymbolId()==sid_sym;
-    out << *attrval;
+    out << *attr->Value();
   }
   return true;
 }

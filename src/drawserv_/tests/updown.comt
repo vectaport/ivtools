@@ -2674,6 +2674,24 @@ setattr_test=func(
   if(ok && !big :then print("setattr: FAIL a 300-element array attribute did not cross whole\n" :err));
   ok=ok && big;
 
+  /* --- attributes set before a comp is pasted cross with the paste.  With
+     paste mode off the rect has no grid id, so its setattr() calls stay
+     local; the paste's own script carries the whole attribute list, and
+     the 300-element array again tells whole from elided. --- */
+  /* the grid table names a comp by the short id grid() looks up, not the
+     full uuid in its :grid attribute, so r2's id is read from the table. */
+  id2=remote(sock1 "pastemode(1);r2=rect(400,100,480,160);setattr(r2 :team 9);bl2=0;for(i=1 i<300 i=i+1 bl2=bl2,i);setattr(r2 :big bl2);pastemode(0);paste(r2);gtab=grid(:table);id2=nil;for(j=0 j<size(gtab) j++ if(at(gtab j).comptype==\"RectComp\" :then id2=at(gtab j).grid));id2");
+  pasted=ok && type(id2)==`StringType && grid_has_id(:gh_sock sock2 :gh_id id2);
+  print("setattr: pasted r2=%v, on ds2=%v\n" id2 pasted :err);
+  team2=nil;n3=nil;
+  if(pasted :then
+    team2=remote(sock2 print("grid(%c%s%c).team" 34 id2 34 :str));
+    n3=remote(sock2 print("size(grid(%c%s%c).big)" 34 id2 34 :str)));
+  pastecross=pasted && team2==9 && n3==300;
+  print("setattr: ds2 sees pasted team=%v, %v of 300 array elements (expect 9 300)\n" team2 n3 :err);
+  if(ok && !pastecross :then print("setattr: FAIL attributes set before paste did not cross whole with it\n" :err));
+  ok=ok && pastecross;
+
   if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
 
   /* --- tear both down --- */
