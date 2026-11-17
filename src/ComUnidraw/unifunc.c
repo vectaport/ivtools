@@ -99,14 +99,6 @@ void UnidrawFunc::execute_log(Command* cmd) {
 }
 
 boolean UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
-    /* a comp outside the document is owned by a command in the history, and
-       logging a new command clears the redo half of that history -- which
-       would destroy the owner and leave this command holding freed memory. */
-    if (!live_comp(comp)) {
-      delete al;
-      return false;
-    }
-
     AttributeList* complist = comp->GetAttributeList();
     /* a value holding the target's own list would make the list contain
        itself, which recurses without end on the next traversal */
@@ -122,8 +114,18 @@ boolean UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
       }
     }
 
-    OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
-    execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
+    if (live_comp(comp)) {
+      OverlayKit* kit = ((OverlayEditor*)GetEditor())->overlay_kit();
+      execute_log(kit->make_setattr_cmd(GetEditor(), al, new Clipboard(comp)));
+    } else {
+      /* outside the document there is no document edit to record, so the
+	 write merges in place, as every scripted one did before the command
+	 existed.  A command would also outlive its target here: logging one
+	 clears the redo half of the history, which destroys the command that
+	 owns the comp and leaves the new command holding freed memory. */
+      complist->merge(al);
+      delete al;
+    }
 
     /* a func merged in reads the component's own list when called with no
        receiver, the one-time home stamp an attrlist literal also gets */

@@ -15,7 +15,7 @@
 // command dimension, and the three places the lhs hook must not fire: a
 // method call, a field read, and a plain attrlist that is not a component's.
 //
-// funcs: dot-assign dot-read undo redo setattr attrlist func
+// funcs: dot-assign dot-read undo redo setattr attrlist func pastemode paste
 
 ok=true
 each(delete($$select(:all)))
@@ -122,18 +122,21 @@ undo()
 ok=ok&&(r.hp==4)&&(r.bulk==nil)
 print("12 al.bulk=1 after r.hp=7, then undo(); r.hp r.bulk (expect 4 nil): %v %v\n" r.hp r.bulk)
 
-// --- test 13: a write to a comp undo() took out of the document is refused ---
-// Logging a command that names a detached comp would clear the redo half of
-// the history, which destroys the command that owns the comp and leaves the
-// new command holding freed memory.  The write declines instead; the read
-// still answers from the detached list, since a read logs nothing.
+// --- test 13: a write to a comp undo() took out of the document merges in
+// place, logging nothing ---
+// Out of the document there is no document edit to record, so the write lands
+// on the comp's own list the way every scripted write did before the command
+// existed.  A command would also outlive its target here, since logging one
+// clears the redo half of the history and that is what owns the comp.
+// The redo() is the proof nothing was logged: d's own creation is still on
+// the redo stack to replay, and it brings the detached write back with it.
 d=rect(400,400,450,450)
 undo()
 v13=(d.hp=3)
-ok=ok&&(v13==nil)&&(d.hp==nil)
-print("13 (d.hp=3) on a comp undo() removed; retval d.hp (expect nil nil): %v %v\n" v13 d.hp)
-// released here: the next logged command frees the comp this view names
-d=nil
+ok=ok&&(v13==3)&&(d.hp==3)
+redo()
+ok=ok&&(d.hp==3)
+print("13 (d.hp=3) on a comp undo() removed, then redo(); retval d.hp (expect 3 3): %v %v\n" v13 d.hp)
 
 // --- test 14: a func written by a dot reads the component's own list ---
 // a bare .hp in the body has no receiver, so it resolves against the func's
@@ -153,6 +156,25 @@ sal=attrlist(r)
 v15=(r.loop=sal)
 ok=ok&&(v15==nil)&&(r.loop==nil)
 print("15 (r.loop=attrlist(r)); retval r.loop (expect nil nil): %v %v\n" v15 r.loop)
+
+// --- test 16: a graphic pastemode(1) left out of the document takes the
+// same in-place write, and builds a command once it is pasted ---
+// Never in the document rather than taken out of it, but outside it either
+// way.  The write before the paste merges in place and the pasted graphic
+// carries it; the write after it is a command again, so undo() reverts to
+// what the in-place write left.
+pastemode(1)
+p=rect(500,500,550,550)
+p.hp=6
+ok=ok&&(p.hp==6)
+paste(p)
+pastemode(0)
+ok=ok&&(p.hp==6)
+p.hp=8
+ok=ok&&(p.hp==8)
+undo()
+ok=ok&&(p.hp==6)
+print("16 pastemode(1) rect, p.hp=6, paste(p), p.hp=8, undo(); p.hp (expect 6): %v\n" p.hp)
 
 print("dotattrundo: %v\n" ok)
 ok
