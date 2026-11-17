@@ -126,5 +126,20 @@ print("8b re-imported composite has the rect, all four raster colors, and the te
 ok=ok&&(parent(ura)==nil)&&(parent(ur)==nil)
 print("8c unpasted raster and rect are still parentless after export, not left half-attached (expect true): %v\n" ((parent(ura)==nil)&&(parent(ur)==nil)))
 
+// --- test 9: a non-compview argument is refused rather than cast ---
+// export() reads obj_val() and casts it to a ComponentView.  A non-view object
+// -- an attribute list, an Attribute handle -- has a non-nil obj_val() too, so
+// the cast is guarded by the compview test rather than by a nil check on what
+// it returns.
+al9=attrlist(:y 2)
+v9=export(al9 :string)
+// the list form keeps its own shape: it stops at the first element that is not
+// a view, so what precedes one is still emitted, inside the usual document
+// (assigned first: istype() of an inline call reports the command, not what it
+// returns, the same way symid() reads its argument unevaluated)
+w9=export((al9,al9) :string)
+ok=ok&&(v9==nil)&&istype(w9 StringType)
+print("9 export(attrlist(:y 2) :string), then the list form; retval istype (expect nil StringType): %v %v\n" v9 istype(w9 :sym))
+
 print("exportcomposite: %v\n" ok)
 ok

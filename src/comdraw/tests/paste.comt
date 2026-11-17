@@ -44,6 +44,14 @@ p3=paste(r2)
 ok=ok&&(p3==nil)
 print("5 paste(r2) refused, now parented (expect nil): %v\n" p3)
 
+// --- test 6: a non-compview argument is refused rather than cast ---
+// paste() reads obj_val() and casts it to a ComponentView.  A non-view object
+// -- an attribute list, an Attribute handle -- has a non-nil obj_val() too, so
+// the cast is guarded by the compview test rather than by a nil check on what
+// it returns.
+ok=ok&&(paste(attrlist(:x 1))==nil)
+print("6 paste(attrlist(:x 1)) (expect nil): %v\n" paste(attrlist(:x 1)))
+
 pastemode(0)
 
 print("paste: %v\n" ok)

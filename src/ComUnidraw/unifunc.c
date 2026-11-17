@@ -185,6 +185,13 @@ void PasteFunc::execute() {
     reset_stack();
 
     /* extract comp and scale/translate before pasting */
+    /* a non-view object -- an attribute list, an Attribute handle -- has a
+       non-nil obj_val(), so the cast is guarded by the compview test rather
+       than by a nil check on what it returns. */
+    if (!viewv.object_compview()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
     ComponentView* view = (ComponentView*)viewv.obj_val();
     OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
     if (comp && comp->GetParent()) {
@@ -280,8 +287,16 @@ void ReadOnlyFunc::execute() {
     ComValue clear(stack_key(clear_symid));
     reset_stack();
 
+    if (!viewval.object_compview()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
 
     AttributeList* al = comp->GetAttributeList();
     al->add_attr("readonly", ComValue::trueval());
@@ -514,11 +529,12 @@ void ExportFunc::execute() {
 
     if (!compviewv.is_array()) {
 
-      ComponentView* view = (ComponentView*)compviewv.obj_val();
+      ComponentView* view = compviewv.object_compview() ?
+	(ComponentView*)compviewv.obj_val() : nil;
       OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
       if (!comp) { if (percomp_mode) { OverlayScript::percomp_format(false);
 	                               OverlayScript::ptlist_parens(old_ptlist_parens); }
-	           delete out; return; }
+	           delete out; push_stack(ComValue::nullval()); return; }
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
 	if (!percomp_mode) *out << appname() << "(\n";
 	compout(comp, out);
@@ -539,7 +555,9 @@ void ExportFunc::execute() {
 	AttributeValueList* avl = compviewv.array_val();
 	Iterator i;
 	for(avl->First(i);!avl->Done(i); ) {
-	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
+	  AttributeValue* elemv = avl->GetAttrVal(i);
+	  ComponentView* view = elemv->object_compview() ?
+	    (ComponentView*)elemv->obj_val() : nil;
 	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
 	  if (!comp) break;
 	  compout(comp, out);
@@ -559,7 +577,9 @@ void ExportFunc::execute() {
 	Iterator i;
 	int idx = 0;
 	for(avl->First(i);!avl->Done(i); avl->Next(i), ++idx) {
-	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
+	  AttributeValue* elemv = avl->GetAttrVal(i);
+	  ComponentView* view = elemv->object_compview() ?
+	    (ComponentView*)elemv->obj_val() : nil;
 	  selcomps[idx] = view ? (OverlayComp*)view->GetSubject() : nil;
 	  if (!selcomps[idx]) break;
 	}
