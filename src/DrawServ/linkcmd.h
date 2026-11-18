@@ -36,6 +36,7 @@
 #include <Unidraw/Commands/struct.h>
 #include <Unidraw/Commands/transforms.h>
 #include <OverlayUnidraw/ovcmds.h>
+#include <OverlayUnidraw/setattrcmd.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -403,6 +404,28 @@ protected:
     // fill _dist_targets from the clipboard, or from the live selection
     // when a menu delete leaves the clipboard nil until Execute() runs.
     std::vector<DistTarget> _dist_targets;
+    std::string _dist_script_buf;
+};
+
+// Mixes SetAttrCmd with DrawServCmd to provide dist_script() that emits one
+// setattr() per target, naming it by grid id.  Attributes carry no lock, so
+// unlike the graphic-state commands there is no select() :unlock bracket and
+// no selection ownership to consult -- a target already in the grid table is
+// relayable, one not yet distributed has nowhere to go.
+class LinkSetAttrCmd : public SetAttrCmd, public DrawServCmd {
+public:
+    LinkSetAttrCmd(ControlInfo*, AttributeList* = nil);
+    LinkSetAttrCmd(Editor* = nil, AttributeList* = nil);
+
+    virtual const char* dist_script();
+    // return a ';'-separated setattr() per target in the clipboard, or ""
+    // for a replace() command:  the wire form merges, and removing a key
+    // the far side still has would need a call that does not exist yet.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+protected:
     std::string _dist_script_buf;
 };
 

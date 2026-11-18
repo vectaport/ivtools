@@ -306,7 +306,10 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {
-  if(!whiteboard()) 
+  /* nil is no command, as in Unidraw::ExecuteCmd() -- a graphic created
+     with paste mode off logs none. */
+  if (!cmd) return;
+  if(!whiteboard())
 
     /* normal Unidraw command execution */
     OverlayEditor::ExecuteCmd(cmd);
