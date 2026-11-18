@@ -2692,6 +2692,27 @@ setattr_test=func(
   if(ok && !pastecross :then print("setattr: FAIL attributes set before paste did not cross whole with it\n" :err));
   ok=ok && pastecross;
 
+  /* --- dot-assignment crosses as setattr() does: comp.field=val builds the
+     same SetAttrCmd through the kit factory, so LinkSetAttrCmd carries it
+     with no wire form of its own.  ds1 assigns through its own handle, then
+     ds2 through a handle it got from grid(), so the change settles both ways. --- */
+  readdot=print("grid(%c%s%c).dotted" 34 id1 34 :str);
+  remote(sock1 "c1.dotted=42");
+  cnt=0;
+  while(ok && remote(sock2 readdot)!=42 && cnt<timeout usleep(100000);cnt++);
+  dotfwd=ok && remote(sock2 readdot)==42;
+  print("setattr: c1.dotted=42 on ds1, ds2 sees %v (expect 42)\n" remote(sock2 readdot) :err);
+  if(ok && !dotfwd :then print("setattr: FAIL dot-assignment did not propagate to ds2\n" :err));
+  ok=ok && dotfwd;
+
+  remote(sock2 print("c2=grid(%c%s%c);c2.dotted=43" 34 id1 34 :str));
+  cnt=0;
+  while(ok && remote(sock1 readdot)!=43 && cnt<timeout usleep(100000);cnt++);
+  dotrev=ok && remote(sock1 readdot)==43 && remote(sock2 readdot)==43;
+  print("setattr: c2.dotted=43 on ds2, ds1 sees %v, ds2 %v (expect 43 43)\n" remote(sock1 readdot) remote(sock2 readdot) :err);
+  if(ok && !dotrev :then print("setattr: FAIL dot-assignment from ds2 did not reach ds1 and settle\n" :err));
+  ok=ok && dotrev;
+
   if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
 
   /* --- tear both down --- */
