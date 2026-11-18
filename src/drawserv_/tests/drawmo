@@ -82,6 +82,21 @@ kill_port=func(
     /* no lsof: best effort via fuser if available */
     shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
 
+/* drawserv_running: true while a drawserv process still carries this -comdraw
+   port in its argv.  Two things the pattern has to get right:
+     - '[d]rawserv', not 'drawserv': pgrep -f matches whole command lines, and
+       the shell running the probe has the pattern in its own argv, so a plain
+       pattern matches the poller and a wait loop never ends (Linux procps does
+       this; macOS BSD pgrep doesn't, which is why it only hung in CI).
+     - the trailing '( |$)' bounds the port, so 20002 doesn't also match a peer
+       carrying 200022 -- ringpair10 derives ports as base_port+idx*10000 and
+       runs past the u_short a listen() narrows to.
+   Every wait-for-exit loop in the test files polls this rather than spelling
+   the pattern out again. */
+drawserv_running=func(
+  shell(print("pgrep -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1"
+    ds_running_port :str))==0)
+
 /* every port find_open_port has handed out since the last reap_leftovers:
    the ports of the instances the test now running launched.  Mutated in place,
    never rebound -- TESTING.md's Infrastructure Functions says why. */
@@ -108,22 +123,17 @@ find_open_port=func(
    find_open_port handed out, which is only ever a port nothing was listening on
    when the test started -- so a drawserv of the user's own is never a
    candidate.  Unlike kill_port() it also cannot hit drawmo itself, which lsof
-   lists among the holders of a port drawmo is connected to.  The pattern is
-   bracketed for the reason updown_test's pgrep loop gives.  The ( |$) after
-   the port keeps it from also matching a longer port that begins with those
-   digits -- a port over 65535 is narrowed to u_short before anything listens,
-   so an instance launched on one can leave the port drawmo matched against
-   looking free while that process still carries the longer number. */
+   lists among the holders of a port drawmo is connected to.  The pkill patterns
+   are bracketed and port-bounded for the reasons drawserv_running() gives. */
 reap_leftovers=func(
   while(size(live_ports)>0
     port=at(live_ports 0 :del);
-    probe=print("pgrep -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str);
-    if(shell(probe)==0 :then
+    if(drawserv_running(:ds_running_port port) :then
       print("drawmo: reaping drawserv left running on port %d\n" port :err);
       shell(print("pkill -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str));
       cnt=0;
-      while(shell(probe)==0 && cnt<25 usleep(200000);cnt++);
-      if(shell(probe)==0 :then
+      while(drawserv_running(:ds_running_port port) && cnt<25 usleep(200000);cnt++);
+      if(drawserv_running(:ds_running_port port) :then
         print("drawmo: port %d outlived its SIGTERM, killing\n" port :err);
         shell(print("pkill -9 -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str)))));
   true)
@@ -167,8 +177,8 @@ grid_lacks_id=func(
    top-level statement (NO trailing ';', which would fuse the load with the
    dispatch below into one parse unit and try to resolve the test-func names
    before run() has defined them).  The shared helpers above (kill_port,
-   find_open_port, grid_has_id) are defined before these loads for the same
-   reason -- the test funcs call them. */
+   find_open_port, drawserv_running, grid_has_id) are defined before these
+   loads for the same reason -- the test funcs call them. */
 run("./updown.comt")
 run("./gstests.comt")
 run("./sel.comt")

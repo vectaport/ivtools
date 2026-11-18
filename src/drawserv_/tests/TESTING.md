@@ -72,12 +72,23 @@ steps of 10 until both `ds_port` and `ds_port-1` are free.
 `kill_port(:kill_port_num n)` — kills the process listening on port n,
 using `lsof` if available, falling back to `fuser`.
 
+`drawserv_running(:ds_running_port n)` — true while a drawserv process
+still carries `-comdraw n` in its argv; every wait-for-exit loop polls
+it rather than building its own `pgrep`. The pattern lives in this one
+place because it has two subtleties: `[d]rawserv` keeps `pgrep -f` from
+matching the shell that runs the probe (whose argv holds the pattern —
+Linux procps matches it, BSD pgrep doesn't, so an unbracketed pattern
+hangs only in CI), and the trailing `( |$)` bounds the port so 20002
+doesn't also match a node carrying 200022.
+
 `reap_leftovers(:dummy 0)` — shuts down any drawserv still holding a
-port `find_open_port` handed out, matching it by its own `-comdraw`
-port, and empties the list of handed-out ports. The dispatch loop calls
-it after every test, whatever the test returned. A test's own teardown
-is still its job; this is the backstop for the paths that never reach
-it, and on a test that cleaned up after itself it prints nothing.
+port `find_open_port` handed out, polling `drawserv_running()` to find
+and then confirm it, and empties the list of handed-out ports. Its two
+`pkill` calls keep the pattern inline, since a boolean helper cannot
+express them. The dispatch loop calls it after every test, whatever the
+test returned. A test's own teardown is still its job; this is the
+backstop for the paths that never reach it, and on a test that cleaned
+up after itself it prints nothing.
 
 That list of handed-out ports is created once and only ever mutated in
 place, which is a ComTerp scoping rule and not a style choice. A func
@@ -124,8 +135,8 @@ The shutdown sequence in step 6 is three things and needs all three:
    `lsof -ti` lists every process holding that port, this end included — so
    killing a port you are still connected to kills the test itself.
 
-Shut down by asking, not by killing; check with `pgrep -f '[d]rawserv -comdraw
-<port>'` and kill only what stayed. Killing by port while connected is silent:
+Shut down by asking, not by killing; check with `drawserv_running()` and
+kill only what stayed. Killing by port while connected is silent:
 the test dies with SIGTERM and reports nothing, which reads exactly like a hang.
 
 ## Test Inventory

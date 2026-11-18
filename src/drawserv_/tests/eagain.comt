@@ -49,7 +49,7 @@ eagain_test=func(
   if(!global(drawserv_upE2) :then
     print("eagain: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("eagain: ds2 up on %d\n" ds2_port :err);
@@ -67,7 +67,7 @@ eagain_test=func(
 
   /* --- stop ds2 dead: no process means no reactor draining its socket,
      so the kernel receive buffer can only fill, never empty --- */
-  ds2pid=run(print("pgrep -f '[d]rawserv -comdraw %d'" ds2_port :str) :popen);
+  ds2pid=run(print("pgrep -f '[d]rawserv -comdraw %d( |$)'" ds2_port :str) :popen);
   if(type(ds2pid)!=`IntType :then
     print("eagain: FAIL could not find ds2's pid to stop\n" :err);
     remote(sock1 "exit" :nowait);close(sock1);
@@ -158,9 +158,9 @@ eagain_test=func(
 
   /* --- tear both down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
   print("eagain: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
   print("eagain: ds2 shut down\n" :err);
   ok)

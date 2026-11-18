@@ -100,7 +100,7 @@ sel_test=func(
   j=0;
   while(j<3
     p=if(j==0 :then hub_port :else if(j==1 :then sp1_port :else sp2_port));
-    if(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" p :str))==0 :then
+    if(drawserv_running(:ds_running_port p) :then
       print("sel: drawserv on %d would not go, sending it\n" p :err);
       kill_port(:kill_port_num p);kill_port(:kill_port_num p-1));
     j=j+1);
