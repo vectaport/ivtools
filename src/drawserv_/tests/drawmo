@@ -109,19 +109,23 @@ find_open_port=func(
    when the test started -- so a drawserv of the user's own is never a
    candidate.  Unlike kill_port() it also cannot hit drawmo itself, which lsof
    lists among the holders of a port drawmo is connected to.  The pattern is
-   bracketed for the reason updown_test's pgrep loop gives. */
+   bracketed for the reason updown_test's pgrep loop gives.  The ( |$) after
+   the port keeps it from also matching a longer port that begins with those
+   digits -- a port over 65535 is narrowed to u_short before anything listens,
+   so an instance launched on one can leave the port drawmo matched against
+   looking free while that process still carries the longer number. */
 reap_leftovers=func(
   while(size(live_ports)>0
     port=at(live_ports 0 :del);
-    probe=print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" port :str);
+    probe=print("pgrep -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str);
     if(shell(probe)==0 :then
       print("drawmo: reaping drawserv left running on port %d\n" port :err);
-      shell(print("pkill -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" port :str));
+      shell(print("pkill -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str));
       cnt=0;
       while(shell(probe)==0 && cnt<25 usleep(200000);cnt++);
       if(shell(probe)==0 :then
         print("drawmo: port %d outlived its SIGTERM, killing\n" port :err);
-        shell(print("pkill -9 -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" port :str)))));
+        shell(print("pkill -9 -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str)))));
   true)
 
 /* grid_has_id: poll a far node's grid table until a row's :grid (8-char
