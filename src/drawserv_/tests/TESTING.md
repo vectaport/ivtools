@@ -349,6 +349,9 @@ so the change travels back the other way.
   300-element array) while it has no grid id, then pasted, arrives on ds2
   with every attribute whole: attributes set off-canvas travel in the
   paste's own script, not as `setattr()` calls
+- `c1.dotted=42` on ds1 reaches ds2, and `c2.dotted=43` on ds2 (through a
+  handle from `grid()`) reaches ds1 and settles on both: dot-assignment builds
+  the same `SetAttrCmd`, so it crosses as the same `setattr()` call
 
 **Purpose:** `LinkSetAttrCmd` is the first distributed command that names its
 own target instead of acting on the selection, so it emits no
