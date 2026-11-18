@@ -82,6 +82,19 @@ kill_port=func(
     /* no lsof: best effort via fuser if available */
     shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
 
+/* drawserv_running: true while a drawserv process still carries this -comdraw
+   port in its argv.  Two things the pattern has to get right:
+     - '[d]rawserv', not 'drawserv': pgrep -f matches whole command lines, and
+       the shell running the probe has the pattern in its own argv, so a plain
+       pattern matches the poller and a wait loop never ends (Linux procps does
+       this; macOS BSD pgrep doesn't, which is why it only hung in CI).
+     - the trailing '( |$)' bounds the port, so 20002 doesn't also match a peer
+       carrying 200022 -- ringpair10 derives ports as base_port+idx*10000 and
+       runs past the u_short a listen() narrows to. */
+drawserv_running=func(
+  shell(print("pgrep -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1"
+    ds_running_port :str))==0)
+
 /* find an open port starting from base_port, stepping by 10.
    checks both ds_port and ds_port-1 (import port) are free */
 find_open_port=func(
@@ -130,8 +143,8 @@ grid_lacks_id=func(
    top-level statement (NO trailing ';', which would fuse the load with the
    dispatch below into one parse unit and try to resolve the test-func names
    before run() has defined them).  The shared helpers above (kill_port,
-   find_open_port, grid_has_id) are defined before these loads for the same
-   reason -- the test funcs call them. */
+   find_open_port, drawserv_running, grid_has_id) are defined before these
+   loads for the same reason -- the test funcs call them. */
 run("./updown.comt")
 run("./gstests.comt")
 run("./sel.comt")
