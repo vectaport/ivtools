@@ -81,6 +81,26 @@ Linux procps matches it, BSD pgrep doesn't, so an unbracketed pattern
 hangs only in CI), and the trailing `( |$)` bounds the port so 20002
 doesn't also match a node carrying 200022.
 
+`reap_leftovers(:dummy 0)` — shuts down any drawserv still holding a
+port `find_open_port` handed out, polling `drawserv_running()` to find
+and then confirm it, and empties the list of handed-out ports. Its two
+`pkill` calls keep the pattern inline, since a boolean helper cannot
+express them. The dispatch loop calls it after every test, whatever the
+test returned. A test's own teardown is still its job; this is the
+backstop for the paths that never reach it, and on a test that cleaned
+up after itself it prints nothing.
+
+That list of handed-out ports is created once and only ever mutated in
+place, which is a ComTerp scoping rule and not a style choice. A func
+cannot rebind an outer symbol — `f=func(n=n+1;n)` leaves the outer `n`
+alone, because the assignment is local — but it can mutate an outer
+list: `lst,x` appends to it and `at(lst 0 :del)` removes from it. What
+the func holds is the object rather than the symbol, so a later
+top-level `live_ports=list()` would orphan the object
+`find_open_port` appends through, and ports would quietly stop being
+recorded. Hence `reap_leftovers` drains the list it has instead of
+replacing it.
+
 `updown` launch pattern — each test uses the same structure:
 1. Find a free port pair
 2. Set `global(drawserv_up)=false`
@@ -420,4 +440,7 @@ communication, or a DrawServ-specific command.
 5. Update the usage `print()` strings at the top of `drawmo`
 
 Keep each test function self-contained — it finds its own port, launches
-its own drawserv, and cleans up on both pass and fail paths.
+its own drawserv, and cleans up on both pass and fail paths. Cleaning up
+on the fail paths is still the test's job even though `reap_leftovers`
+backstops it: the test can ask its nodes to exit, the orderly shutdown
+the three steps above describe, where the backstop can only signal them.

@@ -90,10 +90,17 @@ kill_port=func(
        this; macOS BSD pgrep doesn't, which is why it only hung in CI).
      - the trailing '( |$)' bounds the port, so 20002 doesn't also match a peer
        carrying 200022 -- ringpair10 derives ports as base_port+idx*10000 and
-       runs past the u_short a listen() narrows to. */
+       runs past the u_short a listen() narrows to.
+   Every wait-for-exit loop in the test files polls this rather than spelling
+   the pattern out again. */
 drawserv_running=func(
   shell(print("pgrep -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1"
     ds_running_port :str))==0)
+
+/* every port find_open_port has handed out since the last reap_leftovers:
+   the ports of the instances the test now running launched.  Mutated in place,
+   never rebound -- TESTING.md's Infrastructure Functions says why. */
+live_ports=list()
 
 /* find an open port starting from base_port, stepping by 10.
    checks both ds_port and ds_port-1 (import port) are free */
@@ -102,7 +109,34 @@ find_open_port=func(
   while(shell(print(port_probe port :str))==0 ||
         shell(print(port_probe port-1 :str))==0
     port=port+10);
+  live_ports,port;
   port)
+
+/* reap_leftovers: shut down any drawserv still holding a port find_open_port
+   handed out, and empty the list.  The dispatch loop calls it after every test,
+   whatever the test returned, so a test that fails partway and returns ahead of
+   its own teardown still leaves the machine as it found it -- an instance left
+   holding its ports answers the next test's sockets and fails it too, which
+   makes one real failure read as a run-wide collapse.
+
+   Matching on the instance's own -comdraw port confines this to what
+   find_open_port handed out, which is only ever a port nothing was listening on
+   when the test started -- so a drawserv of the user's own is never a
+   candidate.  Unlike kill_port() it also cannot hit drawmo itself, which lsof
+   lists among the holders of a port drawmo is connected to.  The pkill patterns
+   are bracketed and port-bounded for the reasons drawserv_running() gives. */
+reap_leftovers=func(
+  while(size(live_ports)>0
+    port=at(live_ports 0 :del);
+    if(drawserv_running(:ds_running_port port) :then
+      print("drawmo: reaping drawserv left running on port %d\n" port :err);
+      shell(print("pkill -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str));
+      cnt=0;
+      while(drawserv_running(:ds_running_port port) && cnt<25 usleep(200000);cnt++);
+      if(drawserv_running(:ds_running_port port) :then
+        print("drawmo: port %d outlived its SIGTERM, killing\n" port :err);
+        shell(print("pkill -9 -f '[d]rawserv -comdraw %d( |$)' > /dev/null 2>&1" port :str)))));
+  true)
 
 /* grid_has_id: poll a far node's grid table until a row's :grid (8-char
    prefix) matches the wanted id, or timeout.  returns true if found.
@@ -388,6 +422,9 @@ if(tests_flag :then
         print("frameimport: pass\n" :err)
       :else
         print("frameimport: FAIL\n" :err);
-        ok=false))))
+        ok=false));
+    /* one test per iteration, so this is that test's cleanup, run whether it
+       passed, failed, or returned early from a failure path of its own */
+    reap_leftovers(:dummy 0)))
 
 exit(if(ok :then 0 :else 1))
