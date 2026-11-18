@@ -50,5 +50,6 @@
 #define DRAFTSHARE_CMD      9816
 #define LINK_DUP_CMD        9817
 #define LINK_DELETE_CMD     9818
+#define LINK_SETATTR_CMD    9819
 
 #endif
