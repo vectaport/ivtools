@@ -13,6 +13,12 @@
 // in the local table, and where a same-named outer variable existed read
 // that one's field instead.  Tests 1-3 pin the three halves of that.
 //
+// Test 9 pins the other half of the same question: which left-hand parts dot
+// fires before looking a field up.  A call on a FuncObj-valued name reaches
+// dot as a bare symbol carrying an arglist, not as the command reference a
+// registered command leaves, so the arglist went unfired and the field was
+// read off the FuncObj itself rather than off what the call returned.
+//
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotlocal.comt")
 
@@ -81,6 +87,21 @@ d8=func(x=5;x.a=1;x.a)
 r8=d8(0)
 ok=ok&&(r8==1)
 print("8 d8=func(x=5;x.a=1;x.a); d8(0) scalar local converted in place (expect 1): %v\n\n" r8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: a call's return value dots directly, with no local in between ---
+// (test 5's y=d9mk(0);y.ok already worked; the call as dot's own left-hand
+// part is the distinct path -- at() does the same for a builtin's result)
+d9mk=func((:ok 777))
+d9=func(d9mk(0).ok)
+r9a=d9(0)
+r9b=d9mk(0).ok
+d9at=func(t=list();t,(:grid "AAAA");at(t 0).grid)
+r9c=d9at(0)
+ok=ok&&(r9a==777)
+ok=ok&&(r9b==777)
+ok=ok&&(r9c=="AAAA")
+print("9 d9=func(d9mk(0).ok); d9(0), then d9mk(0).ok, then at(t 0).grid (expect 777 777 \"AAAA\"): %v %v %v\n\n" r9a r9b r9c)
 prev_ok=check_fail(:ok ok)
 
 print("\ndotlocal: %v\n" ok)
