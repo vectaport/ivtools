@@ -1664,10 +1664,13 @@ ringpair_test=func(
   if(chainlen==nil :then chainlen=5);
 
   ra=ringpair_launch_chain(:tag "A" :chainlen chainlen :base_port 20002);
-  if(!ra.ok :then return(false));
+  if(!ra.ok :then
+    print("ringpair: FAIL A chain did not come up (returned %v)\n" ra :err);
+    return(false));
 
   rb=ringpair_launch_chain(:tag "B" :chainlen chainlen :base_port 20002+chainlen*10000);
   if(!rb.ok :then
+    print("ringpair: FAIL B chain did not come up (returned %v)\n" rb :err);
     for(j=0 j<chainlen j++ remote(at(ra.socks j) "exit" :nowait);close(at(ra.socks j)));
     return(false));
 

@@ -177,6 +177,10 @@ if(run("./selfdot.comt")
   :then print("pass: selfdot\n")
   :else print("FAIL: selfdot\n");topok=false)
 
+if(run("./dotlocal.comt")
+  :then print("pass: dotlocal\n")
+  :else print("FAIL: dotlocal\n");topok=false)
+
 if(run("./nilfuncstream.comt")
   :then print("pass: nilfuncstream\n")
   :else print("FAIL: nilfuncstream\n");topok=false)
