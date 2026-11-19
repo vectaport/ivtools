@@ -13,6 +13,11 @@
 // in the local table, and where a same-named outer variable existed read
 // that one's field instead.  Tests 1-3 pin the three halves of that.
 //
+// test 9 pins the other way the create-if-unbound branch must not fire:
+// lookup_symval answers nil for a bquoted symbol, so dot resolves a copy
+// with the flag cleared -- otherwise bquote(x).a reads nil off a fresh
+// list and that list replaces x's real value.
+//
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotlocal.comt")
 
@@ -81,6 +86,15 @@ d8=func(x=5;x.a=1;x.a)
 r8=d8(0)
 ok=ok&&(r8==1)
 print("8 d8=func(x=5;x.a=1;x.a); d8(0) scalar local converted in place (expect 1): %v\n\n" r8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: a bquoted name still resolves to its binding, and keeps it ---
+d9x=(:a 3)
+r9a=bquote(d9x).a
+r9b=d9x
+ok=ok&&(r9a==3)
+ok=ok&&(r9b.a==3)
+print("9 d9x=(:a 3); bquote(d9x).a then d9x (expect 3, and (:a 3) intact): %v %v\n\n" r9a r9b)
 prev_ok=check_fail(:ok ok)
 
 print("\ndotlocal: %v\n" ok)
