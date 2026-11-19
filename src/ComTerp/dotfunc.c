@@ -542,13 +542,19 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
-      /* resolve the name through lookup_symval rather than searching the
-         scopes here, so every scope an ordinary read of it sees is seen here
-         too.  A plain assignment in a func body puts a brand-new name in the
-         call's temp frame, which searching only _alist, local and global
-         misses -- leaving the vivify below to answer off a fresh empty
-         attribute list, or to read a same-named outer variable instead. */
-      AttributeValue* bval = comterp()->lookup_symval(&before_part, false);
+      /* resolve through lookup_symval -- it searches the temp frame, the
+         func's home attrlist, the local table and the global table in that
+         order, and a func-local lives in the temp frame.  Sharing the one
+         implementation keeps dot's view of a name identical to a read's.
+
+         It answers nil for a bquoted symbol, which is right for a read of
+         `name but not for resolving a dot target: that would take a bound
+         name for an unbound one and replace its value with the fresh list
+         created below.  Resolve a copy with the flag cleared, so
+         before_part itself keeps it for the branches further down. */
+      ComValue before_lookup = before_part;
+      before_lookup.bquote(0);
+      AttributeValue* bval = comterp()->lookup_symval(&before_lookup, false);
       if (bval && bval->is_attributelist())
 	al = (AttributeList*) bval->obj_val();
       else if (bval && bval->is_object(FuncObj::class_symid())) {

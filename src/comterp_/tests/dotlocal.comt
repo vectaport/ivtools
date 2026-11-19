@@ -13,11 +13,16 @@
 // in the local table, and where a same-named outer variable existed read
 // that one's field instead.  Tests 1-3 pin the three halves of that.
 //
-// Test 9 pins the other half of the same question: which left-hand parts dot
-// fires before looking a field up.  A call on a FuncObj-valued name reaches
-// dot as a bare symbol carrying an arglist, not as the command reference a
-// registered command leaves, so the arglist went unfired and the field was
-// read off the FuncObj itself rather than off what the call returned.
+// test 9 pins the other way the create-if-unbound branch must not fire:
+// lookup_symval answers nil for a bquoted symbol, so dot resolves a copy
+// with the flag cleared -- otherwise bquote(x).a reads nil off a fresh
+// list and that list replaces x's real value.
+//
+// test 10 pins a different question: which left-hand parts dot fires before
+// looking a field up at all.  Only a registered command leaves a CommandType
+// token, so a call on a FuncObj-valued name arrives as a bare symbol carrying
+// an arglist and needs a firing case of its own; unfired, the arglist is
+// dropped and the field is read off the FuncObj rather than off the return.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotlocal.comt")
@@ -89,19 +94,28 @@ ok=ok&&(r8==1)
 print("8 d8=func(x=5;x.a=1;x.a); d8(0) scalar local converted in place (expect 1): %v\n\n" r8)
 prev_ok=check_fail(:ok ok)
 
-// --- test 9: a call's return value dots directly, with no local in between ---
-// (test 5's y=d9mk(0);y.ok already worked; the call as dot's own left-hand
-// part is the distinct path -- at() does the same for a builtin's result)
-d9mk=func((:ok 777))
-d9=func(d9mk(0).ok)
-r9a=d9(0)
-r9b=d9mk(0).ok
-d9at=func(t=list();t,(:grid "AAAA");at(t 0).grid)
-r9c=d9at(0)
-ok=ok&&(r9a==777)
-ok=ok&&(r9b==777)
-ok=ok&&(r9c=="AAAA")
-print("9 d9=func(d9mk(0).ok); d9(0), then d9mk(0).ok, then at(t 0).grid (expect 777 777 \"AAAA\"): %v %v %v\n\n" r9a r9b r9c)
+// --- test 9: a bquoted name still resolves to its binding, and keeps it ---
+d9x=(:a 3)
+r9a=bquote(d9x).a
+r9b=d9x
+ok=ok&&(r9a==3)
+ok=ok&&(r9b.a==3)
+print("9 d9x=(:a 3); bquote(d9x).a then d9x (expect 3, and (:a 3) intact): %v %v\n\n" r9a r9b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: a call's return value dots directly, with no local in between ---
+// (test 5's y=d5mk(0);y.ok takes the same field off a local; the call as dot's
+// own left-hand part is the distinct path -- at() does it for a builtin result)
+d10mk=func((:ok 777))
+d10=func(d10mk(0).ok)
+r10a=d10(0)
+r10b=d10mk(0).ok
+d10at=func(t=list();t,(:grid "AAAA");at(t 0).grid)
+r10c=d10at(0)
+ok=ok&&(r10a==777)
+ok=ok&&(r10b==777)
+ok=ok&&(r10c=="AAAA")
+print("10 d10=func(d10mk(0).ok); d10(0), then d10mk(0).ok, then at(t 0).grid (expect 777 777 \"AAAA\"): %v %v %v\n\n" r10a r10b r10c)
 prev_ok=check_fail(:ok ok)
 
 print("\ndotlocal: %v\n" ok)
