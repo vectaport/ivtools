@@ -524,7 +524,6 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     }
 
     /* lookup value of before variable */
-    void* vptr = nil;
     AttributeList* al = nil;
     boolean al_from_funcobj = false;
     if (before_part.is_object(FuncObj::class_symid())) {
@@ -533,41 +532,36 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
-      /* func scope (_alist) is checked before local/global, same order
-         as ComTerp::lookup_symval -- so func bodies see their own vars */
-      AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
-      AttributeValue* fsval = funcscope ? funcscope->find(before_symid) : nil;
-      if (fsval) {
-	if (fsval->is_attributelist())
-	  al = (AttributeList*) fsval->obj_val();
-	else if (fsval->is_object(FuncObj::class_symid())) {
-	  al = funcobj_dot_attrlist(fsval);
-	  al_from_funcobj = true;
-	} else {
-	  al = new AttributeList();
-	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
-	  *fsval = newval;
-	}
+      /* resolve the name through lookup_symval rather than searching the
+         scopes here, so every scope an ordinary read of it sees is seen here
+         too.  A plain assignment in a func body puts a brand-new name in the
+         call's temp frame, which searching only _alist, local and global
+         misses -- leaving the vivify below to answer off a fresh empty
+         attribute list, or to read a same-named outer variable instead. */
+      AttributeValue* bval = comterp()->lookup_symval(&before_part, false);
+      if (bval && bval->is_attributelist())
+	al = (AttributeList*) bval->obj_val();
+      else if (bval && bval->is_object(FuncObj::class_symid())) {
+	al = funcobj_dot_attrlist(bval);
+	al_from_funcobj = true;
+      } else if (bval) {
+	/* bound to something other than an attribute list: give the name a
+	   fresh one where it already lives.  The base-class assignment
+	   suffices even when bval is a table ComValue, whose own operator=
+	   would also carry _pedepth and _linenum: both are read off the
+	   postfix buffer and the evaluation stack, never off a stored value. */
+	al = new AttributeList();
+	AttributeValue newval(AttributeList::class_symid(), (void*) al);
+	*bval = newval;
       } else {
-	if (!global) {
-	  comterp()->localtable()->find(vptr, before_symid);
-	  if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
-	} else {
-	  comterp()->globaltable()->find(vptr, before_symid);
-	}
-	if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
-	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
-	} else if (vptr && ((ComValue*) vptr)->is_object(FuncObj::class_symid())) {
-	  al = funcobj_dot_attrlist((ComValue*) vptr);
-	  al_from_funcobj = true;
-	} else {
-	  al = new AttributeList();
-	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
-	  if (!global)
-	    comterp()->localtable()->insert(before_symid, comval);
-	  else
-	    comterp()->globaltable()->insert(before_symid, comval);
-	}
+	/* unbound in every scope -- create the attribute list the docstring
+	   promises, in the session's own table unless the name said global() */
+	al = new AttributeList();
+	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
+	if (!global)
+	  comterp()->localtable()->insert(before_symid, comval);
+	else
+	  comterp()->globaltable()->insert(before_symid, comval);
       }
     } else if (!before_part.is_attributelist()) {
       if (((Attribute*)before_part.obj_val())->Value()->is_attributelist())

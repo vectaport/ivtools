@@ -1,0 +1,87 @@
+// src/comterp_/tests/dotlocal.comt -- name.field resolves the name in every
+// scope an ordinary read of it does, the call's own temp frame included
+//
+// coverage: not yet scored
+// funcs: dot func attrlist
+//
+// a plain assignment in a func body puts a brand-new name in the call's temp
+// frame, so dot has to consult it.  DotFunc searched only the func's home
+// attrlist, the local table and the global table, which missed a func-local
+// entirely -- and dot's documented "create an attribute list if the name
+// isn't bound to one yet" then fired on a name that WAS bound: the read
+// answered nil off a fresh empty list, left that list behind under the name
+// in the local table, and where a same-named outer variable existed read
+// that one's field instead.  Tests 1-3 pin the three halves of that.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/dotlocal.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a func-local attrlist's field reads through dot ---
+d1=func(x=(:ok 777);x.ok)
+r1=d1(0)
+ok=ok&&(r1==777)
+print("1 d1=func(x=(:ok 777);x.ok); d1(0) local attrlist field (expect 777): %v\n\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: dotting a local leaves no attrlist behind in the outer scope ---
+// (the vivify is for a genuinely unbound name; a bound local must not reach it)
+d2=func(d2x=(:ok 777);d2x.ok)
+r2a=d2(0)
+r2b=d2x
+ok=ok&&(r2a==777)
+ok=ok&&(r2b==nil)
+print("2 d2=func(d2x=(:ok 777);d2x.ok); d2(0) then outer d2x (expect 777 nil): %v %v\n\n" r2a r2b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: a func-local shadows a same-named outer variable, which is untouched ---
+d3x=(:ok 111)
+d3=func(d3x=(:ok 777);d3x.ok)
+r3a=d3(0)
+r3b=d3x.ok
+ok=ok&&(r3a==777)
+ok=ok&&(r3b==111)
+print("3 d3x=(:ok 111); d3=func(d3x=(:ok 777);d3x.ok) local shadows outer (expect 777 111): %v %v\n\n" r3a r3b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: a keyword formal holding an attrlist still dots ---
+// (formals live in the func's home attrlist, the one scope dot always saw)
+d4=func(incoming.ok)
+r4=d4(:incoming (:ok 777))
+ok=ok&&(r4==777)
+print("4 d4=func(incoming.ok); d4(:incoming (:ok 777)) keyword formal (expect 777): %v\n\n" r4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: a local holding another func's return value dots ---
+d5mk=func((:ok 777))
+d5=func(y=d5mk(0);y.ok)
+r5=d5(0)
+ok=ok&&(r5==777)
+print("5 d5=func(y=d5mk(0);y.ok); d5(0) local from a call (expect 777): %v\n\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: the second field of a multi-field local ---
+d6=func(x=(:a 1 :b 2);x.b)
+r6=d6(0)
+ok=ok&&(r6==2)
+print("6 d6=func(x=(:a 1 :b 2);x.b); d6(0) second field (expect 2): %v\n\n" r6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: a local's field is writable, and the write is what the read sees ---
+d7=func(x=(:a 1);x.a=2;x.a)
+r7=d7(0)
+ok=ok&&(r7==2)
+print("7 d7=func(x=(:a 1);x.a=2;x.a); d7(0) write then read (expect 2): %v\n\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: a local bound to a non-attrlist gets a fresh one where it lives ---
+d8=func(x=5;x.a=1;x.a)
+r8=d8(0)
+ok=ok&&(r8==1)
+print("8 d8=func(x=5;x.a=1;x.a); d8(0) scalar local converted in place (expect 1): %v\n\n" r8)
+prev_ok=check_fail(:ok ok)
+
+print("\ndotlocal: %v\n" ok)
+ok
