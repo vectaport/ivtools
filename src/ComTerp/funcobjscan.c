@@ -171,9 +171,9 @@ static boolean span_is_plain_var(PostfixSpanWalk::Span span, postfix_token* toks
 boolean* FuncObjVarScan::build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks) {
     boolean* is_plain_var = new boolean[ntoks];
     for (int i = 0; i < ntoks; i++) {
-        /* nids<0 marks a bare dot-rhs identifier, never a command --
+        /* nids==-1 marks a bare dot-rhs identifier, never a command --
            see HACKING.md's "Dot Operator Rhs" */
-        if (toks[i].type == TOK_COMMAND && toks[i].nids >= 0) {
+        if (toks[i].type == TOK_COMMAND && toks[i].nids != -1) {
             ComValue sv;
             comterp->token_to_comvalue(&toks[i], &sv);
             is_plain_var[i] = sv.type() == ComValue::SymbolType;

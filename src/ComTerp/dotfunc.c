@@ -431,14 +431,13 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
          real StreamType value the LHS-stream support below needs */
       before_part = stack_arg_post_eval(0);
     } else if (before_part.is_symbol() &&
-	       (before_part.narg() || before_part.nkey())) {
-      /* a name carrying an arglist is a call (mk(0).ok), not a name to
-         look a field up on -- fire it, so the field is read off what the
-         call returns rather than off the FuncObj the bare name is bound
-         to.  Only a registered command gets a CommandType token, so a
-         call on a FuncObj-valued name arrives as a SymbolType and needs
-         this test of its own; a bare name must stay unfired for the
-         lookup-or-create below. */
+	       (before_part.narg() || before_part.nkey() ||
+		before_part.nids() == -2)) {
+      /* a name carrying an arglist is a call (mk(0).ok), and nids==-2 is
+         the parser's mark for one written with empty parens (mk().ok) */
+      /* only a registered command gets a CommandType token, so a call on
+         a FuncObj-valued name arrives here as a SymbolType */
+      /* a bare name stays unfired, for the lookup-or-create below */
       before_part = stack_arg_post_eval(0);
     }
     after_raw = stack_arg(1, true);

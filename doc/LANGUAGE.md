@@ -775,11 +775,28 @@ Use `setattr()` to stamp many facts in one call; the dot for one at a
 time.  The mutation rides the comp reference, so it works from inside a
 func even though the symbol binding is frame-local (see *Scoping rules*).
 
-The dot's lhs need not be a bare name — any expression that evaluates to
-a **symbol** or a **funcobj** works, e.g. `(cond :then f :else g).x` or
-`mk().y`; the dot fires that expression first, then dots into whatever
-it returns.  A funcobj lhs dots into its own captures (see *Rewriting a
-default deliberately* below); anything else is a type error.
+Whichever shape the lhs takes, the dot does just one thing: it reads an
+attribute list.  The only question is *whose* — the lhs's own, or the
+result of calling it.  A **name** reads that name's own list: an
+attrlist's fields, a comp's facts, a funcobj's captures (see *Rewriting
+a default deliberately* below).  A **call** reads the list of whatever
+came back.  A name with no list yet gets an empty one.
+
+So the parens carry meaning here.  A bare name bound to a funcobj is
+read as a name rather than called, which makes the dot the one place
+where `mk` and `mk()` part company — everywhere else in the language a
+bare callable name is called:
+
+```
+mk=func((:ok 777))
+mk.ok            // nil -- mk has no capture named ok; help(mk) is "mk()"
+mk().ok          // 777 -- the :ok of the attrlist mk returns
+```
+
+The lhs need not be a bare name — any expression that evaluates to a
+**symbol** or a **funcobj** works, e.g. `(cond :then f :else g).x`; the
+dot fires that expression first, then dots into whatever it returns.
+Anything else is a type error.
 
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.

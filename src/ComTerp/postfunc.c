@@ -149,7 +149,9 @@ void PostFixFunc::execute() {
       }
     }
     else if (val.is_type(AttributeValue::SymbolType) && 
-	     (val.narg() || val.nkey()))
+	     (val.narg() || val.nkey() || val.nids() == -2))
+      /* the suffix marks a call, so an empty-parenthesized one carries it
+         too -- without it mk() and a bare mk render alike */
       out << "{" << val.narg() << "|" << val.nkey() << "}";
     else if (val.is_type(AttributeValue::KeywordType))
       out << "(" << val.keynarg_val() << ")";
