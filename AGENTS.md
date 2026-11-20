@@ -157,11 +157,19 @@ written in ComTerp itself.
 
 ### ComTerp unit tests — `src/comterp_/tests/`
 
-`.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`:
+`.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`, with
+the tests directory as the working directory — every script reaches its
+fixtures through `./`-relative paths:
 
+```bash
+cd src/comterp_/tests && comterp run run_all.comt   # every script, pass/FAIL
 ```
-run("src/comterp_/tests/run_all.comt")   # runs every script, prints pass/FAIL
-```
+
+Run it from the repo root instead and those `./`-relative `open()` calls find
+nothing, so the scripts holding them report ordinary assertion failures rather
+than an error: a misinvoked suite is indistinguishable from a broken one until
+you check the cwd. `info-obj`, `more` and `runfile` are the three that go red
+this way.
 
 Each script returns a boolean `ok`; `run_all.comt` aggregates them. The full
 coverage taxonomy, scoring methodology, header format (`// coverage:`,
@@ -192,9 +200,13 @@ window; comdraw's startup seed `update()` (`main.c`) realizes the canvas
 before any script runs:
 
 ```bash
-comdraw -stdin_off -runfile src/comdraw/tests/run_all.comt   # scripted/CI
-comdraw -runexpr 'run("src/comdraw/tests/run_all.comt");exit'
+cd src/comdraw/tests
+comdraw -stdin_off -runfile run_all.comt        # scripted/CI
+comdraw -runexpr 'run("./run_all.comt");exit'
 ```
+
+The cwd rule above applies here too: this suite's `run_all.comt` reaches all
+31 of its scripts through `./`-relative paths.
 
 Same conventions as the ComTerp unit tests above (accumulate `ok`,
 register in `run_all.comt`, etc); what's different at this layer,

@@ -306,6 +306,22 @@ To add a new test script:
 3. Enumerate slots from the taxonomy above
 4. Write tests, add the coverage header, add the script to `run_all.comt`
 
+## Running the Suite
+
+Run it with this directory as the working directory:
+
+```bash
+cd src/comterp_/tests && comterp run run_all.comt
+```
+
+Nearly every script reaches its fixtures through `./`-relative paths, so
+the cwd is load-bearing. Run the suite from the repo root instead and
+`info-obj`, `more` and `runfile` go red: their `open()` calls find
+nothing, and a nil file object fails the assertions built on it. Nothing
+reports the misinvocation itself, so the suite reads as broken rather
+than misused -- check the cwd before investigating any failure in those
+three.
+
 ## Platform-Conditional Failures
 
 Two scripts pass under CI's Ubuntu/`xvfb` environment and fail on macOS

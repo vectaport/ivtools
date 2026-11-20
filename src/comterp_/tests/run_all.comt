@@ -1,7 +1,13 @@
-// src/comterp/tests/run_all.comt -- run all comterp tests
+// src/comterp_/tests/run_all.comt -- run all comterp tests
 //
-// Run from inside comterp, comdraw, or drawserv:
-//   run("src/comterp/tests/run_all.comt")
+// Run with this directory as the working directory -- every script reaches
+// its fixtures through ./-relative paths:
+//   cd src/comterp_/tests && comterp run run_all.comt
+//   run("./run_all.comt")      // from a comterp/comdraw/drawserv prompt
+//
+// From anywhere else those ./-relative open() calls find nothing, and the
+// scripts holding them report ordinary assertion failures rather than an
+// error -- a misinvoked suite looks exactly like a broken one.
 
 topok=true
 

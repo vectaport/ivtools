@@ -22,11 +22,16 @@ so the window is already mapped by the time a test's first `select()` or
 
 ## Running Tests
 
+Run these with this directory as the working directory -- `run_all.comt`
+reaches all 31 of its scripts through `./`-relative paths, so from anywhere
+else none of them is found:
+
 ```bash
-comdraw -stdin_off -runfile src/comdraw/tests/run_all.comt   # scripted/CI
-comdraw -runfile src/comdraw/tests/run_all.comt               # interactive
-comdraw -runexpr 'run("src/comdraw/tests/run_all.comt");exit'
-run("src/comdraw/tests/run_all.comt")                          # from the prompt/socket
+cd src/comdraw/tests
+comdraw -stdin_off -runfile run_all.comt        # scripted/CI
+comdraw -runfile run_all.comt                   # interactive
+comdraw -runexpr 'run("./run_all.comt");exit'
+run("./run_all.comt")                           # from the prompt/socket
 ```
 
 Use `-stdin_off` for non-interactive runs: with stdin closed
