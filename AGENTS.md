@@ -165,11 +165,15 @@ fixtures through `./`-relative paths:
 cd src/comterp_/tests && comterp run run_all.comt   # every script, pass/FAIL
 ```
 
-Run it from the repo root instead and those `./`-relative `open()` calls find
-nothing, so the scripts holding them report ordinary assertion failures rather
-than an error: a misinvoked suite is indistinguishable from a broken one until
-you check the cwd. `info-obj`, `more` and `runfile` are the three that go red
-this way.
+The `run()` chain itself is script-relative — `RunFunc` prepends the enclosing
+script's own directory to a `./` path — so every script is found from anywhere.
+Four of them reach *fixtures* outside `run()`, through the working directory:
+`info-obj` and `more` with `open()`, `runfile` and `comvalref` through a
+subprocess. From the repo root those find nothing, and assertions built on the
+resulting nil fail as ordinary comparisons, with nothing reporting the
+misinvocation — so a misinvoked suite reads as a broken one. On macOS
+`comvalref` is red either way for a platform reason, leaving `info-obj`, `more`
+and `runfile` as the three that visibly change.
 
 Each script returns a boolean `ok`; `run_all.comt` aggregates them. The full
 coverage taxonomy, scoring methodology, header format (`// coverage:`,
@@ -200,13 +204,9 @@ window; comdraw's startup seed `update()` (`main.c`) realizes the canvas
 before any script runs:
 
 ```bash
-cd src/comdraw/tests
-comdraw -stdin_off -runfile run_all.comt        # scripted/CI
-comdraw -runexpr 'run("./run_all.comt");exit'
+comdraw -stdin_off -runfile src/comdraw/tests/run_all.comt   # scripted/CI
+comdraw -runexpr 'run("src/comdraw/tests/run_all.comt");exit'
 ```
-
-The cwd rule above applies here too: this suite's `run_all.comt` reaches all
-31 of its scripts through `./`-relative paths.
 
 Same conventions as the ComTerp unit tests above (accumulate `ok`,
 register in `run_all.comt`, etc); what's different at this layer,

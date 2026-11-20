@@ -314,13 +314,24 @@ Run it with this directory as the working directory:
 cd src/comterp_/tests && comterp run run_all.comt
 ```
 
-Nearly every script reaches its fixtures through `./`-relative paths, so
-the cwd is load-bearing. Run the suite from the repo root instead and
-`info-obj`, `more` and `runfile` go red: their `open()` calls find
-nothing, and a nil file object fails the assertions built on it. Nothing
-reports the misinvocation itself, so the suite reads as broken rather
-than misused -- check the cwd before investigating any failure in those
-three.
+The `run()` chain in `run_all.comt` is script-relative -- `RunFunc`
+prepends the enclosing script's own directory to a `./` path -- so every
+script here is found whatever the cwd. Four reach *fixtures* outside
+`run()`, through the working directory, and those are the cwd-sensitive
+ones:
+
+- `info-obj.comt:265` -- `open("./info-obj.comt" "r")`
+- `more.comt:76` -- `open("./more.comt")`
+- `runfile.comt:99` -- a subprocess `comterp run ./runfile_sub_bare_stream.comt`
+- `comvalref.comt:28` -- a subprocess `cat ./comvalref_sub.comt | comterp`
+
+Run from the repo root and those find nothing; the assertions built on
+the resulting nil fail as ordinary comparisons, and nothing reports the
+misinvocation, so the suite reads as broken rather than misused. On macOS
+`comvalref` is already red for the platform reason below, so only
+`info-obj`, `more` and `runfile` visibly change -- on Linux it is all
+four. `comlint_kw_wildcard.comt:26` also probes `../../scripts/comlint`
+against the cwd, but falls back by design when it is not found.
 
 ## Platform-Conditional Failures
 
