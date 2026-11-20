@@ -1349,11 +1349,20 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
                for (i = 0; i < lp; i++)
                {
 		 if (!_detail_matched_delims) {
+		   /* a zero-argument call leaves no narg/nkey evidence that it
+		      was written as a call -- nids=-2 is that evidence */
+		   /* -1 remains the bare dot-rhs marker, so every test of
+		      nids's sign reads != -1 rather than < 0 */
+		   int call_nids = ParenStack[TopOfParenStack].nids;
+		   if( call_nids == 1 &&
+		       ParenStack[TopOfParenStack].narg == 0 &&
+		       ParenStack[TopOfParenStack].nkey == 0 )
+		     call_nids = -2;
 		   PFOUT( TOK_COMMAND,
 			  ParenStack[TopOfParenStack].comm_id,
 			  ParenStack[TopOfParenStack].narg,
 			  ParenStack[TopOfParenStack].nkey,
-			  ParenStack[TopOfParenStack].nids );
+			  call_nids );
 		 } else {
 		   if (parens_symid==-1) {
 		     parens_symid = symbol_add("()");

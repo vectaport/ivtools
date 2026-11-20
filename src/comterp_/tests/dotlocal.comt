@@ -18,6 +18,19 @@
 // with the flag cleared -- otherwise bquote(x).a reads nil off a fresh
 // list and that list replaces x's real value.
 //
+// test 10 pins a different question: which left-hand parts dot fires before
+// looking a field up at all.  Only a registered command leaves a CommandType
+// token, so a call on a FuncObj-valued name arrives as a bare symbol carrying
+// an arglist and needs a firing case of its own; unfired, the arglist is
+// dropped and the field is read off the FuncObj rather than off the return.
+//
+// test 11 pins the empty-parenthesized call, which carries no narg/nkey
+// evidence that it was written as a call -- the parser marks it nids=-2,
+// the one thing that tells mk() from a bare mk at all.
+//
+// test 12 pins that the mark is visible: postfix() prints the {narg|nkey}
+// suffix for a call, and a bare name carries none.
+//
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotlocal.comt")
 
@@ -95,6 +108,47 @@ r9b=d9x
 ok=ok&&(r9a==3)
 ok=ok&&(r9b.a==3)
 print("9 d9x=(:a 3); bquote(d9x).a then d9x (expect 3, and (:a 3) intact): %v %v\n\n" r9a r9b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: a call's return value dots directly, with no local in between ---
+// (test 5's y=d5mk(0);y.ok takes the same field off a local; the call as dot's
+// own left-hand part is the distinct path -- at() does it for a builtin result)
+d10mk=func((:ok 777))
+d10=func(d10mk(0).ok)
+r10a=d10(0)
+r10b=d10mk(0).ok
+d10at=func(t=list();t,(:grid "AAAA");at(t 0).grid)
+r10c=d10at(0)
+ok=ok&&(r10a==777)
+ok=ok&&(r10b==777)
+ok=ok&&(r10c=="AAAA")
+print("10 d10=func(d10mk(0).ok); d10(0), then d10mk(0).ok, then at(t 0).grid (expect 777 777 \"AAAA\"): %v %v %v\n\n" r10a r10b r10c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: a call written with empty parens dots into its return value ---
+// (a bare name still reads the FuncObj's own attribute list, which has no
+// such field -- the two spellings are not interchangeable here)
+d11mk=func((:ok 777))
+r11a=d11mk().ok
+d11=func(d11mk().ok)
+r11b=d11(0)
+r11c=d11mk.ok
+ok=ok&&(r11a==777)
+ok=ok&&(r11b==777)
+ok=ok&&(r11c==nil)
+print("11 d11mk=func((:ok 777)); d11mk().ok, then the same inside a func, then bare d11mk.ok (expect 777 777 nil): %v %v %v\n\n" r11a r11b r11c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: postfix shows the call mark, so the two spellings differ ---
+// (the suffix means "written as a call"; a bare name carries none, which is
+// what dot reads as a name rather than firing)
+r12a=postfix(d11mk)
+r12b=postfix(d11mk())
+r12c=postfix(d11mk(5))
+ok=ok&&(r12a=="d11mk")
+ok=ok&&(r12b=="d11mk{0|0}")
+ok=ok&&(r12c=="5 d11mk{1|0}")
+print("12 postfix(d11mk), postfix(d11mk()), postfix(d11mk(5)) (expect \"d11mk\" \"d11mk{0|0}\" \"5 d11mk{1|0}\"): %v %v %v\n\n" r12a r12b r12c)
 prev_ok=check_fail(:ok ok)
 
 print("\ndotlocal: %v\n" ok)
