@@ -37,8 +37,10 @@
 
 #include <iostream.h>
 #include <string.h>
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 
 #include <IV-2_6/_enter.h>
 
@@ -664,14 +666,60 @@ AttributeList* AttributeList::merge_snapshot(AttributeList* al) {
     return this;
 }
 
+static void deep_copy_value(AttributeValue* av, std::vector<void*>& visited);
+
+/* dup_as_needed() carries an array or stream all the way down, since
+   AttributeValueList's copy constructor takes each element by pointer, but it
+   copies an attrlist or attribute object by reference, which leaves that
+   object's own values the original's; carry on from wherever it stopped. */
+static void deep_copy_contents(AttributeValue* av, std::vector<void*>& visited) {
+    if (av->is_array() || av->is_stream()) {
+	AttributeValueList* avl =
+	  av->is_array() ? av->array_val() : av->stream_list();
+	if (!avl) return;
+	ALIterator i;
+	for (avl->First(i); !avl->Done(i); avl->Next(i))
+	    deep_copy_contents(avl->GetAttrVal(i), visited);
+    }
+#ifdef RESOURCE_COMPVIEW
+    else if (av->is_object(AttributeList::class_symid())) {
+	AttributeList* al = (AttributeList*)av->obj_val();
+	if (!al) return;
+	ALIterator i;
+	for (al->First(i); !al->Done(i); al->Next(i))
+	    deep_copy_value(al->GetAttr(i)->Value(), visited);
+    }
+    else if (av->is_object(Attribute::class_symid())) {
+	Attribute* attr = (Attribute*)av->obj_val();
+	if (attr->Value()) deep_copy_value(attr->Value(), visited);
+    }
+#endif
+}
+
+/* visited holds the containers already duplicated, by the pointer they had in
+   the original, so one reachable along more than one path is duplicated once
+   and a cycle does not drive the walk forever. */
+static void deep_copy_value(AttributeValue* av, std::vector<void*>& visited) {
+    void* orig = av->is_array() ? (void*)av->array_val()
+      : av->is_stream() ? (void*)av->stream_list()
+      : av->is_object() ? av->obj_val() : nil;
+    av->dup_as_needed();
+    if (orig) {
+	if (std::find(visited.begin(), visited.end(), orig) != visited.end())
+	    return;
+	visited.push_back(orig);
+    }
+    deep_copy_contents(av, visited);
+}
+
 /* Attribute's copy constructor takes each value by reference, which shares
    the pointer in an array, stream, or object value; dup_as_needed() swaps in
-   a container of the value's own.  It goes all the way down, since
-   AttributeValueList's copy constructor takes each element by pointer. */
+   a container of the value's own. */
 AttributeList* AttributeList::deep_copy() {
     AttributeList* copy = new AttributeList(this);
+    std::vector<void*> visited;
     ALIterator i;
     for (copy->First(i); !copy->Done(i); copy->Next(i))
-	copy->GetAttr(i)->Value()->dup_as_needed();
+	deep_copy_value(copy->GetAttr(i)->Value(), visited);
     return copy;
 }

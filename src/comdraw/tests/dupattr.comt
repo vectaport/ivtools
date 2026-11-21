@@ -8,12 +8,16 @@
 // available, as the explicit act of assigning one component's attribute to
 // the other's (test 7).
 //
+// dup_as_needed() copies an array or stream all the way down, but copies an
+// attrlist or attribute object by reference, so deep_copy() carries the
+// duplication on into a copied list's own values (test 8).
+//
 // A stream value takes the same dup_as_needed() branch as an array, but
 // there is no script route for putting one in an attribute list: setattr()
 // is an ordinary command, so a stream argument overdrives it, and a
 // dot-assigned stream lands as CommandType.  Arrays carry the coverage.
 //
-// funcs: dup select at setattr children group dot-read dot-assign
+// funcs: dup select at setattr children group delete dot-read dot-assign
 ok=true
 
 // run_all.comt shares one comdraw process across every test file, so start
@@ -95,6 +99,38 @@ d.nums=r.nums
 at(r.nums 2 :set 44)
 ok=ok&&(d.nums@2==44)
 print("7 d.nums=r.nums; at(r.nums 2 :set 44); d.nums@2 (expect 44): %v\n" d.nums@2)
+
+// --- test 8: an attrlist-valued attribute's own values are duplicated too ---
+// dup_as_needed() copies an attrlist object by reference, so deep_copy()
+// carries the duplication on into the values of the copied list.
+delete($$frame)
+r8=rect(50,50,150,150)
+setattr(r8 :meta (:nums 1,2))
+select(r8)
+dup()
+d8=at(select() 0)
+at(d8.meta.nums 0 :set 99)
+ok=ok&&(d8.meta.nums@0==99)&&(r8.meta.nums@0==1)
+print("8 at(d8.meta.nums 0 :set 99); d8.meta.nums@0 r8.meta.nums@0 (expect 99 1): %v %v\n" d8.meta.nums@0 r8.meta.nums@0)
+
+// --- test 9: an object value whose component is gone duplicates anyway ---
+// deleting a component only destroys it once its undo entry drops off the
+// history, which leaves the attribute holding a view with no subject; the
+// duplicate gets a subjectless view of its own rather than a crash, so what
+// this asserts is that the dup completed at all.
+delete($$frame)
+e9=rect(300,300,400,400)
+r9=rect(50,50,150,150)
+setattr(r9 :tag "holder" :ref e9)
+select(e9)
+delete(select())
+i=0
+while(i<30 (rect(i*2,i*2,i*2+5,i*2+5);i=i+1))
+select(r9)
+dup()
+d9=at(select() 0)
+ok=ok&&(d9.tag=="holder")
+print("9 dup() of a component whose :ref referent was destroyed; d9.tag (expect \"holder\"): %v\n" d9.tag)
 
 print("dupattr: %v\n" ok)
 ok
