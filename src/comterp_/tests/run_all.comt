@@ -1,7 +1,16 @@
-// src/comterp/tests/run_all.comt -- run all comterp tests
+// src/comterp_/tests/run_all.comt -- run all comterp tests
 //
-// Run from inside comterp, comdraw, or drawserv:
-//   run("src/comterp/tests/run_all.comt")
+// Run with this directory as the working directory:
+//   cd src/comterp_/tests && comterp run run_all.comt
+//   run("./run_all.comt")      // from a comterp/comdraw/drawserv prompt
+//
+// The run() calls below are script-relative, so every script is found
+// whatever the cwd. Four reach fixtures outside run() instead, against the
+// working directory: info-obj, more, runfile and comvalref.
+//
+// From anywhere else those find nothing, and the assertions built on the
+// resulting nil fail as ordinary comparisons with nothing reporting the
+// misinvocation -- a misinvoked suite looks exactly like a broken one.
 
 topok=true
 

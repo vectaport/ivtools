@@ -157,11 +157,23 @@ written in ComTerp itself.
 
 ### ComTerp unit tests — `src/comterp_/tests/`
 
-`.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`:
+`.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`, with
+the tests directory as the working directory — every script reaches its
+fixtures through `./`-relative paths:
 
+```bash
+cd src/comterp_/tests && comterp run run_all.comt   # every script, pass/FAIL
 ```
-run("src/comterp_/tests/run_all.comt")   # runs every script, prints pass/FAIL
-```
+
+The `run()` chain itself is script-relative — `RunFunc` prepends the enclosing
+script's own directory to a `./` path — so every script is found from anywhere.
+Four of them reach *fixtures* outside `run()`, through the working directory:
+`info-obj` and `more` with `open()`, `runfile` and `comvalref` through a
+subprocess. From the repo root those find nothing, and assertions built on the
+resulting nil fail as ordinary comparisons, with nothing reporting the
+misinvocation — so a misinvoked suite reads as a broken one. On macOS
+`comvalref` is red either way for a platform reason, leaving `info-obj`, `more`
+and `runfile` as the three that visibly change.
 
 Each script returns a boolean `ok`; `run_all.comt` aggregates them. The full
 coverage taxonomy, scoring methodology, header format (`// coverage:`,
