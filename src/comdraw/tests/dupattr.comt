@@ -10,7 +10,9 @@
 //
 // dup_as_needed() copies an array or stream all the way down, but copies an
 // attrlist or attribute object by reference, so deep_copy() carries the
-// duplication on into a copied list's own values (test 8).
+// duplication on into a copied list's own values (test 8), and duplicates a
+// list two attributes hold once rather than twice, so the copy's own sharing
+// is what the original's was (test 10).
 //
 // A stream value takes the same dup_as_needed() branch as an array, but
 // there is no script route for putting one in an attribute list: setattr()
@@ -131,6 +133,23 @@ dup()
 d9=at(select() 0)
 ok=ok&&(d9.tag=="holder")
 print("9 dup() of a component whose :ref referent was destroyed; d9.tag (expect \"holder\"): %v\n" d9.tag)
+
+// --- test 10: one attrlist held by two attributes is duplicated once ---
+// an attrlist value is stored by reference, so r.a and r.b are one list and
+// a write through either shows in the other; the duplicate keeps that
+// sharing, and keeps it to itself.
+delete($$frame)
+al=(:nums 1,2)
+r10=rect(50,50,150,150)
+r10.a=al
+r10.b=al
+at(r10.a.nums 0 :set 5)
+select(r10)
+dup()
+d10=at(select() 0)
+at(d10.b.nums 0 :set 99)
+ok=ok&&(d10.a.nums@0==99)&&(d10.b.nums@0==99)&&(r10.a.nums@0==5)&&(r10.b.nums@0==5)
+print("10 r10.a and r10.b are one attrlist; at(d10.b.nums 0 :set 99); d10.a d10.b r10.a r10.b (expect 99 99 5 5): %v %v %v %v\n" d10.a.nums@0 d10.b.nums@0 r10.a.nums@0 r10.b.nums@0)
 
 print("dupattr: %v\n" ok)
 ok

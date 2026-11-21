@@ -18,6 +18,6 @@
    the change lands, which is what makes a PATCH_KEY later resolve back
    to the commit it named. A PR that only bumps this value needs no
    separate tagging step and no tag-push commit. */
-#define PATCH_KEY "4b6c1f83"
+#define PATCH_KEY "9d2a7c54"
 
 #endif /* _patch_h */
