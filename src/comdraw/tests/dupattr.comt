@@ -1,0 +1,100 @@
+// src/comdraw/tests/dupattr.comt -- dup() gives the duplicate its own attribute values
+//
+// A component's Copy() copies its AttributeList, and that list's copy
+// constructor takes each value by reference, which shares the
+// AttributeValueList behind an array, stream, or object value.  Copy() goes
+// through AttributeList::deep_copy() instead, so a write through one
+// component's array is never visible through the other's.  Sharing is still
+// available, as the explicit act of assigning one component's attribute to
+// the other's (test 7).
+//
+// A stream value takes the same dup_as_needed() branch as an array, but
+// there is no script route for putting one in an attribute list: setattr()
+// is an ordinary command, so a stream argument overdrives it, and a
+// dot-assigned stream lands as CommandType.  Arrays carry the coverage.
+//
+// funcs: dup select at setattr children group dot-read dot-assign
+ok=true
+
+// run_all.comt shares one comdraw process across every test file, so start
+// from a clean canvas regardless of what ran before this.
+delete($$frame)
+
+// --- test 1: the duplicate starts out carrying the same array contents ---
+r=rect(50,50,150,150)
+nums=1,2,3
+setattr(r :nums nums)
+select(r)
+dup()
+d=at(select() 0)
+ok=ok&&(d.nums==(1,2,3))
+print("1 setattr(r :nums 1,2,3); dup(); d=at(select() 0); d.nums (expect {1,2,3}): %v\n" d.nums)
+
+// --- test 2: a write through the original's array does not reach the
+// duplicate ---
+// setattr() snapshots the array it is given, so the script's nums is not a
+// handle on r's; a dot-read is, which is what makes either side writable.
+at(r.nums 0 :set 99)
+ok=ok&&(r.nums@0==99)&&(d.nums@0==1)
+print("2 at(r.nums 0 :set 99) after the dup; r.nums@0 d.nums@0 (expect 99 1): %v %v\n" r.nums@0 d.nums@0)
+
+// --- test 3: and a write through the duplicate's array does not reach the
+// original ---
+at(d.nums 1 :set 77)
+ok=ok&&(d.nums@1==77)&&(r.nums@1==2)
+print("3 at(d.nums 1 :set 77); d.nums@1 r.nums@1 (expect 77 2): %v %v\n" d.nums@1 r.nums@1)
+
+// --- test 4: a nested array is duplicated too, not just the outer one ---
+// AttributeValueList's own copy constructor takes each element by pointer,
+// so the duplication recurses the whole way down.
+delete($$frame)
+g=rect(10,10,30,30)
+setattr(g :deep 1,(3,4))
+select(g)
+dup()
+dg=at(select() 0)
+at(at(dg.deep 1) 0 :set 55)
+ok=ok&&(at(dg.deep 1)@0==55)&&(at(g.deep 1)@0==3)
+print("4 at(at(dg.deep 1) 0 :set 55); dg.deep g.deep (expect {1,{55,4}} {1,{3,4}}): %v %v\n" dg.deep g.deep)
+
+// --- test 5: duplicating a group duplicates its children's values as well ---
+// each child's own Copy() runs, so the rule holds at every depth of the
+// component tree, not just the top.
+delete($$frame)
+a=rect(10,10,30,30)
+setattr(a :marks 1,2)
+b=rect(40,40,60,60)
+select(a b)
+grp=group()
+select(grp)
+dup()
+dkid=at(children(at(select() 0)) 0)
+at(dkid.marks 0 :set 66)
+ok=ok&&(dkid.marks@0==66)&&(a.marks@0==1)
+print("5 at(dkid.marks 0 :set 66) on a duplicated group's child; dkid.marks@0 a.marks@0 (expect 66 1): %v %v\n" dkid.marks@0 a.marks@0)
+
+// --- test 6: an object value's referent survives duplication ---
+// the duplicate gets its own ComponentView of the same component, so the
+// two values still compare equal (compview equality is subject identity)
+// and read through to the same attributes.
+delete($$frame)
+e=rect(300,300,400,400)
+setattr(e :tag "orig")
+r6=rect(50,50,150,150)
+setattr(r6 :ref e)
+select(r6)
+dup()
+d6=at(select() 0)
+ok=ok&&(d6.ref==r6.ref)&&(d6.ref.tag=="orig")
+print("6 setattr(r6 :ref e); dup(); d6.ref==r6.ref d6.ref.tag (expect true \"orig\"): %v %v\n" d6.ref==r6.ref d6.ref.tag)
+
+// --- test 7: sharing is still available, as an explicit assignment ---
+// independence is what duplication gives; two components share a value
+// when a script says so afterwards.
+d.nums=r.nums
+at(r.nums 2 :set 44)
+ok=ok&&(d.nums@2==44)
+print("7 d.nums=r.nums; at(r.nums 2 :set 44); d.nums@2 (expect 44): %v\n" d.nums@2)
+
+print("dupattr: %v\n" ok)
+ok

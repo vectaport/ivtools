@@ -142,7 +142,7 @@ ParamList* GraphComp::GetParamList() {
 
 Component* GraphComp::Copy () {
     GraphComp* comps = new GraphComp(GetPathName());
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -443,7 +443,7 @@ void GraphIdrawComp::GrowParamList(ParamList* pl) {
 
 Component* GraphIdrawComp::Copy () {
     GraphIdrawComp* comps = new GraphIdrawComp(GetPathName());
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {

@@ -663,3 +663,15 @@ AttributeList* AttributeList::merge_snapshot(AttributeList* al) {
     }
     return this;
 }
+
+/* Attribute's copy constructor takes each value by reference, which shares
+   the pointer in an array, stream, or object value; dup_as_needed() swaps in
+   a container of the value's own.  It goes all the way down, since
+   AttributeValueList's copy constructor takes each element by pointer. */
+AttributeList* AttributeList::deep_copy() {
+    AttributeList* copy = new AttributeList(this);
+    ALIterator i;
+    for (copy->First(i); !copy->Done(i); copy->Next(i))
+	copy->GetAttr(i)->Value()->dup_as_needed();
+    return copy;
+}

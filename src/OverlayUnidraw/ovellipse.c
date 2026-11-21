@@ -74,7 +74,7 @@ boolean EllipseOvComp::IsA (ClassId id) {
 Component* EllipseOvComp::Copy () {
     EllipseOvComp* comp = 
       new EllipseOvComp((SF_Ellipse*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

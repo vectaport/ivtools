@@ -115,7 +115,7 @@ boolean ArrowLineOvComp::IsA (ClassId id) {
 Component* ArrowLineOvComp::Copy () {
     ArrowLineOvComp* comp = 
       new ArrowLineOvComp((ArrowLine*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 
@@ -514,7 +514,7 @@ boolean ArrowMultiLineOvComp::IsA (ClassId id) {
 Component* ArrowMultiLineOvComp::Copy () {
     ArrowMultiLineOvComp* comp = 
       new ArrowMultiLineOvComp((ArrowMultiLine*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 
@@ -912,7 +912,7 @@ boolean ArrowSplineOvComp::IsA (ClassId id) {
 Component* ArrowSplineOvComp::Copy () {
     ArrowSplineOvComp* comp = 
       new ArrowSplineOvComp((ArrowOpenBSpline*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

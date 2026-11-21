@@ -156,6 +156,12 @@ public:
     // linear _alist scan -- e.g. for an apples-to-apples before/after
     // benchmark against the indexed lookup. Visible via info(al :sym).
 
+    AttributeList* deep_copy();
+    // return a copy whose array, stream, and object values are the copy's
+    // own, where the copy constructor shares them with the original.
+    // Component duplication copies this way, so a write through one
+    // component's attribute is never seen through the other's.
+
     AttributeList* merge_snapshot(AttributeList*);
     // merge() for a list that must stay immune to a later write through a
     // container it would otherwise share with the source:  each merged
