@@ -73,7 +73,7 @@ boolean PolygonOvComp::IsA (ClassId id) {
 Component* PolygonOvComp::Copy () { 
     PolygonOvComp* comp =
       new PolygonOvComp((SF_Polygon*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

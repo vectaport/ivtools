@@ -237,7 +237,7 @@ Component* NodeComp::Copy() {
         comp = NewNodeComp((SF_Ellipse*)GetEllipse()->Copy(),
 	    (TextGraphic*)GetText()->Copy(), (SF_Ellipse*)GetEllipse2()->Copy(), 
 	    GetGraph() ? (GraphComp*)GetGraph()->Copy() : nil);
-	if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+	if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
 
 	Picture* pic = (Picture*)GetGraphic();
         Iterator i;

@@ -72,7 +72,7 @@ boolean StencilOvComp::IsA (ClassId id) {
 Component* StencilOvComp::Copy () {
     StencilOvComp* comp = 
       new StencilOvComp((UStencil*) GetGraphic()->Copy(), _pathname);
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

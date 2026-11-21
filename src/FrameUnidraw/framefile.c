@@ -78,7 +78,7 @@ void FrameFileComp::GrowParamList(ParamList* pl) {
 
 Component* FrameFileComp::Copy () {
     FrameFileComp* ovfile = new FrameFileComp(new Picture(GetGraphic()));
-    if (attrlist()) ovfile->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) ovfile->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     if (!Done(i)) ovfile->Append((GraphicComp*)GetComp(i)->Copy());

@@ -84,7 +84,7 @@ boolean LineOvComp::IsA (ClassId id) {
 Component* LineOvComp::Copy () {
     LineOvComp* comp =
       new LineOvComp((Line*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 
@@ -421,7 +421,7 @@ boolean MultiLineOvComp::IsA (ClassId id) {
 Component* MultiLineOvComp::Copy () {
     MultiLineOvComp* comp = 
       new MultiLineOvComp((SF_MultiLine*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 
