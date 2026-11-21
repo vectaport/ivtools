@@ -158,8 +158,7 @@ written in ComTerp itself.
 ### ComTerp unit tests — `src/comterp_/tests/`
 
 `.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`, with
-the tests directory as the working directory — every script reaches its
-fixtures through `./`-relative paths:
+the tests directory as the working directory:
 
 ```bash
 cd src/comterp_/tests && comterp run run_all.comt   # every script, pass/FAIL
