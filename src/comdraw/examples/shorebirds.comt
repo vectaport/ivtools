@@ -133,9 +133,11 @@ flock=(
   // build(count) -- n fresh birds, clustered near the paper's
   // center with random headings, each seeded with a handful of
   // random neighbors (a cheap one-time bootstrap -- tick()'s gossip
-  // takes it from there every tick after).
+  // takes it from there every tick after).  A previous flock's birds
+  // are deleted first, so only one flock is ever on the page.
   :build func(
     temp(count)=arg(0);
+    if(size(gs)>0 :then delete(gs));
     n=count;
     xs=list(); ys=list(); heads=list(); nbrs=list(); gs=list();
     t=0;
