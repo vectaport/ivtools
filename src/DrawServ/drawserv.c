@@ -1548,16 +1548,33 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 
 void DrawServ::remove_grid(OverlayComp* comp) {
     void* ptr = nil;
-    compidtable()->find_and_remove(ptr, (void*)comp);
-    if (ptr) delete (GraphicId*)ptr;   // destructor erases the gridtable entry
+    compidtable()->find(ptr, (void*)comp);
+    if (ptr) {
+        /* tombstone, not destroy -- the id survives in gridtable() under
+           its same identity for undo and any in-flight message to land on. */
+        GraphicId* graphicid = (GraphicId*)ptr;
+        /* a tombstone holds no request: NotSelected routes a late grant to
+           the :notaken answer, so ownership returns to the granter. */
+        if (graphicid->selected()==LinkSelection::WaitingToBeSelected) {
+            LinkSelection* sel = (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
+            if (sel) sel->request_withdrawn();
+        }
+        graphicid->selected(LinkSelection::NotSelected);
+        graphicid->grcomp(nil);
+        graphicid->deleted(true);
+    }
 }
 
 void DrawServ::restore_grid(OverlayComp* comp, uuid_t id, uuid_t selector) {
-    GraphicId* graphicid = new GraphicId(selector);
+    void* ptr = nil;
+    gridtable()->find(ptr, uuid_key(id));
+    /* reuse the tombstoned GraphicId so the id keeps its identity. */
+    GraphicId* graphicid = ptr ? (GraphicId*)ptr : new GraphicId(selector);
+    if (!ptr) graphicid->set_id(id);
     graphicid->grcomp(comp);
-    graphicid->set_id(id);
     graphicid->selector(selector);
     graphicid->selected(LinkSelection::NotSelected);
+    graphicid->deleted(false);
 }
 
 boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {
@@ -1587,6 +1604,9 @@ boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {
 	if (gridtable()->find(ptr, uuid_key(grid))) {
 	    GraphicId* graphicid = (GraphicId*)ptr;
 	    // graphicid->selected(LinkSelection::WaitingToBeSelected);
+	    /* a create carrying a deleted graphic's id revives that id. */
+	    if (graphicid->deleted())
+		restore_grid(comp, grid, sid);
 	} else {
 	    GraphicId* graphicid = new GraphicId(sid);
 	    graphicid->grcomp(comp);

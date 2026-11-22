@@ -644,6 +644,8 @@ void GraphicIdFunc::execute() {
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
+  static int del_sym = symbol_add("del");
+  ComValue delv(stack_key(del_sym));
 
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
@@ -721,9 +723,11 @@ void GraphicIdFunc::execute() {
     push_stack(ComValue::nullval());
 
   } else if (idv.is_unknown()) {
-    if (tablev.is_true()) {
+    if (tablev.is_true() || delv.is_true()) {
       /* return the gridtable as rows (grid, comptype, selector, selected,
-         unlocked); unlocked is the relay bracket's bypass, worth seeing. */
+         unlocked); unlocked is the relay bracket's bypass, worth seeing.
+         :table lists live entries, :del lists tombstoned ones. */
+      boolean want_deleted = delv.is_true();
       static int grid_row_sym     = symbol_add("grid");
       static int comptype_row_sym = symbol_add("comptype");
       static int selector_row_sym = symbol_add("selector");
@@ -735,6 +739,7 @@ void GraphicIdFunc::execute() {
       GraphicIdTable_Iterator it(*table);
       while (it.more()) {
         GraphicId* grid = (GraphicId*)it.cur_value();
+        if (grid->deleted() != want_deleted) { it.next(); continue; }
         OverlayComp* comp = (OverlayComp*)grid->grcomp();
         const char* comptype = comp ? comp->GetClassName() : "nil";
         /* first 8 chars, matching the gridtable's uuid_key granularity; a

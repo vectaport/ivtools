@@ -2280,6 +2280,15 @@ delete_test=func(
   if(!gone :then print("delete: FAIL delete did not propagate to ds2\n" :err));
   ok=ok && gone;
 
+  /* --- a delete tombstones the grid entry instead of destroying it: c1
+     stays off grid(:table) but shows under grid(:del) by the same id, so
+     undo below can revive that entry rather than minting a new one. --- */
+  delcheck=print("t=grid(:del);n=size(t);r=false;for(i=0 i<n i++ if(at(t i).grid==%c%s%c :then r=true));r" 34 id1 34 :str);
+  tombstoned=ok && remote(sock1 delcheck)==true;
+  print("delete: c1 shows under grid(:del) after delete=%v\n" tombstoned :err);
+  if(ok && !tombstoned :then print("delete: FAIL c1 missing from grid(:del) after delete\n" :err));
+  ok=ok && tombstoned;
+
   /* --- undo on ds1: c1 comes back, and under the SAME grid id, so it
      can still be distributed -- not just re-registered under a new one. --- */
   remote(sock1 "undo()");
@@ -2306,6 +2315,13 @@ delete_test=func(
   print("delete: undo() reclaims ownership (selected==LocallySelected)=%v\n" owned :err);
   if(undo_ok && !owned :then print("delete: FAIL undo() left c1 NotSelected despite being selected\n" :err));
   ok=ok && owned;
+
+  /* --- reviving the tombstone drops it off grid(:del) once it's back
+     among the live entries. --- */
+  revived=undo_ok && remote(sock1 delcheck)==false;
+  print("delete: c1 no longer in grid(:del) after undo=%v\n" revived :err);
+  if(undo_ok && !revived :then print("delete: FAIL c1 still in grid(:del) after undo\n" :err));
+  ok=ok && revived;
 
   /* --- ds2: undo a delete it RECEIVED via relay -- c2 is owned by ds1,
      deleted there (locally owned, so it relays and both nodes purge the
@@ -2343,6 +2359,13 @@ delete_test=func(
      currently selected (c1 and the label), not just comps named as
      individual args -- delete() previously left an array argument, such
      as select()'s own return value, untouched, so this silently no-op'd. --- */
+  /* full :grid/:sid, read while c1 is live, for the replay check below. */
+  full1=nil; sid1=nil;
+  if(ok :then
+    full1=remote(sock1 print("attrlist(grid(%c%s%c)).grid" 34 id1 34 :str));
+    sid1=remote(sock1 print("attrlist(grid(%c%s%c)).sid" 34 id1 34 :str)));
+  print("delete: c1 full grid=%v sid=%v\n" full1 sid1 :err);
+
   remote(sock1 "select(:all)");
   remote(sock1 "delete(select())");
   cnt=0;
@@ -2356,6 +2379,20 @@ delete_test=func(
   print("delete: c1 and label dropped from ds2 too=%v\n" allgone2 :err);
   if(ok && !allgone2 :then print("delete: FAIL select-all delete did not relay to ds2\n" :err));
   ok=ok && allgone2;
+
+  /* --- replaying c1's saved script, :grid and :sid included, after it was
+     deleted revives the tombstone: grid(id) resolves the new comp and the
+     id leaves grid(:del). --- */
+  if(ok :then
+    remote(sock1 print("ellipse(158,245,80,80 :grid %c%s%c :sid %c%s%c)" 34 full1 34 34 sid1 34 :str)));
+  recreated=ok && remote(sock1 print("grid(%c%s%c)!=nil" 34 id1 34 :str))==true;
+  print("delete: replayed c1 resolves by grid(id)=%v\n" recreated :err);
+  if(ok && !recreated :then print("delete: FAIL replayed c1 not attached to its grid id\n" :err));
+  ok=ok && recreated;
+  undeleted=ok && remote(sock1 delcheck)==false;
+  print("delete: replayed c1 no longer in grid(:del)=%v\n" undeleted :err);
+  if(ok && !undeleted :then print("delete: FAIL replayed c1 still in grid(:del)\n" :err));
+  ok=ok && undeleted;
 
   /* --- tear both down --- */
   remote(sock1 "exit" :nowait);close(sock1);
