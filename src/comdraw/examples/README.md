@@ -105,6 +105,19 @@ the drawing (and any funcs the script defined) live in the session.
   so it tracks its own grow/shrink state explicitly instead.
   *The window is just the rows you actually need.*
 
+- **shorebirds.comt** — Pacific Sanderlings in flight.  `flightdemo()`
+  glides one bird along a sine-wave path, banking into its own tangent
+  (`atan2()` of the path's slope) and flapping as it goes; every move,
+  turn and wingbeat is one absolute `trans(... :set)`, carousel.comt's
+  no-drift idiom.  `murmurate(n steps)` then flies a flock: each bird
+  steers only by its own small neighbor set (alignment, cohesion,
+  separation), and that nearest-neighbor graph is never recomputed
+  globally — a bird drops neighbors that drift out of range and picks
+  up closer ones its neighbors introduce, gossip-style.  Each
+  `flock.tick()` computes every bird's next state from last tick's
+  committed state, then commits them all at once, so no bird ever sees
+  another's half-updated position.  *Nobody sees the whole flock.*
+
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,
 the drawserv distribution path) is `doc/SPATIAL-APPLICATIONS.md`.
