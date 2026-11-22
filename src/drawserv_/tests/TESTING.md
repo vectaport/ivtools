@@ -72,6 +72,35 @@ steps of 10 until both `ds_port` and `ds_port-1` are free.
 `kill_port(:kill_port_num n)` — kills the process listening on port n,
 using `lsof` if available, falling back to `fuser`.
 
+`drawserv_running(:ds_running_port n)` — true while a drawserv process
+still carries `-comdraw n` in its argv; every wait-for-exit loop polls
+it rather than building its own `pgrep`. The pattern lives in this one
+place because it has two subtleties: `[d]rawserv` keeps `pgrep -f` from
+matching the shell that runs the probe (whose argv holds the pattern —
+Linux procps matches it, BSD pgrep doesn't, so an unbracketed pattern
+hangs only in CI), and the trailing `( |$)` bounds the port so 20002
+doesn't also match a node carrying 200022.
+
+`reap_leftovers(:dummy 0)` — shuts down any drawserv still holding a
+port `find_open_port` handed out, polling `drawserv_running()` to find
+and then confirm it, and empties the list of handed-out ports. Its two
+`pkill` calls keep the pattern inline, since a boolean helper cannot
+express them. The dispatch loop calls it after every test, whatever the
+test returned. A test's own teardown is still its job; this is the
+backstop for the paths that never reach it, and on a test that cleaned
+up after itself it prints nothing.
+
+That list of handed-out ports is created once and only ever mutated in
+place, which is a ComTerp scoping rule and not a style choice. A func
+cannot rebind an outer symbol — `f=func(n=n+1;n)` leaves the outer `n`
+alone, because the assignment is local — but it can mutate an outer
+list: `lst,x` appends to it and `at(lst 0 :del)` removes from it. What
+the func holds is the object rather than the symbol, so a later
+top-level `live_ports=list()` would orphan the object
+`find_open_port` appends through, and ports would quietly stop being
+recorded. Hence `reap_leftovers` drains the list it has instead of
+replacing it.
+
 `updown` launch pattern — each test uses the same structure:
 1. Find a free port pair
 2. Set `global(drawserv_up)=false`
@@ -106,8 +135,8 @@ The shutdown sequence in step 6 is three things and needs all three:
    `lsof -ti` lists every process holding that port, this end included — so
    killing a port you are still connected to kills the test itself.
 
-Shut down by asking, not by killing; check with `pgrep -f '[d]rawserv -comdraw
-<port>'` and kill only what stayed. Killing by port while connected is silent:
+Shut down by asking, not by killing; check with `drawserv_running()` and
+kill only what stayed. Killing by port while connected is silent:
 the test dies with SIGTERM and reports nothing, which reads exactly like a hang.
 
 ## Test Inventory
@@ -332,6 +361,36 @@ checks the result and its `export()` round-trip.
 does not, so this needs a live drawserv and can't be covered by
 `comdraw/tests/import.comt`'s subprocess pattern.
 
+### setattr
+
+**What:** two drawservs, ds1 linked to ds2. ds1 creates a circle, then
+changes its attributes with `setattr(grid("uuid") :key val)` -- one keyword,
+then several in one call -- and finally **ds2** changes the same attribute,
+so the change travels back the other way.
+
+**Checks:**
+- ds2 sees a single-keyword change
+- ds2 sees a multi-keyword change intact, with the earlier key untouched
+- a change made on ds2 reaches ds1 and settles at the same value on both
+- a 300-element array set by `setattr()` arrives whole -- past the print
+  cutoff, so an elided `{N more}` rendering would show as a short count
+- a rect built with `pastemode(1)`, given attributes (including a
+  300-element array) while it has no grid id, then pasted, arrives on ds2
+  with every attribute whole: attributes set off-canvas travel in the
+  paste's own script, not as `setattr()` calls
+- `c1.dotted=42` on ds1 reaches ds2, and `c2.dotted=43` on ds2 (through a
+  handle from `grid()`) reaches ds1 and settles on both: dot-assignment builds
+  the same `SetAttrCmd`, so it crosses as the same `setattr()` call
+
+**Purpose:** `LinkSetAttrCmd` is the first distributed command that names its
+own target instead of acting on the selection, so it emits no
+`select()`/`:unlock` bracket and has no owning session to stamp as the
+change's origin -- it excludes the link the change arrived on instead (see
+*Commands that name their own target* in `src/DrawServ/HACKING.md`). The
+ds2-to-ds1 leg is what tests that: with the exclusion wrong the change
+ping-pongs between the two nodes forever, so the symptom is this test
+hanging rather than failing an assertion.
+
 ## agreetest — counting runs rather than trusting one
 
 `agreetest` is not a drawmo test and is run on its own:
@@ -381,4 +440,7 @@ communication, or a DrawServ-specific command.
 5. Update the usage `print()` strings at the top of `drawmo`
 
 Keep each test function self-contained — it finds its own port, launches
-its own drawserv, and cleans up on both pass and fail paths.
+its own drawserv, and cleans up on both pass and fail paths. Cleaning up
+on the fail paths is still the test's job even though `reap_leftovers`
+backstops it: the test can ask its nodes to exit, the orderly shutdown
+the three steps above describe, where the backstop can only signal them.

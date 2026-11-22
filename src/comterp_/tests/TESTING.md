@@ -306,6 +306,57 @@ To add a new test script:
 3. Enumerate slots from the taxonomy above
 4. Write tests, add the coverage header, add the script to `run_all.comt`
 
+## Running the Suite
+
+Run it with this directory as the working directory:
+
+```bash
+cd src/comterp_/tests && comterp run run_all.comt
+```
+
+The `run()` chain in `run_all.comt` is script-relative -- `RunFunc`
+prepends the enclosing script's own directory to a `./` path -- so every
+script here is found whatever the cwd. Four reach *fixtures* outside
+`run()`, through the working directory, and those are the cwd-sensitive
+ones:
+
+- `info-obj.comt:265` -- `open("./info-obj.comt" "r")`
+- `more.comt:76` -- `open("./more.comt")`
+- `runfile.comt:99` -- a subprocess `comterp run ./runfile_sub_bare_stream.comt`
+- `comvalref.comt:28` -- a subprocess `cat ./comvalref_sub.comt | comterp`
+
+Run from the repo root and those find nothing; the assertions built on
+the resulting nil fail as ordinary comparisons, and nothing reports the
+misinvocation, so the suite reads as broken rather than misused. On macOS
+`comvalref` is already red for the platform reason below, so only
+`info-obj`, `more` and `runfile` visibly change -- on Linux it is all
+four. `comlint_kw_wildcard.comt:26` also probes `../../scripts/comlint`
+against the cwd, but falls back by design when it is not found.
+
+## Platform-Conditional Failures
+
+Two scripts pass under CI's Ubuntu/`xvfb` environment and fail on macOS
+for reasons unrelated to the behavior they test. Neither is an
+intentional failure -- those are deliberate, marked in the script, and
+announced in the log with an INTENTIONAL banner (rule 5 above). These
+are simply red here and green there, so a developer on a Mac needs to
+know which failures to discount:
+
+- **comlint_kw_wildcard.comt** shells out to `xvfb-run -a`, which
+  XQuartz does not install (it ships `Xvfb` without the `xvfb-run`
+  wrapper). The script's own header explains why it insists on a fresh
+  display instead of the ambient one; that reasoning holds, and it is
+  also what makes the script Linux-only.
+- **comvalref.comt** asserts exact `strref()` deltas read back from a
+  spawned comterp. The subprocess itself runs correctly -- it emits its
+  `RESULT` line either way -- but several deltas differ from the Linux
+  readings, so those comparisons fail. Per the script's header, the
+  readings are exact only at true top level; whatever margin that
+  exactness depends on lands differently on this platform.
+
+CI (`.github/workflows/ci.yml`) is the reference run: when it is unclear
+whether a local failure is real, check whether master is green there.
+
 ## Current Coverage Summary
 
 Every script `run_all.comt` runs, in the order it runs them. Three states:

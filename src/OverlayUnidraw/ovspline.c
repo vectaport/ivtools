@@ -71,7 +71,7 @@ boolean SplineOvComp::IsA (ClassId id) {
 Component* SplineOvComp::Copy () {
     SplineOvComp* comp =
       new SplineOvComp((SFH_OpenBSpline*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 
@@ -294,7 +294,7 @@ boolean ClosedSplineOvComp::IsA (ClassId id) {
 Component* ClosedSplineOvComp::Copy () {
     ClosedSplineOvComp* comp = 
       new ClosedSplineOvComp((SFH_ClosedBSpline*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

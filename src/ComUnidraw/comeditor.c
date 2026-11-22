@@ -230,6 +230,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("export", new ExportFunc(comterp, this));
 
     comterp->add_command("dot", new GrDotFunc(comterp));
+    /* hidden: the dot's own completion for comp.field=val, reached only
+       through a dot expression, never typed */
+    comterp->add_command("dotsetattr", new GrDotSetAttrFunc(comterp, this), nil, nil, true);
     comterp->add_command("attrlist", new GrAttrListFunc(comterp));
     comterp->add_command("at", new GrListAtFunc(comterp));
     comterp->add_command("size", new GrListSizeFunc(comterp));
@@ -294,6 +297,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
     comterp->add_command("lastkey", new LastKeyFunc(comterp, this));
     comterp->add_command("keyname_test", new KeynameTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see keyname_test's docstring */);
+    comterp->add_command("attredit_test", new AttrEditTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see attredit_test's docstring */);
+    comterp->add_command("annoedit_test", new AnnoEditTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see annoedit_test's docstring */);
     comterp->add_command("textpane", new TextPaneFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
@@ -301,7 +306,10 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {
-  if(!whiteboard()) 
+  /* nil is no command, as in Unidraw::ExecuteCmd() -- a graphic created
+     with paste mode off logs none. */
+  if (!cmd) return;
+  if(!whiteboard())
 
     /* normal Unidraw command execution */
     OverlayEditor::ExecuteCmd(cmd);

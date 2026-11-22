@@ -75,7 +75,7 @@ boolean RectOvComp::IsA (ClassId id) {
 Component* RectOvComp::Copy () {
     RectOvComp* comp =
       new RectOvComp((SF_Rect*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

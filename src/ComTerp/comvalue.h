@@ -132,12 +132,18 @@ public:
     // StringType, whose storage doubles as a slice's length -- use
     // slicelen() to read that.
     int nids() const;
-    // for a SymbolType, -1 for a bare identifier or otherwise the matched-
-    // paren-delimiter kind following it (TOK_RPAREN/TOK_RBRACKET/..., which
-    // is also how DotFunc tells a bare field reference from an empty-
-    // parenthesized method call); a language needing separate input/output
-    // arglists counts those too.  Always 0 for a StringType, whose storage
-    // doubles as a slice's chunk size -- use blocksz() to read that.
+    // the dot operator reads an attribute list -- the lhs name's own, or
+    // the result's when the lhs was called; -1 and -2 are what tell it
+    // which, since the lhs arrives unevaluated.
+    // for a SymbolType, -1 marks a bare dot-rhs identifier, so DotFunc
+    // reads a field rather than firing a method.
+    // -2 marks a call written with empty parens, and is the only evidence
+    // of one: narg() and nkey() read 0 for mk() and for a bare mk alike.
+    // any other value is the matched-paren-delimiter kind following it
+    // (TOK_RPAREN/TOK_RBRACKET/...); a language needing separate
+    // input/output arglists counts those too.
+    // Always 0 for a StringType, whose storage doubles as a slice's chunk
+    // size -- use blocksz() to read that.
     void narg(int n) {_ext1 = n; }
     // set number of arguments associated with this command or keyword.
     void nkey(int n) {_ext2 = n; }

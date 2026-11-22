@@ -28,6 +28,7 @@
 #include <Unidraw/editor.h>
 #include <ComTerp/comfunc.h>
 
+class AttributeList;
 class Command;
 class ComTerp;
 class ComponentView;
@@ -54,6 +55,22 @@ public:
     // still in the tree. Detachment is checked by root, not by an
     // immediate parent, since a tombstoned group's children still
     // point to it as their parent.
+
+    boolean execute_setattr(OverlayComp*, AttributeList*);
+    // merge al into comp's property list.  A comp in the document goes
+    // through the kit's SetAttrCmd factory, so the edit joins the undo
+    // history and a DrawKit context substitutes the distributing
+    // subclass; one outside it is merged in place, since there is no
+    // document edit to record and a command would outlive its target.
+    // Takes over al's reference, deleting it either way, and returns
+    // false without merging if a value holds comp's own list.  Shared
+    // by setattr() and the dot's own completing command, which differ
+    // only in how they build the list.
+
+    OverlayComp* live_comp(OverlayComp*);
+    // comp itself, or nil if it is not in the document -- the root test,
+    // for a caller already holding the comp; live_subject() is this plus
+    // the view hop.
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;
@@ -473,6 +490,49 @@ public:
     virtual void execute();
     virtual const char* docstring() {
 	return "n=%s() -- number of commands redo() can still redo, 0 if none"; }
+};
+
+//: TEST-ONLY: call OverlayKit::apply_attr_edit() directly, no dialog required
+// comp=attredit_test(comp :keyword value ...)
+//
+// The attribute dialog's accept() does two things: it reads its two field
+// editors into a list, and it hands that list to the kit as the component's
+// whole new property list.  The second half is the behavior worth a
+// regression test -- the command, its undo, and the replace semantics that
+// make a key the user deleted go away -- and it has no dependency on the
+// widget.  This command supplies the finished list directly, as if the
+// fields had been typed and accept() pressed, so a CI script can exercise
+// the real production path with undo()/redo() either side of it.  The
+// widget half stays manual: there is no XTest in a headless xvfb runner
+// (see keyname_test above for the same boundary at the keyboard).
+// Not for driving scripts; setattr() is the scripted way to set attributes.
+class AttrEditTestFunc : public UnidrawFunc {
+public:
+    AttrEditTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "comp=%s(comp :keyword value ...) -- TEST-ONLY: set `comp`'s property list to exactly the given keywords, through the same kit call the attribute dialog's accept() makes -- no dialog involved, for exercising the real command path from a CI script.  Not for driving scripts; see setattr()."; }
+};
+
+//: TEST-ONLY: call OverlayKit::apply_anno_edit() directly, no dialog required
+// anno=annoedit_test(comp [anno] :clear)
+//
+// The annotation counterpart of attredit_test above.  The Annotate dialog and
+// the text pane's Set button each hand the kit a finished string; this hands
+// it one directly, so a CI script can bracket the command with undo()/redo().
+//
+// It reads as well as writes, because nothing else exposes a component's
+// annotation to a script: a bare annoedit_test(comp) returns the current one,
+// and a set returns what the component reads back afterwards.
+//
+// :clear is how a script removes an annotation.  An unsupplied positional and
+// an explicit nil both read nil, so the keyword is what tells the two apart.
+class AnnoEditTestFunc : public UnidrawFunc {
+public:
+    AnnoEditTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "anno=%s(comp [anno] :clear) -- TEST-ONLY: read `comp`'s annotation, or set it to `anno` (:clear removes it), through the same kit call the Annotate dialog and the text pane's Set button make -- no dialog involved, for exercising the real command path from a CI script."; }
 };
 
 #endif /* !defined(_unifunc_h) */

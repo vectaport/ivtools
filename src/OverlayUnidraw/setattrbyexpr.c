@@ -46,7 +46,7 @@
 
 /*****************************************************************************/
 
-ClassId SetAttrByExprCmd::GetClassId () { return SLCT_BY_ATTR_CMD; }
+ClassId SetAttrByExprCmd::GetClassId () { return SETATTRBYEXPR_CMD; }
 
 boolean SetAttrByExprCmd::IsA (ClassId id) {
     return SETATTRBYEXPR_CMD == id || Command::IsA(id);

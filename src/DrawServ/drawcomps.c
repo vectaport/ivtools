@@ -78,7 +78,7 @@ ClassId DrawIdrawComp::GetClassId () { return DRAW_IDRAW_COMP; }
 
 Component* DrawIdrawComp::Copy () {
     DrawIdrawComp* comps = new DrawIdrawComp(GetPathName());
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {

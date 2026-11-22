@@ -39,6 +39,14 @@ public:
     virtual const char* docstring() { 
       return "= is the assignment operator"; }
 
+    static ComValue write_func_pair(ComTerp*, ComValue& pairv, ComValue& writeval);
+    // complete a write whose lhs named the command that performs it: pairv
+    // is [ComFunc, fixed args...], and writeval goes on the end as the last
+    // positional.  Lets a layer this one knows nothing about own the write
+    // -- the lhs hands back the func to call, and only that func names the
+    // types involved.  See NextFunc::write_at_pair for the at() form, which
+    // re-drives one known command instead.
+
 };
 
 //: %= (mod assign) operator .

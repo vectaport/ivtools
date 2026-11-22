@@ -81,7 +81,7 @@ void OverlayFileComp::GrowParamList(ParamList* pl) {
 
 Component* OverlayFileComp::Copy () {
     OverlayFileComp* ovfile = new OverlayFileComp(new Picture(GetGraphic()));
-    if (attrlist()) ovfile->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) ovfile->SetAttributeList(attrlist()->deep_copy());
     ovfile->SetPathName(GetPathName());
     Iterator i;
     First(i);

@@ -54,7 +54,7 @@ frameimport_test=func(
 
   /* -runexpr's own trailing exit already ends the process; just wait for
      it to actually be gone so the port is free for the next test */
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+  while(drawserv_running(:ds_running_port ds_port)
     usleep(200000));
   print("frameimport: drawserv shut down\n" :err);
   ok)

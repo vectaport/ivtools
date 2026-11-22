@@ -430,6 +430,15 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
       /* a never-pulled stream peeks as BlankType -- fire it to get the
          real StreamType value the LHS-stream support below needs */
       before_part = stack_arg_post_eval(0);
+    } else if (before_part.is_symbol() &&
+	       (before_part.narg() || before_part.nkey() ||
+		before_part.nids() == -2)) {
+      /* a name carrying an arglist is a call (mk(0).ok), and nids==-2 is
+         the parser's mark for one written with empty parens (mk().ok) */
+      /* only a registered command gets a CommandType token, so a call on
+         a FuncObj-valued name arrives here as a SymbolType */
+      /* a bare name stays unfired, for the lookup-or-create below */
+      before_part = stack_arg_post_eval(0);
     }
     after_raw = stack_arg(1, true);
     after_nids = after_raw.nids();
@@ -524,7 +533,6 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     }
 
     /* lookup value of before variable */
-    void* vptr = nil;
     AttributeList* al = nil;
     boolean al_from_funcobj = false;
     if (before_part.is_object(FuncObj::class_symid())) {
@@ -533,41 +541,42 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
-      /* func scope (_alist) is checked before local/global, same order
-         as ComTerp::lookup_symval -- so func bodies see their own vars */
-      AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
-      AttributeValue* fsval = funcscope ? funcscope->find(before_symid) : nil;
-      if (fsval) {
-	if (fsval->is_attributelist())
-	  al = (AttributeList*) fsval->obj_val();
-	else if (fsval->is_object(FuncObj::class_symid())) {
-	  al = funcobj_dot_attrlist(fsval);
-	  al_from_funcobj = true;
-	} else {
-	  al = new AttributeList();
-	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
-	  *fsval = newval;
-	}
+      /* resolve through lookup_symval -- it searches the temp frame, the
+         func's home attrlist, the local table and the global table in that
+         order, and a func-local lives in the temp frame.  Sharing the one
+         implementation keeps dot's view of a name identical to a read's.
+
+         It answers nil for a bquoted symbol, which is right for a read of
+         `name but not for resolving a dot target: that would take a bound
+         name for an unbound one and replace its value with the fresh list
+         created below.  Resolve a copy with the flag cleared, so
+         before_part itself keeps it for the branches further down. */
+      ComValue before_lookup = before_part;
+      before_lookup.bquote(0);
+      AttributeValue* bval = comterp()->lookup_symval(&before_lookup, false);
+      if (bval && bval->is_attributelist())
+	al = (AttributeList*) bval->obj_val();
+      else if (bval && bval->is_object(FuncObj::class_symid())) {
+	al = funcobj_dot_attrlist(bval);
+	al_from_funcobj = true;
+      } else if (bval) {
+	/* bound to something other than an attribute list: give the name a
+	   fresh one where it already lives.  The base-class assignment
+	   suffices even when bval is a table ComValue, whose own operator=
+	   would also carry _pedepth and _linenum: both are read off the
+	   postfix buffer and the evaluation stack, never off a stored value. */
+	al = new AttributeList();
+	AttributeValue newval(AttributeList::class_symid(), (void*) al);
+	*bval = newval;
       } else {
-	if (!global) {
-	  comterp()->localtable()->find(vptr, before_symid);
-	  if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
-	} else {
-	  comterp()->globaltable()->find(vptr, before_symid);
-	}
-	if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
-	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
-	} else if (vptr && ((ComValue*) vptr)->is_object(FuncObj::class_symid())) {
-	  al = funcobj_dot_attrlist((ComValue*) vptr);
-	  al_from_funcobj = true;
-	} else {
-	  al = new AttributeList();
-	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
-	  if (!global)
-	    comterp()->localtable()->insert(before_symid, comval);
-	  else
-	    comterp()->globaltable()->insert(before_symid, comval);
-	}
+	/* unbound in every scope -- create the attribute list the docstring
+	   promises, in the session's own table unless the name said global() */
+	al = new AttributeList();
+	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
+	if (!global)
+	  comterp()->localtable()->insert(before_symid, comval);
+	else
+	  comterp()->globaltable()->insert(before_symid, comval);
       }
     } else if (!before_part.is_attributelist()) {
       if (((Attribute*)before_part.obj_val())->Value()->is_attributelist())

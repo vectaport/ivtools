@@ -50,6 +50,9 @@ class PatternCmd;
 class MoveCmd;
 class ScaleCmd;
 class RotateCmd;
+class SetAttrCmd;
+class SetAnnoCmd;
+class AttributeList;
 class Command;
 class ControlInfo;
 class Deck;
@@ -278,6 +281,24 @@ public:
     // command class, so distributing ScaleCmd distributes Stretch too.
     virtual RotateCmd* make_rotate_cmd(Editor* = nil, float = 0);
     // factory for rotate()'s command; see make_move_cmd.
+    virtual SetAttrCmd* make_setattr_cmd(Editor* = nil, AttributeList* = nil,
+					 Clipboard* = nil);
+    // factory for the command behind setattr() and the attribute dialog;
+    // takes an explicit clipboard like make_delete_cmd, since both the
+    // scripted and the dialog form name one component rather than acting
+    // on whatever is selected.
+    virtual void apply_attr_edit(OverlayComp*, AttributeList*);
+    // execute an edited property list against one component as the whole of
+    // its new list, the way the attribute dialog's accept() means it.
+    // Split out of the dialog so the widget is no longer in the way of
+    // reaching it -- see src/comdraw/tests/attreditundo.comt.
+    virtual SetAnnoCmd* make_setanno_cmd(Editor* = nil, const char* = nil,
+					 Clipboard* = nil);
+    // factory for the command behind the annotation dialog and the text
+    // pane's Set button; see make_setattr_cmd.
+    virtual void apply_anno_edit(OverlayComp*, const char*);
+    // execute an edited annotation against one component, the counterpart
+    // of apply_attr_edit for the annotation string.
 
 protected:
     Glyph* MenuLine(PSBrush*);

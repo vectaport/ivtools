@@ -122,7 +122,7 @@ Component* RasterOvComp::Copy () {
     RasterOvComp* nc = new RasterOvComp(
 	(OverlayRasterRect*) GetGraphic()->Copy(), _pathname, (OverlayComp*)GetParent()
     );
-    if (attrlist()) nc->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) nc->SetAttributeList(attrlist()->deep_copy());
 
     for (ListItr(CopyStringList) i(_commands); i.more(); i.next()) {
         nc->_commands.append(i.cur_ref());

@@ -64,7 +64,7 @@ gsbrushA_test=func(
   if(!global(drawserv_upgba2) :then
     print("gsbrushA: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsbrushA: ds2 up on %d\n" ds2_port :err);
@@ -83,8 +83,8 @@ gsbrushA_test=func(
     print("gsbrushA: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("gsbrushA: ds3 up on %d\n" ds3_port :err);
@@ -126,9 +126,9 @@ gsbrushA_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds3_port) usleep(200000));
     return(false));
 
   /* --- verify arrival (by grid id) then the brush gs at each far node --- */
@@ -252,13 +252,13 @@ gsbrushA_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
   print("gsbrushA: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
   print("gsbrushA: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds3_port) usleep(200000));
   print("gsbrushA: ds3 shut down\n" :err);
   ok)
 
@@ -300,7 +300,7 @@ gsbrushB_test=func(
   if(!global(drawserv_upgbb2) :then
     print("gsbrushB: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsbrushB: ds2 up on %d\n" ds2_port :err);
@@ -319,8 +319,8 @@ gsbrushB_test=func(
     print("gsbrushB: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("gsbrushB: ds3 up on %d\n" ds3_port :err);
@@ -356,9 +356,9 @@ gsbrushB_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds3_port) usleep(200000));
     return(false));
 
   /* --- verify arrival then the brush gs on BOTH branches --- */
@@ -408,13 +408,13 @@ gsbrushB_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
   print("gsbrushB: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
   print("gsbrushB: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 usleep(200000));
+  while(drawserv_running(:ds_running_port ds3_port) usleep(200000));
   print("gsbrushB: ds3 shut down\n" :err);
   ok)
 
@@ -465,7 +465,7 @@ gsexim_test=func(
     print("gsexim: FAIL timeout waiting for ds2 callback\n" :err);
     s1s=socket("127.0.0.1" ds1_port);
     if(type(s1s)!=`UnknownType :then remote(s1s "exit" :nowait);close(s1s));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsexim: ds2 callback received after %d polls\n" cnt :err);
@@ -496,8 +496,8 @@ gsexim_test=func(
   if(type(s1)!=`StringType :then
     print("gsexim: FAIL ds1 export(r :string :percomp) did not return a string (got %v)\n" s1 :err);
     remote(sock1 "exit" :nowait);close(sock1);remote(sock2 "exit" :nowait);close(sock2);
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
-    while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
+    while(drawserv_running(:ds_running_port ds1_port) usleep(200000));
+    while(drawserv_running(:ds_running_port ds2_port) usleep(200000));
     return(false));
 
   /* --- ds2 (dest): set the editor to gs B, then import s1 (naming the result r2
@@ -522,11 +522,11 @@ gsexim_test=func(
   /* --- tear both down, waiting for each process to clear so the canonical ports
      are free for the next test --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
+  while(drawserv_running(:ds_running_port ds1_port)
     usleep(200000));
   print("gsexim: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
+  while(drawserv_running(:ds_running_port ds2_port)
     usleep(200000));
   print("gsexim: ds2 shut down\n" :err);
   ok)

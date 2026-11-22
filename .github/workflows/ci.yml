@@ -411,14 +411,13 @@ jobs:
       # in-tree ACE-lite, issue #147.)
       #
       # ringpair, ringpair7, and ringpair10 are excluded below via drawmo's
-      # `all,-name` syntax: they all exercise the same simultaneous-close
-      # race from issue #575, and that race itself is intermittent under
-      # this runner's load -- any of the three can fail CI on a run where
-      # the closing links just happen not to cross, with no code change
-      # involved (seen on ringpair and ringpair7 alike across separate
-      # runs). `ring` (the non-pair case) still runs here as a basic
-      # sanity check. A test added to `all` in drawmo later is picked up
-      # here automatically -- nothing in this step needs updating for it.
+      # `all,-name` syntax, for wall-clock cost and not for instability:
+      # they launch 10, 14 and 20 drawserv instances respectively, each a
+      # real X client with a window of its own, and between them they
+      # dominate the suite's runtime. `ring` (the non-pair case) still runs
+      # here as a basic sanity check of the same machinery. A test added to
+      # `all` in drawmo later is picked up here automatically -- nothing in
+      # this step needs updating for it.
       # Run any of the three locally with e.g. `./drawmo --tests ringpair10`;
       # plain `./drawmo` with no arguments still runs all of them.
       - name: Test - drawserv drawmo suite

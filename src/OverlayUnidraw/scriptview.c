@@ -988,17 +988,18 @@ void OverlayScript::StencilGS (ostream& out) {
 void OverlayScript::Attributes(ostream& out) {
     AttributeList* attrlist = GetOverlayComp()->GetAttributeList();
     if (!attrlist->Number()) return;
+    /* a script is re-parsed, whether saved or sent to a peer -- never let
+       list()/string() print elision drop an attribute value, including
+       through an override of PrintAttributeList(). */
+    boolean save_elide = ComValue::elide();
+    ComValue::elide(false);
     if (!unidraw || !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist)) {
       /* serialize() emits no leading space before its first attribute, so
          only this branch needs one to avoid running onto the prior value. */
       out << " ";
-      /* a saved document must stay fully re-parseable -- never let list()/
-         string() print elision drop an attribute value on write. */
-      boolean save_elide = ComValue::elide();
-      ComValue::elide(false);
       out << *attrlist;
-      ComValue::elide(save_elide);
     }
+    ComValue::elide(save_elide);
 }
 
 Clipboard* OverlayScript::GetGSList() {
