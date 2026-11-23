@@ -63,6 +63,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   memset(_linkid_str, 0, sizeof(_linkid_str));
   _state = state;
   _interactive = false;
+  _debug_usec = 0;
 
   _addr = nil;
   _socket = nil;

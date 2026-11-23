@@ -5,7 +5,7 @@
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--demo] [--help]
 #   names: all updown updown1 updown2 pauseunpause pauseundo pauserelay
 #          updown3A updown3B updown4A updown4B
-#          updown4C cycle ringpair ringpair7 ringpair10 frontback move
+#          updown4C cycle ringpair ringpair7 ringpair10 ringpairslow frontback move
 #          transform sel eagain parsetest optabletest gsexim gsbrushA gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #   --demo slows tests down for a human watching the drawserv windows live;
@@ -33,6 +33,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      ringpair            two long chains closed at both ends at once\n");
     print("      ringpair7           ringpair at 14 nodes, the CI canary for ringpair10\n");
     print("      ringpair10          ringpair at 20 nodes\n");
+    print("      ringpairslow        ringpair at 6 nodes, links slowed so the closings always cross\n");
     print("      move                a distributed move() animated in equal steps\n");
     print("      transform           distributed move()/scale()/rotate() (and stretch) in one test\n");
     print("      sel                 an answer that has to cross a relay\n");
@@ -189,7 +190,7 @@ run("./frameimport.comt")
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,delcmd,setattr,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,ringpairslow,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,delcmd,setattr,updown4C,frameimport";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -331,6 +332,13 @@ if(tests_flag :then
         print("ringpair7: pass\n" :err)
       :else
         print("ringpair7: FAIL\n" :err);
+        ok=false));
+    if(t==`ringpairslow || t==`all :then
+      print("running ringpairslow test\n" :err);
+      if(ringpairslow_test(:dummy 0) :then
+        print("ringpairslow: pass\n" :err)
+      :else
+        print("ringpairslow: FAIL\n" :err);
         ok=false));
     if(t==`move || t==`all :then
       print("running move test\n" :err);
