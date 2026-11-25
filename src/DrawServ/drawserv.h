@@ -382,6 +382,11 @@ protected:
   // timers keep being serviced, bounded so a peer that stops reading
   // entirely doesn't hang the wait forever.
 
+  void send_line(DrawLink* link, const char* cmdstring);
+  // write one command line to link, prefixed with usleep() when
+  // link->debug_usec() is set, then restart its ack timer; the caller
+  // keeps link alive across the reactor pumping inside write_full()
+
 };
 
 #endif

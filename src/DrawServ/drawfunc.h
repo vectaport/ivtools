@@ -35,7 +35,7 @@ public:
     DrawLinkFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5] :table) -- connect to remote drawserv"; }
+	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5] :table :debug usec) -- connect to remote drawserv"; }
 };
 
 //: command to reserve unique session id

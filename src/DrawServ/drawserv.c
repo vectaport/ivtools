@@ -590,15 +590,7 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
   while (!targets->Done(ti)) {
     DrawLink* link = targets->GetDrawLink(ti);
     if (_linklist->Includes(link)) {
-      int fd = link->handle();
-      if (fd>=0) {
-	link->log_outgoing_command(cmdstring);
-	if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
-	  fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
-		  link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
-	if (_linklist->Includes(link))
-	  link->ackhandler()->start_timer();
-      }
+      send_line(link, cmdstring);
     }
     targets->Next(ti);
   }
@@ -613,15 +605,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
     /* ref'd since write_full() pumps the reactor; Includes() below
        re-validates before start_timer() touches link again. */
     Resource::ref(link);
-    int fd = link->handle();
-    if (fd>=0) {
-      link->log_outgoing_command(cmdstring);
-      if (!write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
-	fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
-		link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
-      if (_linklist->Includes(link))
-	link->ackhandler()->start_timer();
-    }
+    send_line(link, cmdstring);
     Resource::unref(link);
   }
 }
@@ -1658,3 +1642,18 @@ boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {
     return original;
 }
     
+
+void DrawServ::send_line(DrawLink* link, const char* cmdstring) {
+  int fd = link->handle();
+  if (fd<0) return;
+  link->log_outgoing_command(cmdstring);
+  char prefix[32];
+  int prefixlen = link->debug_usec()>0 ?
+    snprintf(prefix, sizeof(prefix), "usleep(%d);", link->debug_usec()) : 0;
+  if (!write_full(fd, prefix, prefixlen) ||
+      !write_full(fd, cmdstring, strlen(cmdstring)) || !write_full(fd, "\n", 1))
+    fprintf(stderr, "drawserv: failed to send command to %s:%d (lid=%.8s): %s\n",
+	    link->hostname(), link->portnum(), link->linkid_str(), strerror(errno));
+  if (_linklist->Includes(link))
+    link->ackhandler()->start_timer();
+}

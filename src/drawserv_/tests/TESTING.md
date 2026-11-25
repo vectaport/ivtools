@@ -263,6 +263,34 @@ closings land at the same instant either one wins and the other is benched,
 or both decline and the chains stay separate -- both outcomes are safe and
 accepted.
 
+### ringpairslow
+
+**What:** `ringpair` at `chainlen=3` (6 nodes) with every chain link slowed
+by `drawlink(:debug 100000)` before the pair is closed. Each command a node
+sends over a slowed link arrives prefixed with `usleep(100000);`, so the
+far end waits 100ms before acting on it. The freeze and session-id waves
+then take a tenth of a second or more per hop, while the two closings leave
+drawmo back to back, so the second closing's handshake almost always starts
+before the first closing's wave reaches it.
+
+That matters because `ringpair` accepts only outcomes where the waves
+cross. When they don't, the first closing settles, the second one's
+`cycletest()` sees the finished cycle and refuses it, and the pair ends with
+`2*chainlen-1` links, all active, every node holding every session. That
+outcome is safe (it is what `cycle` checks for), but the crossing never
+happened. Plain `ringpair` fails it with "closings did not overlap".
+`ringpairslow` makes it rare instead of a matter of luck, and when it still
+happens (a long enough stall between drawmo's two sends), reports "race not
+exercised this run" and passes rather than failing a healthy run. At 6 nodes
+it is cheap enough to stay in `all` and run in CI, where the larger
+`ringpair` tests are excluded.
+
+**Checks:** everything `ringpair` checks, plus the knob itself: on A0 (a
+single link) `drawlink(:debug usec :linkid lid)` returns 1, an unknown
+`:linkid` returns 0, and `drawlink(:table)`'s `debug` column reads back
+`usec`. On every other node `drawlink(:debug usec)` returns that node's link
+count.
+
 ### frontback
 
 **What:** ds1 creates two large overlapping circles, colored and centered on

@@ -1658,10 +1658,14 @@ active_link_count=func(
    both are still forming; see TESTING.md's "ringpair, ringpair10" section
    for the race and its two accepted outcomes (issue #575). chainlen
    defaults to 5 (10 nodes total) if not passed as a keyword; ringpair10_test
-   below reruns the same body at chainlen=10. */
+   below reruns the same body at chainlen=10.  :debug usec, when given, slows
+   every chain link with drawlink(:debug usec) before the pair is closed,
+   widening the window in which the two closings' waves cross, and accepts
+   a run where they still did not overlap, which is safe but probes nothing. */
 ringpair_test=func(
 
   if(chainlen==nil :then chainlen=5);
+  if(debug==nil :then debug=0);
 
   ra=ringpair_launch_chain(:tag "A" :chainlen chainlen :base_port 20002);
   if(!ra.ok :then
@@ -1675,6 +1679,25 @@ ringpair_test=func(
     return(false));
 
   aports=ra.ports;asocks=ra.socks;bports=rb.ports;bsocks=rb.socks;
+
+  debugok=true;
+  if(debug>0 :then
+    /* A0 has one link; name it by :linkid, the rest take every link they have */
+    lid=at(remote(at(asocks 0) "drawlink(:table)") 0).lid;
+    n=remote(at(asocks 0) print("drawlink(:debug %d :linkid \"%s\")" debug lid :str));
+    if(n!=1 :then debugok=false;print("ringpair: FAIL drawlink(:debug %d :linkid ...) on A0 set %v links, want 1\n" debug n :err));
+    n=remote(at(asocks 0) print("drawlink(:debug %d :linkid \"00000000-0000-0000-0000-000000000000\")" debug :str));
+    if(n!=0 :then debugok=false;print("ringpair: FAIL drawlink(:debug ...) with an unknown :linkid set %v links, want 0\n" n :err));
+    d=at(remote(at(asocks 0) "drawlink(:table)") 0).debug;
+    if(d!=debug :then debugok=false;print("ringpair: FAIL A0 drawlink(:table) debug column is %v, want %d\n" d debug :err));
+    rest=list();
+    for(i=1 i<chainlen i++ rest,at(asocks i));
+    for(i=0 i<chainlen i++ rest,at(bsocks i));
+    for(i=0 i<size(rest) i++
+      want=remote(at(rest i) "size(drawlink(:table))");
+      n=remote(at(rest i) print("drawlink(:debug %d)" debug :str));
+      if(n!=want :then debugok=false;print("ringpair: FAIL drawlink(:debug %d) set %v links, want %v\n" debug n want :err)));
+    print("ringpair: every chain link slowed by %d usec per command\n" debug :err));
 
   print("ringpair: closing the pair -- A tail(%d)->B head(%d) and B tail(%d)->A head(%d), concurrently\n"
     at(aports chainlen-1) at(bports 0) at(bports chainlen-1) at(aports 0) :err);
@@ -1700,18 +1723,26 @@ ringpair_test=func(
   joined=(links==total);
   /* both declined rather than race: neither new link ever formed */
   separate=(links==total-2);
+  /* the first closing settled before the second began, which cycletest()
+     then refused: safe, but the crossing this test probes never happened */
+  sequential=(links==total-1)&&(edges==total-1);
 
   print("ringpair: physical links = %v, active edges = %v (want %d/%d joined or %d/%d separate)\n"
     links edges total total-1 total-2 total-2 :err);
 
-  linksok=joined||separate;
-  if(!linksok :then print("ringpair: FAIL physical link count matches neither valid outcome\n" :err));
+  if(sequential&&debug>0 :then
+    print("ringpair: closings did not overlap -- second refused as a cycle, race not exercised this run\n" :err));
+  if(sequential&&debug==0 :then
+    print("ringpair: FAIL closings did not overlap -- second refused as a cycle, race not exercised\n" :err));
 
-  edgesok=(joined&&edges==total-1)||(separate&&edges==total-2);
+  linksok=joined||separate||(sequential&&debug>0);
+  if(!linksok&&!sequential :then print("ringpair: FAIL physical link count matches neither valid outcome\n" :err));
+
+  edgesok=(joined&&edges==total-1)||(separate&&edges==total-2)||(sequential&&debug>0);
   if(linksok&&!edgesok :then print("ringpair: FAIL active edge count wrong -- a ring is still active, or more than one link got benched\n" :err));
 
   connok=true;
-  expect=if(joined :then total :else chainlen);
+  expect=if(joined||sequential :then total :else chainlen);
   for(i=0 i<chainlen i++
     n=remote(at(asocks i) "size(sid(:table))");
     if(n!=expect :then connok=false;print("ringpair: FAIL A%d knows %v of %d sessions\n" i n expect :err)));
@@ -1721,7 +1752,7 @@ ringpair_test=func(
   if(connok&&joined :then print("ringpair: one closing won -- all %d nodes joined, no ring\n" total :err));
   if(connok&&separate :then print("ringpair: both closings declined -- chains stayed separate, no ring\n" :err));
 
-  ok=linksok && edgesok && connok;
+  ok=linksok && edgesok && connok && debugok;
 
   /* --- tear down all 2*chainlen nodes --- */
   for(i=0 i<chainlen i++ remote(at(asocks i) "exit" :nowait);close(at(asocks i)));
@@ -1746,6 +1777,12 @@ ringpair10_test=func(ringpair_test(:chainlen 10))
    for the heavier ringpair10's process/memory load; ringpair10 itself is
    run manually, not in CI. */
 ringpair7_test=func(ringpair_test(:chainlen 7))
+
+/* ringpairslow_test: ringpair_test at chainlen=3 (6 nodes total) with every
+   chain link slowed by drawlink(:debug), so the two closings almost always
+   cross, and a run where they don't is reported rather than failed -- small
+   and steady enough for CI. */
+ringpairslow_test=func(ringpair_test(:chainlen 3 :debug 100000))
 
 /* zorder_on_node -- poll a far node until index(list($$(frame())) grid(zn_back))
    sits strictly before index(list($$(frame())) grid(zn_front)), i.e. zn_back
