@@ -28,7 +28,7 @@
 #include <ctype.h>
 #include <iostream.h>
 #include <string.h>
-#include <strstream>
+#include <sstream>
 #include <streambuf>
 #include <new>
 #include <unistd.h>
@@ -77,7 +77,7 @@
 #include <errno.h>
 #include <iostream.h>
 #include <string.h>
-#include <strstream>
+#include <sstream>
 #include <unistd.h>
 #include <fstream.h>
 
@@ -312,14 +312,13 @@ static void append_bounded(char* buf, size_t bufsize, int& pos, const char* fmt,
 
 /* renders a ComValue as text into a fixed buffer, for embedding into
    append_bounded's printf-style calls above (which have no %v of their
-   own) -- same std::strstreambuf/ostream pattern already used elsewhere
+   own) -- same std::stringbuf/ostream pattern already used elsewhere
    in this file (e.g. the stack_top() print path). */
 static void render_comvalue(ComValue& v, char* out, size_t outsize) {
-  std::strstreambuf sbuf;
+  std::stringbuf sbuf;
   ostream os(&sbuf);
   os << v;
-  os << '\0';
-  strncpy(out, sbuf.str(), outsize - 1);
+  strncpy(out, sbuf.str().c_str(), outsize - 1);
   out[outsize - 1] = '\0';
 }
 
@@ -1845,13 +1844,11 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 		out << "\n";
 		out.flush();
 		#else
-		std::streambuf* strmbuf = new std::strstreambuf();
-		ostream out(strmbuf);
+		std::stringbuf strmbuf;
+		ostream out(&strmbuf);
 		print_stack_top(out);
 		out << "\n";
-		out << '\0';
-		const char *str = ((std::strstreambuf*)strmbuf)->str();
-		fprintf(fp, "%s", str);
+		fprintf(fp, "%s", strmbuf.str().c_str());
 		#endif
 	      }
 	    } while (stack_top().is_known());
@@ -1871,13 +1868,11 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    out << "\n";
 	    out.flush();
 	    #else
-	    std::streambuf* strmbuf = new std::strstreambuf();
-	    ostream out(strmbuf);
+	    std::stringbuf strmbuf;
+	    ostream out(&strmbuf);
 	    print_stack_top(out);
 	    out << "\n";
-	    out << '\0';
-	    const char *str = ((std::strstreambuf*)strmbuf)->str();
-	    fprintf(fp, "%s", str);
+	    fprintf(fp, "%s", strmbuf.str().c_str());
 	    fflush(fp);
 	    #endif
 	  } else {
@@ -1886,13 +1881,11 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    out << "\n";
 	    out.flush();
 	    #else
-	    std::streambuf* strmbuf = new std::strstreambuf();
-	    ostream out(strmbuf);
+	    std::stringbuf strmbuf;
+	    ostream out(&strmbuf);
 	    print_stack_top(out);
 	    out << "\n";
-	    out << '\0';
-	    const char *str = ((std::strstreambuf*)strmbuf)->str();
-	    fprintf(fp, "%s", str);
+	    fprintf(fp, "%s", strmbuf.str().c_str());
 	    fflush(fp);
 	    #endif
 	  }
@@ -1902,12 +1895,10 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	out << _errbuf << "\n";
 	out.flush();
 	#else
-	std::streambuf* strmbuf = new std::strstreambuf();
-	ostream out(strmbuf);
+	std::stringbuf strmbuf;
+	ostream out(&strmbuf);
 	out << _errbuf << "\n";
-	out << '\0';
-	const char *str = ((std::strstreambuf*)strmbuf)->str();
-	fprintf(fp, "%s", str);
+	fprintf(fp, "%s", strmbuf.str().c_str());
         fflush(fp);
 	#endif
 	strcpy(errbuf_save, _errbuf);
@@ -1921,12 +1912,10 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	out << _errbuf << "\n";
 	out.flush();
 	#else
-	std::streambuf* strmbuf = new std::strstreambuf();
-	ostream out(strmbuf);
+	std::stringbuf strmbuf;
+	ostream out(&strmbuf);
 	out << _errbuf << "\n";
-	out << '\0';
-	const char *str = ((std::strstreambuf*)strmbuf)->str();
-	fprintf(fp, "%s", str);
+	fprintf(fp, "%s", strmbuf.str().c_str());
         fflush(fp);
 	#endif
 	strcpy(errbuf_save, _errbuf);

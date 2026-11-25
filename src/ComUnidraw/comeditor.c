@@ -77,7 +77,7 @@ static const double SHIFTCAPTURE_TIMEOUT = 2.0;   // seconds without a poll -> d
 
 #include <Attribute/attrlist.h>
 
-#include <strstream>
+#include <sstream>
 #include <string.h>
 #include <fstream>
 #include <iostream>
@@ -317,7 +317,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
   else {
 
     /* indirect command execution, all by script */
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {
@@ -347,10 +347,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       }
       if (!scripted)
 	sbuf << "print(\"Failed attempt to generate script for a PASTE_CMD\\n\" :err)";
-      sbuf.put('\0');
       cout << sbuf.str() << "\n";
       cout.flush();
-      GetComTerp()->run(sbuf.str());
+      GetComTerp()->run(sbuf.str().c_str());
       delete cmd;
       }
       break;

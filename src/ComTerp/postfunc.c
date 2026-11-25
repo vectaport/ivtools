@@ -40,7 +40,7 @@
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
-#include <strstream>
+#include <sstream>
 
 #define TITLE "PostFunc"
 
@@ -106,9 +106,9 @@ void PostFixFunc::execute() {
   }
 
   // print everything on the stack for this function
-  // use strstreambuf + fputs to avoid FILEBUF destructor closing
+  // use stringbuf to avoid FILEBUF destructor closing
   // stdout fd
-  std::strstreambuf sbuf;
+  std::stringbuf sbuf;
   ostream out(&sbuf);
 
   boolean oldbrief = comterp()->brief();
@@ -157,14 +157,12 @@ void PostFixFunc::execute() {
       out << "(" << val.keynarg_val() << ")";
     if (i+1<topptr) out << " ";
   }
-  out << '\0';
   comterp()->brief(oldbrief);
   reset_stack();
   /* trim trailing space if present */
-  char* str = sbuf.str();
-  int len = strlen(str);
-  while (len > 0 && str[len-1] == ' ') { str[--len] = '\0'; }
-  ComValue retval(str);
+  std::string str = sbuf.str();
+  while (!str.empty() && str[str.size()-1] == ' ') str.erase(str.size()-1);
+  ComValue retval(str.c_str());
   push_stack(retval);
   
 }
