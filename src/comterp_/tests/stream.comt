@@ -1,10 +1,9 @@
 // src/comterp_/tests/stream.comt -- test streaming operators and commands
 //
-// coverage: 46/50 (92%)
+// coverage: 47/50 (94%)
 // funcs: $$ $ ,, next each size .. **
 // missing: str()->(stream) -- str() not stream-aware (test 33 deferred)
 //          $(attrlist) size(attrlist,compview)
-//          !,,(empty-stream -- bug #46)
 //
 // slot 10 keyword compatibility groups:
 //   all funcs have no keywords -- next()'s :skim was removed (issue #45):
@@ -108,8 +107,13 @@ ok=ok&&(n==5)
 print("11 each($$(1..5)*100) (expect 5): %v\n" n)
 prev_ok=check_fail(:ok ok)
 
-// --- test 12: $$() empty stream -- deferred ---
-print("12 ERROR: empty list bug to investigate, $$() - ivtools issue #46\n")
+// --- test 12: ,, concat of empty and non-empty streams (#46) ---
+// () is an empty attrlist literal, so $$() is an empty stream and
+// contributes nothing to the concat
+l12=$( ($$()),,($$( 1,2,3)))
+ok=ok&&(l12==(1,2,3))
+print("12 $( ($$()),,($$( 1,2,3))) (expect {1,2,3}): %v\n" l12)
+prev_ok=check_fail(:ok ok)
 
 // --- test 13: $($$($($$l))) nested cancel ---
 l=(1,2,3)
