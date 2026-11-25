@@ -376,7 +376,7 @@ not gaps in testing -- do not read `—` as untested.
 |--------|-------|---------|-------|-----|
 | hello.comt                | —                                                     |       — |     — |    — |
 | return.comt               | return func if for while run                          |      34 |    50 |  68% |
-| stream.comt               | $$ $ ,, next each size .. **                          |      46 |    50 |  92% |
+| stream.comt               | $$ $ ,, next each size .. **                          |      47 |    50 |  94% |
 | string.comt               | index substr split join eq size print(+:str) +        |      78 |    97 |  80% |
 | global.comt               | global                                                |      17 |    18 |  94% |
 | local.comt                | local                                                 |      14 |    15 |  93% |
