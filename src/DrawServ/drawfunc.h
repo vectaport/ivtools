@@ -35,7 +35,7 @@ public:
     DrawLinkFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5] :table) -- connect to remote drawserv"; }
+	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5] :table :debug usec) -- connect to remote drawserv"; }
 };
 
 //: command to reserve unique session id
@@ -55,7 +55,7 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny :notaken) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
+	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny :notaken) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable's live entries as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes\n\tgrid(:del) -- like :table, but tombstoned (deleted) entries instead of live ones"; }
 };
 
 //: command to stop reaching for what other sessions draw, in drawserv.

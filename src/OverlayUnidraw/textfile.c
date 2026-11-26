@@ -60,7 +60,7 @@ boolean TextFileComp::IsA (ClassId id) {
 Component* TextFileComp::Copy () {
     TextFileComp* comp = 
       new TextFileComp(_pathname, _begstr, _endstr, _linewidth, GetGraphic());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

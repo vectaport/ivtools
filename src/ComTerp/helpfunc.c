@@ -37,7 +37,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <OS/math.h>
 
 #include <iostream.h>
-#include <strstream>
+#include <sstream>
 #include <fstream.h>
 #include <streambuf>
 using std::streambuf;
@@ -319,7 +319,7 @@ void HelpFunc::execute() {
     return;
   }
 
-  std::strstreambuf sbuf;
+  std::stringbuf sbuf;
   #if HELPOUT
   FILEBUF(fbuf, comterp()->handler() && HELPOUT && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
@@ -432,9 +432,8 @@ void HelpFunc::execute() {
   }
   
   if (!comterp()->handler() || !HELPOUT) {
-    *out << '\0';
-    // int help_str_symid = symbol_add(sbuf.str());
-    ComValue retval(sbuf.str());
+    // int help_str_symid = symbol_add(sbuf.str().c_str());
+    ComValue retval(sbuf.str().c_str());
     push_stack(retval);
   } else
     out->flush();

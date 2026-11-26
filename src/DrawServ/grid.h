@@ -113,20 +113,27 @@ public:
   uint32_t idkey();
   // get key of this graphic's own id, matching gridtable()'s granularity
 
+  void deleted(boolean flag) { _deleted = flag; }
+  // set tombstone flag -- true once the comp behind this id is gone
+  boolean deleted() { return _deleted; }
+  // return true if this entry is a tombstone: the id survives in
+  // gridtable() for undo and in-flight messages, but has no live comp
+
 protected:
   uuid_t _id;
   uuid_string_t _id_str;
-  
+
   uuid_t _selector;
   uuid_string_t _selector_str;
-  
+
   int _selected;
-  
+
   OverlayComp* _comp;
   boolean _unlocked;
   int _reqgen;
   int _grantgen;
   // true when remote lock temporarily suspended for local modification
+  boolean _deleted;
 
 };
 

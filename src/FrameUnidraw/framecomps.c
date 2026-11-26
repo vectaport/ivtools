@@ -86,7 +86,7 @@ boolean FrameOverlaysComp::IsA(ClassId id) {
 
 Component* FrameOverlaysComp::Copy () {
     FrameOverlaysComp* comps = new FrameOverlaysComp(new Picture(GetGraphic()));
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -148,7 +148,7 @@ boolean FrameComp::IsA(ClassId id) {
 
 Component* FrameComp::Copy () {
     FrameComp* comp = new FrameComp(new Picture(GetGraphic()));
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -441,7 +441,7 @@ void FramesComp::GrowParamList(ParamList* pl) {
 
 Component* FramesComp::Copy () {
     FramesComp* comps = new FramesComp(new Picture(GetGraphic()));
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -530,7 +530,7 @@ void FrameIdrawComp::GrowParamList(ParamList* pl) {
 
 Component* FrameIdrawComp::Copy () {
     FrameIdrawComp* comps = new FrameIdrawComp(false, GetPathName());
-    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comps->SetAttributeList(attrlist()->deep_copy());
     Iterator i;
     First(i);
     while (!Done(i)) {

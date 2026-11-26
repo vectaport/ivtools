@@ -102,6 +102,8 @@ void DrawLinkFunc::execute() {
   ComValue ackv(stack_key(ack_sym));
   static int thaw_sym = symbol_add("thaw");
   ComValue thawv(stack_key(thaw_sym));
+  static int debug_sym = symbol_add("debug");
+  ComValue debugv(stack_key(debug_sym));
   reset_stack();
 
   /* freeze-wave protocol message, arriving on the link this was read from */
@@ -152,6 +154,30 @@ void DrawLinkFunc::execute() {
     return;
   }
   
+
+  /* prefix each command sent over every link, or the one named by :linkid,
+     with usleep(usec), to widen timing windows a script can't otherwise hit.
+     The sleep stalls the whole far-end process, not just this link.
+     Returns the count of links set; :debug 0 turns it off. */
+  if (debugv.is_known()) {
+    int usec = debugv.int_val();
+    uuid_t wanted; uuid_clear(wanted);
+    if (linkidv.is_string()) uuid_parse(linkidv.string_ptr(), wanted);
+    int applied = 0;
+    DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
+    if (linklist) {
+      Iterator i;
+      for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
+	DrawLink* l = linklist->GetDrawLink(i);
+	if (linkidv.is_string() && uuid_compare(l->linkid(), wanted)!=0) continue;
+	l->debug_usec(usec);
+	applied++;
+      }
+    }
+    ComValue result(applied, ComValue::IntType);
+    push_stack(result);
+    return;
+  }
 
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
@@ -374,6 +400,7 @@ void DrawLinkFunc::execute() {
       static int port_row_sym   = symbol_add("port");
       static int lid_row_sym    = symbol_add("lid");
       static int state_row_sym  = symbol_add("state");
+      static int debug_row_sym  = symbol_add("debug");
       DrawServ* drawserv = (DrawServ*)unidraw;
       AttributeValueList* avl = new AttributeValueList();
       if (drawserv->linklist()) {
@@ -387,6 +414,7 @@ void DrawLinkFunc::execute() {
           row->add_attr(port_row_sym,  new AttributeValue((int)link->portnum(), AttributeValue::IntType));
           row->add_attr(lid_row_sym,   new AttributeValue(link->linkid_str()  ? link->linkid_str()  : ""));
           row->add_attr(state_row_sym, new AttributeValue((int)link->state(),  AttributeValue::IntType));
+          row->add_attr(debug_row_sym, new AttributeValue((int)link->debug_usec(), AttributeValue::IntType));
           avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)row));
           drawserv->linklist()->Next(i);
         }
@@ -644,6 +672,8 @@ void GraphicIdFunc::execute() {
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
+  static int del_sym = symbol_add("del");
+  ComValue delv(stack_key(del_sym));
 
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
@@ -721,9 +751,11 @@ void GraphicIdFunc::execute() {
     push_stack(ComValue::nullval());
 
   } else if (idv.is_unknown()) {
-    if (tablev.is_true()) {
+    if (tablev.is_true() || delv.is_true()) {
       /* return the gridtable as rows (grid, comptype, selector, selected,
-         unlocked); unlocked is the relay bracket's bypass, worth seeing. */
+         unlocked); unlocked is the relay bracket's bypass, worth seeing.
+         :table lists live entries, :del lists tombstoned ones. */
+      boolean want_deleted = delv.is_true();
       static int grid_row_sym     = symbol_add("grid");
       static int comptype_row_sym = symbol_add("comptype");
       static int selector_row_sym = symbol_add("selector");
@@ -735,6 +767,7 @@ void GraphicIdFunc::execute() {
       GraphicIdTable_Iterator it(*table);
       while (it.more()) {
         GraphicId* grid = (GraphicId*)it.cur_value();
+        if (grid->deleted() != want_deleted) { it.next(); continue; }
         OverlayComp* comp = (OverlayComp*)grid->grcomp();
         const char* comptype = comp ? comp->GetClassName() : "nil";
         /* first 8 chars, matching the gridtable's uuid_key granularity; a

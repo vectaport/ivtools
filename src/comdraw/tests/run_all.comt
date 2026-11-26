@@ -143,5 +143,9 @@ if(run("./dotattrundo.comt")
   :then print("pass: dotattrundo\n")
   :else print("FAIL: dotattrundo\n");topok=false)
 
+if(run("./dupattr.comt")
+  :then print("pass: dupattr\n")
+  :else print("FAIL: dupattr\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

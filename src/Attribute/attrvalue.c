@@ -1370,7 +1370,10 @@ void AttributeValue::dup_as_needed() {
       Component* subject = oldview->GetSubject();
       ComponentView* newview = oldview->Duplicate();
       newview->SetSubject(subject);
-      subject->Attach(newview);
+      /* a view whose component has been destroyed has a nil subject, left
+	 that way by Component::Detach(), and nothing to attach a copy to. */
+      if (subject)
+	subject->Attach(newview);
       _v.objval.ptr = newview;
       Resource::ref(newview);
       Resource::unref(oldview);

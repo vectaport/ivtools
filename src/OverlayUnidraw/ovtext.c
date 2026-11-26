@@ -82,7 +82,7 @@ boolean TextOvComp::IsA (ClassId id) {
 Component* TextOvComp::Copy () {
     TextOvComp* comp =
       new TextOvComp((TextGraphic*) GetGraphic()->Copy());
-    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    if (attrlist()) comp->SetAttributeList(attrlist()->deep_copy());
     return comp;
 }
 

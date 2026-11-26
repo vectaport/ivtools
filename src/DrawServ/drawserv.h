@@ -149,12 +149,13 @@ public:
   // as a paste() or duplicate()'s resulting comps.
 
   void remove_grid(OverlayComp* comp);
-  // unregister comp's GraphicId, clearing it from both gridtable and
-  // compidtable. Used once a comp is actually gone, such as a delete().
+  // tombstone comp's GraphicId: detach it from compidtable (comp is
+  // actually gone) and flag it deleted(), but keep its gridtable entry.
+  // Used once a comp is actually gone, such as a delete().
 
   void restore_grid(OverlayComp* comp, uuid_t id, uuid_t selector);
-  // re-register comp under a grid id it previously held, such as undoing
-  // a delete(). Unlike add_grid(), id is never generated here.
+  // revive the tombstoned GraphicId for id, re-associating it with comp.
+  // Used to undo a delete(); unlike add_grid(), id is never generated here.
 
   GraphicIdTable* gridtable() { return _gridtable; }
   // return pointer to table of GraphicId's.
@@ -380,6 +381,11 @@ protected:
   // momentarily full; pumps the reactor while it waits so other links and
   // timers keep being serviced, bounded so a peer that stops reading
   // entirely doesn't hang the wait forever.
+
+  void send_line(DrawLink* link, const char* cmdstring);
+  // write one command line to link, prefixed with usleep() when
+  // link->debug_usec() is set, then restart its ack timer; the caller
+  // keeps link alive across the reactor pumping inside write_full()
 
 };
 
