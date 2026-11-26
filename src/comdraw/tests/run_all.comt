@@ -147,5 +147,9 @@ if(run("./dupattr.comt")
   :then print("pass: dupattr\n")
   :else print("FAIL: dupattr\n");topok=false)
 
+if(run("./hidden.comt")
+  :then print("pass: hidden\n")
+  :else print("FAIL: hidden\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

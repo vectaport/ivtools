@@ -409,6 +409,11 @@ so the change travels back the other way.
 - `c1.dotted=42` on ds1 reaches ds2, and `c2.dotted=43` on ds2 (through a
   handle from `grid()`) reaches ds1 and settles on both: dot-assignment builds
   the same `SetAttrCmd`, so it crosses as the same `setattr()` call
+- a rect built with `:hidden 1` on ds1 arrives on ds2 with its graphic
+  hidden, `show()` on ds1 shows it on ds2, and `hide()` on ds2 hides it on
+  both: `:hidden` crosses as an ordinary attribute, and `hide()`/`show()`
+  are `setattr()` calls of it.  The far node's graphic hide flag is read
+  with `hiddenflag_test()`, not just the attribute
 
 **Purpose:** `LinkSetAttrCmd` is the first distributed command that names its
 own target instead of acting on the selection, so it emits no

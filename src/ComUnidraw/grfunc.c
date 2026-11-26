@@ -2287,17 +2287,26 @@ HideCompFunc::HideCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, 
 void HideCompFunc::execute() {
     ComValue viewval(stack_arg(0));
     reset_stack();
-    if (!viewval.is_object()) {
+    if (!viewval.object_compview()) {
       push_stack(ComValue::nullval());
       return;
     }
 
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
 
-    if(comp) {
-      comp->GetGraphic()->Hide();
-      comp->Notify();
+    /* the :hidden attribute is what hides a comp, so this is a setattr():
+       undoable, saved, and distributed like any other attribute write. */
+    static int hidden_symid = symbol_add("hidden");
+    AttributeList* al = new AttributeList();
+    al->add_attr(hidden_symid, ComValue::oneval());
+    if (!execute_setattr(comp, al)) {
+      push_stack(ComValue::nullval());
+      return;
     }
     push_stack(viewval);
 }
@@ -2310,17 +2319,26 @@ ShowCompFunc::ShowCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, 
 void ShowCompFunc::execute() {
     ComValue viewval(stack_arg(0));
     reset_stack();
-    if (!viewval.is_object()) {
+    if (!viewval.object_compview()) {
       push_stack(ComValue::nullval());
       return;
     }
 
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp) {
+      push_stack(ComValue::nullval());
+      return;
+    }
 
-    if(comp) {
-      comp->GetGraphic()->Show();
-      comp->Notify();
+    /* the :hidden attribute is what hides a comp, so this is a setattr():
+       undoable, saved, and distributed like any other attribute write. */
+    static int hidden_symid = symbol_add("hidden");
+    AttributeList* al = new AttributeList();
+    al->add_attr(hidden_symid, ComValue::zeroval());
+    if (!execute_setattr(comp, al)) {
+      push_stack(ComValue::nullval());
+      return;
     }
     push_stack(viewval);
 }

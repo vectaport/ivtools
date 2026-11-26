@@ -193,6 +193,12 @@ public:
     static ComTerp* comterp() { return _comterp; }
     // get static ComTerp pointer
 
+    boolean hidden_attr();
+    // true if the property list holds a :hidden entry.
+    boolean apply_hidden_attr(boolean had_attr);
+    // hide or show the graphic per a :hidden entry, or show it when 'had_attr'
+    // says an entry was just removed; true if the graphic's flag changed.
+
 protected:
     ParamList* GetParamList();
     // ParamList of required/optional/keyword args read by the istream

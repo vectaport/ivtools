@@ -535,5 +535,19 @@ public:
 	return "anno=%s(comp [anno] :clear) -- TEST-ONLY: read `comp`'s annotation, or set it to `anno` (:clear removes it), through the same kit call the Annotate dialog and the text pane's Set button make -- no dialog involved, for exercising the real command path from a CI script."; }
 };
 
+//: TEST-ONLY: read the hide flags a :hidden attribute drives
+// flags=hiddenflag_test(comp)
+//
+// Nothing else exposes Graphic::Hidden() to a script, and the attribute
+// alone can't show whether the graphic followed it.  Returns the comp's own
+// flag and that of its view in the editor's viewer, nil when it has none.
+class HiddenFlagTestFunc : public UnidrawFunc {
+public:
+    HiddenFlagTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "flags=%s(comp) -- TEST-ONLY: the hide flag of `comp`'s graphic and of its view in the editor's viewer (nil when it has none), as compflag,viewflag."; }
+};
+
 #endif /* !defined(_unifunc_h) */
 

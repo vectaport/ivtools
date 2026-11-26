@@ -608,7 +608,7 @@ public:
     HideCompFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "compview=%s(compview) -- hide graphic component"; }
+	return "compview=%s(compview) -- hide graphic component by setting its :hidden attribute"; }
 
 };
 
@@ -619,7 +619,7 @@ public:
     ShowCompFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "compview=%s(compview) -- show hidden graphic component"; }
+	return "compview=%s(compview) -- show hidden graphic component by clearing its :hidden attribute"; }
 
 };
 

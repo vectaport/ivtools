@@ -784,14 +784,12 @@ int OverlayScript::ReadOther(istream& in, void* addr1, void* addr2, void* addr3,
 	}
     }
     } while(1);
-    if (avlist == nil) {
+    if (avlist == nil)
 	attrlist->add_attr(keyword, val);
-        return 0;
-    }
-    else {
-      attrlist->add_attr(keyword, new AttributeValue(avlist));
-      return 0;
-    }
+    else
+	attrlist->add_attr(keyword, new AttributeValue(avlist));
+    comp->apply_hidden_attr(false);
+    return 0;
 }
 
 boolean OverlayScript::DefaultGS() {

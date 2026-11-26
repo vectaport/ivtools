@@ -123,8 +123,10 @@ boolean UnidrawFunc::execute_setattr(OverlayComp* comp, AttributeList* al) {
 	 existed.  A command would also outlive its target here: logging one
 	 clears the redo half of the history, which destroys the command that
 	 owns the comp and leaves the new command holding freed memory. */
+      boolean had_hidden = comp->hidden_attr();
       complist->merge(al);
       delete al;
+      comp->apply_hidden_attr(had_hidden);
     }
 
     /* a func merged in reads the component's own list when called with no
@@ -1348,4 +1350,36 @@ void AnnoEditTestFunc::execute() {
       push_stack(retval);
     } else
       push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+HiddenFlagTestFunc::HiddenFlagTestFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void HiddenFlagTestFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    reset_stack();
+    if (!viewval.object_compview()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+    if (!comp || !comp->GetGraphic()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    AttributeValueList* avl = new AttributeValueList();
+    avl->Append(new AttributeValue(comp->GetGraphic()->Hidden() ? 1 : 0, AttributeValue::IntType));
+    Viewer* viewer = GetEditor() ? GetEditor()->GetViewer() : nil;
+    OverlayView* edview = viewer ? comp->FindView(viewer) : nil;
+    if (edview && edview->GetGraphic())
+      avl->Append(new AttributeValue(edview->GetGraphic()->Hidden() ? 1 : 0, AttributeValue::IntType));
+    else
+      avl->Append(new AttributeValue());
+    ComValue retval(avl);
+    push_stack(retval);
 }

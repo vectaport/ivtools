@@ -42,6 +42,7 @@
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
+#include <Attribute/attrvalue.h>
 
 #include <Unidraw/catalog.h>
 #include <Unidraw/clipboard.h>
@@ -148,26 +149,14 @@ AttributeList* OverlayComp::GetAttributeList() {
     return _attrlist;
 }
 
-#if 0 // experimentation with attribute changing
-#include <Attribute/attrlist.h>
-#include <Attribute/attrvalue.h>
-#endif
-
 void OverlayComp::SetAttributeList(AttributeList* al) {
+  boolean had_hidden = hidden_attr();
   if (_attrlist) 
     Unref(_attrlist);
   _attrlist = al;
   Resource::ref(_attrlist);
-
-#if 0 // experimentation with attribute changing
-    if (al) {
-      static int hidden_symid = symbol_find("hidden");
-      AttributeValue* av = al->find(hidden_symid);
-      if (av)
-	_gr->Hide(av->is_true());
-    }
-#endif
-    Observable::notify();
+  if (apply_hidden_attr(had_hidden)) Notify();
+  Observable::notify();
 }
 
 const char* OverlayComp::GetAnnotation() {
@@ -257,10 +246,12 @@ void OverlayComp::Interpret(Command* cmd) {
 	SetAttrCmd* sacmd = (SetAttrCmd*)cmd;
 	AttributeList* al = GetAttributeList();
 	cmd->Store(this, new AttrData(al));
+	boolean had_hidden = hidden_attr();
 	if (sacmd->replace()) al->clear();
 	/* the command replays this list on every redo, so the component
 	   takes its own containers rather than sharing the command's. */
 	al->merge_snapshot(sacmd->attrlist());
+	apply_hidden_attr(had_hidden);
 	Notify();
 
     } else if (cmd->IsA(SETANNO_CMD)) {
@@ -287,10 +278,12 @@ void OverlayComp::Uninterpret(Command* cmd) {
 	/* restored in place, so the list object goes on owning any Attribute
 	   the interpreter still holds a handle on. */
 	AttributeList* al = GetAttributeList();
+	boolean had_hidden = hidden_attr();
 	al->clear();
 	/* the stored data stays the command's own, so a later write through
 	   the component cannot reach back into the history. */
 	al->merge_snapshot(ad->attrlist());
+	apply_hidden_attr(had_hidden);
 	Notify();
 
     } else if (cmd->IsA(SETANNO_CMD)) {
@@ -1496,4 +1489,21 @@ void OverlayGraphic::new_painter() {
   Unref(_p);
   _p = new OverlayPainter();
   Resource::ref(_p);
+}
+
+boolean OverlayComp::hidden_attr() {
+  static int hidden_symid = symbol_add("hidden");
+  return _attrlist && _attrlist->find(hidden_symid) != nil;
+}
+
+boolean OverlayComp::apply_hidden_attr(boolean had_attr) {
+  static int hidden_symid = symbol_add("hidden");
+  if (!_gr) return false;
+  AttributeValue* av = _attrlist ? _attrlist->find(hidden_symid) : nil;
+  /* no entry, and none just removed: the flag belongs to whatever set it */
+  if (!av && !had_attr) return false;
+  boolean hide = av && av->is_true();
+  if (hide == (_gr->Hidden() != 0)) return false;
+  _gr->Hide(hide);
+  return true;
 }
