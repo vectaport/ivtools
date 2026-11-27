@@ -517,13 +517,13 @@ const char* ExportFunc::docstring() {
 
 const char** ExportFunc::dockeys() {
   static const char* keys[] = {
-    ":host str              hostname for remote export\n",
-    ":port int              port number on remote host\n",
-    ":socket                use existing socket connection\n",
-    ":string|str            export to string\n",
-    ":eps                   export in idraw/eps format (alias for :idraw)\n",
-    ":idraw                 export in idraw format\n",
-    ":percomp               emit each component as its own runnable command, not a drawtool() document\n",
+    ":host str              hostname for remote export",
+    ":port int              port number on remote host",
+    ":socket                use existing socket connection",
+    ":string|str            export to string",
+    ":eps                   export in idraw/eps format (alias for :idraw)",
+    ":idraw                 export in idraw format",
+    ":percomp               emit each component as its own runnable command, not a drawtool() document",
     nil
   };
   return keys;
