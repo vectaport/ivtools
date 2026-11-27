@@ -510,6 +510,16 @@ void FuncObjFunc::execute() {
       Attribute* attr = classification->GetAttr(cit);
       int kind = attr->Value()->int_val();
       if (kind & (FuncObjVarScan::ReadOnly | FuncObjVarScan::ReadBeforeWrite)) {
+	/* an unbound name the body only reads has nothing to freeze, so it
+	   is left uncaptured and resolved at call time instead */
+	/* a name the body writes, directly or through a dot chain, is
+	   captured even while unbound: the entry is the private cell that
+	   keeps the write out of the enclosing scope */
+	if (!(kind & (FuncObjVarScan::ReadBeforeWrite |
+		      FuncObjVarScan::DotWritten))) {
+	  ComValue probe(attr->SymbolId(), ComValue::SymbolType);
+	  if (!comterp()->lookup_symval(&probe, false)) continue;
+	}
 	if (!captures) captures = new AttributeList();
 	/* use the ComValue& overload, not lookup_symval(int), for the
 	   full _alist/localtable/globaltable fallthrough */

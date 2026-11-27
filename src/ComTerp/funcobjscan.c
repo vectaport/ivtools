@@ -149,6 +149,25 @@ static int temp_boundary_for(TempBoundary* tb, int n, int temp_pos) {
     return temp_pos;
 }
 
+/* set membership for the dot-written symids collected in classify() */
+static void note_symid(int*& ids, int& n, int& cap, int symid) {
+    for (int i = 0; i < n; i++) if (ids[i] == symid) return;
+    if (n == cap) {
+        int newcap = cap ? cap * 2 : 8;
+        int* newids = new int[newcap];
+        for (int i = 0; i < n; i++) newids[i] = ids[i];
+        delete [] ids;
+        ids = newids;
+        cap = newcap;
+    }
+    ids[n++] = symid;
+}
+
+static boolean has_symid(int* ids, int n, int symid) {
+    for (int i = 0; i < n; i++) if (ids[i] == symid) return true;
+    return false;
+}
+
 /* True iff span is exactly one plain-var token, OR a keyword's bound value
    is exactly one plain-var token -- PostfixSpanWalk::step's TOK_KEYWORD
    case bundles a keyword marker together with its bound value into one
@@ -259,11 +278,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         symbol_add("decr_after")
     };
     static int n_compound_assign = sizeof(compound_assign_symids) / sizeof(int);
+    static int dot_symid = symbol_add("dot");
 
     VarRecord* recs = nil;
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
+    int* dotwritten = nil;
+    int ndotwritten = 0, dotwritten_cap = 0;
 
     /* temp(x)=val's escape takes effect at this assign's token, not
        temp(x)'s earlier one -- resolved in a pre-pass so a read nested
@@ -308,6 +330,19 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         boolean is_compound_assign = false;
         for (int c = 0; c < n_compound_assign; c++) {
             if (symid == compound_assign_symids[c]) { is_compound_assign = true; break; }
+        }
+
+        /* an assignment whose target is a dot chain writes through the
+           chain's base name, which the operand loop below cannot see: the
+           whole chain is one span, and span_is_plain_var() rejects it */
+        if ((symid == assign_symid || is_compound_assign) && nconsumed >= 1) {
+            PostfixSpanWalk::Span lhs = walk.consumed(0);
+            int lhs_end = lhs.start + lhs.count - 1;
+            if (lhs.count >= 2 && is_plain_var[lhs.start] &&
+                toks[lhs_end].type == TOK_COMMAND &&
+                toks[lhs_end].v.symbolid == dot_symid)
+                note_symid(dotwritten, ndotwritten, dotwritten_cap,
+                           toks[lhs.start].v.symbolid);
         }
 
         for (int k = 0; k < nconsumed; k++) {
@@ -363,7 +398,9 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         } else {
             kind = ReadOnly;
         }
-        AttributeValue kindval((int)kind, AttributeValue::IntType);
+        int combined = (int)kind;
+        if (has_symid(dotwritten, ndotwritten, recs[i].symid)) combined |= DotWritten;
+        AttributeValue kindval(combined, AttributeValue::IntType);
         result->add_attr(recs[i].symid, kindval);
     }
 
@@ -387,6 +424,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     delete [] recs;
     delete [] escapes;
     delete [] tempbounds;
+    delete [] dotwritten;
 
     return result;
 }

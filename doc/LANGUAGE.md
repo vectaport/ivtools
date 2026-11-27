@@ -1172,6 +1172,23 @@ it runs changed, only *when* a free variable's value gets read:
   exactly as dynamic as they've always been — the explicit escape to the
   session-scope or process-scope table, unaffected by any of this (see
   *Escaping the func scope* above).
+- **Not bound yet** — a name the body only *reads*, with no binding at
+  all when `func()` runs, has nothing to freeze, so it isn't captured; it
+  resolves at call time instead. That's what lets a func stored into an
+  attrlist literal reach the object the literal is about to become — its
+  own fields and its sibling funcs alike, since the name on the left of
+  the `=` isn't bound until the literal finishes:
+
+  ```
+  deck=(:red "#C8102E" :show func(deck.red))
+  deck.show()                  // "#C8102E"
+  ```
+
+  A name the body *assigns through* is captured even while unbound,
+  because that entry is the private cell that keeps the write out of the
+  enclosing scope — `f=func(scratch.x=99)` leaves no outer `scratch`
+  behind. And binding the name to anything first, `nil` included, opts
+  it back into the ordinary declaration-time freeze.
 
 **An explicit keyword always overrides a capture.** Keywords still build
 the body's own locals the same way they always have; if the caller

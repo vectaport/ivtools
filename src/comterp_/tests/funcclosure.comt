@@ -462,13 +462,14 @@ check_fail(:ok ok)
 // --- test 20i: an alias obtained via dot(f) before a self-bound call
 // stays subject to the seal for the whole call -- writing a nonexistent
 // name through it is rejected exactly as a direct dot-write would be ---
+w57=0
 g57=func(arg(0).z57=1)
 f57=func(g57 w57)
 a57=dot(f57)
 r94=f57.g57(a57)
 r95=size(dot(f57))
 ok=ok&&(r94==nil)&&(r95==2)
-print("20i g57=func(arg(0).z57=1);f57=func(g57 w57);a57=dot(f57); f57.g57(a57), size(dot(f57)) (expect nil 2 -- a saved alias can't grow the sealed list mid-call either): %v %v\n\n" r94 r95)
+print("20i w57=0;g57=func(arg(0).z57=1);f57=func(g57 w57);a57=dot(f57); f57.g57(a57), size(dot(f57)) (expect nil 2 -- a saved alias can't grow the sealed list mid-call either): %v %v\n\n" r94 r95)
 check_fail(:ok ok)
 
 // --- test 21: a bare nested call from inside one method's body to a
@@ -611,6 +612,36 @@ r110=size(obj67)
 r111=obj67.newfield67
 ok=ok&&(r110==1)&&(r111==nil)
 print("31 eval(:alist obj67) assigning a brand-new field to global(obj67) itself (expect size 1, newfield67 nil -- refused, not a cycle): %v %v\n\n" r110 r111)
+check_fail(:ok ok)
+
+// --- test 32: a read-only free name with no binding yet has nothing to
+// freeze, so it is left uncaptured and resolved when the func is called,
+// not when it is declared ---
+f68=func(later68+1)
+later68=10
+r112=f68()
+ok=ok&&(r112==11)
+print("32 f68=func(later68+1) declared before later68=10 (expect 11 -- resolved at call time): %v\n\n" r112)
+check_fail(:ok ok)
+
+// --- test 33: which is what lets a func stored into an attrlist literal
+// reach the object the literal is about to become -- its own fields and
+// its sibling funcs alike ---
+obj69=(:v69 42 :a69 func(7) :b69 func(obj69.a69()) :c69 func(obj69.v69))
+r113=obj69.b69()
+r114=obj69.c69()
+ok=ok&&(r113==7)&&(r114==42)
+print("33 obj69=(:v69 42 :a69 func(7) :b69 func(obj69.a69()) :c69 func(obj69.v69)); obj69.b69(), obj69.c69() (expect 7 42): %v %v\n\n" r113 r114)
+check_fail(:ok ok)
+
+// --- test 34: a name the body ASSIGNS THROUGH is still captured while
+// unbound, so the write stays private -- the dot-written case the rule
+// above must not take with it (see attrlist.comt tests 14 and 16) ---
+f70=func(unbound70.x70=99; unbound70.x70)
+r115=f70()
+r116=unbound70
+ok=ok&&(r115==99)&&(r116==nil)
+print("34 f70=func(unbound70.x70=99; unbound70.x70); f70(), unbound70 (expect 99 nil -- written privately, no outer bleed): %v %v\n\n" r115 r116)
 check_fail(:ok ok)
 
 print("funcclosure: %v\n" ok)

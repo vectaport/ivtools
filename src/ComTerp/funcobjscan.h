@@ -44,7 +44,10 @@ public:
     // pattern bit together with one escape bit at once (e.g. ReadOnly|EscapingTemp).
     enum Kind {
         ReadOnly = 1<<0, ReadBeforeWrite = 1<<1, WriteBeforeRead = 1<<2,
-        EscapingLocal = 1<<3, EscapingGlobal = 1<<4, EscapingTemp = 1<<5
+        EscapingLocal = 1<<3, EscapingGlobal = 1<<4, EscapingTemp = 1<<5,
+        // the base of a dot chain the body assigns through (the x of x.f=1);
+        // ORed onto whichever read/write pattern bit the name itself carries
+        DotWritten = 1<<6
     };
 
     // is_plain_var[i] must be true iff toks[i] is a bare, zero-arg symbol
