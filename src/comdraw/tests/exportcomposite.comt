@@ -4,7 +4,7 @@
 // documents that ignored the flag.
 
 ok=true
-each(delete($$select(:all)))
+delete($$select(:all))
 
 srand(int(time(:raw)))
 suffix=int(rand(0,999999))
