@@ -17,6 +17,8 @@ ok=true
 each(delete($$select(:all)))
 
 // --- test 1: a constructor keyword hides the graphic from the start ---
+// comlint:allow -- :hidden is an attribute name rect() carries through to
+// the comp's attribute list verbatim, not a keyword rect() interprets itself
 r=rect(0,0,100,100 :hidden 1)
 ok=ok&&(r.hidden==1)&&(hiddenflag_test(r)==(1,1))
 print("1 r=rect(0,0,100,100 :hidden 1); r.hidden hiddenflag_test(r) (expect 1 {1,1}): %v %v\n" r.hidden hiddenflag_test(r))
