@@ -2784,6 +2784,36 @@ setattr_test=func(
   if(ok && !dotrev :then print("setattr: FAIL dot-assignment from ds2 did not reach ds1 and settle\n" :err));
   ok=ok && dotrev;
 
+  /* --- :hidden crosses as an ordinary attribute: a rect built hidden goes
+     out with :hidden 1 in its pasted script, so ds2 builds it hidden, and
+     hide()/show() are setattr()s, so they cross both ways.  The graphic's
+     hide flag is read on the far node, not just the attribute. --- */
+  id3=remote(sock1 "r3=rect(500,300,560,340 :hidden 1);gtab=grid(:table);id3=nil;for(j=0 j<size(gtab) j++ if(at(gtab j).comptype==\"RectComp\" && at(gtab j).grid!=id2 :then id3=at(gtab j).grid));id3");
+  hidpaste=ok && type(id3)==`StringType && grid_has_id(:gh_sock sock2 :gh_id id3);
+  readflags=print("hiddenflag_test(grid(%c%s%c))" 34 id3 34 :str);
+  ishid=print("%s==(1,1)" readflags :str);
+  isshown=print("%s==(0,0)" readflags :str);
+  hidpaste=hidpaste && remote(sock2 ishid);
+  print("setattr: r3=rect(... :hidden 1) on ds1, hidden on ds2=%v (expect true)\n" hidpaste :err);
+  if(ok && !hidpaste :then print("setattr: FAIL a comp built hidden did not arrive hidden\n" :err));
+  ok=ok && hidpaste;
+
+  remote(sock1 "show(r3)");
+  cnt=0;
+  while(ok && !remote(sock2 isshown) && cnt<timeout usleep(100000);cnt++);
+  hidshow=ok && remote(sock2 isshown);
+  print("setattr: show(r3) on ds1, shown on ds2=%v (expect true)\n" hidshow :err);
+  if(ok && !hidshow :then print("setattr: FAIL show() did not propagate to ds2\n" :err));
+  ok=ok && hidshow;
+
+  remote(sock2 print("hide(grid(%c%s%c))" 34 id3 34 :str));
+  cnt=0;
+  while(ok && !remote(sock1 ishid) && cnt<timeout usleep(100000);cnt++);
+  hidrev=ok && remote(sock1 ishid) && remote(sock2 ishid);
+  print("setattr: hide() on ds2, hidden on ds1=%v ds2=%v (expect true true)\n" remote(sock1 ishid) remote(sock2 ishid) :err);
+  if(ok && !hidrev :then print("setattr: FAIL hide() from ds2 did not reach ds1 and settle\n" :err));
+  ok=ok && hidrev;
+
   if(demo_flag :then remote(sock1 "update(300000)");remote(sock2 "update(300000)"));
 
   /* --- tear both down --- */

@@ -1,0 +1,94 @@
+// src/comdraw/tests/hidden.comt -- the :hidden attribute hides a graphic
+//
+// :hidden is an ordinary attribute, so it travels wherever attributes do: in
+// a constructor's keywords, in the script export() writes, through setattr()
+// and the dot, and onto a DrawServ peer with the comp's pasted script.  The
+// comp's graphic follows it, and hide()/show() are setattr()s of it, so
+// hiding is undoable and saved like any other attribute edit.
+//
+// hiddenflag_test(comp) returns the comp graphic's hide flag and its editor
+// view's (nil when it has none) -- nothing else exposes Graphic::Hidden().
+//
+// funcs: rect hide show setattr dot-assign undo redo export run pastemode
+//        paste attredit_test hiddenflag_test
+// issue: #764
+
+ok=true
+each(delete($$select(:all)))
+
+// --- test 1: a constructor keyword hides the graphic from the start ---
+// comlint:allow -- :hidden is an attribute name rect() carries through to
+// the comp's attribute list verbatim, not a keyword rect() interprets itself
+r=rect(0,0,100,100 :hidden 1)
+ok=ok&&(r.hidden==1)&&(hiddenflag_test(r)==(1,1))
+print("1 r=rect(0,0,100,100 :hidden 1); r.hidden hiddenflag_test(r) (expect 1 {1,1}): %v %v\n" r.hidden hiddenflag_test(r))
+
+// --- test 2: no attribute, nothing hidden ---
+s=rect(200,200,250,250)
+ok=ok&&(s.hidden==nil)&&(hiddenflag_test(s)==(0,0))
+print("2 s=rect(200,200,250,250); s.hidden hiddenflag_test(s) (expect nil {0,0}): %v %v\n" s.hidden hiddenflag_test(s))
+
+// --- test 3: hide() writes the attribute ---
+hide(s)
+ok=ok&&(s.hidden==1)&&(hiddenflag_test(s)==(1,1))
+print("3 hide(s); s.hidden hiddenflag_test(s) (expect 1 {1,1}): %v %v\n" s.hidden hiddenflag_test(s))
+
+// --- test 4: undoing the hide() that created the attribute removes it and
+// shows the graphic again ---
+undo()
+ok=ok&&(s.hidden==nil)&&(hiddenflag_test(s)==(0,0))
+print("4 undo(); s.hidden hiddenflag_test(s) (expect nil {0,0}): %v %v\n" s.hidden hiddenflag_test(s))
+
+// --- test 5: redo hides it again ---
+redo()
+ok=ok&&(s.hidden==1)&&(hiddenflag_test(s)==(1,1))
+print("5 redo(); s.hidden hiddenflag_test(s) (expect 1 {1,1}): %v %v\n" s.hidden hiddenflag_test(s))
+
+// --- test 6: show() writes it false ---
+show(s)
+ok=ok&&(s.hidden==0)&&(hiddenflag_test(s)==(0,0))
+print("6 show(s); s.hidden hiddenflag_test(s) (expect 0 {0,0}): %v %v\n" s.hidden hiddenflag_test(s))
+
+// --- test 7: the dot writes it like any attribute ---
+r.hidden=0
+ok=ok&&(hiddenflag_test(r)==(0,0))
+print("7 r.hidden=0; hiddenflag_test(r) (expect {0,0}): %v\n" hiddenflag_test(r))
+
+// --- test 8: so does setattr(), and undo() reverts it ---
+setattr(r :hidden 1)
+f8a=hiddenflag_test(r)
+undo()
+f8b=hiddenflag_test(r)
+ok=ok&&(f8a==(1,1))&&(f8b==(0,0))
+print("8 setattr(r :hidden 1) then undo(); hiddenflag_test(r) before after (expect {1,1} {0,0}): %v %v\n" f8a f8b)
+
+// --- test 9: the exported script carries it, and running that script
+// builds a hidden graphic -- what a DrawServ peer does with a pasted comp ---
+setattr(r :hidden 1)
+e=export(r :string :percomp)
+ok=ok&&(index(e ":hidden 1" :substr)!=nil)
+r2=run(e :str)
+ok=ok&&(r2.hidden==1)&&(hiddenflag_test(r2)==(1,1))
+print("9 export(r :string :percomp) then run(e :str); r2.hidden hiddenflag_test(r2) (expect 1 {1,1}): %v %v\n%s\n" r2.hidden hiddenflag_test(r2) e)
+
+// --- test 10: a comp outside the document hides in place, and the paste
+// brings the hidden graphic in ---
+pastemode(1)
+u=rect(300,300,320,320)
+hide(u)
+f10a=hiddenflag_test(u)
+pastemode(0)
+paste(u)
+f10b=hiddenflag_test(u)
+ok=ok&&(u.hidden==1)&&(f10a==(1,nil))&&(f10b==(1,1))
+print("10 pastemode(1) rect, hide(u), paste(u); hiddenflag_test(u) before after (expect {1,nil} {1,1}): %v %v\n" f10a f10b)
+
+// --- test 11: the dialog's replace dropping :hidden shows the graphic ---
+attredit_test(u :hp 3)
+ok=ok&&(u.hidden==nil)&&(hiddenflag_test(u)==(0,0))
+print("11 attredit_test(u :hp 3); u.hidden hiddenflag_test(u) (expect nil {0,0}): %v %v\n" u.hidden hiddenflag_test(u))
+
+each(delete($$select(:all)))
+
+print("hidden: %v\n" ok)
+ok

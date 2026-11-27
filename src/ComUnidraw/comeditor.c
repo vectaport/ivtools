@@ -299,6 +299,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("keyname_test", new KeynameTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see keyname_test's docstring */);
     comterp->add_command("attredit_test", new AttrEditTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see attredit_test's docstring */);
     comterp->add_command("annoedit_test", new AnnoEditTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see annoedit_test's docstring */);
+    comterp->add_command("hiddenflag_test", new HiddenFlagTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see hiddenflag_test's docstring */);
     comterp->add_command("textpane", new TextPaneFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
