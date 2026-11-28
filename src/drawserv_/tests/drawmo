@@ -45,6 +45,8 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("                          graphic state over a link\n");
     print("      setattr             distributed setattr() attribute changes, both directions\n");
     print("      frameimport         import() of a frame(...) object under drawserv\n");
+    print("      kids                four nodes running the kid example, all holding\n");
+    print("                          the same drawing\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--demo\t\t\tslow tests with visible pauses for a human watching live (off by default)\n");
     print("--help\t\t\tprint this help message\n");
@@ -185,12 +187,13 @@ run("./gstests.comt")
 run("./sel.comt")
 run("./eagain.comt")
 run("./frameimport.comt")
+run("./kids.comt")
 
 /* Every test name below, in dispatch order. --tests all,-name[,-name...]
    expands `all` to this list and then drops each excluded name, so a test
    added below (and to the dispatch block further down) joins `all` and any
    -exclusion list automatically -- nothing here needs updating for it. */
-all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,ringpairslow,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,delcmd,setattr,updown4C,frameimport";
+all_tests="updown,sel,eagain,updown1,updown2,pauseunpause,pauseundo,pauserelay,updown3A,updown3B,updown4A,updown4B,cycle,ringpair,ringpair7,ringpair10,ringpairslow,move,transform,parsetest,optabletest,gsexim,gsbrushA,gsbrushB,frontback,duplicate,delcmd,setattr,updown4C,frameimport,kids";
 
 /* Run selected tests.  A test name must not be the name of a comterp command:
    the dispatch below compares against a bare symbol, and a bare symbol naming a
@@ -423,6 +426,13 @@ if(tests_flag :then
         print("updown4C: pass\n" :err)
       :else
         print("updown4C: FAIL\n" :err);
+        ok=false));
+    if(t==`kids || t==`all :then
+      print("running kids test\n" :err);
+      if(kids_test(:dummy 0) :then
+        print("kids: pass\n" :err)
+      :else
+        print("kids: FAIL\n" :err);
         ok=false));
     if(t==`frameimport || t==`all :then
       print("running frameimport test\n" :err);

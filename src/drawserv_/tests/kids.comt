@@ -1,0 +1,163 @@
+/* kids test -- the kidmo example itself, four nodes of it, checked.
+
+   This is the counterpart of src/comdraw/tests/spirograph.comt: it runs the
+   real ../examples/kid.comt rather than a stand-in, so a change that stops a
+   kid drawing fails here instead of being noticed by eye a release later.
+   Four drawservs in a star on the hub, each taught the kid script down the
+   connection it will be driven on, each asked for something it likes -- and
+   then every table is required to hold the same drawing, which is the whole
+   claim the example makes.
+
+   The kids are put on pace=0, so they draw as fast as the sockets will carry
+   it.  The pauses are the demo; a test only needs the drawings. */
+
+kids_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* kid.comt sits beside the examples, not beside the tests, and the path is
+     resolved by each kid against its own working directory rather than here --
+     so it has to be one that works from where drawmo was started, which is
+     where the kids are started too.  arg(0) is how drawmo was invoked, the
+     same handle kidmo uses to find the script next to it. */
+  kids_slash=index(arg(0) "/" :last);
+  kids_dir=if(kids_slash!=nil :then substr(arg(0) kids_slash) :else ".");
+  kid_file=print("%s/../examples/kid.comt" kids_dir :str);
+
+  kids_ports=(find_open_port(:base_port 20002),find_open_port(:base_port 30002),
+              find_open_port(:base_port 40002),find_open_port(:base_port 50002));
+  kids_cols=("#DD3333","#3366DD","#22AA55","#CC7722");
+
+  global(kidstest_up1)=false;
+  global(kidstest_up2)=false;
+  global(kidstest_up3)=false;
+  global(kidstest_up4)=false;
+
+  /* one by one in a loop, but the up-flag has to be named literally when it is
+     read, so the four names are spelled out in the wait below rather than
+     built -- global() wants a symbol, and global(print(...)) assigns nothing */
+  j=0;
+  while(j<4
+    p=at(kids_ports j);
+    print("kids: launching ds%d on port %d\n" j+1 p :err);
+    shell(print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kidstest_up%d)=true\\\")\" &"
+      p p-1 callback_port j+1 :str));
+    j=j+1);
+
+  cnt=0;
+  while((!global(kidstest_up1) || !global(kidstest_up2) ||
+         !global(kidstest_up3) || !global(kidstest_up4)) && cnt<timeout
+    update(poll_usec);cnt++;
+    if(cnt%progress_interval==0 :then
+      print("kids: still waiting after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(kidstest_up1) || !global(kidstest_up2) ||
+     !global(kidstest_up3) || !global(kidstest_up4) :then
+    print("kids: FAIL not every drawserv called back\n" :err);
+    j=0;
+    while(j<4 kill_port(:kill_port_num at(kids_ports j));
+      kill_port(:kill_port_num at(kids_ports j)-1);j=j+1);
+    return(false));
+
+  /* Two connections apiece, as kidmo keeps: one to teach and drive, one to ask
+     about the canvas with.  A connection has an interpreter of its own, so the
+     kid has to be taught down the socket that will later be told to play; the
+     canvas belongs to the node, so the other socket needs to know nothing. */
+  socks=(socket("127.0.0.1" at(kids_ports 0)),socket("127.0.0.1" at(kids_ports 1)),
+         socket("127.0.0.1" at(kids_ports 2)),socket("127.0.0.1" at(kids_ports 3)));
+  eyes=(socket("127.0.0.1" at(kids_ports 0)),socket("127.0.0.1" at(kids_ports 1)),
+        socket("127.0.0.1" at(kids_ports 2)),socket("127.0.0.1" at(kids_ports 3)));
+  bad=false;
+  j=0;
+  while(j<4
+    if(type(at(socks j))==`UnknownType || type(at(eyes j))==`UnknownType :then bad=true);
+    j=j+1);
+  if(bad :then
+    print("kids: FAIL could not connect to all four\n" :err);
+    /* close this end before killing anything.  kill_port() kills every process
+       holding the port, which includes this one while a socket to it is still
+       open -- the test would die with SIGTERM and report nothing, reading
+       exactly like a hang.  So ask whoever answered to exit, drop both ends,
+       and kill only what is still there afterwards. */
+    j=0;
+    while(j<4
+      if(type(at(socks j))!=`UnknownType :then
+        remote(at(socks j) "exit" :nowait);close(at(socks j)));
+      if(type(at(eyes j))!=`UnknownType :then close(at(eyes j)));
+      j=j+1);
+    j=0;
+    while(j<4
+      if(drawserv_running(:ds_running_port at(kids_ports j)) :then
+        kill_port(:kill_port_num at(kids_ports j)));
+      j=j+1);
+    return(false));
+
+  /* a star on the hub: the other three pull their chairs up to ds1 */
+  print("kids: wiring the star on %d\n" at(kids_ports 0) :err);
+  j=1;
+  while(j<4
+    remote(at(eyes j) print("drawlink(\"127.0.0.1\" %d)" at(kids_ports 0) :str));
+    j=j+1);
+
+  /* teach each kid on its driving socket.  quiet, because a plain print() over
+     a socket lands in the reply stream and puts every later answer one behind;
+     nowelcome, so the only things on these canvases are things a kid drew. */
+  j=0;
+  taught=true;
+  while(j<4
+    remote(at(socks j) "quiet=true");
+    remote(at(socks j) "nowelcome=true");
+    remote(at(socks j) print("run(\"%s\")" kid_file :str));
+    remote(at(socks j) print("kid.colour=\"%s\"" at(kids_cols j) :str));
+    remote(at(socks j) "kid.pace=0");
+    remote(at(socks j) print("srand(%d)" 11+j*7 :str));
+    if(remote(at(socks j) "kid.play!=nil")!=true :then taught=false);
+    j=j+1);
+  if(!taught :then
+    print("kids: FAIL the kid script did not reach every node -- is %s there?\n" kid_file :err));
+
+  /* each one draws something it likes.  A kid that is taught but draws nothing
+     is the failure this test exists for: kid.play() reads its colour and its
+     creatures off the kid it is part of, and a reference that comes back nil
+     leaves a canvas as empty as a kid that never got the script. */
+  drew=true;
+  j=0;
+  while(j<4
+    if(remote(at(socks j) "kid.play(:n 2)")!=2 :then drew=false);
+    j=j+1);
+  if(!drew :then print("kids: FAIL a kid did not report drawing what it was asked for\n" :err));
+
+  /* and now every table holds the same drawing.  Distribution is
+     fire-and-forget, so poll for the four counts agreeing rather than sleeping
+     on a guess at how long four nodes take to catch up. */
+  cnt=0;
+  agreed=false;
+  while(!agreed && cnt<200
+    c1=remote(at(eyes 0) "size(children())");
+    c2=remote(at(eyes 1) "size(children())");
+    c3=remote(at(eyes 2) "size(children())");
+    c4=remote(at(eyes 3) "size(children())");
+    agreed=c1!=nil && c1>0 && c1==c2 && c1==c3 && c1==c4;
+    if(!agreed :then usleep(100000);cnt++));
+  print("kids: canvases %v %v %v %v\n" c1 c2 c3 c4 :err);
+  if(agreed :then
+    print("kids: every table holds the same drawing\n" :err)
+  :else
+    print("kids: FAIL the tables do not agree\n" :err));
+
+  ok=taught && drew && agreed;
+
+  /* down again, asking rather than killing, and waiting for each to go */
+  j=0;
+  while(j<4
+    remote(at(socks j) "exit" :nowait);
+    close(at(socks j));
+    close(at(eyes j));
+    j=j+1);
+  j=0;
+  while(j<4
+    while(drawserv_running(:ds_running_port at(kids_ports j)) usleep(200000));
+    print("kids: ds%d shut down\n" j+1 :err);
+    j=j+1);
+  ok)

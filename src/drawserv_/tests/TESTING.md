@@ -419,6 +419,32 @@ ds2-to-ds1 leg is what tests that: with the exclusion wrong the change
 ping-pongs between the two nodes forever, so the symptom is this test
 hanging rather than failing an assertion.
 
+### kids
+
+**What:** four drawservs in a star on the hub, each one taught the real
+`../examples/kid.comt` down the connection it is driven on, each asked for
+two creatures of its own choosing, and then every table required to hold
+the same drawing. It lives in `kids.comt` rather than in `updown.comt` or
+`gstests.comt` because what it covers is an example rather than a drawserv
+feature — the way `src/comdraw/tests/spirograph.comt` covers its demo.
+
+**Checks:**
+- `kid.play` is a func on every node after the script is loaded
+- every kid reports drawing the two it was asked for
+- all four canvases settle at the same non-zero `size(children())`
+
+**Purpose:** the example is the only thing in the tree that exercises a
+`func` written inside the attrlist literal it is stored into, reading its
+own object's other fields back out — `kid.colour` and `kid.animal` from
+inside `kid.play`. A capture rule that gives such a func nothing to read
+leaves it drawing an empty canvas rather than erroring, so the failure is
+invisible to the suites that do not run the example: every kid still
+reports the count it was asked for, and every table agrees, at zero. The
+agreement check requires a non-zero count for that reason.
+
+The kids are put on `kid.pace=0` here. The pauses are what makes the demo
+look like four children at a table; a test only needs the drawings.
+
 ## agreetest — counting runs rather than trusting one
 
 `agreetest` is not a drawmo test and is run on its own:
@@ -455,7 +481,9 @@ communication, or a DrawServ-specific command.
 
 1. Write a `funcname_test=func(...)` following the updown launch pattern above,
    in **`updown.comt`** (link/propagation tests) or **`gstests.comt`**
-   (graphic-state tests). `drawmo` itself keeps only the arg parsing, the shared
+   (graphic-state tests). A test that covers an example rather than a
+   drawserv feature gets a file of its own, as `kids.comt` does, so that
+   what it is pinned to stays legible. `drawmo` itself keeps only the arg parsing, the shared
    helpers (`kill_port`, `find_open_port`, `grid_has_id`), the two `run()` loaders
    that pull in those files, and the dispatch block. (The loaders are separate
    top-level statements with no trailing `;` on purpose: a func binds its symbol

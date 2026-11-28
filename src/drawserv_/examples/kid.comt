@@ -7,6 +7,11 @@
 // naming a func fires it niladically, so kid=(:animal kid_animal) would store
 // the nil that calling it returned.  Arguments arrive as keywords.
 //
+// A func inside the literal reaches the kid it is part of.  A free name still
+// unbound when the func is declared is resolved when the func is called, by
+// which time the literal has become the object -- so kid.stroke() inside
+// :animal, and kid.pace inside :pause, are this same kid.
+//
 // Loaded with -runfile this lands in the node's main interpreter, and every
 // connection made later is seeded from it -- so the kid is taught once, at
 // startup, and any socket may ask.  (Connections do not see each OTHER: a kid
@@ -15,29 +20,64 @@
 kid=(
   :colour "#888888"
 
+  /* How fast this kid works.  pace is the tempo, in microseconds from one
+     creature to the next.  dither is how far a pause strays from the tempo, as
+     a fraction either way: 0 is a metronome, 1 reaches from no pause at all to
+     twice the tempo.  ponder is the chance of stopping to look at the page
+     before starting the next creature.
+     pace=0 is a kid who draws as fast as the socket will carry it, which is
+     what a test wants and no fourth grader does. */
+  :pace 400000
+  :dither 0.6
+  :ponder 0.25
+
+  /* One pause, this kid's length: the tempo times frac, strayed by dither.
+     frac is the fraction of a whole tempo the pause is worth -- a formal and
+     not a command name, since a func's keyword formal cannot shadow one (the
+     obvious :scale reads nil, scale being a graphic command). */
+  :pause func(
+    usleep(int(kid.pace*frac*(1-kid.dither+rand(0,2*kid.dither)))))
+
+  /* A line finished.  update() puts it on this screen and on everyone else's,
+     and then the hand leaves the page for a moment -- a fifth of a tempo,
+     since the gap between a creature's head and its tail is a shorter one than
+     the gap between two creatures.  Calling this between the parts is what
+     makes a creature get drawn rather than appear. */
+  :stroke func(
+    update(1);
+    kid.pause(:frac 0.2))
+
   :animal func(
     ellipse(x,y, 26,16);            // body
     colorsrgb(c "#FFFFFF");
+    kid.stroke();
     ellipse(x+24,y-8, 11,10);       // head
     colorsrgb(c "#FFFFFF");
+    kid.stroke();
     ellipse(x-22,y+2, 7,5);         // tail
-    colorsrgb(c "#FFFFFF")
+    colorsrgb(c "#FFFFFF");
+    kid.stroke()
   )
 
   :adventurer func(
     rect(x-7,y, x+7,y+30);          // body
     colorsrgb(c "#FFFFFF");
+    kid.stroke();
     ellipse(x,y+40, 10,10);         // head
     colorsrgb("#FFDDAA" "#FFFFFF");
+    kid.stroke();
     line(x+7,y+22, x+22,y+34);      // sword arm
-    colorsrgb(c "#FFFFFF")
+    colorsrgb(c "#FFFFFF");
+    kid.stroke()
   )
 
   :tree func(
     rect(x-4,y, x+4,y+22);          // trunk
     colorsrgb("#8B5A2B" "#FFFFFF");
+    kid.stroke();
     ellipse(x,y+34, 20,16);         // leaves
-    colorsrgb("#33AA33" "#FFFFFF")
+    colorsrgb("#33AA33" "#FFFFFF");
+    kid.stroke()
   )
 
   // kid.play(:n 6) -- draw n things, pausing between them.  The pause is the
@@ -54,8 +94,11 @@ kid=(
       if(pick==0 :then kid.animal(:x xx :y yy :c kid.colour) :else
         if(pick==1 :then kid.adventurer(:x xx :y yy :c kid.colour)
           :else kid.tree(:x xx :y yy)));
-      update(1);
-      usleep(400000);
+      /* the creature's own last stroke has already updated and paused; what is
+         left is the rest of the gap to the next one, and now and then a longer
+         stare at the page before deciding what that one is */
+      kid.pause(:frac 0.8);
+      if(rand(0,1)<kid.ponder :then kid.pause(:frac 1+rand(0,2)));
       i=i+1);
     /* put it down when finished.  Creating a graphic selects it, and a
        selection is a claim the other tables have to ask for: everything a kid
@@ -91,6 +134,7 @@ if(quiet!=true :then
   print("   are linked to.  Try typing:\n");
   print("       kid.play(:n 3)\n");
   print("       kid.colour=\"#DD3333\"\n");
+  print("       kid.pace=120000\n");
   print("       kid.adventurer(:x 200 :y 120 :c kid.colour)\n");
   print("       kid.tree(:x 420 :y 120)\n");
   print("===============================================\n"))

@@ -67,7 +67,7 @@ if(badchar!=nil :then
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("kidmo  a table of linked drawservs\n\n");
-    print("Usage:  kidmo [--kids n] [--draw n] [--tests] [--help]\n");
+    print("Usage:  kidmo [--kids n] [--draw n] [--pace us] [--tests] [--help]\n");
     print("  Run it from anywhere -- it reads the kid.comt beside it.  It finds\n");
     print("  ports, brings a drawserv up on each, pulls the other chairs up to\n");
     print("  the one at the head of the table, teaches each of them the kid\n");
@@ -77,11 +77,15 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("    e1 e2 e3 e4          a second connection apiece, for asking\n");
     print("                         about the canvas rather than driving it\n");
     print("    remote(k1 \"kid.play(:n 2)\")   ask a kid to draw\n");
-    print("    look()               what each table is holding\n");
+    print("    todd.tempo(:to 100000)        tell one of them to hurry up\n");
+    print("    look()               what each table is holding, and how fast\n");
     print("    bye()                send them home\n\n");
     print("--kids [n]\t\thow many sit down (1-4, default 4)\n");
     print("--draw [n]\t\thow many things each draws before the prompt\n");
     print("\t\t\t(default 3; 0 for an empty canvas, welcome and all)\n");
+    print("--pace [us]\t\tgive every kid the same tempo, in microseconds\n");
+    print("\t\t\tbetween creatures, instead of one apiece.  0 draws as\n");
+    print("\t\t\tfast as the sockets will carry it\n");
     print("--tests\t\t\tbring a table up, check it, take it down, and\n");
     print("\t\t\treport -- no prompt, and non-zero if anything failed\n");
     print("--help\t\t\tprint this help message\n\n");
@@ -95,12 +99,14 @@ callback_port=int(arg(1))
    back up: two kids is one link, where the default is four kids and three. */
 nkids=4
 ndraw=-1
+pace_opt=-1
 tests=false
 global(nrect)=0
 for(i=2 i<narg() i++
   switch(substr(arg(i) 2 :after)
     :kids if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;nkids=int(arg(i))
     :draw if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;ndraw=int(arg(i))
+    :pace if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;pace_opt=int(arg(i))
     :tests tests=true
     :default print("kidmo:  Unknown argument %s\n" arg(i) :err)))
 if(nkids<1 :then nkids=1)
@@ -139,6 +145,21 @@ p3=find_open_port(:base_port 41002)
 p4=find_open_port(:base_port 51002)
 kid_ports=(p1,p2,p3,p4)
 kid_cols=("#DD3333","#3366DD","#22AA55","#CC7722")
+
+/* A tempo apiece, in microseconds from one creature to the next, with how far
+   each kid's pauses stray from it and how often they stop to look at the page.
+   Four kids drawing at one speed is one machine with four crayons: Todd
+   rattles through them, Ana takes her time, and the two between are neither.
+   These are pushed to each kid when it is taught, because how fast a kid works
+   is the kid's own business and belongs on the kid's own machine -- the same
+   reason what a hero looks like lives in kid.comt and not here. */
+kid_paces=(240000,420000,330000,560000)
+kid_dithers=(0.75,0.4,0.55,0.5)
+kid_ponders=(0.15,0.3,0.2,0.4)
+/* --pace puts them all on one clock, which is what a test wants (0 draws as
+   fast as the sockets will carry it) and what you want when you have watched
+   the demo enough times */
+if(pace_opt>=0 :then kid_paces=(pace_opt,pace_opt,pace_opt,pace_opt))
 
 /* Launch, each kid calling back when it is up -- no guessing at a settle.
    -comt gives every kid an inline comterp pane in their own window: with
@@ -312,6 +333,9 @@ while(j<nkids
   if(ndraw>=0 :then remote(at(kids j) "nowelcome=true"));
   remote(at(kids j) print("run(%c%s%c)" 34 kid_file 34 :str));
   remote(at(kids j) print("kid.colour=%c%s%c" 34 at(kid_cols j) 34 :str));
+  remote(at(kids j) print("kid.pace=%d" at(kid_paces j) :str));
+  remote(at(kids j) print("kid.dither=%v" at(kid_dithers j) :str));
+  remote(at(kids j) print("kid.ponder=%v" at(kid_ponders j) :str));
   remote(at(kids j) print("srand(%d)" 11+j*7 :str));
   j=j+1)
 print("kidmo: hub holds %v links, everyone knows %v sessions\n" remote(e1 "size(drawlink(:table))") remote(e1 "size(sid(:table))") :err)
@@ -319,7 +343,12 @@ print("kidmo: hub holds %v links, everyone knows %v sessions\n" remote(e1 "size(
 look=func(
   j=0;
   while(j<nkids
-    print("  %v canvas=%v held=%v\n" at(kid_cols j)
+    /* the pace is asked of the kid rather than read out of kid_paces, which
+       only records what it was taught: tempo() changes it at the kid, and a
+       table here would go on reporting the old number.  It has to be asked on
+       the driving socket, the one that was taught -- the eyes know nothing of
+       kid, only of the canvas, which belongs to the node. */
+    print("  %v pace=%v canvas=%v held=%v\n" at(kid_cols j) remote(at(kids j) "kid.pace")
       remote(at(eyes j) "size(children())") remote(at(eyes j) "size(select())") :err);
     j=j+1);
   0)
@@ -354,10 +383,14 @@ bye=func(
    under test.
 
    A model of each kid: name, crayon, the socket he is on, and the things we
-   can ask of him.  The funcs are defined inline because naming a func fires
-   it niladically -- (:draw todd_draw) would store the nil that calling it
-   returned -- and each refers to its own object by name, the way zoomap's
-   zoo.flash() does from inside zoo. */
+   can ask of him -- draw() a whole play, one() a single plain rect to check
+   the wire with, tempo() a different speed to work at.  The funcs are defined
+   inline because naming a func fires it niladically -- (:draw todd_draw) would
+   store the nil that calling it returned -- and each refers to its own object
+   by name, the way zoomap's zoo.flash() does from inside zoo.
+   None of them assigns through that name: a func in a literal that writes to
+   kid1.something gets a private cell of its own rather than the kid, that
+   being how a name written through while it is still unbound is captured. */
 
 kid1=(
   :name "Todd" :colour "#DD3333" :socket k1
@@ -369,6 +402,9 @@ kid1=(
   :one func( global(nrect)=global(nrect)+1;
     remote(kid1.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
+  :tempo func(
+    remote(kid1.socket print("kid.pace=%d" to :str));
+    to)
 )
 kid2=(
   :name "Mia" :colour "#3366DD" :socket k2
@@ -380,6 +416,9 @@ kid2=(
   :one func( global(nrect)=global(nrect)+1;
     remote(kid2.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
+  :tempo func(
+    remote(kid2.socket print("kid.pace=%d" to :str));
+    to)
 )
 kid3=(
   :name "Sam" :colour "#22AA55" :socket k3
@@ -391,6 +430,9 @@ kid3=(
   :one func( global(nrect)=global(nrect)+1;
     remote(kid3.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
+  :tempo func(
+    remote(kid3.socket print("kid.pace=%d" to :str));
+    to)
 )
 kid4=(
   :name "Ana" :colour "#CC7722" :socket k4
@@ -402,6 +444,9 @@ kid4=(
   :one func( global(nrect)=global(nrect)+1;
     remote(kid4.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
+  :tempo func(
+    remote(kid4.socket print("kid.pace=%d" to :str));
+    to)
 )
 
 /* The kids are numbered kid1..kid<n>; the names are what you call them by.  A
@@ -416,11 +461,20 @@ mia=kid2
 sam=kid3
 ana=kid4
 
+/* One creature apiece, round and round, rather than a whole play each.
+   remote() blocks until the kid answers, so asking Todd for three things means
+   Mia does not lift a crayon until he has finished all three -- four kids
+   taking turns rather than a table of them.  Going round makes the crayons
+   alternate, and each kid's own tempo still shows in it, the pause being taken
+   at the kid before it answers. */
 all=func( cnt=if(n==nil :then 1 :else n);
-  kid1.draw(:n cnt);
-  if(nkids>1 :then kid2.draw(:n cnt));
-  if(nkids>2 :then kid3.draw(:n cnt));
-  if(nkids>3 :then kid4.draw(:n cnt));
+  i=0;
+  while(i<cnt
+    kid1.draw(:n 1);
+    if(nkids>1 :then kid2.draw(:n 1));
+    if(nkids>2 :then kid3.draw(:n 1));
+    if(nkids>3 :then kid4.draw(:n 1));
+    i=i+1);
   cnt)
 
 wait_all=func(
@@ -476,6 +530,11 @@ if(tests :then
     if(remote(at(kids j) "kid.play!=nil")!=true :then taught=false);
     j=j+1);
   check(:nm "taught" :got taught);
+  /* and the tempo with it.  A kid that was handed a pace draws at kid speed
+     rather than at socket speed, which is what the pauses are for */
+  check(:nm "paced" :got remote(at(kids 0) "kid.pace")==at(kid_paces 0));
+  check(:nm "tempo" :got kid1.tempo(:to 120000)==120000 &&
+    remote(at(kids 0) "kid.pace")==120000);
   /* and the kids on top of it: one() puts a plain rect on the head kid's
      canvas, draw() sends a whole play through and reports back done */
   was=remote(e1 "size(children())");
@@ -518,6 +577,8 @@ if(nkids>2 :then nametag(:who 2 :nm "Sam"))
 if(nkids>3 :then nametag(:who 3 :nm "Ana"))
 
 print("kidmo: Todd %v, Mia %v, Sam %v, Ana %v\n" p1 p2 p3 p4 :err)
+print("kidmo: paces %v %v %v %v microseconds between creatures\n"
+  at(kid_paces 0) at(kid_paces 1) at(kid_paces 2) at(kid_paces 3) :err)
 print("kidmo: ready -- todd.draw()  mia.draw(:n 3)  all(:n 2)  wait_all()  look()  bye()\n" :err)
 
 /* what they draw before you get the prompt.  --draw 0 leaves the canvas empty

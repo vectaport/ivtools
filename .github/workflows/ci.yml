@@ -422,7 +422,9 @@ jobs:
       # plain `./drawmo` with no arguments still runs all of them.
       - name: Test - drawserv drawmo suite
         if: always()
-        timeout-minutes: 6
+        # 8 rather than 6: the suite ran 4m25s before the four-node kids test
+        # joined it, and a retry after the Xvfb flake below has to fit too.
+        timeout-minutes: 8
         run: |
           set -o pipefail
           cd src/drawserv_/tests
